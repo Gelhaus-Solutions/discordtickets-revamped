@@ -1,7 +1,23 @@
 'use strict';
 const path = require('path');
 const fs = require('fs');
-const { generateHtmlTranscript } = require('../../../../../../lib/tickets/transcript-html');
+// Resolve `transcript-html` from a number of common locations because the
+// running container's current working directory may differ from the repo root.
+const transcriptCandidates = [
+	path.join(__dirname, '../../../../../../lib/tickets/transcript-html.js'),
+	path.join(__dirname, '../../../../lib/tickets/transcript-html.js'),
+	path.join(process.cwd(), 'src', 'lib', 'tickets', 'transcript-html.js'),
+	path.join('/app', 'src', 'lib', 'tickets', 'transcript-html.js'),
+	path.join('/home/container', 'src', 'lib', 'tickets', 'transcript-html.js'),
+];
+let transcriptPath = null;
+for (const p of transcriptCandidates) {
+	if (fs.existsSync(p)) { transcriptPath = p; break; }
+}
+if (!transcriptPath) {
+	throw new Error('transcript-html module not found; checked common locations');
+}
+const { generateHtmlTranscript } = require(transcriptPath);
 
 /**
  * GET /api/admin/guilds/:guild/tickets/:ticket/transcript
@@ -18,17 +34,34 @@ module.exports.get = fastify => ({
 		const forceRegen = req.query.regen === '1';
 		const asDownload = req.query.download === '1';
 
-		// Validate ticket belongs to guild
-		const ticket = await client.prisma.ticket.findUnique({
-			select: {
-				guildId: true,
-				htmlTranscript: true,
-				id: true,
-				number: true,
-				open: true,
-			},
-			where: { id: ticketId },
-		});
+		// Validate ticket belongs to guild. Older DBs may not have `htmlTranscript`;
+		// attempt the full select and fall back to a safer select if the column
+		// is missing (Prisma P2022).
+		let ticket;
+		try {
+			ticket = await client.prisma.ticket.findUnique({
+				select: {
+					guildId: true,
+					htmlTranscript: true,
+					id: true,
+					number: true,
+					open: true,
+				},
+				where: { id: ticketId },
+			});
+		} catch (err) {
+			client.log.warn('Prisma select with htmlTranscript failed, retrying without it: %s', err.message);
+			ticket = await client.prisma.ticket.findUnique({
+				select: {
+					guildId: true,
+					id: true,
+					number: true,
+					open: true,
+				},
+				where: { id: ticketId },
+			});
+			if (ticket) ticket.htmlTranscript = null;
+		}
 
 		if (!ticket || ticket.guildId !== guildId) {
 			return res.code(404).send({
