@@ -10,7 +10,7 @@ return {
 	assets: new Set([]),
 	mimeTypes: {},
 	_: {
-		client: {start:"_app/immutable/entry/start.Do9GZu9C.js",app:"_app/immutable/entry/app.B0FEc-i8.js",imports:["_app/immutable/entry/start.Do9GZu9C.js","_app/immutable/chunks/Ccka-6AH.js","_app/immutable/chunks/BgOtEVpo.js","_app/immutable/chunks/w0yj2jlX.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/BooD_1dB.js","_app/immutable/chunks/CYgJF_JY.js","_app/immutable/chunks/BK0SFyA8.js","_app/immutable/chunks/Dhbirp5Y.js","_app/immutable/chunks/B17Q6ahh.js","_app/immutable/entry/app.B0FEc-i8.js","_app/immutable/chunks/Dp1pzeXC.js","_app/immutable/chunks/BlfGCrMp.js","_app/immutable/chunks/w0yj2jlX.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/BooD_1dB.js","_app/immutable/chunks/Bzak7iHL.js","_app/immutable/chunks/BgOtEVpo.js","_app/immutable/chunks/DP_MZUJz.js","_app/immutable/chunks/D6OMl6Um.js","_app/immutable/chunks/BsdD4XgB.js","_app/immutable/chunks/BrJJN1Z4.js","_app/immutable/chunks/BeFxoXHY.js","_app/immutable/chunks/D9CK0TUC.js","_app/immutable/chunks/Dhbirp5Y.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.CPzXK4F5.js",app:"_app/immutable/entry/app.D2L_GOTe.js",imports:["_app/immutable/entry/start.CPzXK4F5.js","_app/immutable/chunks/BgFK6334.js","_app/immutable/chunks/nwo5WiIq.js","_app/immutable/chunks/_fu6EM7d.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/DbFbsu9R.js","_app/immutable/chunks/CYgJF_JY.js","_app/immutable/chunks/DsOizRWX.js","_app/immutable/chunks/B4e910Rm.js","_app/immutable/chunks/B17Q6ahh.js","_app/immutable/entry/app.D2L_GOTe.js","_app/immutable/chunks/Dp1pzeXC.js","_app/immutable/chunks/BSe2IdtJ.js","_app/immutable/chunks/_fu6EM7d.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/DbFbsu9R.js","_app/immutable/chunks/Bzak7iHL.js","_app/immutable/chunks/nwo5WiIq.js","_app/immutable/chunks/BkvMZOlF.js","_app/immutable/chunks/Caq5s-y_.js","_app/immutable/chunks/BMnviba6.js","_app/immutable/chunks/ByBQdF1a.js","_app/immutable/chunks/BALO3cCj.js","_app/immutable/chunks/CzA9-LZ0.js","_app/immutable/chunks/B4e910Rm.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
 			__memo(() => import('./nodes/0.js')),
 			__memo(() => import('./nodes/1.js')),
@@ -35,7 +35,8 @@ return {
 			__memo(() => import('./nodes/20.js')),
 			__memo(() => import('./nodes/21.js')),
 			__memo(() => import('./nodes/22.js')),
-			__memo(() => import('./nodes/23.js'))
+			__memo(() => import('./nodes/23.js')),
+			__memo(() => import('./nodes/24.js'))
 		],
 		remotes: {
 			
@@ -116,6 +117,13 @@ return {
 				pattern: /^\/settings\/([^/]+?)\/tags\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
 				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 23 },
+				endpoint: null
+			},
+			{
+				id: "/settings/[guild]/transcripts",
+				pattern: /^\/settings\/([^/]+?)\/transcripts\/?$/,
+				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 24 },
 				endpoint: null
 			},
 			{

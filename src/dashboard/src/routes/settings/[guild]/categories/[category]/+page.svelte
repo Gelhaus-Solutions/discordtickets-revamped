@@ -43,7 +43,7 @@
 		});
 	});
 
-	let { category, channels, roles, url } = $state(data);
+	let { category, channels, roles, categories, url } = $state(data);
 
 	const slowmodes = [
 		'5s',
@@ -59,6 +59,12 @@
 		'1h',
 		'2h',
 		'6h'
+	];
+
+	const channelModes = [
+		{ value: 'CHANNEL', label: 'Channel (Default)' },
+		{ value: 'THREAD', label: 'Thread (in category channel)' },
+		{ value: 'FORUM', label: 'Forum Channel' }
 	];
 
 	qS.questions = category.questions;
@@ -296,6 +302,44 @@
 									<!-- <i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400" /> -->
 									{channel.name}
 								</option>
+							{/each}
+						</select>
+					</label>
+				</div>
+				<div>
+					<label class="font-medium">
+						Channel Mode
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="How should ticket channels be created?"
+						></i>
+						<select class="input form-multiselect" bind:value={category.channelMode}>
+							{#each channelModes as mode}
+								<option value={mode.value} class="p-1">
+									{mode.label}
+								</option>
+							{/each}
+						</select>
+					</label>
+				</div>
+				<div>
+					<label class="font-medium">
+						Backup Category
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="Alternative category to use when primary is full"
+						></i>
+						<select class="input form-multiselect" bind:value={category.backupCategoryId}>
+							<option value={null} class="p-1">
+								None
+							</option>
+							<hr />
+							{#each categories as cat}
+								{#if cat.id !== category.id}
+									<option value={cat.id} class="p-1">
+										{emoji.get(cat.emoji) ?? ''} {cat.name}
+									</option>
+								{/if}
 							{/each}
 						</select>
 					</label>

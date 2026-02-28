@@ -1,0 +1,1 @@
+const o=[["common:language",{t:"Language"}],["common:logout",{t:"Log out"}],["common:settings_panel",{t:"Settings Panel"}],["common:staff_dashboard",{t:"Staff Dashboard"}],["common:theme",{t:"Theme"}],["common:title",{t:" -  Portal",p:[[0,{v:"guild"}],[3,{v:"client"}]]}]],t="en-GB",n={json:o,locale_id:t};export{n as default,o as json,t as locale_id};

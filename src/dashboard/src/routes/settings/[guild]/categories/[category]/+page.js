@@ -22,7 +22,9 @@ export async function load({ fetch, params }) {
 			requiredRoles: [],
 			requireTopic: false,
 			staffRoles: [],
-			totalLimit: 50
+			totalLimit: 50,
+			channelMode: 'CHANNEL',
+			backupCategoryId: null
 		};
 	} else {
 		const response = await fetch(
@@ -47,6 +49,9 @@ export async function load({ fetch, params }) {
 		).json(),
 		roles: await (
 			await fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`, fetchOptions)
+		).json(),
+		categories: await (
+			await fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)
 		).json(),
 		settings: await (await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)).json()
 	};

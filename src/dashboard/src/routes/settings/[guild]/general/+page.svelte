@@ -398,4 +398,90 @@
 			Submit
 		</button>
 	</form>
+
+	<!-- Analytics Dashboard -->
+	{#if data.analytics}
+		<div class="mt-12">
+			<h2 class="text-3xl font-bold mb-6">Server Analytics</h2>
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-4 mb-8">
+				<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
+					<div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Total Tickets</div>
+					<div class="mt-2 text-3xl font-bold">{data.analytics.totalTickets || 0}</div>
+				</div>
+
+				<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
+					<div class="text-sm font-semibold text-gray-600 dark:text-slate-400">
+						Avg Response Time
+					</div>
+					<div class="mt-2 text-3xl font-bold">
+						{#if data.analytics.avgResponseTime}
+							{Math.round(data.analytics.avgResponseTime / 60)}m
+						{:else}
+							N/A
+						{/if}
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
+					<div class="text-sm font-semibold text-gray-600 dark:text-slate-400">
+						Avg Resolution Time
+					</div>
+					<div class="mt-2 text-3xl font-bold">
+						{#if data.analytics.avgResolutionTime}
+							{Math.round(data.analytics.avgResolutionTime / 3600)}h
+						{:else}
+							N/A
+						{/if}
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
+					<div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Open Tickets</div>
+					<div class="mt-2 text-3xl font-bold text-orange-600">
+						{data.analytics.openTickets || 0}
+					</div>
+				</div>
+			</div>
+
+			{#if data.analytics.byAssignee && Object.keys(data.analytics.byAssignee).length > 0}
+				<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
+					<h3 class="text-2xl font-bold mb-4">Tickets by Staff Member</h3>
+					<div class="overflow-x-auto">
+						<table class="w-full text-left">
+							<thead class="border-b border-gray-200 dark:border-gray-600">
+								<tr>
+									<th class="px-4 py-2 font-semibold text-gray-700 dark:text-slate-300">Staff Member</th>
+									<th class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-slate-300">
+										Tickets Assigned
+									</th>
+									<th class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-slate-300">
+										Resolved
+									</th>
+									<th class="px-4 py-2 text-right font-semibold text-gray-700 dark:text-slate-300">
+										Avg Resolution Time
+									</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each Object.entries(data.analytics.byAssignee) as [assigneeId, stats]}
+									<tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+										<td class="px-4 py-3">{stats.name || `User ${assigneeId}`}</td>
+										<td class="px-4 py-3 text-right font-medium">{stats.assigned || 0}</td>
+										<td class="px-4 py-3 text-right font-medium">{stats.resolved || 0}</td>
+										<td class="px-4 py-3 text-right">
+											{#if stats.avgResolutionTime}
+												{Math.round(stats.avgResolutionTime / 3600)}h
+											{:else}
+												N/A
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 </div>

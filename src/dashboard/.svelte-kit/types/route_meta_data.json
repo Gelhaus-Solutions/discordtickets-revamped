@@ -1,0 +1,86 @@
+{
+	"/(default)": [
+		"src/routes/(default)/+page.js",
+		"src/routes/+layout.server.js",
+		"src/routes/+layout.server.js"
+	],
+	"/": [
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/invite": [
+		"src/routes/(default)/invite/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/login": [
+		"src/routes/(default)/login/+page.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings": [
+		"src/routes/settings/+page.js",
+		"src/routes/+layout.server.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]": [
+		"src/routes/settings/[guild]/+page.js",
+		"src/routes/+layout.server.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/categories": [
+		"src/routes/settings/[guild]/categories/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/categories/[category]": [
+		"src/routes/settings/[guild]/categories/[category]/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/feedback": [
+		"src/routes/settings/[guild]/feedback/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/general": [
+		"src/routes/settings/[guild]/general/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/panels": [
+		"src/routes/settings/[guild]/panels/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/tags": [
+		"src/routes/settings/[guild]/tags/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/settings/[guild]/transcripts": [
+		"src/routes/settings/[guild]/transcripts/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/view/[ticket]": [
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/[guild]": [
+		"src/routes/(default)/[guild]/+page.js",
+		"src/routes/(default)/[guild]/+layout.js",
+		"src/routes/+layout.server.js",
+		"src/routes/(default)/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/[guild]/feedback": [
+		"src/routes/(default)/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/[guild]/staff": [
+		"src/routes/(default)/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
+	"/(default)/[guild]/tickets": [
+		"src/routes/(default)/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	]
+}

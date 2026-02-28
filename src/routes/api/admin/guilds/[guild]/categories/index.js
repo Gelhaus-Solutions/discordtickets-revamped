@@ -19,8 +19,9 @@ module.exports.get = fastify => ({
 			select: {
 				categories: {
 					select: {
-						channelMode: true,
 						autoAssign: true,
+						backupCategoryId: true,
+						channelMode: true,
 						createdAt: true,
 						description: true,
 						discordCategory: true,
