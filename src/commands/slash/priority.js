@@ -10,7 +10,7 @@ const getEmoji = priority => {
 		'MEDIUM': '🟠',
 		'LOW': '🟢', // eslint-disable-line sort-keys
 	};
-	return emojis[priority];
+	return emojis[priority?.toUpperCase()] ?? '🔵';
 };
 
 module.exports = class PrioritySlashCommand extends SlashCommand {
@@ -25,7 +25,8 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 			nameLocalizations: client.i18n.getAllMessages(`commands.slash.${name}.name`),
 			options: [
 				{
-					choices: ['HIGH', 'MEDIUM', 'LOW'],
+					maxLength: 32,
+					minLength: 1,
 					name: 'priority',
 					required: true,
 					type: ApplicationCommandOptionType.String,
@@ -34,13 +35,6 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 				option.descriptionLocalizations = client.i18n.getAllMessages(`commands.slash.${name}.options.${option.name}.description`);
 				option.description = option.descriptionLocalizations['en-GB'];
 				option.nameLocalizations = client.i18n.getAllMessages(`commands.slash.${name}.options.${option.name}.name`);
-				if (option.choices) {
-					option.choices = option.choices.map(choice => ({
-						name: client.i18n.getMessage(null, `commands.slash.priority.options.${option.name}.choices.${choice}`),
-						nameLocalizations: client.i18n.getAllMessages(`commands.slash.priority.options.${option.name}.choices.${choice}`),
-						value: choice,
-					}));
-				}
 				return option;
 			}),
 		});
@@ -91,10 +85,16 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 			});
 		}
 
-		const priority = interaction.options.getString('priority', true);
+		const priority = interaction.options.getString('priority', true).trim();
 		let name = interaction.channel.name;
-		if (ticket.priority) name = name.replace(getEmoji(ticket.priority), getEmoji(priority));
-		else name = getEmoji(priority) + name;
+		// Separate the ✅ claim prefix so the priority emoji is always inserted immediately after it
+		const claimedPrefix = name.startsWith('✅') ? '✅' : '';
+		const unprefixed = claimedPrefix ? name.slice(1) : name;
+		if (ticket.priority) {
+			name = claimedPrefix + unprefixed.replace(getEmoji(ticket.priority), getEmoji(priority));
+		} else {
+			name = claimedPrefix + getEmoji(priority) + unprefixed;
+		}
 		await interaction.channel.setName(name);
 
 		// don't reassign ticket because the original is used below
@@ -124,7 +124,7 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 				})
 					.setColor(settings.successColour)
 					.setTitle(getMessage('commands.slash.priority.success.title'))
-					.setDescription(getMessage('commands.slash.priority.success.description', { priority: getMessage(`commands.slash.priority.options.priority.choices.${priority}`) })),
+					.setDescription(getMessage('commands.slash.priority.success.description', { priority })),
 			],
 		});
 

@@ -141,7 +141,7 @@ module.exports = class MoveSlashCommand extends SlashCommand {
 					.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number === 1488 ? '1487b' : ticket.number);
 				await interaction.channel.edit({
 					lockPermissions: false,
-					name: ticket.priority ? getEmoji(ticket.priority) + channelName : channelName,
+					name: (ticket.claimedById ? '✅' : '') + (ticket.priority ? getEmoji(ticket.priority) : '') + channelName,
 					parent: discordCategory,
 					permissionOverwrites: [
 						{

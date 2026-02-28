@@ -7,6 +7,7 @@ const {
 const { isStaff } = require('../../lib/users');
 const ms = require('ms');
 const { logTicketEvent } = require('../../lib/logging');
+const { getEmoji } = require('./priority');
 
 module.exports = class RenameSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -90,7 +91,11 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 		}
 
 		const { name: originalName } = interaction.channel;
-		const name = interaction.options.getString('name'); // Get the new name from the user's input
+		const rawName = interaction.options.getString('name'); // Get the new name from the user's input
+		// Re-apply managed prefixes so ✅ (claim) and priority emoji are preserved
+		const claimedPrefix = ticket.claimedById ? '✅' : '';
+		const priorityEmoji = ticket.priority ? getEmoji(ticket.priority) : '';
+		const name = claimedPrefix + priorityEmoji + rawName;
 
 		// Validate the new name length (must be between 1 and 100 characters)
 		if (name.length < 1 || name.length > 100) {
@@ -137,7 +142,7 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 		// Proceed with renaming the channel
 		await interaction.channel.edit({ name });
 
-		// Respond with a success message
+		// Respond with a success message (show only the user-provided portion)
 		await interaction.editReply({
 			embeds: [
 				new ExtendedEmbedBuilder({
@@ -146,7 +151,7 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 				})
 					.setColor(ticket.guild.successColour)
 					.setTitle(getMessage('commands.slash.rename.success.title'))
-					.setDescription(getMessage('commands.slash.rename.success.description', { name })),
+					.setDescription(getMessage('commands.slash.rename.success.description', { name: rawName })),
 			],
 		});
 

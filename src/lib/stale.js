@@ -16,7 +16,6 @@ module.exports = async function handleStaleTickets(client, staleInterval) {
 				where: { open: true },
 			},
 		},
-		// where: { staleAfter: { not: null } },
 		where: { staleAfter: { gte: staleInterval } },
 	});
 	let processed = 0;
@@ -30,30 +29,33 @@ module.exports = async function handleStaleTickets(client, staleInterval) {
 				processed++;
 				if (client.tickets.$stale.has(ticket.id)) {
 					const $ = client.tickets.$stale.get(ticket.id);
+					// Only auto-close if closeAt is set
+					if (!$.closeAt) continue;
 					const autoCloseAfter = $.closeAt - $.staleSince;
 					const halfway = $.closeAt - (autoCloseAfter / 2);
-					const channel = client.channels.cache.get(ticket.id);
+					// Try to fetch the channel/thread
+					const channel = client.channels.cache.get(ticket.id) || await client.channels.fetch(ticket.id).catch(() => null);
 					if (!channel) {
 						client.tickets.$stale.delete(ticket.id);
 						continue;
 					}
-					if (Date.now() >= halfway && Date.now() < halfway + staleInterval) {
+					if (Date.now() >= halfway && !$.halfwaySent) {
+						$.halfwaySent = true;
 						await channel.send({
 							embeds: [
 								new ExtendedEmbedBuilder()
 									.setColor(guild.primaryColour)
 									.setTitle(getMessage('ticket.closing_soon.title'))
-									.setDescription(getMessage('ticket.closing_soon.description', { timestamp: Math.floor(($.closeAt + staleInterval) / 1000) })),
+									.setDescription(getMessage('ticket.closing_soon.description', { timestamp: Math.floor($.closeAt / 1000) })),
 							],
 						});
-					} else if ($.closeAt < Date.now()) {
+					} else if ($.closeAt <= Date.now()) {
 						await client.tickets.finallyClose(ticket.id, $);
 						closed++;
 					}
 				} else if (Date.now() - (ticket.lastMessageAt || ticket.createdAt) >= guild.staleAfter) {
-					// set as stale
-					/** @type {import("discord.js").TextChannel} */
-					const channel = await client.channels.fetch(ticket.id);
+					// set as stale — fetch channel or thread
+					const channel = client.channels.cache.get(ticket.id) || await client.channels.fetch(ticket.id).catch(() => null);
 					if (!channel) {
 						await client.tickets.finallyClose(ticket.id, { reason: 'channel deleted' });
 						closed++;
@@ -63,10 +65,10 @@ module.exports = async function handleStaleTickets(client, staleInterval) {
 					let ping = '';
 
 					if (messages.size > 0) {
-						const lastMessage =  messages.first();
+						const lastMessage = messages.first();
 						const staff = await isStaff(channel.guild, lastMessage.author.id);
 						if (staff) ping = `<@${ticket.createdById}>`;
-						else ping = ticket.category.pingRoles.map(r => `<@&${r}>`).join(' ');
+						else ping = (ticket.category?.pingRoles || []).map(r => `<@&${r}>`).join(' ');
 					}
 
 					const sent = await channel.send({
@@ -89,7 +91,7 @@ module.exports = async function handleStaleTickets(client, staleInterval) {
 								.setColor(guild.primaryColour)
 								.setTitle(getMessage('ticket.inactive.title'))
 								.setDescription(getMessage('ticket.inactive.description', {
-									close: `</${closeCommand.name}:${closeCommand.id}>`,
+									close: closeCommand ? `</${closeCommand.name}:${closeCommand.id}>` : '`/close`',
 									timestamp: Math.floor((ticket.lastMessageAt || ticket.createdAt).getTime() / 1000),
 								})),
 						],
@@ -98,6 +100,7 @@ module.exports = async function handleStaleTickets(client, staleInterval) {
 					client.tickets.$stale.set(ticket.id, {
 						closeAt: guild.autoClose ? Date.now() + guild.autoClose : null,
 						closedBy: null,
+						halfwaySent: false,
 						message: sent,
 						messages: 0,
 						reason: 'inactivity',

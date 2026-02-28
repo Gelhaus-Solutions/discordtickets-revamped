@@ -1,10 +1,12 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable max-lines */
 const TicketArchiver = require('./archiver');
+const { saveHtmlTranscript } = require('./transcript-html');
 const {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
+	ChannelType,
 	inlineCode,
 	ModalBuilder,
 	StringSelectMenuBuilder,
@@ -238,11 +240,40 @@ module.exports = class TicketManager {
 			if (missing) return await sendError('missing_roles');
 		}
 
-		const discordCategory = guild.channels.cache.get(category.discordCategory);
-		if (discordCategory.children.cache.size === 50) return await sendError('category_full');
+		// Check if category is full (Discord category channels limit = 50, or totalLimit in DB)
+		// For CHANNEL mode: check discord category child count
+		// For THREAD/FORUM mode: no Discord category child limit applies
+		if (category.channelMode === 'CHANNEL' || !category.channelMode) {
+			const discordCategory = guild.channels.cache.get(category.discordCategory);
+			if (discordCategory && discordCategory.children.cache.size >= 50) {
+				// Try backup category first before erroring
+				if (category.backupCategoryId) {
+					return this.create({
+						categoryId: category.backupCategoryId,
+						interaction,
+						referencesMessageId,
+						referencesTicketId,
+						topic,
+					});
+				}
+				return await sendError('category_full');
+			}
+		}
 
 		const totalCount = await this.getTotalCount(category.id);
-		if (totalCount >= category.totalLimit) return await sendError('category_full');
+		if (totalCount >= category.totalLimit) {
+			// Try backup category first before erroring
+			if (category.backupCategoryId) {
+				return this.create({
+					categoryId: category.backupCategoryId,
+					interaction,
+					referencesMessageId,
+					referencesTicketId,
+					topic,
+				});
+			}
+			return await sendError('category_full');
+		}
 
 		const memberCount = await this.getMemberCount(category.id, interaction.user.id);
 		if (memberCount >= category.memberLimit) {
@@ -405,32 +436,95 @@ module.exports = class TicketManager {
 			.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator.displayName)
 			.replace(/{+\s?num(ber)?\s?}+/gi, number === 1488 ? '1487b' : number);
 		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
-		/** @type {import("discord.js").TextChannel} */
-		const channel = await guild.channels.create({
-			name: channelName,
-			parent: category.discordCategory,
-			permissionOverwrites: [
-				{
-					deny: ['ViewChannel'],
-					id: guild.roles.everyone.id,
+		const channelMode = category.channelMode || 'CHANNEL';
+
+		/** @type {import("discord.js").TextChannel|import("discord.js").ThreadChannel} */
+		let channel;
+
+		if (channelMode === 'THREAD') {
+			// Create a private/public thread inside an existing channel
+			const parentChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
+			if (!parentChannel) {
+				return await interaction.editReply({
+					embeds: [
+						new ExtendedEmbedBuilder({
+							iconURL: guild.iconURL(),
+							text: category.guild.footer,
+						})
+							.setColor(category.guild.errorColour)
+							.setTitle(getMessage('misc.error.title'))
+							.setDescription('Thread parent channel not found. Please contact an administrator.'),
+					],
+				});
+			}
+			channel = await parentChannel.threads.create({
+				autoArchiveDuration: 10080, // 7 days
+				invitable: false,
+				name: channelName,
+				reason: `${creator.user.username} created a ticket`,
+				type: ChannelType.PrivateThread,
+			});
+			// Add creator and staff members to the private thread
+			await channel.members.add(creator.id);
+			await channel.members.add(this.client.user.id);
+		} else if (channelMode === 'FORUM') {
+			// Create a forum post (thread) in a forum channel
+			const forumChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
+			if (!forumChannel) {
+				return await interaction.editReply({
+					embeds: [
+						new ExtendedEmbedBuilder({
+							iconURL: guild.iconURL(),
+							text: category.guild.footer,
+						})
+							.setColor(category.guild.errorColour)
+							.setTitle(getMessage('misc.error.title'))
+							.setDescription('Forum channel not found. Please contact an administrator.'),
+					],
+				});
+			}
+			// Forum threads require an initial message; we create it here and then send the real opening message later
+			const forumThread = await forumChannel.threads.create({
+				autoArchiveDuration: 10080, // 7 days
+				message: {
+					content: getMessage('ticket.opening_message.content', {
+						creator: interaction.user.toString(),
+						staff: category.pingRoles.map(r => `<@&${r}>`).join(' '),
+					}),
 				},
-				{
-					allow,
-					id: this.client.user.id,
-				},
-				{
-					allow,
-					id: creator.id,
-				},
-				...category.staffRoles.map(id => ({
-					allow,
-					id,
-				})),
-			],
-			rateLimitPerUser: category.ratelimit,
-			reason: `${creator.user.tag} created a ticket`,
-			topic: `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}`,
-		});
+				name: channelName,
+				reason: `${creator.user.username} created a ticket`,
+			});
+			channel = forumThread;
+		} else {
+			// Default: CHANNEL mode — create a new text channel in a Discord category
+			channel = await guild.channels.create({
+				name: channelName,
+				parent: category.discordCategory,
+				permissionOverwrites: [
+					{
+						deny: ['ViewChannel'],
+						id: guild.roles.everyone.id,
+					},
+					{
+						allow,
+						id: this.client.user.id,
+					},
+					{
+						allow,
+						id: creator.id,
+					},
+					...category.staffRoles.map(id => ({
+						allow,
+						id,
+					})),
+				],
+				rateLimitPerUser: category.ratelimit,
+				reason: `${creator.user.username} created a ticket`,
+				topic: `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}`,
+			});
+		}
+
 
 		const needsStats = /{+\s?(avgResponseTime|avgResolutionTime|avgRating)\s?}+/i.test(category.openingMessage);
 		const statsCacheKey = `cache/category-stats/${categoryId}`;
@@ -746,9 +840,11 @@ module.exports = class TicketManager {
 		}
 
 		try {
-			const workingHours = category.guild.workingHours;
+			const rawWorkingHours = category.guild.workingHours;
+			// Clone to avoid mutating the cached array
+			const workingHours = Array.isArray(rawWorkingHours) ? [...rawWorkingHours] : JSON.parse(JSON.stringify(rawWorkingHours));
 			const timezone = workingHours[0];
-			workingHours.shift(); // remove timezone
+			workingHours.shift(); // remove timezone (safe: working on a clone)
 			const now = spacetime.now(timezone);
 			const currentHours = workingHours[now.day()];
 			const start = now.time(currentHours[0]);
@@ -759,8 +855,8 @@ module.exports = class TicketManager {
 				// first look for the next working day *this* week (after today)
 				let nextIndex = workingHours.findIndex((hours, i) => i > now.day() && hours[0] !== hours[1]);
 				// if there isn't one, look for the next working day *next* week (before and including today's weekday)
-				if (!nextIndex) nextIndex = workingHours.findIndex((hours, i) => i <= now.day() && hours[0] !== hours[1]);
-				if (nextIndex) {
+				if (nextIndex === -1) nextIndex = workingHours.findIndex((hours, i) => i <= now.day() && hours[0] !== hours[1]);
+				if (nextIndex !== -1) {
 					working = false;
 					const next = workingHours[nextIndex];
 					let then = now.add(nextIndex - now.day(), 'day');
@@ -813,6 +909,51 @@ module.exports = class TicketManager {
 	}
 
 	/**
+	 * Auto-claim a ticket when the first staff member responds (no interaction required).
+	 * @param {import("discord.js").TextChannel|import("discord.js").ThreadChannel} channel
+	 * @param {string} userId - the staff member's Discord user ID
+	 */
+	async autoClaim(channel, userId) {
+		const ticket = await this.client.prisma.ticket.findUnique({
+			include: { guild: true },
+			where: { id: channel.id },
+		});
+		if (!ticket || ticket.claimedById) return; // already claimed or not a ticket
+
+		await this.client.prisma.ticket.update({
+			data: {
+				claimedBy: {
+					connectOrCreate: {
+						create: { id: userId },
+						where: { id: userId },
+					},
+				},
+			},
+			where: { id: channel.id },
+		});
+
+		// Add checkmark to channel name
+		const currentName = channel.name;
+		if (!currentName.startsWith('✅')) {
+			await channel.setName('✅' + currentName, `Auto-assigned to first staff responder`).catch(() => null);
+		}
+
+		// For private threads: ensure the assigned user is a member
+		if (channel.isThread?.()) {
+			await channel.members.add(userId).catch(() => null);
+		}
+
+		logTicketEvent(this.client, {
+			action: 'claim',
+			target: {
+				id: ticket.id,
+				name: channel.toString(),
+			},
+			userId,
+		});
+	}
+
+	/**
 	 * @param {import("discord.js").ChatInputCommandInteraction|import("discord.js").ButtonInteraction} interaction
 	 */
 	async claim(interaction) {
@@ -843,21 +984,31 @@ module.exports = class TicketManager {
 
 		await interaction.deferReply();
 
-		await Promise.all([
-			interaction.channel.permissionOverwrites.edit(interaction.user, { 'ViewChannel': true }, `Ticket claimed by ${interaction.user.tag}`),
-			...ticket.category.staffRoles.map(role => interaction.channel.permissionOverwrites.edit(role, { 'ViewChannel': false }, `Ticket claimed by ${interaction.user.tag}`)),
-			this.client.prisma.ticket.update({
-				data: {
-					claimedBy: {
-						connectOrCreate: {
-							create: { id: interaction.user.id },
-							where: { id: interaction.user.id },
-						},
+		const channelIsThread = interaction.channel.isThread?.();
+		const claimReason = `Ticket claimed by ${interaction.user.username}`;
+
+		// For threads: ensure claimer is added as a thread member
+		if (channelIsThread) {
+			await interaction.channel.members.add(interaction.user.id).catch(() => null);
+		}
+
+		// Add ✅ prefix to signal the ticket is claimed — all staff can still see it
+		const currentName = interaction.channel.name;
+		if (!currentName.startsWith('✅')) {
+			await interaction.channel.setName('✅' + currentName, claimReason).catch(() => null);
+		}
+
+		await this.client.prisma.ticket.update({
+			data: {
+				claimedBy: {
+					connectOrCreate: {
+						create: { id: interaction.user.id },
+						where: { id: interaction.user.id },
 					},
 				},
-				where: { id: interaction.channel.id },
-			}),
-		]);
+			},
+			where: { id: interaction.channel.id },
+		});
 
 		const openingMessage = await interaction.channel.messages.fetch(ticket.openingMessageId);
 
@@ -946,14 +1097,24 @@ module.exports = class TicketManager {
 
 		await interaction.deferReply();
 
-		await Promise.all([
-			interaction.channel.permissionOverwrites.delete(interaction.user, `Ticket released by ${interaction.user.tag}`),
-			...ticket.category.staffRoles.map(role => interaction.channel.permissionOverwrites.edit(role, { 'ViewChannel': true }, `Ticket released by ${interaction.user.tag}`)),
-			this.client.prisma.ticket.update({
-				data: { claimedBy: { disconnect: true } },
-				where: { id: interaction.channel.id },
-			}),
-		]);
+		const channelIsThread = interaction.channel.isThread?.();
+		const releaseReason = `Ticket released by ${interaction.user.username}`;
+
+		// For threads: remove claimer from thread members
+		if (channelIsThread) {
+			await interaction.channel.members.remove(interaction.user.id).catch(() => null);
+		}
+
+		// Strip ✅ prefix from channel name (added when ticket was claimed)
+		const currentName = interaction.channel.name;
+		if (currentName.startsWith('✅')) {
+			await interaction.channel.setName(currentName.slice(1), releaseReason).catch(() => null);
+		}
+
+		await this.client.prisma.ticket.update({
+			data: { claimedBy: { disconnect: true } },
+			where: { id: interaction.channel.id },
+		});
 
 		const openingMessage = await interaction.channel.messages.fetch(ticket.openingMessageId);
 
@@ -1273,15 +1434,45 @@ module.exports = class TicketManager {
 
 		const guild = this.client.guilds.cache.get(ticket.guildId);
 
-		if (channel?.deletable) {
-			const member = closedBy ? channel.guild.members.cache.get(closedBy) : null;
-			await channel.delete('Ticket closed' + (member ? ` by ${member.displayName}` : '') + reason ? `: ${reason}` : '');
+		// Close/archive channel or thread depending on mode
+		const channelMode = ticket.category?.channelMode || 'CHANNEL';
+		if (channel) {
+			const member = closedBy ? channel.guild?.members.cache.get(closedBy) : null;
+			const closeReason = 'Ticket closed' + (member ? ` by ${member.displayName}` : '') + (reason ? `: ${reason}` : '');
+			try {
+				if (channelMode === 'THREAD' || channelMode === 'FORUM' || channel.isThread?.()) {
+					// Strip managed prefixes (✅ claim + priority emoji) from thread name before archiving
+					const cleanName = channel.name
+						.replace(/^✅/, '')                          // remove claim checkmark (U+2705)
+						.replace(/^\p{Emoji_Presentation}/u, '');    // remove leading priority emoji
+					if (cleanName !== channel.name) {
+						await channel.setName(cleanName, closeReason).catch(() => null);
+					}
+					// For threads/forum posts: lock and archive instead of deleting
+					await channel.setLocked(true, closeReason);
+					await channel.setArchived(true, closeReason);
+				} else if (channel.deletable) {
+					await channel.delete(closeReason);
+				}
+			} catch (err) {
+				this.client.log.warn('Failed to close channel/thread %s: %s', ticket.id, err.message);
+			}
 		}
 
-		const components = [];
+		// Components used in DM (file-based transcript button) and log (HTML link button)
+		const dmComponents = [];
+		const logComponents = [];
 
 		if (ticket.guild.archive) {
-			components.push(
+			// Await transcript so we can include the URL in the log button
+			const transcriptPath = await saveHtmlTranscript(this.client, ticket.id)
+				.catch(err => {
+					this.client.log.warn('HTML transcript failed for %s: %s', ticket.id, err.message);
+					return null;
+				});
+
+			// DM: existing file-based "Show Transcript" button
+			dmComponents.push(
 				new ActionRowBuilder()
 					.addComponents(
 						new ButtonBuilder()
@@ -1292,9 +1483,23 @@ module.exports = class TicketManager {
 							.setStyle(ButtonStyle.Primary)
 							.setEmoji(getMessage('buttons.transcript.emoji'))
 							.setLabel(getMessage('buttons.transcript.text')),
-
 					),
 			);
+
+			// Log: HTML link button (only when transcript was successfully saved)
+			if (transcriptPath && process.env.HTTP_EXTERNAL) {
+				const transcriptUrl = `${process.env.HTTP_EXTERNAL}/api/admin/guilds/${ticket.guildId}/tickets/${ticket.id}/transcript`;
+				logComponents.push(
+					new ActionRowBuilder()
+						.addComponents(
+							new ButtonBuilder()
+								.setStyle(ButtonStyle.Link)
+								.setURL(transcriptUrl)
+								.setEmoji('📄')
+								.setLabel(getMessage('buttons.transcript.text')),
+						),
+				);
+			}
 		}
 
 		const fields = {
@@ -1362,7 +1567,7 @@ module.exports = class TicketManager {
 			const creator = guild.members.cache.get(ticket.createdById);
 			if (creator) {
 				await creator.send({
-					components,
+					components: dmComponents,
 					embeds: [dmEmbed],
 				});
 			}
@@ -1392,7 +1597,7 @@ module.exports = class TicketManager {
 		logTicketEvent(this.client, {
 			action: 'close',
 			payload: {
-				components,
+				components: logComponents,
 				fields: fieldsArray,
 			},
 			target: {

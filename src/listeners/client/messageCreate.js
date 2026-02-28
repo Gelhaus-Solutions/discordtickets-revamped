@@ -183,7 +183,10 @@ module.exports = class extends Listener {
 			const settings = await client.prisma.guild.findUnique({ where: { id: message.guild.id } });
 			if (!settings) return;
 			const getMessage = client.i18n.getLocale(settings.locale);
-			let ticket = await client.prisma.ticket.findUnique({ where: { id: message.channel.id } });
+			let ticket = await client.prisma.ticket.findUnique({
+				include: { category: { select: { autoAssign: true } } },
+				where: { id: message.channel.id },
+			});
 
 			if (ticket) {
 				// archive messages
@@ -209,16 +212,22 @@ module.exports = class extends Listener {
 
 					// set first and last message timestamps
 					const data = { lastMessageAt: new Date() };
-					if (
-						ticket.firstResponseAt === null &&
-						await isStaff(message.guild, message.author.id)
-					) data.firstResponseAt = new Date();
-					ticket = await client.prisma.ticket.update({
-						data,
-						where: { id: ticket.id },
-					});
+				const isStaffMember = await isStaff(message.guild, message.author.id);
+				if (ticket.firstResponseAt === null && isStaffMember) data.firstResponseAt = new Date();
+				ticket = await client.prisma.ticket.update({
+					data,
+					where: { id: ticket.id },
+				});
 
-					// if the ticket was set as stale, unset it
+				// auto-assign to first staff responder (per-category opt-in)
+				if (
+					isStaffMember &&
+					ticket.category?.autoAssign &&
+					!ticket.claimedById
+				) {
+					client.tickets.autoClaim(message.channel, message.author.id)
+						.catch(err => client.log.warn('Auto-assign failed for ticket %s: %s', ticket.id, err.message));
+				}
 					if (client.tickets.$stale.has(ticket.id)) {
 						const $ticket = client.tickets.$stale.get(ticket.id);
 						$ticket.messages++;
