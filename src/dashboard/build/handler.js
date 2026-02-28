@@ -1,7 +1,7 @@
 import './shims.js';
 import * as fs from 'node:fs';
 import fs__default, { readdirSync, statSync, createReadStream } from 'node:fs';
-import path, { resolve, join, normalize } from 'node:path';
+import path, { resolve, join, sep, normalize } from 'node:path';
 import process from 'node:process';
 import * as qs from 'node:querystring';
 import { fileURLToPath } from 'node:url';
@@ -540,7 +540,10 @@ function viaLocal(dir, isEtag, uri, extns) {
 	let i=0, arr=toAssume(uri, extns);
 	let abs, stats, name, headers;
 	for (; i < arr.length; i++) {
-		abs = normalize(join(dir, name=arr[i]));
+		abs = normalize(
+			join(dir, name=arr[i])
+		);
+
 		if (abs.startsWith(dir) && fs.existsSync(abs)) {
 			stats = fs.statSync(abs);
 			if (stats.isDirectory()) continue;
@@ -662,7 +665,7 @@ function sirv (dir, opts={}) {
 		});
 	}
 
-	let lookup = opts.dev ? viaLocal.bind(0, dir, isEtag) : viaCache.bind(0, FILES);
+	let lookup = opts.dev ? viaLocal.bind(0, dir + sep, isEtag) : viaCache.bind(0, FILES);
 
 	return function (req, res, next) {
 		let extns = [''];
@@ -694,242 +697,265 @@ function sirv (dir, opts={}) {
 	};
 }
 
-var setCookie = {exports: {}};
+var defaultParseOptions = {
+  decodeValues: true,
+  map: false,
+  silent: false,
+  split: "auto", // auto = split strings but not arrays
+};
 
-var hasRequiredSetCookie;
-
-function requireSetCookie () {
-	if (hasRequiredSetCookie) return setCookie.exports;
-	hasRequiredSetCookie = 1;
-
-	var defaultParseOptions = {
-	  decodeValues: true,
-	  map: false,
-	  silent: false,
-	};
-
-	function isNonEmptyString(str) {
-	  return typeof str === "string" && !!str.trim();
-	}
-
-	function parseString(setCookieValue, options) {
-	  var parts = setCookieValue.split(";").filter(isNonEmptyString);
-
-	  var nameValuePairStr = parts.shift();
-	  var parsed = parseNameValuePair(nameValuePairStr);
-	  var name = parsed.name;
-	  var value = parsed.value;
-
-	  options = options
-	    ? Object.assign({}, defaultParseOptions, options)
-	    : defaultParseOptions;
-
-	  try {
-	    value = options.decodeValues ? decodeURIComponent(value) : value; // decode cookie value
-	  } catch (e) {
-	    console.error(
-	      "set-cookie-parser encountered an error while decoding a cookie with value '" +
-	        value +
-	        "'. Set options.decodeValues to false to disable this feature.",
-	      e
-	    );
-	  }
-
-	  var cookie = {
-	    name: name,
-	    value: value,
-	  };
-
-	  parts.forEach(function (part) {
-	    var sides = part.split("=");
-	    var key = sides.shift().trimLeft().toLowerCase();
-	    var value = sides.join("=");
-	    if (key === "expires") {
-	      cookie.expires = new Date(value);
-	    } else if (key === "max-age") {
-	      cookie.maxAge = parseInt(value, 10);
-	    } else if (key === "secure") {
-	      cookie.secure = true;
-	    } else if (key === "httponly") {
-	      cookie.httpOnly = true;
-	    } else if (key === "samesite") {
-	      cookie.sameSite = value;
-	    } else {
-	      cookie[key] = value;
-	    }
-	  });
-
-	  return cookie;
-	}
-
-	function parseNameValuePair(nameValuePairStr) {
-	  // Parses name-value-pair according to rfc6265bis draft
-
-	  var name = "";
-	  var value = "";
-	  var nameValueArr = nameValuePairStr.split("=");
-	  if (nameValueArr.length > 1) {
-	    name = nameValueArr.shift();
-	    value = nameValueArr.join("="); // everything after the first =, joined by a "=" if there was more than one part
-	  } else {
-	    value = nameValuePairStr;
-	  }
-
-	  return { name: name, value: value };
-	}
-
-	function parse(input, options) {
-	  options = options
-	    ? Object.assign({}, defaultParseOptions, options)
-	    : defaultParseOptions;
-
-	  if (!input) {
-	    if (!options.map) {
-	      return [];
-	    } else {
-	      return {};
-	    }
-	  }
-
-	  if (input.headers) {
-	    if (typeof input.headers.getSetCookie === "function") {
-	      // for fetch responses - they combine headers of the same type in the headers array,
-	      // but getSetCookie returns an uncombined array
-	      input = input.headers.getSetCookie();
-	    } else if (input.headers["set-cookie"]) {
-	      // fast-path for node.js (which automatically normalizes header names to lower-case
-	      input = input.headers["set-cookie"];
-	    } else {
-	      // slow-path for other environments - see #25
-	      var sch =
-	        input.headers[
-	          Object.keys(input.headers).find(function (key) {
-	            return key.toLowerCase() === "set-cookie";
-	          })
-	        ];
-	      // warn if called on a request-like object with a cookie header rather than a set-cookie header - see #34, 36
-	      if (!sch && input.headers.cookie && !options.silent) {
-	        console.warn(
-	          "Warning: set-cookie-parser appears to have been called on a request object. It is designed to parse Set-Cookie headers from responses, not Cookie headers from requests. Set the option {silent: true} to suppress this warning."
-	        );
-	      }
-	      input = sch;
-	    }
-	  }
-	  if (!Array.isArray(input)) {
-	    input = [input];
-	  }
-
-	  options = options
-	    ? Object.assign({}, defaultParseOptions, options)
-	    : defaultParseOptions;
-
-	  if (!options.map) {
-	    return input.filter(isNonEmptyString).map(function (str) {
-	      return parseString(str, options);
-	    });
-	  } else {
-	    var cookies = {};
-	    return input.filter(isNonEmptyString).reduce(function (cookies, str) {
-	      var cookie = parseString(str, options);
-	      cookies[cookie.name] = cookie;
-	      return cookies;
-	    }, cookies);
-	  }
-	}
-
-	/*
-	  Set-Cookie header field-values are sometimes comma joined in one string. This splits them without choking on commas
-	  that are within a single set-cookie field-value, such as in the Expires portion.
-
-	  This is uncommon, but explicitly allowed - see https://tools.ietf.org/html/rfc2616#section-4.2
-	  Node.js does this for every header *except* set-cookie - see https://github.com/nodejs/node/blob/d5e363b77ebaf1caf67cd7528224b651c86815c1/lib/_http_incoming.js#L128
-	  React Native's fetch does this for *every* header, including set-cookie.
-
-	  Based on: https://github.com/google/j2objc/commit/16820fdbc8f76ca0c33472810ce0cb03d20efe25
-	  Credits to: https://github.com/tomball for original and https://github.com/chrusart for JavaScript implementation
-	*/
-	function splitCookiesString(cookiesString) {
-	  if (Array.isArray(cookiesString)) {
-	    return cookiesString;
-	  }
-	  if (typeof cookiesString !== "string") {
-	    return [];
-	  }
-
-	  var cookiesStrings = [];
-	  var pos = 0;
-	  var start;
-	  var ch;
-	  var lastComma;
-	  var nextStart;
-	  var cookiesSeparatorFound;
-
-	  function skipWhitespace() {
-	    while (pos < cookiesString.length && /\s/.test(cookiesString.charAt(pos))) {
-	      pos += 1;
-	    }
-	    return pos < cookiesString.length;
-	  }
-
-	  function notSpecialChar() {
-	    ch = cookiesString.charAt(pos);
-
-	    return ch !== "=" && ch !== ";" && ch !== ",";
-	  }
-
-	  while (pos < cookiesString.length) {
-	    start = pos;
-	    cookiesSeparatorFound = false;
-
-	    while (skipWhitespace()) {
-	      ch = cookiesString.charAt(pos);
-	      if (ch === ",") {
-	        // ',' is a cookie separator if we have later first '=', not ';' or ','
-	        lastComma = pos;
-	        pos += 1;
-
-	        skipWhitespace();
-	        nextStart = pos;
-
-	        while (pos < cookiesString.length && notSpecialChar()) {
-	          pos += 1;
-	        }
-
-	        // currently special character
-	        if (pos < cookiesString.length && cookiesString.charAt(pos) === "=") {
-	          // we found cookies separator
-	          cookiesSeparatorFound = true;
-	          // pos is inside the next cookie, so back up and return it.
-	          pos = nextStart;
-	          cookiesStrings.push(cookiesString.substring(start, lastComma));
-	          start = pos;
-	        } else {
-	          // in param ',' or param separator ';',
-	          // we continue from that comma
-	          pos = lastComma + 1;
-	        }
-	      } else {
-	        pos += 1;
-	      }
-	    }
-
-	    if (!cookiesSeparatorFound || pos >= cookiesString.length) {
-	      cookiesStrings.push(cookiesString.substring(start, cookiesString.length));
-	    }
-	  }
-
-	  return cookiesStrings;
-	}
-
-	setCookie.exports = parse;
-	setCookie.exports.parse = parse;
-	setCookie.exports.parseString = parseString;
-	setCookie.exports.splitCookiesString = splitCookiesString;
-	return setCookie.exports;
+function isForbiddenKey(key) {
+  return typeof key !== "string" || key in {};
 }
 
-var setCookieExports = /*@__PURE__*/ requireSetCookie();
+function createNullObj() {
+  return Object.create(null);
+}
+
+function isNonEmptyString(str) {
+  return typeof str === "string" && !!str.trim();
+}
+
+function parseString(setCookieValue, options) {
+  var parts = setCookieValue.split(";").filter(isNonEmptyString);
+
+  var nameValuePairStr = parts.shift();
+  var parsed = parseNameValuePair(nameValuePairStr);
+  var name = parsed.name;
+  var value = parsed.value;
+
+  options = options
+    ? Object.assign({}, defaultParseOptions, options)
+    : defaultParseOptions;
+
+  if (isForbiddenKey(name)) {
+    return null;
+  }
+
+  try {
+    value = options.decodeValues ? decodeURIComponent(value) : value; // decode cookie value
+  } catch (e) {
+    console.error(
+      "set-cookie-parser: failed to decode cookie value. Set options.decodeValues=false to disable decoding.",
+      e
+    );
+  }
+
+  var cookie = createNullObj();
+  cookie.name = name;
+  cookie.value = value;
+
+  parts.forEach(function (part) {
+    var sides = part.split("=");
+    var key = sides.shift().trimLeft().toLowerCase();
+    if (isForbiddenKey(key)) {
+      return;
+    }
+    var value = sides.join("=");
+    if (key === "expires") {
+      cookie.expires = new Date(value);
+    } else if (key === "max-age") {
+      var n = parseInt(value, 10);
+      if (!Number.isNaN(n)) cookie.maxAge = n;
+    } else if (key === "secure") {
+      cookie.secure = true;
+    } else if (key === "httponly") {
+      cookie.httpOnly = true;
+    } else if (key === "samesite") {
+      cookie.sameSite = value;
+    } else if (key === "partitioned") {
+      cookie.partitioned = true;
+    } else if (key) {
+      cookie[key] = value;
+    }
+  });
+
+  return cookie;
+}
+
+function parseNameValuePair(nameValuePairStr) {
+  // Parses name-value-pair according to rfc6265bis draft
+
+  var name = "";
+  var value = "";
+  var nameValueArr = nameValuePairStr.split("=");
+  if (nameValueArr.length > 1) {
+    name = nameValueArr.shift();
+    value = nameValueArr.join("="); // everything after the first =, joined by a "=" if there was more than one part
+  } else {
+    value = nameValuePairStr;
+  }
+
+  return { name: name, value: value };
+}
+
+function parseSetCookie(input, options) {
+  options = options
+    ? Object.assign({}, defaultParseOptions, options)
+    : defaultParseOptions;
+
+  if (!input) {
+    if (!options.map) {
+      return [];
+    } else {
+      return createNullObj();
+    }
+  }
+
+  if (input.headers) {
+    if (typeof input.headers.getSetCookie === "function") {
+      // for fetch responses - they combine headers of the same type in the headers array,
+      // but getSetCookie returns an uncombined array
+      input = input.headers.getSetCookie();
+    } else if (input.headers["set-cookie"]) {
+      // fast-path for node.js (which automatically normalizes header names to lower-case)
+      input = input.headers["set-cookie"];
+    } else {
+      // slow-path for other environments - see #25
+      var sch =
+        input.headers[
+          Object.keys(input.headers).find(function (key) {
+            return key.toLowerCase() === "set-cookie";
+          })
+        ];
+      // warn if called on a request-like object with a cookie header rather than a set-cookie header - see #34, 36
+      if (!sch && input.headers.cookie && !options.silent) {
+        console.warn(
+          "Warning: set-cookie-parser appears to have been called on a request object. It is designed to parse Set-Cookie headers from responses, not Cookie headers from requests. Set the option {silent: true} to suppress this warning."
+        );
+      }
+      input = sch;
+    }
+  }
+
+  var split = options.split;
+  var isArray = Array.isArray(input);
+
+  if (split === "auto") {
+    split = !isArray;
+  }
+
+  if (!isArray) {
+    input = [input];
+  }
+
+  input = input.filter(isNonEmptyString);
+
+  if (split) {
+    input = input.map(splitCookiesString).flat();
+  }
+
+  if (!options.map) {
+    return input
+      .map(function (str) {
+        return parseString(str, options);
+      })
+      .filter(Boolean);
+  } else {
+    var cookies = createNullObj();
+    return input.reduce(function (cookies, str) {
+      var cookie = parseString(str, options);
+      if (cookie && !isForbiddenKey(cookie.name)) {
+        cookies[cookie.name] = cookie;
+      }
+      return cookies;
+    }, cookies);
+  }
+}
+
+/*
+  Set-Cookie header field-values are sometimes comma joined in one string. This splits them without choking on commas
+  that are within a single set-cookie field-value, such as in the Expires portion.
+
+  This is uncommon, but explicitly allowed - see https://tools.ietf.org/html/rfc2616#section-4.2
+  Node.js does this for every header *except* set-cookie - see https://github.com/nodejs/node/blob/d5e363b77ebaf1caf67cd7528224b651c86815c1/lib/_http_incoming.js#L128
+  React Native's fetch does this for *every* header, including set-cookie.
+
+  Based on: https://github.com/google/j2objc/commit/16820fdbc8f76ca0c33472810ce0cb03d20efe25
+  Credits to: https://github.com/tomball for original and https://github.com/chrusart for JavaScript implementation
+*/
+function splitCookiesString(cookiesString) {
+  if (Array.isArray(cookiesString)) {
+    return cookiesString;
+  }
+  if (typeof cookiesString !== "string") {
+    return [];
+  }
+
+  var cookiesStrings = [];
+  var pos = 0;
+  var start;
+  var ch;
+  var lastComma;
+  var nextStart;
+  var cookiesSeparatorFound;
+
+  function skipWhitespace() {
+    while (pos < cookiesString.length && /\s/.test(cookiesString.charAt(pos))) {
+      pos += 1;
+    }
+    return pos < cookiesString.length;
+  }
+
+  function notSpecialChar() {
+    ch = cookiesString.charAt(pos);
+
+    return ch !== "=" && ch !== ";" && ch !== ",";
+  }
+
+  while (pos < cookiesString.length) {
+    start = pos;
+    cookiesSeparatorFound = false;
+
+    while (skipWhitespace()) {
+      ch = cookiesString.charAt(pos);
+      if (ch === ",") {
+        // ',' is a cookie separator if we have later first '=', not ';' or ','
+        lastComma = pos;
+        pos += 1;
+
+        skipWhitespace();
+        nextStart = pos;
+
+        while (pos < cookiesString.length && notSpecialChar()) {
+          pos += 1;
+        }
+
+        // currently special character
+        if (pos < cookiesString.length && cookiesString.charAt(pos) === "=") {
+          // we found cookies separator
+          cookiesSeparatorFound = true;
+          // pos is inside the next cookie, so back up and return it.
+          pos = nextStart;
+          cookiesStrings.push(cookiesString.substring(start, lastComma));
+          start = pos;
+        } else {
+          // in param ',' or param separator ';',
+          // we continue from that comma
+          pos = lastComma + 1;
+        }
+      } else {
+        pos += 1;
+      }
+    }
+
+    if (!cookiesSeparatorFound || pos >= cookiesString.length) {
+      cookiesStrings.push(cookiesString.substring(start, cookiesString.length));
+    }
+  }
+
+  return cookiesStrings;
+}
+
+// named export for CJS
+parseSetCookie.parseSetCookie = parseSetCookie;
+// for backwards compatibility
+parseSetCookie.parse = parseSetCookie;
+parseSetCookie.parseString = parseString;
+parseSetCookie.splitCookiesString = splitCookiesString;
+
+/** @import { StandardSchemaV1 } from '@standard-schema/spec' */
+
 
 /**
  * An error that was thrown from within the SvelteKit runtime that is not fatal and doesn't result in a 500, such as a 404.
@@ -972,7 +998,7 @@ function get_raw_body(req, body_size_limit) {
 
 	if (req.destroyed) {
 		const readable = new ReadableStream();
-		readable.cancel();
+		void readable.cancel();
 		return readable;
 	}
 
@@ -1052,11 +1078,39 @@ function get_raw_body(req, body_size_limit) {
 // TODO 3.0 make the signature synchronous?
 // eslint-disable-next-line @typescript-eslint/require-await
 async function getRequest({ request, base, bodySizeLimit }) {
+	let headers = /** @type {Record<string, string>} */ (request.headers);
+	if (request.httpVersionMajor >= 2) {
+		// the Request constructor rejects headers with ':' in the name
+		headers = Object.assign({}, headers);
+		// https://www.rfc-editor.org/rfc/rfc9113.html#section-8.3.1-2.3.5
+		if (headers[':authority']) {
+			headers.host = headers[':authority'];
+		}
+		delete headers[':authority'];
+		delete headers[':method'];
+		delete headers[':path'];
+		delete headers[':scheme'];
+	}
+
+	// TODO: Whenever Node >=22 is minimum supported version, we can use `request.readableAborted`
+	// @see https://github.com/nodejs/node/blob/5cf3c3e24c7257a0c6192ed8ef71efec8ddac22b/lib/internal/streams/readable.js#L1443-L1453
+	const controller = new AbortController();
+	let errored = false;
+	let end_emitted = false;
+	request.once('error', () => (errored = true));
+	request.once('end', () => (end_emitted = true));
+	request.once('close', () => {
+		if ((errored || request.destroyed) && !end_emitted) {
+			controller.abort();
+		}
+	});
+
 	return new Request(base + request.url, {
 		// @ts-expect-error
 		duplex: 'half',
 		method: request.method,
-		headers: /** @type {Record<string, string>} */ (request.headers),
+		headers: Object.entries(headers),
+		signal: controller.signal,
 		body:
 			request.method === 'GET' || request.method === 'HEAD'
 				? undefined
@@ -1077,7 +1131,7 @@ async function setResponse(res, response) {
 			res.setHeader(
 				key,
 				key === 'set-cookie'
-					? setCookieExports.splitCookiesString(
+					? splitCookiesString(
 							// This is absurd but necessary, TODO: investigate why
 							/** @type {string}*/ (response.headers.get(key))
 						)
@@ -1108,7 +1162,7 @@ async function setResponse(res, response) {
 	const reader = response.body.getReader();
 
 	if (res.destroyed) {
-		reader.cancel();
+		void reader.cancel();
 		return;
 	}
 
@@ -1125,7 +1179,7 @@ async function setResponse(res, response) {
 	res.on('close', cancel);
 	res.on('error', cancel);
 
-	next();
+	void next();
 	async function next() {
 		try {
 			for (;;) {
@@ -1155,31 +1209,74 @@ function createReadableStream(file) {
 	return /** @type {ReadableStream} */ (Readable.toWeb(createReadStream(file)));
 }
 
-/* global "" */
-
-const server = new Server(manifest);
-
-const origin = env('ORIGIN', undefined);
-const xff_depth = parseInt(env('XFF_DEPTH', '1'));
-const address_header = env('ADDRESS_HEADER', '').toLowerCase();
-const protocol_header = env('PROTOCOL_HEADER', '').toLowerCase();
-const host_header = env('HOST_HEADER', 'host').toLowerCase();
-const port_header = env('PORT_HEADER', '').toLowerCase();
-
 /**
- * @param {string} bytes
+ * Parses the given value into number of bytes.
+ *
+ * @param {string} value - Size in bytes. Can also be specified with a unit suffix kilobytes (K), megabytes (M), or gigabytes (G).
+ * @returns {number}
  */
-function parse_body_size_limit(bytes) {
+function parse_as_bytes(value) {
 	const multiplier =
 		{
 			K: 1024,
 			M: 1024 * 1024,
 			G: 1024 * 1024 * 1024
-		}[bytes[bytes.length - 1]?.toUpperCase()] ?? 1;
-	return Number(multiplier != 1 ? bytes.substring(0, bytes.length - 1) : bytes) * multiplier;
+		}[value[value.length - 1]?.toUpperCase()] ?? 1;
+	return Number(multiplier != 1 ? value.substring(0, value.length - 1) : value) * multiplier;
 }
 
-const body_size_limit = parse_body_size_limit(env('BODY_SIZE_LIMIT', '512K'));
+/**
+ * Parses and validates an origin URL.
+ *
+ * @param {string | undefined} value - Origin URL with http:// or https:// protocol
+ * @returns {string | undefined} The validated origin, or undefined if value is undefined
+ * @throws {Error} If value is provided but invalid
+ */
+function parse_origin(value) {
+	if (value === undefined) {
+		return undefined;
+	}
+
+	const trimmed = value.trim();
+
+	let url;
+	try {
+		url = new URL(trimmed);
+	} catch (error) {
+		throw new Error(
+			`Invalid ORIGIN: '${trimmed}'. ` +
+				`ORIGIN must be a valid URL with http:// or https:// protocol. ` +
+				`For example: 'http://localhost:3000' or 'https://my.site'`,
+			{ cause: error }
+		);
+	}
+
+	if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+		throw new Error(
+			`Invalid ORIGIN: '${trimmed}'. ` +
+				`Only http:// and https:// protocols are supported. ` +
+				`Received protocol: ${url.protocol}`
+		);
+	}
+
+	return url.origin;
+}
+
+/* global "" */
+/* global true */
+
+const server = new Server(manifest);
+
+// parse_origin validates ORIGIN and throws descriptive errors for invalid values
+const origin = parse_origin(env('ORIGIN', undefined));
+
+const xff_depth = parseInt(env('XFF_DEPTH', '1'));
+const address_header = env('ADDRESS_HEADER', '').toLowerCase();
+const protocol_header = env('PROTOCOL_HEADER', '').toLowerCase();
+const host_header = env('HOST_HEADER', '').toLowerCase();
+const port_header = env('PORT_HEADER', '').toLowerCase();
+
+const body_size_limit = parse_as_bytes(env('BODY_SIZE_LIMIT', '512K'));
 
 if (isNaN(body_size_limit)) {
 	throw new Error(
@@ -1192,7 +1289,7 @@ const dir = path.dirname(fileURLToPath(import.meta.url));
 const asset_dir = `${dir}/client${base}`;
 
 await server.init({
-	env: process.env,
+	env: /** @type {Record<string, string>} */ (process.env),
 	read: (file) => createReadableStream(`${asset_dir}/${file}`)
 });
 
@@ -1201,22 +1298,24 @@ await server.init({
  * @param {boolean} client
  */
 function serve(path, client = false) {
-	return (
-		fs__default.existsSync(path) &&
-		sirv(path, {
-			etag: true,
-			gzip: true,
-			brotli: true,
-			setHeaders:
-				client &&
-				((res, pathname) => {
-					// only apply to build directory, not e.g. version.json
-					if (pathname.startsWith(`/${manifest.appPath}/immutable/`) && res.statusCode === 200) {
-						res.setHeader('cache-control', 'public,max-age=31536000,immutable');
-					}
-				})
-		})
-	);
+	return fs__default.existsSync(path)
+		? sirv(path, {
+				etag: true,
+				gzip: true,
+				brotli: true,
+				setHeaders: client
+					? (res, pathname) => {
+							// only apply to build directory, not e.g. version.json
+							if (
+								pathname.startsWith(`/${manifest.appPath}/immutable/`) &&
+								res.statusCode === 200
+							) {
+								res.setHeader('cache-control', 'public,max-age=31536000,immutable');
+							}
+						}
+					: undefined
+			})
+		: undefined;
 }
 
 // required because the static file server ignores trailing slashes
@@ -1234,7 +1333,7 @@ function serve_prerendered() {
 		}
 
 		if (prerendered.has(pathname)) {
-			return handler(req, res, next);
+			return handler?.(req, res, next);
 		}
 
 		// remove or add trailing slash as appropriate
@@ -1243,7 +1342,7 @@ function serve_prerendered() {
 			if (query) location += search;
 			res.writeHead(308, { location }).end();
 		} else {
-			next();
+			void next();
 		}
 	};
 }
@@ -1265,7 +1364,7 @@ const ssr = async (req, res) => {
 		return;
 	}
 
-	setResponse(
+	await setResponse(
 		res,
 		await server.respond(request, {
 			platform: { req },
@@ -1335,27 +1434,61 @@ function sequence(handlers) {
 }
 
 /**
+ * @param {string} name
+ * @param {string | string[] | undefined} value
+ * @returns {string | undefined}
+ */
+function normalise_header(name, value) {
+	if (!name) return undefined;
+	if (Array.isArray(value)) {
+		if (value.length === 0) return undefined;
+		if (value.length === 1) return value[0];
+		throw new Error(
+			`Multiple values provided for ${name} header where only one expected: ${value}`
+		);
+	}
+	return value;
+}
+
+/**
  * @param {import('http').IncomingHttpHeaders} headers
- * @returns
+ * @returns {string}
  */
 function get_origin(headers) {
-	const protocol = (protocol_header && headers[protocol_header]) || 'https';
-	const host = headers[host_header];
-	const port = port_header && headers[port_header];
-	if (port) {
-		return `${protocol}://${host}:${port}`;
-	} else {
-		return `${protocol}://${host}`;
+	const protocol = decodeURIComponent(
+		normalise_header(protocol_header, headers[protocol_header]) || 'https'
+	);
+
+	// this helps us avoid host injections through the protocol header
+	if (protocol.includes(':')) {
+		throw new Error(
+			`The ${protocol_header} header specified ${protocol} which is an invalid because it includes \`:\`. It should only contain the protocol scheme (e.g. \`https\`)`
+		);
 	}
+
+	const host =
+		normalise_header(host_header, headers[host_header]) ||
+		normalise_header('host', headers['host']);
+	if (!host) {
+		const header_names = host_header ? `${host_header} or host headers` : 'host header';
+		throw new Error(
+			`Could not determine host. The request must have a value provided by the ${header_names}`
+		);
+	}
+
+	const port = normalise_header(port_header, headers[port_header]);
+	if (port && isNaN(+port)) {
+		throw new Error(
+			`The ${port_header} header specified ${port} which is an invalid port because it is not a number. The value should only contain the port number (e.g. 443)`
+		);
+	}
+
+	return port ? `${protocol}://${host}:${port}` : `${protocol}://${host}`;
 }
 
 const handler = sequence(
-	[
-		serve(path.join(dir, 'client'), true),
-		serve(path.join(dir, 'static')),
-		serve_prerendered(),
-		ssr
-	].filter(Boolean)
+	/** @type {(import('sirv').RequestHandler | import('polka').Middleware)[]} */
+	([serve(path.join(dir, 'client'), true), serve_prerendered(), ssr].filter(Boolean))
 );
 
 export { handler };
