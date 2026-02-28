@@ -1,6 +1,8 @@
 const fastify = require('fastify')({ trustProxy: process.env.HTTP_TRUST_PROXY === 'true' });
 const { short } = require('leeks.js');
 const { join } = require('path');
+const { existsSync } = require('fs');
+const { pathToFileURL } = require('url');
 const { files } = require('node-dir');
 const { getPrivilegeLevel } = require('./lib/users');
 const { format } = require('util');
@@ -183,13 +185,19 @@ module.exports = async client => {
 		})); // register route
 	});
 
-	// Prefer a vendored dashboard handler at `src/dashboard/build/handler.js` if present,
-	// otherwise fall back to the installed package in node_modules.
+	// Prefer a vendored build in the repository if it exists. Use a file:// URL
+	// import so dynamic import resolves correctly from CommonJS context.
 	let handlerModule;
-	try {
-		handlerModule = await import(path.join(process.cwd(), 'src', 'dashboard', 'build', 'handler.js'));
-		client.log.info('Using vendored @discord-tickets/settings handler from src/dashboard');
-	} catch (err) {
+	const localHandlerPath = join(process.cwd(), 'src', 'dashboard', 'build', 'handler.js');
+	if (existsSync(localHandlerPath)) {
+		try {
+			handlerModule = await import(pathToFileURL(localHandlerPath).href);
+			client.log.info('Using vendored @discord-tickets/settings handler from src/dashboard');
+		} catch (err) {
+			client.log.warn('Failed to import vendored dashboard handler, falling back to node_modules', err && err.stack ? err.stack : err);
+		}
+	}
+	if (!handlerModule) {
 		handlerModule = await import('@discord-tickets/settings/build/handler.js');
 		client.log.info('Using @discord-tickets/settings handler from node_modules');
 	}
