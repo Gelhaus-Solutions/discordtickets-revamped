@@ -26,6 +26,31 @@
  */
 
 import { config } from 'dotenv';
+	header('Step 1 — Backfill Category.channelMode');
+
+	let categoriesWithoutMode = [];
+	try {
+		categoriesWithoutMode = await prisma.category.findMany({
+			select: { id: true, name: true },
+			where: { channelMode: null },
+		});
+	} catch (err) {
+		// Fallback for Prisma validation errors: query raw for NULL channelMode
+		warn('Prisma enum/null filter unsupported; falling back to raw SQL for categories');
+		const provider = (process.env.DB_PROVIDER || (process.env.DATABASE_URL || '')).toLowerCase();
+		try {
+			if (provider.includes('postgres')) {
+				categoriesWithoutMode = await prisma.$queryRawUnsafe('SELECT id, name FROM "Category" WHERE "channelMode" IS NULL');
+			} else if (provider.includes('mysql')) {
+				categoriesWithoutMode = await prisma.$queryRawUnsafe('SELECT id, name FROM `Category` WHERE channelMode IS NULL');
+			} else {
+				categoriesWithoutMode = await prisma.$queryRawUnsafe('SELECT id, name FROM Category WHERE channelMode IS NULL');
+			}
+		} catch (err2) {
+			warn('Raw SQL fallback for categories failed: %s', err2.message);
+			categoriesWithoutMode = [];
+		}
+	}
 import { createRequire } from 'module';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -230,14 +255,31 @@ if (!ONLY_TRANSCRIPTS && !ONLY_FEEDBACK) {
 		for (const cat of categoriesWithoutMode) {
 			info(`  • [${cat.id}] ${cat.name}`);
 		}
-		if (DRY_RUN) {
-			warn(`DRY RUN — would set channelMode = 'CHANNEL' on ${categoriesWithoutMode.length} categories.`);
-		} else {
-			await prisma.category.updateMany({
-				data: { channelMode: 'CHANNEL' },
-				where: { channelMode: null },
-			});
-			ok(`Updated ${categoriesWithoutMode.length} categories.`);
+		try {
+			if (DRY_RUN) {
+				warn(`DRY RUN — would set channelMode = 'CHANNEL' on ${categoriesWithoutMode.length} categories.`);
+			} else {
+				await prisma.category.updateMany({
+					data: { channelMode: 'CHANNEL' },
+					where: { channelMode: null },
+				});
+				ok(`Updated ${categoriesWithoutMode.length} categories.`);
+			}
+		} catch (err) {
+			// Fallback to provider-specific SQL update
+			const provider = (process.env.DB_PROVIDER || (process.env.DATABASE_URL || '')).toLowerCase();
+			try {
+				if (provider.includes('postgres')) {
+					await prisma.$executeRawUnsafe("UPDATE \"Category\" SET \"channelMode\" = 'CHANNEL' WHERE \"channelMode\" IS NULL");
+				} else if (provider.includes('mysql')) {
+					await prisma.$executeRawUnsafe("UPDATE `Category` SET `channelMode` = 'CHANNEL' WHERE `channelMode` IS NULL");
+				} else {
+					await prisma.$executeRawUnsafe("UPDATE Category SET channelMode = 'CHANNEL' WHERE channelMode IS NULL");
+				}
+				ok(`Updated ${categoriesWithoutMode.length} categories (via raw SQL).`);
+			} catch (err2) {
+				warn('Failed to update categories via raw SQL: %s', err2.message);
+			}
 		}
 	}
 } else {
