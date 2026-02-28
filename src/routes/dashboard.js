@@ -1,13 +1,6 @@
 'use strict';
 
-// Redirect /dashboard to /settings (keeps old links working)
-module.exports.get = fastify => ({
-	handler: async req => {
-		return {
-			statusCode: 302,
-			headers: { location: '/settings' },
-			body: ''
-		};
-	},
-	onRequest: [fastify.authenticate]
-});
+// Previously redirected /dashboard to /settings. The vendored dashboard
+// handler now serves /dashboard; export an empty object so no route is
+// registered here and Fastify won't see a duplicate.
+module.exports = {};
