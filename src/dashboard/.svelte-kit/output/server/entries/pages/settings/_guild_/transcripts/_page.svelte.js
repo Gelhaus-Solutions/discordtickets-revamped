@@ -1,4 +1,4 @@
-import { d as attr, f as ensure_array_like, e as derived } from "../../../../../chunks/index2.js";
+import { d as attr, f as ensure_array_like } from "../../../../../chunks/index2.js";
 import { e as escape_html } from "../../../../../chunks/escaping.js";
 import "@sveltejs/kit/internal";
 import "../../../../../chunks/url.js";
@@ -12,11 +12,9 @@ function _page($$renderer, $$props) {
     let { data } = $$props;
     let searchQuery = "";
     let sortBy = "date";
-    const filteredTranscripts = derived(() => data.transcripts.filter((t) => t.topic?.toLowerCase().includes(searchQuery.toLowerCase()) || t.userId?.includes(searchQuery) || t.id?.includes(searchQuery)).sort((a, b) => {
-      {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      }
-    }));
+    let isLoading = false;
+    let searchResults = [];
+    let totalResults = 0;
     const formatDuration = (start, end) => {
       if (!start || !end) return "N/A";
       const ms = new Date(end) - new Date(start);
@@ -24,15 +22,12 @@ function _page($$renderer, $$props) {
       const minutes = Math.floor(ms % 36e5 / 6e4);
       return `${hours}h ${minutes}m`;
     };
-    $$renderer2.push(`<h1 class="m-4 text-center text-4xl font-bold">Ticket Transcripts &amp; Archives</h1> <div class="mx-auto my-8 max-w-6xl px-4"><div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-8"><div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Total Transcripts</div> <div class="mt-2 text-3xl font-bold">${escape_html(data.totalTranscripts)}</div></div> <div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Total Size <i class="fa-solid fa-circle-question cursor-help text-gray-400 text-sm" title="Estimated total storage used by transcripts"></i></div> <div class="mt-2 text-3xl font-bold">`);
-    if (data.transcripts.length > 0) {
-      $$renderer2.push("<!--[-->");
-      $$renderer2.push(`${escape_html((data.transcripts.reduce((sum, t) => sum + (t.transcript?.length || 0), 0) / 1024).toFixed(2))} KB`);
-    } else {
+    $$renderer2.push(`<h1 class="m-4 text-center text-4xl font-bold">Ticket Transcripts &amp; Archives</h1> <div class="mx-auto my-8 max-w-6xl px-4"><div class="grid grid-cols-1 gap-4 md:grid-cols-2 mb-8"><div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Results Found</div> <div class="mt-2 text-3xl font-bold">${escape_html(totalResults)}</div></div> <div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="text-sm font-semibold text-gray-600 dark:text-slate-400">Status <i class="fa-solid fa-circle-question cursor-help text-gray-400 text-sm" title="Search status"></i></div> <div class="mt-2 text-3xl font-bold">`);
+    {
       $$renderer2.push("<!--[!-->");
-      $$renderer2.push(`0 KB`);
+      $$renderer2.push(`Waiting for search`);
     }
-    $$renderer2.push(`<!--]--></div></div></div> <div class="mb-8 rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="grid grid-cols-1 gap-4 md:grid-cols-2"><div><label class="block text-sm font-semibold mb-2">Search</label> <input type="text" placeholder="Search by topic, user ID, or ticket ID..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-slate-800"${attr("value", searchQuery)}/></div> <div><label class="block text-sm font-semibold mb-2">Sort By</label> `);
+    $$renderer2.push(`<!--]--></div></div></div> <div class="mb-8 rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700"><div class="grid grid-cols-1 gap-4 md:grid-cols-3"><div class="md:col-span-2"><label class="block text-sm font-semibold mb-2">Search Transcripts</label> <input type="text" placeholder="Search by topic, user ID, or ticket ID..." class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-slate-800"${attr("value", searchQuery)}/> <p class="text-xs text-gray-500 dark:text-slate-400 mt-2">Press Enter or click Search to find transcripts (up to 20 results)</p></div> <div><label class="block text-sm font-semibold mb-2">Sort By</label> `);
     $$renderer2.select(
       {
         class: "w-full rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-slate-800",
@@ -47,11 +42,16 @@ function _page($$renderer, $$props) {
         });
       }
     );
-    $$renderer2.push(`</div></div></div> `);
-    if (filteredTranscripts().length > 0) {
-      $$renderer2.push("<!--[-->");
-      $$renderer2.push(`<div class="space-y-4"><!--[-->`);
-      const each_array = ensure_array_like(filteredTranscripts());
+    $$renderer2.push(`</div></div> <button${attr("disabled", isLoading, true)} class="mt-4 rounded-lg bg-blurple px-6 py-2 font-medium text-white transition duration-300 hover:bg-blurple/80 disabled:opacity-50 disabled:cursor-not-allowed">`);
+    {
+      $$renderer2.push("<!--[!-->");
+      $$renderer2.push(`<i class="fa-solid fa-search mr-2"></i> Search`);
+    }
+    $$renderer2.push(`<!--]--></button></div> `);
+    if (searchResults.length > 0) {
+      $$renderer2.push("<!--[1-->");
+      $$renderer2.push(`<div class="space-y-4"><div class="text-sm text-gray-600 dark:text-slate-400 mb-4">Found ${escape_html(totalResults)} transcript${escape_html("s")} (showing up to 20 results)</div> <!--[-->`);
+      const each_array = ensure_array_like(searchResults);
       for (let $$index = 0, $$length = each_array.length; $$index < $$length; $$index++) {
         let transcript = each_array[$$index];
         $$renderer2.push(`<div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700"><div class="flex flex-col md:flex-row md:items-center md:justify-between mb-3"><div class="flex-1"><div class="font-semibold text-lg"><i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400"></i> ${escape_html(transcript.topic || `Ticket ${transcript.id}`)}</div> <div class="text-sm text-gray-600 dark:text-slate-400">ID: ${escape_html(transcript.id)} `);
@@ -81,7 +81,7 @@ function _page($$renderer, $$props) {
       $$renderer2.push(`<!--]--></div>`);
     } else {
       $$renderer2.push("<!--[!-->");
-      $$renderer2.push(`<div class="rounded-lg bg-white p-12 shadow-sm dark:bg-slate-700 text-center"><i class="fa-solid fa-inbox text-6xl text-gray-400 dark:text-gray-600 mb-4"></i> <p class="text-lg text-gray-600 dark:text-slate-400">No transcripts yet</p> <p class="text-sm text-gray-500 dark:text-slate-500 mt-2">Transcripts will appear here as tickets are closed</p></div>`);
+      $$renderer2.push(`<div class="rounded-lg bg-white p-12 shadow-sm dark:bg-slate-700 text-center"><i class="fa-solid fa-inbox text-6xl text-gray-400 dark:text-gray-600 mb-4"></i> <p class="text-lg text-gray-600 dark:text-slate-400">Enter a search query to find transcripts</p> <p class="text-sm text-gray-500 dark:text-slate-500 mt-2">Search by ticket ID, topic, or user ID to view closed ticket transcripts</p></div>`);
     }
     $$renderer2.push(`<!--]--></div>`);
   });
