@@ -188,26 +188,38 @@ module.exports = async client => {
 	// Prefer a vendored build in the repository if it exists. Use a file:// URL
 	// import so dynamic import resolves correctly from CommonJS context.
 	let handlerModule;
-	const localHandlerPath = join(process.cwd(), 'src', 'dashboard', 'build', 'handler.js');
-	if (existsSync(localHandlerPath)) {
-		try {
-			handlerModule = await import(pathToFileURL(localHandlerPath).href);
-			client.log.info('Using vendored @discord-tickets/settings handler from src/dashboard');
-		} catch (err) {
-			client.log.error('Failed to import vendored dashboard handler', err && err.stack ? err.stack : err);
+	// Check multiple possible locations for the vendored dashboard build.
+	const candidates = [
+		join(process.cwd(), 'src', 'dashboard', 'build', 'handler.js'), // when working directory contains repo
+		join('/app', 'src', 'dashboard', 'build', 'handler.js'), // when files copied to /app in Docker image
+		join(__dirname, 'dashboard', 'build', 'handler.js'), // relative to src/ in repo
+	];
+
+	let foundPath;
+	for (const p of candidates) {
+		if (existsSync(p)) {
+			foundPath = p;
+			break;
 		}
 	}
 
-	// Do NOT fall back to the node_modules copy. If the vendored handler is
-	// missing, log a clear message and do not register the dashboard route.
+	if (foundPath) {
+		try {
+			handlerModule = await import(pathToFileURL(foundPath).href);
+			client.log.info('Using vendored @discord-tickets/settings handler from ' + foundPath);
+		} catch (err) {
+			client.log.error('Failed to import vendored dashboard handler at ' + foundPath, err && err.stack ? err.stack : err);
+		}
+	} else {
+		client.log.warn('Vendored dashboard handler not found at any candidate path; dashboard will not be served. Checked: ' + candidates.join(', '));
+	}
+
+	// Only register the dashboard handler if we successfully imported it.
 	if (handlerModule && handlerModule.handler) {
 		const { handler } = handlerModule;
-
 		// https://stackoverflow.com/questions/72317071/how-to-set-up-fastify-correctly-so-that-sveltekit-works-fine
 		fastify.all('/*', {}, (req, res) => handler(req.raw, res.raw, () => {
 		}));
-	} else {
-		client.log.warn('Vendored dashboard handler not found; dashboard will not be served. The @discord-tickets/settings package will no longer be used.');
 	}
 
 	// start the fastify server
