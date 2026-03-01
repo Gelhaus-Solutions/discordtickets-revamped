@@ -19,8 +19,7 @@
 	<div class="grid grid-cols-1 gap-4 sm:mx-8 md:grid-cols-2">
 		<div>
 			<a href={base + '/settings'} class="flex justify-center md:justify-start">
-				<!-- <img src="/logo.png" class="h-8" alt="Discord Tickets" /> -->
-				<img src="/assets/wordmark-{theme}.png" class="h-8" alt="Discord Tickets" />
+				<span class="text-lg font-bold text-blurple">Discord Tickets</span>
 			</a>
 		</div>
 		<div>

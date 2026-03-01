@@ -68,6 +68,6 @@ declare module "$app/types" {
 		};
 		Pathname(): "/" | "/invite" | "/login" | "/settings" | `/settings/${string}` & {} | `/settings/${string}/categories` & {} | `/settings/${string}/categories/${string}` & {} | `/settings/${string}/customization` & {} | `/settings/${string}/feedback` & {} | `/settings/${string}/general` & {} | `/settings/${string}/panels` & {} | `/settings/${string}/tags` & {} | `/settings/${string}/transcripts` & {} | `/view/${string}` & {} | `/${string}` & {} | `/${string}/feedback` & {} | `/${string}/staff` & {} | `/${string}/tickets` & {};
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
-		Asset(): string & {};
+		Asset(): "/assets/wordmark-light.png" | string & {};
 	}
 }

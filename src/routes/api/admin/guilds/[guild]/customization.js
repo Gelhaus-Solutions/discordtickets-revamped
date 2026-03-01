@@ -82,12 +82,21 @@ module.exports.patch = fastify => ({
 			client.log.warn(`Failed to apply bot customization to guild ${id}: ${error.message}`);
 		}
 
+		// Create a diff without image data (base64 strings are too long for Discord embeds)
+		const diffForLogging = {
+			original: original ? {
+				botBio: original.botBio,
+				botUsername: original.botUsername,
+			} : null,
+			updated: customization ? {
+				botBio: customization.botBio,
+				botUsername: customization.botUsername,
+			} : null,
+		};
+
 		logAdminEvent(client, {
 			action: 'update',
-			diff: {
-				original,
-				updated: customization,
-			},
+			diff: diffForLogging,
 			guildId: id,
 			target: {
 				id,
