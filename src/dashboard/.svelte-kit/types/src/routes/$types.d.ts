@@ -11,7 +11,7 @@ type OutputDataShape<T> = MaybeWithVoid<Omit<App.PageData, RequiredKeys<T>> & Pa
 type EnsureDefined<T> = T extends null | undefined ? {} : T;
 type OptionalUnion<U extends Record<string, any>, A extends keyof U = U extends U ? keyof U : never> = U extends unknown ? { [P in Exclude<A, keyof U>]?: never } & U : never;
 export type Snapshot<T = any> = Kit.Snapshot<T>;
-type LayoutRouteId = RouteId | "/(default)" | "/(default)/[guild]" | "/(default)/[guild]/feedback" | "/(default)/[guild]/staff" | "/(default)/[guild]/tickets" | "/(default)/invite" | "/(default)/login" | "/(default)/view/[ticket]" | "/settings" | "/settings/[guild]" | "/settings/[guild]/categories" | "/settings/[guild]/categories/[category]" | "/settings/[guild]/feedback" | "/settings/[guild]/general" | "/settings/[guild]/panels" | "/settings/[guild]/tags" | "/settings/[guild]/transcripts" | null
+type LayoutRouteId = RouteId | "/(default)" | "/(default)/[guild]" | "/(default)/[guild]/feedback" | "/(default)/[guild]/staff" | "/(default)/[guild]/tickets" | "/(default)/invite" | "/(default)/login" | "/(default)/view/[ticket]" | "/settings" | "/settings/[guild]" | "/settings/[guild]/categories" | "/settings/[guild]/categories/[category]" | "/settings/[guild]/customization" | "/settings/[guild]/feedback" | "/settings/[guild]/general" | "/settings/[guild]/panels" | "/settings/[guild]/tags" | "/settings/[guild]/transcripts" | null
 type LayoutParams = RouteParams & { guild?: string; ticket?: string; category?: string }
 type LayoutServerParentData = EnsureDefined<{}>;
 type LayoutParentData = EnsureDefined<{}>;

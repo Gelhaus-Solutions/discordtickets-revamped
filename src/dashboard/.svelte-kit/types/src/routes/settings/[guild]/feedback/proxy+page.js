@@ -47,8 +47,9 @@ export async function load({ fetch, params }) {
 			feedback,
 			stats,
 			feedbackByCategory,
-			analytics,
-			categories
+			trend: feedbackData.trend || [],
+			categories,
+			analytics
 		};
 	} catch (err) {
 		console.error('Failed to load feedback data:', err);
@@ -56,8 +57,10 @@ export async function load({ fetch, params }) {
 			feedback: [],
 			stats: { total: 0, avgRating: 0, byRating: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
 			feedbackByCategory: {},
-			analytics: null,
-			categories: []
+			trend: [],
+			categories: [],
+			analytics: null
 		};
 	}
 }
+

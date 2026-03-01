@@ -1,3 +1,3 @@
-import * as universal from "../../../../src/routes/settings/[guild]/panels/+page.js";
+import * as universal from "../../../../src/routes/settings/[guild]/general/+page.js";
 export { universal };
-export { default as component } from "../../../../src/routes/settings/[guild]/panels/+page.svelte";
+export { default as component } from "../../../../src/routes/settings/[guild]/general/+page.svelte";

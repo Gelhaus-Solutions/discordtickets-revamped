@@ -36,6 +36,11 @@
 		"src/routes/settings/[guild]/+layout.js",
 		"src/routes/+layout.server.js"
 	],
+	"/settings/[guild]/customization": [
+		"src/routes/settings/[guild]/customization/+page.js",
+		"src/routes/settings/[guild]/+layout.js",
+		"src/routes/+layout.server.js"
+	],
 	"/settings/[guild]/feedback": [
 		"src/routes/settings/[guild]/feedback/+page.js",
 		"src/routes/settings/[guild]/+layout.js",

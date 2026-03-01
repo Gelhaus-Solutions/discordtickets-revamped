@@ -1,1 +1,0 @@
-import"./Bzak7iHL.js";import"./69_IOA4Y.js";import{a as t,f as i}from"./_fu6EM7d.js";var v=i('<div class="flex justify-center svelte-15g82xt"><div class="flex items-center svelte-15g82xt"><div class="spinner svelte-15g82xt"><div class="cube1 svelte-15g82xt"></div> <div class="cube2 svelte-15g82xt"></div></div></div></div>');function d(e){var s=v();t(e,s)}export{d as S};

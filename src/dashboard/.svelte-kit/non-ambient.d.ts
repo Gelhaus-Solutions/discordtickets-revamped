@@ -27,11 +27,12 @@ export {};
 
 declare module "$app/types" {
 	export interface AppTypes {
-		RouteId(): "/(default)" | "/" | "/(default)/invite" | "/(default)/login" | "/settings" | "/settings/[guild]" | "/settings/[guild]/categories" | "/settings/[guild]/categories/[category]" | "/settings/[guild]/feedback" | "/settings/[guild]/general" | "/settings/[guild]/panels" | "/settings/[guild]/tags" | "/settings/[guild]/transcripts" | "/(default)/view" | "/(default)/view/[ticket]" | "/(default)/[guild]" | "/(default)/[guild]/feedback" | "/(default)/[guild]/staff" | "/(default)/[guild]/tickets";
+		RouteId(): "/(default)" | "/" | "/(default)/invite" | "/(default)/login" | "/settings" | "/settings/[guild]" | "/settings/[guild]/categories" | "/settings/[guild]/categories/[category]" | "/settings/[guild]/customization" | "/settings/[guild]/feedback" | "/settings/[guild]/general" | "/settings/[guild]/panels" | "/settings/[guild]/tags" | "/settings/[guild]/transcripts" | "/(default)/view" | "/(default)/view/[ticket]" | "/(default)/[guild]" | "/(default)/[guild]/feedback" | "/(default)/[guild]/staff" | "/(default)/[guild]/tickets";
 		RouteParams(): {
 			"/settings/[guild]": { guild: string };
 			"/settings/[guild]/categories": { guild: string };
 			"/settings/[guild]/categories/[category]": { guild: string; category: string };
+			"/settings/[guild]/customization": { guild: string };
 			"/settings/[guild]/feedback": { guild: string };
 			"/settings/[guild]/general": { guild: string };
 			"/settings/[guild]/panels": { guild: string };
@@ -52,6 +53,7 @@ declare module "$app/types" {
 			"/settings/[guild]": { guild: string; category?: string };
 			"/settings/[guild]/categories": { guild: string; category?: string };
 			"/settings/[guild]/categories/[category]": { guild: string; category: string };
+			"/settings/[guild]/customization": { guild: string };
 			"/settings/[guild]/feedback": { guild: string };
 			"/settings/[guild]/general": { guild: string };
 			"/settings/[guild]/panels": { guild: string };
@@ -64,7 +66,7 @@ declare module "$app/types" {
 			"/(default)/[guild]/staff": { guild: string };
 			"/(default)/[guild]/tickets": { guild: string }
 		};
-		Pathname(): "/" | "/invite" | "/login" | "/settings" | `/settings/${string}` & {} | `/settings/${string}/categories` & {} | `/settings/${string}/categories/${string}` & {} | `/settings/${string}/feedback` & {} | `/settings/${string}/general` & {} | `/settings/${string}/panels` & {} | `/settings/${string}/tags` & {} | `/settings/${string}/transcripts` & {} | `/view/${string}` & {} | `/${string}` & {} | `/${string}/feedback` & {} | `/${string}/staff` & {} | `/${string}/tickets` & {};
+		Pathname(): "/" | "/invite" | "/login" | "/settings" | `/settings/${string}` & {} | `/settings/${string}/categories` & {} | `/settings/${string}/categories/${string}` & {} | `/settings/${string}/customization` & {} | `/settings/${string}/feedback` & {} | `/settings/${string}/general` & {} | `/settings/${string}/panels` & {} | `/settings/${string}/tags` & {} | `/settings/${string}/transcripts` & {} | `/view/${string}` & {} | `/${string}` & {} | `/${string}/feedback` & {} | `/${string}/staff` & {} | `/${string}/tickets` & {};
 		ResolvedPathname(): `${"" | `/${string}`}${ReturnType<AppTypes['Pathname']>}`;
 		Asset(): string & {};
 	}

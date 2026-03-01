@@ -10,33 +10,34 @@ return {
 	assets: new Set([]),
 	mimeTypes: {},
 	_: {
-		client: {start:"_app/immutable/entry/start.CDPXZwrr.js",app:"_app/immutable/entry/app.BfCHiEXa.js",imports:["_app/immutable/entry/start.CDPXZwrr.js","_app/immutable/chunks/Bv4gk3jo.js","_app/immutable/chunks/nwo5WiIq.js","_app/immutable/chunks/_fu6EM7d.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/DbFbsu9R.js","_app/immutable/chunks/CYgJF_JY.js","_app/immutable/chunks/k1vYC2Pw.js","_app/immutable/chunks/B4e910Rm.js","_app/immutable/chunks/B17Q6ahh.js","_app/immutable/entry/app.BfCHiEXa.js","_app/immutable/chunks/Dp1pzeXC.js","_app/immutable/chunks/BSe2IdtJ.js","_app/immutable/chunks/_fu6EM7d.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/DbFbsu9R.js","_app/immutable/chunks/Bzak7iHL.js","_app/immutable/chunks/nwo5WiIq.js","_app/immutable/chunks/BkvMZOlF.js","_app/immutable/chunks/Caq5s-y_.js","_app/immutable/chunks/BMnviba6.js","_app/immutable/chunks/ByBQdF1a.js","_app/immutable/chunks/BALO3cCj.js","_app/immutable/chunks/CzA9-LZ0.js","_app/immutable/chunks/B4e910Rm.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
+		client: {start:"_app/immutable/entry/start.BjQeSojZ.js",app:"_app/immutable/entry/app.BkRcBo1_.js",imports:["_app/immutable/entry/start.BjQeSojZ.js","_app/immutable/chunks/C1PfqNCt.js","_app/immutable/chunks/BAc9Nw6w.js","_app/immutable/chunks/CWXCXDbJ.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/BTVB6o0Y.js","_app/immutable/chunks/CYgJF_JY.js","_app/immutable/chunks/BR6RR1uv.js","_app/immutable/chunks/J_wX4PLQ.js","_app/immutable/chunks/B17Q6ahh.js","_app/immutable/entry/app.BkRcBo1_.js","_app/immutable/chunks/Dp1pzeXC.js","_app/immutable/chunks/CTNvJ3TN.js","_app/immutable/chunks/CWXCXDbJ.js","_app/immutable/chunks/DIeogL5L.js","_app/immutable/chunks/BTVB6o0Y.js","_app/immutable/chunks/Bzak7iHL.js","_app/immutable/chunks/BAc9Nw6w.js","_app/immutable/chunks/BnKh12PZ.js","_app/immutable/chunks/DU73alKZ.js","_app/immutable/chunks/DPC9nAAJ.js","_app/immutable/chunks/BOws-f3s.js","_app/immutable/chunks/D8EB0mrL.js","_app/immutable/chunks/DeGpVRd_.js","_app/immutable/chunks/J_wX4PLQ.js"],stylesheets:[],fonts:[],uses_env_dynamic_public:false},
 		nodes: [
-			__memo(() => import('./chunks/0-tX4ZWj9L.js')),
-			__memo(() => import('./chunks/1-CCbm-vWS.js')),
-			__memo(() => import('./chunks/2-CQs9Xu25.js')),
-			__memo(() => import('./chunks/3-Dwic7Un-.js')),
-			__memo(() => import('./chunks/4-DcZaG7-e.js')),
-			__memo(() => import('./chunks/5-DUZqqx0U.js')),
-			__memo(() => import('./chunks/6-CiaZ9Hf0.js')),
-			__memo(() => import('./chunks/7-CUNM3c2E.js')),
-			__memo(() => import('./chunks/8-BKxyG2VD.js')),
-			__memo(() => import('./chunks/9-D4Fai0Mw.js')),
+			__memo(() => import('./chunks/0-CtMYbAju.js')),
+			__memo(() => import('./chunks/1-CIL1sjfv.js')),
+			__memo(() => import('./chunks/2-Cu-bNIvt.js')),
+			__memo(() => import('./chunks/3-kfUpukhm.js')),
+			__memo(() => import('./chunks/4-BJlCpamg.js')),
+			__memo(() => import('./chunks/5-q0nadBqa.js')),
+			__memo(() => import('./chunks/6-C2kI9ySy.js')),
+			__memo(() => import('./chunks/7-Txy_3zQ-.js')),
+			__memo(() => import('./chunks/8-DO_KUPbE.js')),
+			__memo(() => import('./chunks/9-BoBbERID.js')),
 			__memo(() => import('./chunks/10-CW8CHKmW.js')),
 			__memo(() => import('./chunks/11-CnBLA4vw.js')),
 			__memo(() => import('./chunks/12-CKF1cLBh.js')),
 			__memo(() => import('./chunks/13-lDv8tL55.js')),
-			__memo(() => import('./chunks/14-DtRb_5sC.js')),
+			__memo(() => import('./chunks/14-BdhLW934.js')),
 			__memo(() => import('./chunks/15-Ch7vl38Z.js')),
-			__memo(() => import('./chunks/16-BFUbYUTG.js')),
-			__memo(() => import('./chunks/17-u9toqZEz.js')),
-			__memo(() => import('./chunks/18-DeBKE3kM.js')),
-			__memo(() => import('./chunks/19-Di6nDwf6.js')),
-			__memo(() => import('./chunks/20-DNjM7EWl.js')),
-			__memo(() => import('./chunks/21-CtDYqSRo.js')),
-			__memo(() => import('./chunks/22-Cc5M6dUx.js')),
-			__memo(() => import('./chunks/23-C4tv6okz.js')),
-			__memo(() => import('./chunks/24-BQxegk03.js'))
+			__memo(() => import('./chunks/16-6f5Yk8U6.js')),
+			__memo(() => import('./chunks/17-BPNwM7DO.js')),
+			__memo(() => import('./chunks/18-CP540K6y.js')),
+			__memo(() => import('./chunks/19-DnsbyxW6.js')),
+			__memo(() => import('./chunks/20-Bqcq9QBy.js')),
+			__memo(() => import('./chunks/21-BqEBbD5R.js')),
+			__memo(() => import('./chunks/22-bPcfqiJj.js')),
+			__memo(() => import('./chunks/23-CAJyArFO.js')),
+			__memo(() => import('./chunks/24-ByGP9svS.js')),
+			__memo(() => import('./chunks/25-2uACIAlO.js'))
 		],
 		remotes: {
 			
@@ -92,38 +93,45 @@ return {
 				endpoint: null
 			},
 			{
+				id: "/settings/[guild]/customization",
+				pattern: /^\/settings\/([^/]+?)\/customization\/?$/,
+				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 20 },
+				endpoint: null
+			},
+			{
 				id: "/settings/[guild]/feedback",
 				pattern: /^\/settings\/([^/]+?)\/feedback\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
-				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 20 },
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 21 },
 				endpoint: null
 			},
 			{
 				id: "/settings/[guild]/general",
 				pattern: /^\/settings\/([^/]+?)\/general\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
-				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 21 },
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 22 },
 				endpoint: null
 			},
 			{
 				id: "/settings/[guild]/panels",
 				pattern: /^\/settings\/([^/]+?)\/panels\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
-				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 22 },
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 23 },
 				endpoint: null
 			},
 			{
 				id: "/settings/[guild]/tags",
 				pattern: /^\/settings\/([^/]+?)\/tags\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
-				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 23 },
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 24 },
 				endpoint: null
 			},
 			{
 				id: "/settings/[guild]/transcripts",
 				pattern: /^\/settings\/([^/]+?)\/transcripts\/?$/,
 				params: [{"name":"guild","optional":false,"rest":false,"chained":false}],
-				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 24 },
+				page: { layouts: [0,5,7,], errors: [1,6,,], leaf: 25 },
 				endpoint: null
 			},
 			{

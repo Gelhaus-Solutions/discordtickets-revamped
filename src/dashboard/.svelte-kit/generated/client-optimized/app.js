@@ -28,7 +28,8 @@ export const nodes = [
 	() => import('./nodes/21'),
 	() => import('./nodes/22'),
 	() => import('./nodes/23'),
-	() => import('./nodes/24')
+	() => import('./nodes/24'),
+	() => import('./nodes/25')
 ];
 
 export const server_loads = [0];
@@ -41,11 +42,12 @@ export const dictionary = {
 		"/settings/[guild]": [17,[5],[6]],
 		"/settings/[guild]/categories": [18,[5,7],[6]],
 		"/settings/[guild]/categories/[category]": [19,[5,7],[6]],
-		"/settings/[guild]/feedback": [20,[5,7],[6]],
-		"/settings/[guild]/general": [21,[5,7],[6]],
-		"/settings/[guild]/panels": [22,[5,7],[6]],
-		"/settings/[guild]/tags": [23,[5,7],[6]],
-		"/settings/[guild]/transcripts": [24,[5,7],[6]],
+		"/settings/[guild]/customization": [20,[5,7],[6]],
+		"/settings/[guild]/feedback": [21,[5,7],[6]],
+		"/settings/[guild]/general": [22,[5,7],[6]],
+		"/settings/[guild]/panels": [23,[5,7],[6]],
+		"/settings/[guild]/tags": [24,[5,7],[6]],
+		"/settings/[guild]/transcripts": [25,[5,7],[6]],
 		"/(default)/view/[ticket]": [15,[2],[3]],
 		"/(default)/[guild]": [9,[2,4],[3]],
 		"/(default)/[guild]/feedback": [10,[2,4],[3]],

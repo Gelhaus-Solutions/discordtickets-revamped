@@ -11,6 +11,7 @@ A quick overview of what has changed:
 - Backup categories. (for the standard ticket method, channel)
 - "Close with Reason" button.
 - No "total limit" for Threads / Forum tickets.
+- Bot appearance customization, per-server.
 - And much more!
 
 ## Here's how to use it:

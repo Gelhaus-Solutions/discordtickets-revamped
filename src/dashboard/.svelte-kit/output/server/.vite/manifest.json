@@ -392,7 +392,7 @@
       "_index2.js"
     ],
     "css": [
-      "_app/immutable/assets/_layout.DlDZtkN4.css"
+      "_app/immutable/assets/_layout.C3ADPQ0f.css"
     ],
     "assets": [
       "_app/immutable/assets/fa-brands-400.D_cYUPeE.woff2",
@@ -523,6 +523,30 @@
       "_Required.js",
       "_state.svelte2.js",
       "_html.js"
+    ]
+  },
+  "src/routes/settings/[guild]/customization/+page.js": {
+    "file": "entries/pages/settings/_guild_/customization/_page.js",
+    "name": "entries/pages/settings/_guild_/customization/_page",
+    "src": "src/routes/settings/[guild]/customization/+page.js",
+    "isEntry": true
+  },
+  "src/routes/settings/[guild]/customization/+page.svelte": {
+    "file": "entries/pages/settings/_guild_/customization/_page.svelte.js",
+    "name": "entries/pages/settings/_guild_/customization/_page.svelte",
+    "src": "src/routes/settings/[guild]/customization/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index2.js",
+      "_escaping.js",
+      "_url.js",
+      "_utils.js",
+      "_root.js",
+      "_exports.js",
+      "_state.svelte.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_page.DpflOhB8.css"
     ]
   },
   "src/routes/settings/[guild]/feedback/+page.js": {
