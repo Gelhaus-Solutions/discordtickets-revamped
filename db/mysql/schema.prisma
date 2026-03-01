@@ -124,7 +124,6 @@ model Guild {
     blocklist          Json       @default("[]")
     botAvatar          String?    @db.Text
     botBio             String?    @db.Text
-    botBanner          String?    @db.Text
     botUsername        String?
     categories         Category[]
     claimButton        Boolean    @default(false)

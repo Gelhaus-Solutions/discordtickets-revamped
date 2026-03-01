@@ -1,10 +1,7 @@
 const { logAdminEvent } = require('../../../../../lib/logging.js');
 
 const BASE64_IMAGE_REGEX = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
-const MAX_IMAGE_BYTES = {
-	botAvatar: 1024 * 1024, // 1MB
-	botBanner: 5 * 1024 * 1024, // 5MB
-};
+const MAX_IMAGE_BYTES = { botAvatar: 1024 * 1024 }; // 1MB
 
 function getBase64ByteLength(base64) {
 	const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
@@ -13,7 +10,7 @@ function getBase64ByteLength(base64) {
 
 function validateCustomization(data) {
 	const validated = {};
-	const allowedFields = ['botAvatar', 'botBio', 'botBanner', 'botUsername'];
+	const allowedFields = ['botAvatar', 'botBio', 'botUsername'];
 
 	for (const field of allowedFields) {
 		if (!Object.prototype.hasOwnProperty.call(data, field)) continue;
@@ -60,7 +57,6 @@ module.exports.get = fastify => ({
 			select: {
 				botAvatar: true,
 				botBio: true,
-				botBanner: true,
 				botUsername: true,
 			},
 		});
@@ -69,7 +65,6 @@ module.exports.get = fastify => ({
 			return {
 				botAvatar: null,
 				botBio: null,
-				botBanner: null,
 				botUsername: null,
 			};
 		}
@@ -95,7 +90,6 @@ module.exports.patch = fastify => ({
 			select: {
 				botAvatar: true,
 				botBio: true,
-				botBanner: true,
 				botUsername: true,
 			},
 		});
@@ -110,35 +104,27 @@ module.exports.patch = fastify => ({
 			select: {
 				botAvatar: true,
 				botBio: true,
-				botBanner: true,
 				botUsername: true,
 			},
 		});
 
-		// Apply customization to the bot in the guild
+		// Apply customization to the bot in the guild using a single edit() call
 		const guild = client.guilds.cache.get(id);
 		if (guild) {
 			const botMember = guild.members.me;
 			if (botMember) {
+				const editData = {};
 				if (Object.prototype.hasOwnProperty.call(filteredData, 'botUsername')) {
-					try {
-						await botMember.setNickname(filteredData.botUsername || null);
-					} catch (error) {
-						client.log.warn(`Failed to apply bot nickname to guild ${id}: ${error.message}`);
-					}
+					editData.nick = filteredData.botUsername || null;
 				}
 				if (Object.prototype.hasOwnProperty.call(filteredData, 'botAvatar')) {
-					try {
-						await botMember.setAvatar(filteredData.botAvatar || null);
-					} catch (error) {
-						client.log.warn(`Failed to apply bot avatar to guild ${id}: ${error.message}`);
-					}
+					editData.avatar = filteredData.botAvatar || null;
 				}
-				if (Object.prototype.hasOwnProperty.call(filteredData, 'botBanner')) {
+				if (Object.keys(editData).length > 0) {
 					try {
-						await botMember.setBanner(filteredData.botBanner || null);
+						await botMember.edit(editData);
 					} catch (error) {
-						client.log.warn(`Failed to apply bot banner to guild ${id}: ${error.message}`);
+						client.log.warn(`Failed to apply bot guild profile to guild ${id}: ${error.message}`);
 					}
 				}
 			}
