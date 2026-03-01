@@ -1,0 +1,51 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: # Allows manual trigger from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Standard token is used by default here
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add Upstream and Fetch
+        run: |
+          git remote add upstream https://github.com/discord-tickets/bot.git
+          git fetch upstream main
+
+      - name: Rebase and Push
+        run: |
+          # Reset buffer branch to match your private main
+          git checkout -B feat/upstream origin/main
+          
+          # Apply upstream changes
+          git rebase upstream/main
+          
+          # Push to your repo (GITHUB_TOKEN has 'contents: write' permission)
+          git push origin feat/upstream --force
+
+      - name: Create Pull Request
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: "feat/upstream"
+          destination_branch: "main"
+          pr_title: "🔄 Upstream Sync: New Updates"
+          pr_body: "Automated rebase from upstream. Please review and merge."
+          # Use the built-in secret variable
+          github_token: ${{ secrets.GITHUB_TOKEN }}
