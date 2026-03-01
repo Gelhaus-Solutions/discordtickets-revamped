@@ -39,7 +39,7 @@ function validateCustomization(data) {
 		}
 
 		const match = value.match(BASE64_IMAGE_REGEX);
-		if (!match) throw new Error(`${field} must be a valid PNG, JPG, WEBP, or GIF image.`);
+		if (!match) throw new Error(`${field} must be a valid PNG, JPEG/JPG, WEBP, or GIF image.`);
 		const imageSize = getBase64ByteLength(match[2]);
 		if (imageSize > MAX_IMAGE_BYTES[field]) {
 			throw new Error(`${field} exceeds the ${Math.round(MAX_IMAGE_BYTES[field] / 1024 / 1024)}MB size limit.`);
@@ -82,7 +82,7 @@ module.exports.get = fastify => ({
 module.exports.patch = fastify => ({
 	handler: async req => {
 		const data = req.body ?? {};
-		if (!data || typeof data !== 'object' || Array.isArray(data)) {
+		if (typeof data !== 'object' || Array.isArray(data)) {
 			throw new Error('Invalid customization payload.');
 		}
 		const filteredData = validateCustomization(data);
