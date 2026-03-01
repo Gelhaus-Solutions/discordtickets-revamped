@@ -115,17 +115,29 @@ module.exports.patch = fastify => ({
 			},
 		});
 
-		// Apply customization to the bot in the guild if avatar or username is set
+		// Apply customization to the bot in the guild
 		try {
 			const guild = client.guilds.cache.get(id);
 			if (guild) {
-				const botMember = await guild.members.fetchMe();
+				const editOptions = {};
 
 				// Set custom nickname for the guild
-				if (filteredData.botUsername) {
-					await botMember.setNickname(filteredData.botUsername);
-				} else if (original?.botUsername) {
-					await botMember.setNickname(null);
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botUsername')) {
+					editOptions.nick = filteredData.botUsername || null;
+				}
+
+				// Set custom avatar for the guild
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botAvatar')) {
+					editOptions.avatar = filteredData.botAvatar || null;
+				}
+
+				// Set custom banner for the guild
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botBanner')) {
+					editOptions.banner = filteredData.botBanner || null;
+				}
+
+				if (Object.keys(editOptions).length > 0) {
+					await guild.members.editMe(editOptions);
 				}
 			}
 		} catch (error) {
