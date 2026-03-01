@@ -98,17 +98,17 @@ async function logAdminEvent(client, {
 			})
 			.setTitle(getMessage('log.admin.title.joined', {
 				...i18nOptions,
-				targetType: getMessage(`log.admin.title.target.${target.type}`),
+				targetType: getMessage(`log.admin.title.target.${target.type}`) || target.type.charAt(0).toUpperCase() + target.type.slice(1),
 				verb: getMessage(`log.admin.verb.${action}`),
 			}))
 			.setDescription(getMessage('log.admin.description.joined', {
 				...i18nOptions,
-				targetType: getMessage(`log.admin.description.target.${target.type}`),
+				targetType: getMessage(`log.admin.description.target.${target.type}`) || target.type.charAt(0).toUpperCase() + target.type.slice(1),
 				verb: getMessage(`log.admin.verb.${action}`),
 			}))
 			.addFields([
 				{
-					name: getMessage(`log.admin.title.target.${target.type}`),
+					name: getMessage(`log.admin.title.target.${target.type}`) || target.type.charAt(0).toUpperCase() + target.type.slice(1),
 					value: target.name ? `${target.name} (\`${target.id}\`)` : target.id,
 				},
 			]),
