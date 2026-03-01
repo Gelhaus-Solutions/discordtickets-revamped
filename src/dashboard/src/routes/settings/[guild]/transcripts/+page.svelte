@@ -32,9 +32,7 @@
 
 		try {
 			const params = new URLSearchParams({
-				query: searchQuery,
-				limit: '20',
-				sort: sortBy
+				since: Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60 // Last year
 			});
 
 			const response = await fetch(
@@ -44,11 +42,31 @@
 
 			if (response.ok) {
 				const result = await response.json();
-				// Filter tickets that have transcripts
-				searchResults = Array.isArray(result.tickets) 
-					? result.tickets.filter(t => t.transcript).slice(0, 20)
-					: [];
-				totalResults = searchResults.length;
+				const allTickets = Array.isArray(result) ? result : (Array.isArray(result.tickets) ? result.tickets : []);
+				
+				// Filter to only show closed tickets with transcripts, and search by query
+				const searchLower = searchQuery.toLowerCase();
+				const filtered = allTickets
+					.filter(t => t.htmlTranscript || t.transcriptUrl) // Has transcript
+					.filter(t => !t.open) // Is closed
+					.filter(t => 
+						// Search by ID, topic, or user ID
+						t.id?.toString().includes(searchQuery) ||
+						t.topic?.toLowerCase().includes(searchLower) ||
+						t.createdById?.toString().includes(searchQuery)
+					)
+					.sort((a, b) => {
+						if (sortBy === 'duration') {
+							const durationA = new Date(b.closedAt) - new Date(a.createdAt);
+							const durationB = new Date(b.closedAt) - new Date(a.createdAt);
+							return durationB - durationA;
+						}
+						return new Date(b.createdAt) - new Date(a.createdAt);
+					})
+					.slice(0, 20);
+				
+				searchResults = filtered;
+				totalResults = filtered.length;
 			} else {
 				searchResults = [];
 				totalResults = 0;
@@ -209,9 +227,9 @@
 						</div>
 						<div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
 							<i class="fa-solid fa-database"></i>
-							Size: {(transcript.transcript?.length || 0 / 1024).toFixed(2)} KB
+							Size: {((transcript.htmlTranscript?.length || 0) / 1024).toFixed(2)} KB
 						</div>
-						{#if transcript.status === 'CLOSED'}
+						{#if !transcript.open}
 							<div class="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">
 								<i class="fa-solid fa-check-circle"></i>
 								Closed

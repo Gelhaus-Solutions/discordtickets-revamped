@@ -69,8 +69,8 @@ function _page($$renderer, $$props) {
         } else {
           $$renderer2.push("<!--[!-->");
         }
-        $$renderer2.push(`<!--]--></div></div></div> <div class="flex flex-wrap gap-2 mb-4"><div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800"><i class="fa-solid fa-clock"></i> Duration: ${escape_html(formatDuration(transcript.createdAt, transcript.closedAt))}</div> <div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800"><i class="fa-solid fa-database"></i> Size: ${escape_html((transcript.transcript?.length || 0 / 1024).toFixed(2))} KB</div> `);
-        if (transcript.status === "CLOSED") {
+        $$renderer2.push(`<!--]--></div></div></div> <div class="flex flex-wrap gap-2 mb-4"><div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800"><i class="fa-solid fa-clock"></i> Duration: ${escape_html(formatDuration(transcript.createdAt, transcript.closedAt))}</div> <div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800"><i class="fa-solid fa-database"></i> Size: ${escape_html(((transcript.htmlTranscript?.length || 0) / 1024).toFixed(2))} KB</div> `);
+        if (!transcript.open) {
           $$renderer2.push("<!--[-->");
           $$renderer2.push(`<div class="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300"><i class="fa-solid fa-check-circle"></i> Closed</div>`);
         } else {
