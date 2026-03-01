@@ -617,7 +617,7 @@ module.exports = class TicketManager {
 			);
 		}
 
-		if (category.guild.claimButton && category.claiming) {
+		if (category.claiming) {
 			components.addComponents(
 				new ButtonBuilder()
 					.setCustomId(JSON.stringify({ action: 'claim' }))
@@ -637,16 +637,41 @@ module.exports = class TicketManager {
 			);
 		}
 
+		if (category.guild.closeReasonButton) {
+			components.addComponents(
+				new ButtonBuilder()
+					.setCustomId(JSON.stringify({ action: 'close-reason' }))
+					.setStyle(ButtonStyle.Secondary)
+					.setEmoji('📝')
+					.setLabel('Close with Reason'),
+			);
+		}
+
 		const pings = category.pingRoles.map(r => `<@&${r}>`).join(' ');
 
-		const sent = await channel.send({
-			components: components.components.length >= 1 ? [components] : [],
-			content: getMessage('ticket.opening_message.content', {
-				creator: interaction.user.toString(),
-				staff: pings ? pings + ',' : '',
-			}),
-			embeds,
-		});
+		// For FORUM mode, the message is already created in threads.create(), so we edit it instead
+		// For other modes, we send a new message
+		let sent;
+		if (channelMode === 'FORUM') {
+			// FORUM channels: edit the initial message with embeds and components
+			sent = await channel.messages.fetch(channel.id).catch(() => null);
+			if (sent) {
+				await sent.edit({
+					components: components.components.length >= 1 ? [components] : [],
+					embeds,
+				}).catch(this.client.log.error);
+			}
+		} else {
+			// CHANNEL and THREAD modes: send a new message with embeds and components
+			sent = await channel.send({
+				components: components.components.length >= 1 ? [components] : [],
+				content: getMessage('ticket.opening_message.content', {
+					creator: interaction.user.toString(),
+					staff: pings ? pings + ',' : '',
+				}),
+				embeds,
+			});
+		}
 
 		sent.pin({ reason: 'Ticket opening message' })
 			.then(() => {
