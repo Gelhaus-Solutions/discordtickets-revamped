@@ -1,5 +1,55 @@
 const { logAdminEvent } = require('../../../../../lib/logging.js');
 
+const BASE64_IMAGE_REGEX = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
+const MAX_IMAGE_BYTES = {
+	botAvatar: 1024 * 1024, // 1MB
+	botBanner: 5 * 1024 * 1024, // 5MB
+};
+
+function getBase64ByteLength(base64) {
+	const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
+	return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+function validateCustomization(data) {
+	const validated = {};
+	const allowedFields = ['botAvatar', 'botBio', 'botBanner', 'botUsername'];
+
+	for (const field of allowedFields) {
+		if (!Object.prototype.hasOwnProperty.call(data, field)) continue;
+		const value = data[field];
+
+		if (value === null || value === '') {
+			validated[field] = null;
+			continue;
+		}
+
+		if (typeof value !== 'string') throw new Error(`${field} must be a string.`);
+
+		if (field === 'botBio') {
+			if (value.length > 500) throw new Error('botBio cannot exceed 500 characters.');
+			validated[field] = value;
+			continue;
+		}
+
+		if (field === 'botUsername') {
+			if (value.length > 80) throw new Error('botUsername cannot exceed 80 characters.');
+			validated[field] = value;
+			continue;
+		}
+
+		const match = value.match(BASE64_IMAGE_REGEX);
+		if (!match) throw new Error(`${field} must be a valid PNG, JPG, WEBP, or GIF image.`);
+		const imageSize = getBase64ByteLength(match[2]);
+		if (imageSize > MAX_IMAGE_BYTES[field]) {
+			throw new Error(`${field} exceeds the ${Math.round(MAX_IMAGE_BYTES[field] / 1024 / 1024)}MB size limit.`);
+		}
+		validated[field] = value;
+	}
+
+	return validated;
+}
+
 module.exports.get = fastify => ({
 	handler: async req => {
 		/** @type {import('client')} */
@@ -31,15 +81,11 @@ module.exports.get = fastify => ({
 
 module.exports.patch = fastify => ({
 	handler: async req => {
-		const data = req.body;
-		const allowedFields = ['botAvatar', 'botBio', 'botBanner', 'botUsername'];
-		const filteredData = {};
-
-		for (const field of allowedFields) {
-			if (Object.prototype.hasOwnProperty.call(data, field)) {
-				filteredData[field] = data[field];
-			}
+		const data = req.body ?? {};
+		if (!data || typeof data !== 'object' || Array.isArray(data)) {
+			throw new Error('Invalid customization payload.');
 		}
+		const filteredData = validateCustomization(data);
 
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
@@ -54,7 +100,11 @@ module.exports.patch = fastify => ({
 			},
 		});
 
-		const customization = await client.prisma.guild.update({
+		const customization = await client.prisma.guild.upsert({
+			create: {
+				id,
+				...filteredData,
+			},
 			data: filteredData,
 			where: { id },
 			select: {
