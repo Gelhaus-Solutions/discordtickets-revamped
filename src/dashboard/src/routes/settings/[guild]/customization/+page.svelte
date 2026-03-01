@@ -35,15 +35,24 @@
 		});
 	});
 
-	const handleImageUpload = async (event, field) => {
+	const handleImageUpload = (event, field) => {
 		const file = event.target.files?.[0];
 		if (!file) return;
 
+		// Check file size (limit to 5MB)
+		const maxSize = 5 * 1024 * 1024; // 5MB
+		if (file.size > maxSize) {
+			error = new Error(`File size must be less than 5MB. Selected file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+			return;
+		}
+
 		const reader = new FileReader();
 		reader.onload = (e) => {
-			const base64 = e.target?.result;
-			customization[field] = base64;
+			customization[field] = e.target?.result;
 			modified = true;
+		};
+		reader.onerror = () => {
+			error = new Error('Failed to read file');
 		};
 		reader.readAsDataURL(file);
 	};
@@ -112,7 +121,11 @@
 		</p>
 	</div>
 
-	<form onsubmit={preventDefault(() => submit())} onchange={() => (modified = true)}>
+	<form onsubmit={preventDefault(() => submit())} onchange={(e) => {
+		if (e.target.type !== 'file') {
+			modified = true;
+		}
+	}}>
 		<div class="my-4 grid grid-cols-1 gap-8">
 			<!-- Bot Avatar -->
 			<div>
