@@ -115,15 +115,32 @@ module.exports.patch = fastify => ({
 			},
 		});
 
-		// Apply the bot's nickname in the guild
-		if (Object.prototype.hasOwnProperty.call(filteredData, 'botUsername')) {
-			try {
-				const guild = client.guilds.cache.get(id);
-				if (guild) {
-					await guild.members.me?.edit({ nick: filteredData.botUsername || null });
+		// Apply customization to the bot in the guild
+		const guild = client.guilds.cache.get(id);
+		if (guild) {
+			const botMember = guild.members.me;
+			if (botMember) {
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botUsername')) {
+					try {
+						await botMember.setNickname(filteredData.botUsername || null);
+					} catch (error) {
+						client.log.warn(`Failed to apply bot nickname to guild ${id}: ${error.message}`);
+					}
 				}
-			} catch (error) {
-				client.log.warn(`Failed to apply bot nickname to guild ${id}: ${error.message}`);
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botAvatar')) {
+					try {
+						await botMember.setAvatar(filteredData.botAvatar || null);
+					} catch (error) {
+						client.log.warn(`Failed to apply bot avatar to guild ${id}: ${error.message}`);
+					}
+				}
+				if (Object.prototype.hasOwnProperty.call(filteredData, 'botBanner')) {
+					try {
+						await botMember.setBanner(filteredData.botBanner || null);
+					} catch (error) {
+						client.log.warn(`Failed to apply bot banner to guild ${id}: ${error.message}`);
+					}
+				}
 			}
 		}
 
