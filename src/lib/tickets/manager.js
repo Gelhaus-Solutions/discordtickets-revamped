@@ -1463,6 +1463,20 @@ module.exports = class TicketManager {
 		const dmComponents = [];
 		const logComponents = [];
 
+		// For threads/forum, add button to access the archived thread
+		if ((channelMode === 'THREAD' || channelMode === 'FORUM') && channel) {
+			const threadButton = new ActionRowBuilder()
+				.addComponents(
+					new ButtonBuilder()
+						.setStyle(ButtonStyle.Link)
+						.setURL(channel.url)
+						.setEmoji('🔗')
+						.setLabel('View Archived Thread'),
+				);
+			dmComponents.push(threadButton);
+			logComponents.push(threadButton);
+		}
+
 		if (ticket.guild.archive) {
 			// Await transcript so we can include the URL in the log button
 			const transcriptPath = await saveHtmlTranscript(this.client, ticket.id)

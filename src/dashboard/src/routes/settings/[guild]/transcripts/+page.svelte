@@ -47,7 +47,7 @@
 				// Filter to only show closed tickets with transcripts, and search by query
 				const searchLower = searchQuery.toLowerCase();
 				const filtered = allTickets
-					.filter(t => t.htmlTranscript || t.transcriptUrl) // Has transcript
+					.filter(t => (t.htmlTranscript && t.htmlTranscript.length > 0) || t.transcriptUrl) // Has transcript
 					.filter(t => !t.open) // Is closed
 					.filter(t => 
 						// Search by ID, topic, or user ID
@@ -57,8 +57,8 @@
 					)
 					.sort((a, b) => {
 						if (sortBy === 'duration') {
-							const durationA = new Date(b.closedAt) - new Date(a.createdAt);
-							const durationB = new Date(b.closedAt) - new Date(a.createdAt);
+							const durationA = new Date(a.closedAt) - new Date(a.createdAt);
+							const durationB = new Date(b.closedAt) - new Date(b.createdAt);
 							return durationB - durationA;
 						}
 						return new Date(b.createdAt) - new Date(a.createdAt);

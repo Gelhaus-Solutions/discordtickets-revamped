@@ -276,6 +276,22 @@
 					</label>
 				</div>
 				<div>
+					<label for="autoAssign" class="font-medium">
+						Auto-assign
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="Automatically assign the ticket to the first staff member who responds?"
+						></i>
+						<input
+							type="checkbox"
+							id="autoAssign"
+							name="autoAssign"
+							class="form-checkbox"
+							bind:checked={category.autoAssign}
+						/>
+					</label>
+				</div>
+				<div>
 					<label class="font-medium">
 						Cooldown
 						<i

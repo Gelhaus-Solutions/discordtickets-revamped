@@ -230,6 +230,22 @@
 								/>
 							</label>
 						</div>
+						<div>
+							<label for="closeReasonButton" class="text-base font-medium">
+								Close with Reason
+								<i
+									class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+									title="Add a 'close with reason' button to the opening message?"
+								></i>
+								<input
+									type="checkbox"
+									id="closeReasonButton"
+									name="closeReasonButton"
+									class="form-checkbox"
+									bind:checked={settings.closeReasonButton}
+								/>
+							</label>
+						</div>
 					</div>
 				</div>
 			</div>

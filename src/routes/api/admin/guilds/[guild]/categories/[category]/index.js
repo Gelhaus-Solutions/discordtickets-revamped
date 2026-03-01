@@ -126,6 +126,7 @@ module.exports.patch = fastify => ({
 
 		if (Object.prototype.hasOwnProperty.call(data, 'id')) delete data.id;
 		if (Object.prototype.hasOwnProperty.call(data, 'createdAt')) delete data.createdAt;
+		if (Object.prototype.hasOwnProperty.call(data, 'guildId')) delete data.guildId;
 
 		// Handle backupCategory relation
 		if (data.backupCategoryId) {

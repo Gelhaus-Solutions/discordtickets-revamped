@@ -82,7 +82,7 @@ commands:
           name: reason
     force-close:
       closed_one:
-        description: The channel will be deleted in a few seconds.
+        description: The ticket will be closed in a few seconds.
         title: ✅ Ticket closed
       confirm_multiple:
         description: >
@@ -92,7 +92,7 @@ commands:
           {tickets}
         title: ❓ Are you sure?
       confirmed_multiple:
-        description: The channels will be deleted in a few seconds.
+        description: The tickets will be closed in a few seconds.
         title:
           - ✅ Closing %d ticket
           - ✅ Closing %d tickets
@@ -444,7 +444,7 @@ ticket:
   claimed: 🙌 {user} has claimed this ticket.
   close:
     closed:
-      description: This channel will be deleted in a few seconds…
+      description: This ticket will be closed in a few seconds…
       title: ✅ Ticket closed
     forbidden:
       description: You don't have permission to close this ticket.
