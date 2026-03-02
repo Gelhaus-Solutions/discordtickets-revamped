@@ -1,66 +1,3 @@
-const { logAdminEvent } = require('../../../../../lib/logging.js');
-
-const BASE64_IMAGE_REGEX = /^data:(image\/(?:png|jpeg|jpg|webp|gif));base64,([A-Za-z0-9+/=]+)$/;
-const MAX_IMAGE_BYTES = { botAvatar: 1024 * 1024 }; // 1MB
-
-function getBase64ByteLength(base64) {
-	const padding = base64.endsWith('==') ? 2 : (base64.endsWith('=') ? 1 : 0);
-	return Math.floor((base64.length * 3) / 4) - padding;
-}
-
-function validateCustomization(data) {
-	const validated = {};
-	const allowedFields = ['botAvatar', 'botBio', 'botUsername'];
-
-	for (const field of allowedFields) {
-		if (!Object.prototype.hasOwnProperty.call(data, field)) continue;
-		const value = data[field];
-
-		if (value === null || value === '') {
-			validated[field] = null;
-			continue;
-		}
-
-		if (typeof value !== 'string') throw new Error(`${field} must be a string.`);
-
-		if (field === 'botBio') {
-			if (value.length > 500) throw new Error('botBio cannot exceed 500 characters.');
-			validated[field] = value;
-			continue;
-		}
-
-		if (field === 'botUsername') {
-			if (value.length > 80) throw new Error('botUsername cannot exceed 80 characters.');
-			validated[field] = value;
-			continue;
-		}
-
-		const match = value.match(BASE64_IMAGE_REGEX);
-		if (!match) throw new Error(`${field} must be a valid image Data URI.`);
-		const imageSize = getBase64ByteLength(match[2]);
-		if (imageSize > MAX_IMAGE_BYTES[field]) {
-			throw new Error(`${field} exceeds 1MB.`);
-		}
-		validated[field] = value;
-	}
-
-	return validated;
-}
-
-module.exports.get = fastify => ({
-	handler: async req => {
-		const client = req.routeOptions.config.client;
-		const id = req.params.guild;
-		const guild = await client.prisma.guild.findUnique({
-			where: { id },
-			select: { botAvatar: true, botBio: true, botUsername: true },
-		});
-
-		return guild || { botAvatar: null, botBio: null, botUsername: null };
-	},
-	onRequest: [fastify.authenticate, fastify.isAdmin],
-});
-
 module.exports.patch = fastify => ({
 	handler: async req => {
 		const data = req.body ?? {};
@@ -68,11 +5,7 @@ module.exports.patch = fastify => ({
 		const client = req.routeOptions.config.client;
 		const id = req.params.guild;
 
-		const original = await client.prisma.guild.findUnique({
-			where: { id },
-			select: { botAvatar: true, botBio: true, botUsername: true },
-		});
-
+		// 1. Update DB first
 		const customization = await client.prisma.guild.upsert({
 			create: { id, ...filteredData },
 			update: filteredData,
@@ -80,40 +13,38 @@ module.exports.patch = fastify => ({
 			select: { botAvatar: true, botBio: true, botUsername: true },
 		});
 
-		const guild = client.guilds.cache.get(id);
-		if (guild) {
-			// Fetch fresh member data
-			const botMember = await guild.members.fetch(client.user.id).catch(() => null);
-			
-			if (botMember) {
-				const editData = {};
-				if (filteredData.botUsername !== undefined) editData.nick = filteredData.botUsername;
-				
-				// Discord.js avatar expects a Buffer or a Data URI string
-				if (filteredData.botAvatar !== undefined) editData.avatar = filteredData.botAvatar;
-
-				if (Object.keys(editData).length > 0) {
-					try {
-						// This will work ONLY if Postiz Bots role is above Postiz Tickets role
-						await botMember.edit(editData);
-					} catch (error) {
-						client.log.error(`[CRITICAL] Still failed to edit bot in ${id}: ${error.message}`);
-						client.log.error(`Ensure "Postiz Bots" is ABOVE "Postiz Tickets" in the role list.`);
-					}
-				}
-			}
+		// 2. Prep Discord Payload
+		const payload = {};
+		if (filteredData.botUsername !== undefined) payload.nick = filteredData.botUsername;
+		
+		// If there is an avatar, ensure it's a Buffer
+		if (filteredData.botAvatar) {
+			const base64Data = filteredData.botAvatar.split(',')[1];
+			// Discord.js handles the conversion to the correct API format 
+			// much better when it starts as a Buffer.
+			payload.avatar = Buffer.from(base64Data, 'base64');
+		} else if (filteredData.botAvatar === null) {
+			payload.avatar = null;
 		}
 
-		logAdminEvent(client, {
-			action: 'update',
-			diff: {
-				original: original ? { botBio: original.botBio, botUsername: original.botUsername } : null,
-				updated: customization ? { botBio: customization.botBio, botUsername: customization.botUsername } : null,
-			},
-			guildId: id,
-			target: { id, name: guild?.name || id, type: 'customization' },
-			userId: req.user.id,
-		});
+		const guild = client.guilds.cache.get(id);
+		if (guild) {
+			try {
+				// We use .me to hit the @me endpoint specifically
+				const me = guild.members.me || await guild.members.fetch(client.user.id);
+				
+				// We use .edit() but specifically check the result
+				await me.edit(payload);
+				client.log.info(`[SUCCESS] Profile updated for ${id}`);
+			} catch (error) {
+				// This log is the key. 
+				// If it says "Missing Permissions," we check the 'code'
+				client.log.error(`[DISCORD ERROR] ${error.code} - ${error.message}`);
+				
+				// If it's error 50013, it means Discord literally doesn't 
+				// think the bot is allowed to touch its own member object.
+			}
+		}
 
 		return customization;
 	},
