@@ -16,7 +16,6 @@
 	let customization = $state({
 		botAvatar: data?.botAvatar || '',
 		botBio: data?.botBio || '',
-		botBanner: data?.botBanner || '',
 		botUsername: data?.botUsername || ''
 	});
 
@@ -209,46 +208,6 @@
 				</p>
 			</div>
 
-			<!-- Bot Banner -->
-			<div>
-				<div class="font-medium">
-					<label for="botBannerInput">
-						Bot Banner
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Upload a custom banner for the bot in this server (PNG, JPG, recommended 1200x600px)"
-						></i>
-					</label>
-				</div>
-				<div class="mt-2 flex flex-col items-center gap-4">
-					{#if customization.botBanner}
-						<img
-							src={customization.botBanner}
-							alt="Bot Banner"
-							class="w-full rounded-lg border-2 border-blurple object-cover"
-							style="max-height: 200px;"
-						/>
-						<button
-							type="button"
-							onclick={() => clearImage('botBanner')}
-							class="rounded-lg bg-red-300 p-2 px-4 font-medium transition duration-300 hover:bg-red-500 hover:text-white dark:bg-red-500/50 dark:hover:bg-red-500 dark:hover:text-white"
-						>
-							<i class="fa-solid fa-trash"></i> Remove Banner
-						</button>
-					{:else}
-						<div class="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 dark:border-slate-600 dark:bg-slate-800">
-							<i class="fa-solid fa-image text-4xl text-gray-300 dark:text-slate-600"></i>
-						</div>
-					{/if}
-					<input
-						id="botBannerInput"
-						type="file"
-						accept="image/*"
-						onchange={(e) => handleImageUpload(e, 'botBanner')}
-						class="max-w-xs"
-					/>
-				</div>
-			</div>
 		</div>
 
 		<div class="mt-8 flex gap-4">

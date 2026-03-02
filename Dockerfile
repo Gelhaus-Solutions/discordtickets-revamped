@@ -12,7 +12,7 @@ COPY package.json bun.lock ./
 # Some CI environments produce a lockfile drift; using a non-frozen install
 # here makes the build more robust. If you prefer strict reproducibility,
 # update and commit `bun.lock` and re-enable `--frozen-lockfile`.
-RUN CI=true bun install --production
+RUN CI=true bun install --production --no-frozen-lockfile
 
 COPY --link . .
 

@@ -45,8 +45,8 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git checkout -B feat/upstream origin/main
-          git rebase upstream/main
-          git push origin feat/upstream --force
+          git merge --no-ff --no-edit upstream/main
+          git push origin feat/upstream
 
       - name: Create Pull Request
         if: steps.check_changes.outputs.changed == 'true'

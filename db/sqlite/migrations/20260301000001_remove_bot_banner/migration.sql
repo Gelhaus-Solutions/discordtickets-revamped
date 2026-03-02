@@ -1,0 +1,5 @@
+-- Migration: 20260301000001_remove_bot_banner
+-- Removes: botBanner column (per-server banners are not supported by Discord API)
+-- SQLite does not support DROP COLUMN in older versions; this is a no-op migration.
+-- The column will be ignored by Prisma since it is no longer in the schema.
+-- To fully remove it, recreate the table without the column (handled by Prisma migrations).

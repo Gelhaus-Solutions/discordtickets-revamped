@@ -14,7 +14,6 @@ function _page($$renderer, $$props) {
     let customization = {
       botAvatar: data?.botAvatar || "",
       botBio: data?.botBio || "",
-      botBanner: data?.botBanner || "",
       botUsername: data?.botUsername || ""
     };
     $$renderer2.push(`<h1 class="m-4 text-center text-4xl font-bold">Bot Customization</h1> <div class="m-2 mx-auto max-w-lg p-4 text-lg">`);
@@ -39,15 +38,7 @@ function _page($$renderer, $$props) {
     if ($$body) {
       $$renderer2.push(`${$$body}`);
     }
-    $$renderer2.push(`</textarea> <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">${escape_html(customization.botBio?.length || 0)}/500</p></div> <div><div class="font-medium"><label for="botBannerInput">Bot Banner <i class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400" title="Upload a custom banner for the bot in this server (PNG, JPG, recommended 1200x600px)"></i></label></div> <div class="mt-2 flex flex-col items-center gap-4">`);
-    if (customization.botBanner) {
-      $$renderer2.push("<!--[-->");
-      $$renderer2.push(`<img${attr("src", customization.botBanner)} alt="Bot Banner" class="w-full rounded-lg border-2 border-blurple object-cover" style="max-height: 200px;"/> <button type="button" class="rounded-lg bg-red-300 p-2 px-4 font-medium transition duration-300 hover:bg-red-500 hover:text-white dark:bg-red-500/50 dark:hover:bg-red-500 dark:hover:text-white"><i class="fa-solid fa-trash"></i> Remove Banner</button>`);
-    } else {
-      $$renderer2.push("<!--[!-->");
-      $$renderer2.push(`<div class="flex w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 py-12 dark:border-slate-600 dark:bg-slate-800"><i class="fa-solid fa-image text-4xl text-gray-300 dark:text-slate-600"></i></div>`);
-    }
-    $$renderer2.push(`<!--]--> <input id="botBannerInput" type="file" accept="image/*" class="max-w-xs"/></div></div></div> <div class="mt-8 flex gap-4"><button type="submit"${attr("disabled", true, true)} class="flex-1 rounded-lg bg-green-300 p-2 px-5 font-medium transition duration-300 hover:bg-green-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-500/50 dark:hover:bg-green-500 dark:hover:text-white">`);
+    $$renderer2.push(`</textarea> <p class="mt-1 text-sm text-gray-500 dark:text-slate-400">${escape_html(customization.botBio?.length || 0)}/500</p></div></div> <div class="mt-8 flex gap-4"><button type="submit"${attr("disabled", true, true)} class="flex-1 rounded-lg bg-green-300 p-2 px-5 font-medium transition duration-300 hover:bg-green-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-green-500/50 dark:hover:bg-green-500 dark:hover:text-white">`);
     {
       $$renderer2.push("<!--[!-->");
       $$renderer2.push(`<i class="fa-solid fa-save"></i>`);

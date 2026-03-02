@@ -10,3 +10,4 @@
 *.log
 *.DS_Store
 summary.md
+package-lock.json
