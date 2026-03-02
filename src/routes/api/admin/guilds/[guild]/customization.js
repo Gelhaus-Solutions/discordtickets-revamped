@@ -36,10 +36,11 @@ function validateCustomization(data) {
 		}
 
 		const match = value.match(BASE64_IMAGE_REGEX);
-		if (!match) throw new Error(`${field} must be a valid PNG, JPEG/JPG, WEBP, or GIF image.`);
+		if (!match) throw new Error(`${field} must be a valid image URI.`);
+		
 		const imageSize = getBase64ByteLength(match[2]);
 		if (imageSize > MAX_IMAGE_BYTES[field]) {
-			throw new Error(`${field} exceeds the ${Math.round(MAX_IMAGE_BYTES[field] / 1024 / 1024)}MB size limit.`);
+			throw new Error(`${field} exceeds 1MB limit.`);
 		}
 		validated[field] = value;
 	}
@@ -64,8 +65,6 @@ module.exports.get = fastify => ({
 module.exports.patch = fastify => ({
 	handler: async req => {
 		const data = req.body ?? {};
-		if (typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid customization payload.');
-		
 		const filteredData = validateCustomization(data);
 		const client = req.routeOptions.config.client;
 		const id = req.params.guild;
@@ -84,7 +83,9 @@ module.exports.patch = fastify => ({
 
 		const guild = client.guilds.cache.get(id);
 		if (guild) {
-			const botMember = guild.members.me || await guild.members.fetch(client.user.id).catch(() => null);
+			// Using fetch(client.user.id) instead of .me to ensure we have the member object
+			const botMember = await guild.members.fetch(client.user.id).catch(() => null);
+			
 			if (botMember) {
 				const editData = {};
 				
@@ -96,21 +97,21 @@ module.exports.patch = fastify => ({
 					if (filteredData.botAvatar === null) {
 						editData.avatar = null;
 					} else {
-						// FIX: Convert Base64 string to Buffer
-						const base64Part = filteredData.botAvatar.split(',')[1];
-						editData.avatar = Buffer.from(base64Part, 'base64');
+						// CRITICAL FIX: Convert the base64 string to a Buffer.
+						// discord.js handles Buffers much better than raw base64 strings
+						const base64Data = filteredData.botAvatar.split(',')[1];
+						editData.avatar = Buffer.from(base64Data, 'base64');
 					}
 				}
 
 				if (Object.keys(editData).length > 0) {
 					try {
-						// Check if the bot can actually manage itself in this guild
-						if (!botMember.manageable) {
-							client.log.warn(`Bot is not manageable in guild ${id}. Check role hierarchy.`);
-						}
+						// We use edit() which hits PATCH /guilds/{guild.id}/members/@me
 						await botMember.edit(editData);
 					} catch (error) {
-						client.log.warn(`Failed to apply bot guild profile to guild ${id}: ${error.message}`);
+						// If it still says Missing Permissions here, it is because discord.js 
+						// thinks it lacks permissions based on its internal cache.
+						client.log.warn(`API Error: ${error.message}`);
 					}
 				}
 			}
