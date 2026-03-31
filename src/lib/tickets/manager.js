@@ -440,6 +440,8 @@ module.exports = class TicketManager {
 
 		/** @type {import("discord.js").TextChannel|import("discord.js").ThreadChannel} */
 		let channel;
+		/** @type {import("discord.js").ForumChannel|null} */
+		let forumChannel;
 
 		if (channelMode === 'THREAD') {
 			// Create a private/public thread inside an existing channel
@@ -469,7 +471,7 @@ module.exports = class TicketManager {
 			await channel.members.add(this.client.user.id);
 		} else if (channelMode === 'FORUM') {
 			// Create a forum post (thread) in a forum channel
-			const forumChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
+			forumChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
 			if (!forumChannel) {
 				return await interaction.editReply({
 					embeds: [
@@ -483,19 +485,6 @@ module.exports = class TicketManager {
 					],
 				});
 			}
-			// Forum threads require an initial message; we create it here and then send the real opening message later
-			const forumThread = await forumChannel.threads.create({
-				autoArchiveDuration: 10080, // 7 days
-				message: {
-					content: getMessage('ticket.opening_message.content', {
-						creator: interaction.user.toString(),
-						staff: category.pingRoles.map(r => `<@&${r}>`).join(' '),
-					}),
-				},
-				name: channelName,
-				reason: `${creator.user.username} created a ticket`,
-			});
-			channel = forumThread;
 		} else {
 			// Default: CHANNEL mode — create a new text channel in a Discord category
 			channel = await guild.channels.create({
@@ -524,7 +513,6 @@ module.exports = class TicketManager {
 				topic: `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}`,
 			});
 		}
-
 
 		const needsStats = /{+\s?(avgResponseTime|avgResolutionTime|avgRating)\s?}+/i.test(category.openingMessage);
 		const statsCacheKey = `cache/category-stats/${categoryId}`;
@@ -648,29 +636,33 @@ module.exports = class TicketManager {
 		}
 
 		const pings = category.pingRoles.map(r => `<@&${r}>`).join(' ');
+		const openingMessageData = {
+			components: components.components.length >= 1 ? [components] : [],
+			content: getMessage('ticket.opening_message.content', {
+				creator: interaction.user.toString(),
+				staff: pings ? pings + ',' : '',
+			}),
+			embeds,
+		};
 
-		// For FORUM mode, the message is already created in threads.create(), so we edit it instead
+		// For FORUM mode, the opening message is created in threads.create()
 		// For other modes, we send a new message
 		let sent;
 		if (channelMode === 'FORUM') {
-			// FORUM channels: edit the initial message with embeds and components
-			sent = await channel.messages.fetch(channel.id).catch(() => null);
-			if (sent) {
-				await sent.edit({
-					components: components.components.length >= 1 ? [components] : [],
-					embeds,
-				}).catch(this.client.log.error);
-			}
+			channel = await forumChannel.threads.create({
+				autoArchiveDuration: 10080, // 7 days
+				message: openingMessageData,
+				name: channelName,
+				reason: `${creator.user.username} created a ticket`,
+			});
+			sent = await channel.messages.fetch(channel.id).catch(err => {
+				this.client.log.error(err);
+				return null;
+			});
+			if (!sent) throw new Error(`Failed to fetch opening message for forum ticket ${channel.id}. The message may not exist or the bot may be missing permissions.`);
 		} else {
 			// CHANNEL and THREAD modes: send a new message with embeds and components
-			sent = await channel.send({
-				components: components.components.length >= 1 ? [components] : [],
-				content: getMessage('ticket.opening_message.content', {
-					creator: interaction.user.toString(),
-					staff: pings ? pings + ',' : '',
-				}),
-				embeds,
-			});
+			sent = await channel.send(openingMessageData);
 		}
 
 		sent.pin({ reason: 'Ticket opening message' })
