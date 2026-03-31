@@ -440,7 +440,7 @@ module.exports = class TicketManager {
 
 		/** @type {import("discord.js").TextChannel|import("discord.js").ThreadChannel} */
 		let channel;
-		/** @type {import("discord.js").ForumChannel?} */
+		/** @type {import("discord.js").ForumChannel|null} */
 		let forumChannel;
 
 		if (channelMode === 'THREAD') {
@@ -655,7 +655,11 @@ module.exports = class TicketManager {
 				name: channelName,
 				reason: `${creator.user.username} created a ticket`,
 			});
-			sent = await channel.messages.fetch(channel.id).catch(() => null);
+			sent = await channel.messages.fetch(channel.id).catch(err => {
+				this.client.log.error(err);
+				return null;
+			});
+			if (!sent) throw new Error(`Failed to fetch opening message for forum ticket ${channel.id}. The message may not exist or the bot may be missing permissions.`);
 		} else {
 			// CHANNEL and THREAD modes: send a new message with embeds and components
 			sent = await channel.send(openingMessageData);
