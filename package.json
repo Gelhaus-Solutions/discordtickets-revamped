@@ -55,7 +55,7 @@
 		"@fastify/cookie": "^11.0.2",
 		"@fastify/jwt": "^9.0.4",
 		"@fastify/multipart": "^9.0.3",
-		"@prisma/client": "^5.22.0",
+		"@prisma/client": "^7.5.0",
 		"@sentry/node": "^9.41.0",
 		"@sentry/profiling-node": "^9.38.0",
 		"archiver": "^7.0.1",
