@@ -65,12 +65,63 @@ async function reusable(name) {
 	return thread;
 };
 
+// Pools are created lazily below to avoid spawning many workers at module
+// load time which can cause resource contention and init timeouts.
+
+function lazyPool(num, name, options) {
+	let _pool = null;
+	return {
+		async queue(fn) {
+			if (!_pool) _pool = reusablePool(num, name, options);
+			try {
+				return await _pool.queue(fn);
+			} catch (err) {
+				// Retry once quickly, in case the worker spawn timed out transiently
+				try {
+					await new Promise(r => setTimeout(r, 100));
+					return await _pool.queue(fn);
+				} catch (err2) {
+					// If this is the crypto pool, fall back to in-process crypto
+					if (name === 'crypto') {
+						try {
+							// Lazy-require local crypto implementation
+							const { decrypt, encrypt } = require('./crypto');
+							const pseudo = {
+								decrypt: data => decrypt(data),
+								encrypt: data => encrypt(data),
+							};
+							console.warn('[threads] crypto pool unavailable — falling back to in-process crypto');
+							return await Promise.resolve(fn(pseudo));
+						} catch (fallErr) {
+							console.error('[threads] crypto fallback failed', fallErr);
+							throw fallErr;
+						}
+					}
+					console.error('[threads] pool.queue failed for', name, err2 || err);
+					throw err2;
+				}
+			}
+		},
+		settled() {
+			return _pool ? _pool.settled() : Promise.resolve();
+		},
+		terminate() {
+			return _pool ? _pool.terminate() : Promise.resolve();
+		},
+		// internal getter for cases that need the real pool
+		_getPool() {
+			if (!_pool) _pool = reusablePool(num, name, options);
+			return _pool;
+		},
+	};
+}
+
 const pools = {
-	crypto: reusablePool(.5, 'crypto'),
-	export: reusablePool(.33, 'export'),
-	import: reusablePool(.33, 'import'),
-	stats: reusablePool(.25, 'stats'),
-	transcript: reusablePool(.5, 'transcript'),
+	crypto: lazyPool(.5, 'crypto'),
+	export: lazyPool(.33, 'export'),
+	import: lazyPool(.33, 'import'),
+	stats: lazyPool(.25, 'stats'),
+	transcript: lazyPool(.5, 'transcript'),
 };
 
 module.exports = {
