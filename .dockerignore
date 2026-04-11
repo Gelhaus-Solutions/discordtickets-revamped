@@ -1,11 +1,11 @@
-# ignore everything
-*
-# except these directories
-!db
-!scripts
-!src
-!user
-# and these files
-!.npmrc
-!package.json
-!bun.lock
+.git
+.github
+node_modules
+user
+logs
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+Dockerfile*
+docker-compose*
