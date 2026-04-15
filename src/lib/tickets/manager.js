@@ -1399,6 +1399,7 @@ module.exports = class TicketManager {
 	 */
 	async finallyClose(ticketId, {
 		closedBy = null,
+		lock = false,
 		reason = null,
 	}) {
 		let ticket = await this.getTicket(ticketId);
@@ -1478,8 +1479,8 @@ module.exports = class TicketManager {
 						}
 					}
 					
-					// Lock and archive the thread
-					await channel.setLocked(true, closeReason);
+					// Archive the thread (and optionally lock it)
+					if (lock) await channel.setLocked(true, closeReason);
 					await channel.setArchived(true, closeReason);
 					
 					// Send a final "archived" message
