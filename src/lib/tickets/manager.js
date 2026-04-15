@@ -1479,11 +1479,8 @@ module.exports = class TicketManager {
 						}
 					}
 					
-					// Archive the thread (and optionally lock it)
-					if (lock) await channel.setLocked(true, closeReason);
-					await channel.setArchived(true, closeReason);
-					
-					// Send a final "archived" message
+					// Send the final "archived" message first — sending to an archived
+					// thread would unarchive it, so this must happen while it's still active
 					try {
 						await channel.send({
 							embeds: [
@@ -1499,6 +1496,13 @@ module.exports = class TicketManager {
 					} catch (err) {
 						// Silently fail if we can't send the archived message
 					}
+
+					// Close (archive) the thread — and optionally lock it — as the final action
+					await channel.edit({
+						archived: true,
+						locked: lock,
+						reason: closeReason,
+					}).catch(err => this.client.log.warn('Failed to close thread %s: %s', ticket.id, err.message));
 				} else if (channel.deletable) {
 					await channel.delete(closeReason);
 				}
