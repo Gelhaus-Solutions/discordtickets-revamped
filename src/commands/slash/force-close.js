@@ -44,6 +44,11 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 					required: false,
 					type: ApplicationCommandOptionType.String,
 				},
+				{
+					name: 'lock',
+					required: false,
+					type: ApplicationCommandOptionType.Boolean,
+				},
 			].map(option => {
 				option.descriptionLocalizations = client.i18n.getAllMessages(`commands.slash.${name}.options.${option.name}.description`);
 				option.description = option.descriptionLocalizations['en-GB'] || client.i18n.getMessage(null, `commands.slash.${name}.options.${option.name}.description`) || 'No description';
@@ -118,6 +123,7 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 			setTimeout(async () => {
 				await client.tickets.finallyClose(ticket.id, {
 					closedBy: interaction.user.id,
+					lock: interaction.options.getBoolean('lock', false) ?? false,
 					reason: interaction.options.getString('reason', false),
 				});
 			}, ms('3s'));
@@ -225,6 +231,7 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 							for (const ticket of tickets) {
 								await client.tickets.finallyClose(ticket.id, {
 									closedBy: interaction.user.id,
+									lock: interaction.options.getBoolean('lock', false) ?? false,
 									reason: interaction.options.getString('reason', false),
 								});
 							}
@@ -286,6 +293,7 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 			setTimeout(async () => {
 				await client.tickets.finallyClose(ticket.id, {
 					closedBy: interaction.user.id,
+					lock: interaction.options.getBoolean('lock', false) ?? false,
 					reason: interaction.options.getString('reason', false),
 				});
 			}, ms('3s'));

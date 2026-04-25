@@ -13,5 +13,8 @@ Release versions that will receive security updates.
 
 ## Reporting a vulnerability
 
-If you find a vulnerability, please use for the [security advisories form](https://github.com/discord-tickets/bot/security/advisories/new)
-or send an email to [contact@discordtickets.app](mailto:contact@discordtickets.app).
+If you find a vulnerability, please use for the [GAdvisory web form](https://advisory.ennogelhaus.de/disclose/gelhaus-solutions%2Fpublic%2Fdiscordtickets-enhanced) or our [security email](mailto:sec+dt-enhanced@ennogelhaus.de).
+
+## Viewing security vulnerabilites
+
+If you want to see published security advisories / vulnerabilities, please see [GAdvisory](https://advisory.ennogelhaus.de/public/gelhaus-solutions/public/discordtickets-enhanced).
