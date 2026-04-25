@@ -17,4 +17,4 @@ If you find a vulnerability, please use for the [GAdvisory web form](https://adv
 
 ## Viewing security vulnerabilites
 
-If you want to see published security advisories / vulnerabilities, please see [GAdvisory]([https://advisory.ennogelhaus.de/public/gelhaus-solutions/public/cobc-et](https://advisory.ennogelhaus.de/public/gelhaus-solutions/public/discordtickets-enhanced)).
+If you want to see published security advisories / vulnerabilities, please see [GAdvisory](https://advisory.ennogelhaus.de/public/gelhaus-solutions/public/discordtickets-enhanced).
