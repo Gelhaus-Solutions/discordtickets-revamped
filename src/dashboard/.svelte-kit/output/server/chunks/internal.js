@@ -1,37 +1,51 @@
-import { r as root } from "./root.js";
-import "./environment.js";
-import "./server.js";
+import { r as root } from './root.js';
+import './environment.js';
+import './server.js';
 let public_env = {};
 function set_private_env(environment) {
 }
 function set_public_env(environment) {
-  public_env = environment;
+	public_env = environment;
 }
 let read_implementation = null;
 function set_read_implementation(fn) {
-  read_implementation = fn;
+	read_implementation = fn;
 }
 function set_manifest(_) {
 }
 const options = {
-  app_template_contains_nonce: false,
-  async: false,
-  csp: { "mode": "auto", "directives": { "upgrade-insecure-requests": false, "block-all-mixed-content": false }, "reportOnly": { "upgrade-insecure-requests": false, "block-all-mixed-content": false } },
-  csrf_check_origin: true,
-  csrf_trusted_origins: [],
-  embedded: false,
-  env_public_prefix: "PUBLIC_",
-  env_private_prefix: "",
-  hash_routing: false,
-  hooks: null,
-  // added lazily, via `get_hooks`
-  preload_strategy: "modulepreload",
-  root,
-  service_worker: false,
-  service_worker_options: void 0,
-  templates: {
-    app: ({ head, body, assets, nonce, env }) => '<!doctype html>\n<html>\n	<!--lang="en" -->\n	<head>\n		<meta charset="utf-8" />\n		<!-- <link rel="icon" href="' + assets + '/favicon.png" /> -->\n		<meta name="viewport" content="width=device-width, initial-scale=1" />\n		' + head + "\n	</head>\n	<body>\n		<div>" + body + "</div>\n	</body>\n</html>\n",
-    error: ({ status, message }) => '<!doctype html>\n<html lang="en">\n	<head>\n		<meta charset="utf-8" />\n		<title>' + message + `</title>
+	app_template_contains_nonce: false,
+	async: false,
+	csp: {
+		'mode': 'auto',
+		'directives': {
+			'upgrade-insecure-requests': false,
+			'block-all-mixed-content': false,
+		},
+		'reportOnly': {
+			'upgrade-insecure-requests': false,
+			'block-all-mixed-content': false,
+		},
+	},
+	csrf_check_origin: true,
+	csrf_trusted_origins: [],
+	embedded: false,
+	env_public_prefix: 'PUBLIC_',
+	env_private_prefix: '',
+	hash_routing: false,
+	hooks: null,
+	// added lazily, via `get_hooks`
+	preload_strategy: 'modulepreload',
+	root,
+	service_worker: false,
+	service_worker_options: void 0,
+	templates: {
+		app: ({
+			head, body, assets, nonce, env,
+		}) => '<!doctype html>\n<html>\n	<!--lang="en" -->\n	<head>\n		<meta charset="utf-8" />\n		<!-- <link rel="icon" href="' + assets + '/favicon.png" /> -->\n		<meta name="viewport" content="width=device-width, initial-scale=1" />\n		' + head + '\n	</head>\n	<body>\n		<div>' + body + '</div>\n	</body>\n</html>\n',
+		error: ({
+			status, message,
+		}) => '<!doctype html>\n<html lang="en">\n	<head>\n		<meta charset="utf-8" />\n		<title>' + message + `</title>
 
 		<style>
 			body {
@@ -100,36 +114,38 @@ const options = {
 	</head>
 	<body>
 		<div class="error">
-			<span class="status">` + status + '</span>\n			<div class="message">\n				<h1>' + message + "</h1>\n			</div>\n		</div>\n	</body>\n</html>\n"
-  },
-  version_hash: "qwzl9a"
+			<span class="status">` + status + '</span>\n			<div class="message">\n				<h1>' + message + '</h1>\n			</div>\n		</div>\n	</body>\n</html>\n',
+	},
+	version_hash: 'qwzl9a',
 };
 async function get_hooks() {
-  let handle;
-  let handleFetch;
-  let handleError;
-  let handleValidationError;
-  let init;
-  ({ handle, handleFetch, handleError, handleValidationError, init } = await import("../entries/hooks.server.js"));
-  let reroute;
-  let transport;
-  return {
-    handle,
-    handleFetch,
-    handleError,
-    handleValidationError,
-    init,
-    reroute,
-    transport
-  };
+	let handle;
+	let handleFetch;
+	let handleError;
+	let handleValidationError;
+	let init;
+	({
+		handle, handleFetch, handleError, handleValidationError, init,
+	} = await import('../entries/hooks.server.js'));
+	let reroute;
+	let transport;
+	return {
+		handle,
+		handleFetch,
+		handleError,
+		handleValidationError,
+		init,
+		reroute,
+		transport,
+	};
 }
 export {
-  set_public_env as a,
-  set_read_implementation as b,
-  set_manifest as c,
-  get_hooks as g,
-  options as o,
-  public_env as p,
-  read_implementation as r,
-  set_private_env as s
+	set_public_env as a,
+	set_read_implementation as b,
+	set_manifest as c,
+	get_hooks as g,
+	options as o,
+	public_env as p,
+	read_implementation as r,
+	set_private_env as s,
 };

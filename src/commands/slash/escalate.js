@@ -172,10 +172,22 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 				name: finalName,
 				...(discordCategory ? { parent: discordCategory } : {}),
 				permissionOverwrites: [
-					{ deny: ['ViewChannel'], id: interaction.guild.roles.everyone },
-					{ allow, id: client.user.id },
-					...(creator ? [{ allow, id: creator.id }] : []),
-					...newCategory.staffRoles.map(id => ({ allow, id })),
+					{
+						deny: ['ViewChannel'],
+						id: interaction.guild.roles.everyone,
+					},
+					{
+						allow,
+						id: client.user.id,
+					},
+					...(creator ? [{
+						allow,
+						id: creator.id,
+					}] : []),
+					...newCategory.staffRoles.map(id => ({
+						allow,
+						id,
+					})),
 				],
 				reason: `Escalated by ${interaction.user.username}`,
 			});

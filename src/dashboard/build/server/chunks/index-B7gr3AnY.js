@@ -4,18 +4,18 @@ import { g as getDefaultExportFromCjs } from './_commonjsHelpers-BFTU3MAI.js';
  * Helpers.
  */
 
-var ms$1;
-var hasRequiredMs;
+let ms$1;
+let hasRequiredMs;
 
 function requireMs () {
 	if (hasRequiredMs) return ms$1;
 	hasRequiredMs = 1;
-	var s = 1000;
-	var m = s * 60;
-	var h = m * 60;
-	var d = h * 24;
-	var w = d * 7;
-	var y = d * 365.25;
+	const s = 1000;
+	const m = s * 60;
+	const h = m * 60;
+	const d = h * 24;
+	const w = d * 7;
+	const y = d * 365.25;
 
 	/**
 	 * Parse or format the given `val`.
@@ -33,7 +33,7 @@ function requireMs () {
 
 	ms$1 = function (val, options) {
 	  options = options || {};
-	  var type = typeof val;
+	  const type = typeof val;
 	  if (type === 'string' && val.length > 0) {
 	    return parse(val);
 	  } else if (type === 'number' && isFinite(val)) {
@@ -41,7 +41,7 @@ function requireMs () {
 	  }
 	  throw new Error(
 	    'val is not a non-empty string or a valid number. val=' +
-	      JSON.stringify(val)
+	      JSON.stringify(val),
 	  );
 	};
 
@@ -58,14 +58,14 @@ function requireMs () {
 	  if (str.length > 100) {
 	    return;
 	  }
-	  var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
-	    str
+	  const match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+	    str,
 	  );
 	  if (!match) {
 	    return;
 	  }
-	  var n = parseFloat(match[1]);
-	  var type = (match[2] || 'ms').toLowerCase();
+	  const n = parseFloat(match[1]);
+	  const type = (match[2] || 'ms').toLowerCase();
 	  switch (type) {
 	    case 'years':
 	    case 'year':
@@ -119,7 +119,7 @@ function requireMs () {
 	 */
 
 	function fmtShort(ms) {
-	  var msAbs = Math.abs(ms);
+	  const msAbs = Math.abs(ms);
 	  if (msAbs >= d) {
 	    return Math.round(ms / d) + 'd';
 	  }
@@ -144,7 +144,7 @@ function requireMs () {
 	 */
 
 	function fmtLong(ms) {
-	  var msAbs = Math.abs(ms);
+	  const msAbs = Math.abs(ms);
 	  if (msAbs >= d) {
 	    return plural(ms, msAbs, d, 'day');
 	  }
@@ -165,14 +165,14 @@ function requireMs () {
 	 */
 
 	function plural(ms, msAbs, n, name) {
-	  var isPlural = msAbs >= n * 1.5;
+	  const isPlural = msAbs >= n * 1.5;
 	  return Math.round(ms / n) + ' ' + name + (isPlural ? 's' : '');
 	}
 	return ms$1;
 }
 
-var msExports = requireMs();
-var ms = /*@__PURE__*/getDefaultExportFromCjs(msExports);
+const msExports = requireMs();
+const ms = /* @__PURE__*/getDefaultExportFromCjs(msExports);
 
 export { ms as m };
-//# sourceMappingURL=index-B7gr3AnY.js.map
+// # sourceMappingURL=index-B7gr3AnY.js.map

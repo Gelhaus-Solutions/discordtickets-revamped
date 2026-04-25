@@ -1,8 +1,6 @@
-import "clsx";
-import { E as ErrorPage } from "../../../chunks/ErrorPage.js";
+import 'clsx';
+import { E as ErrorPage } from '../../../chunks/ErrorPage.js';
 function _error($$renderer) {
-  ErrorPage($$renderer, { boxStyles: "bg-red-400/20 dark:bg-red-800/10" });
+	ErrorPage($$renderer, { boxStyles: 'bg-red-400/20 dark:bg-red-800/10' });
 }
-export {
-  _error as default
-};
+export { _error as default };

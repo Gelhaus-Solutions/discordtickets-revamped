@@ -13,9 +13,7 @@ module.exports.get = fastify => ({
 		const skip = (page - 1) * limit;
 
 		// Build where clause
-		const where = {
-			guildId: req.params.guild,
-		};
+		const where = { guildId: req.params.guild };
 
 		// Optional: filter by date range
 		if (query.since) {

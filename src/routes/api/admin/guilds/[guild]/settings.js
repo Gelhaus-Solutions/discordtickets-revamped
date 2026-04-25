@@ -14,11 +14,35 @@ module.exports.get = fastify => ({
 	onRequest: [fastify.authenticate, fastify.isAdmin],
 });
 
+// Fields the settings UI is allowed to update. botAvatar/botBio/botUsername
+// are intentionally excluded — those go through the customization endpoint
+// (with stricter validation). Relations (categories, tags, …) are excluded
+// to prevent client payloads from rewriting nested data.
+const ALLOWED_SETTINGS_FIELDS = new Set([
+	'archive',
+	'autoClose',
+	'autoTag',
+	'blocklist',
+	'claimButton',
+	'closeButton',
+	'closeReasonButton',
+	'errorColour',
+	'footer',
+	'locale',
+	'logChannel',
+	'primaryColour',
+	'staleAfter',
+	'successColour',
+	'workingHours',
+]);
+
 module.exports.patch = fastify => ({
 	handler: async req => {
-		const data = req.body;
-		if (Object.prototype.hasOwnProperty.call(data, 'id')) delete data.id;
-		if (Object.prototype.hasOwnProperty.call(data, 'createdAt')) delete data.createdAt;
+		const body = req.body ?? {};
+		const data = {};
+		for (const key of Object.keys(body)) {
+			if (ALLOWED_SETTINGS_FIELDS.has(key)) data[key] = body[key];
+		}
 		const colours = ['errorColour', 'primaryColour', 'successColour'];
 		for (const c of colours) {
 			if (data[c] && !data[c].startsWith('#') && !(data[c] in Colors)) { // if not null/empty and not hex

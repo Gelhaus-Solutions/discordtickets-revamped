@@ -7,8 +7,9 @@ module.exports.delete = fastify => ({
 		const client = req.routeOptions.config.client;
 		const guildId = req.params.guild;
 		const tagId = Number(req.params.tag);
-		const original = tagId && await client.prisma.tag.findUnique({ where: { id: tagId } });
-		if (original.guildId !== guildId) return res.status(400).send(new Error('Bad Request'));
+		if (!Number.isInteger(tagId) || tagId <= 0) return res.status(400).send(new Error('Bad Request'));
+		const original = await client.prisma.tag.findUnique({ where: { id: tagId } });
+		if (!original || original.guildId !== guildId) return res.status(404).send(new Error('Not Found'));
 		const tag = await client.prisma.tag.delete({ where: { id: tagId } });
 
 		const cacheKey = `cache/guild-tags:${guildId}`;

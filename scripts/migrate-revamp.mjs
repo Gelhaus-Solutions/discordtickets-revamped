@@ -27,9 +27,13 @@
 
 import { config } from 'dotenv';
 import { createRequire } from 'module';
-import { join, dirname } from 'path';
+import {
+	join, dirname,
+} from 'path';
 import { fileURLToPath } from 'url';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import {
+	existsSync, mkdirSync, writeFileSync,
+} from 'fs';
 import { parseArgs } from 'util';
 
 config();
@@ -37,12 +41,27 @@ config();
 // ─── Parse CLI args ──────────────────────────────────────────────────────────
 const { values: args } = parseArgs({
 	options: {
-		'concurrency': { type: 'string', default: '3' },
-		'dry-run': { type: 'boolean', default: false },
+		'concurrency': {
+			type: 'string',
+			default: '3',
+		},
+		'dry-run': {
+			type: 'boolean',
+			default: false,
+		},
 		'guild': { type: 'string' },
-		'only-feedback': { type: 'boolean', default: false },
-		'only-transcripts': { type: 'boolean', default: false },
-		'skip-feedback': { type: 'boolean', default: false },
+		'only-feedback': {
+			type: 'boolean',
+			default: false,
+		},
+		'only-transcripts': {
+			type: 'boolean',
+			default: false,
+		},
+		'skip-feedback': {
+			type: 'boolean',
+			default: false,
+		},
 	},
 	strict: false,
 });
@@ -51,8 +70,8 @@ const DRY_RUN = args['dry-run'];
 const ONLY_TRANSCRIPTS = args['only-transcripts'];
 const ONLY_FEEDBACK = args['only-feedback'];
 const SKIP_FEEDBACK = args['skip-feedback'];
-const GUILD_ID = args['guild'];
-const CONCURRENCY = Math.max(1, parseInt(args['concurrency']) || 3);
+const GUILD_ID = args.guild;
+const CONCURRENCY = Math.max(1, parseInt(args.concurrency) || 3);
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
@@ -68,12 +87,24 @@ const yellow = s => `\x1b[33m${s}\x1b[0m`;
 const red = s => `\x1b[31m${s}\x1b[0m`;
 const bold = s => `\x1b[1m${s}\x1b[0m`;
 
-function log(...args2) { console.log(...args2); }
-function info(msg) { log(` ${cyan('ℹ')} ${msg}`); }
-function ok(msg) { log(` ${green('✔')} ${msg}`); }
-function warn(msg) { log(` ${yellow('⚠')} ${msg}`); }
-function fail(msg) { log(` ${red('✖')} ${msg}`); }
-function header(msg) { log(`\n${bold(msg)}`); }
+function log(...args2) {
+	console.log(...args2);
+}
+function info(msg) {
+	log(` ${cyan('ℹ')} ${msg}`);
+}
+function ok(msg) {
+	log(` ${green('✔')} ${msg}`);
+}
+function warn(msg) {
+	log(` ${yellow('⚠')} ${msg}`);
+}
+function fail(msg) {
+	log(` ${red('✖')} ${msg}`);
+}
+function header(msg) {
+	log(`\n${bold(msg)}`);
+}
 
 function progress(done, total, label) {
 	const pct = total ? Math.round((done / total) * 100) : 100;
@@ -127,19 +158,21 @@ async function processTicket(ticket) {
 				archivedMessages: { orderBy: { createdAt: 'asc' } },
 				archivedRoles: true,
 				archivedUsers: true,
-				category: {
-					include: { questions: { orderBy: { order: 'asc' } } },
-				},
+				category: { include: { questions: { orderBy: { order: 'asc' } } } },
 				feedback: true,
 				guild: true,
-				questionAnswers: {
-					include: { question: true },
-				},
+				questionAnswers: { include: { question: true } },
 			},
 			where: { id: ticket.id },
 		});
 
-		if (!full) return { id: ticket.id, status: 'skip', reason: 'not found' };
+		if (!full) {
+			return {
+				id: ticket.id,
+				status: 'skip',
+				reason: 'not found',
+			};
+		}
 
 		// Decrypt all fields synchronously (no worker pool in migration context)
 		const decryptedMessages = Object.fromEntries(
@@ -178,7 +211,13 @@ async function processTicket(ticket) {
 			users: full.archivedUsers,
 		});
 
-		if (!html) return { id: ticket.id, status: 'skip', reason: 'buildHtml returned null' };
+		if (!html) {
+			return {
+				id: ticket.id,
+				status: 'skip',
+				reason: 'buildHtml returned null',
+			};
+		}
 
 		const dir = join(ROOT, 'user', 'transcripts');
 		if (!DRY_RUN) {
@@ -191,9 +230,16 @@ async function processTicket(ticket) {
 			});
 		}
 
-		return { id: ticket.id, status: 'ok' };
+		return {
+			id: ticket.id,
+			status: 'ok',
+		};
 	} catch (err) {
-		return { id: ticket.id, status: 'error', reason: String(err.message) };
+		return {
+			id: ticket.id,
+			status: 'error',
+			reason: String(err.message),
+		};
 	}
 }
 
@@ -219,7 +265,10 @@ if (!ONLY_TRANSCRIPTS && !ONLY_FEEDBACK) {
 	header('Step 1 — Backfill Category.channelMode');
 
 	const categoriesWithoutMode = await prisma.category.findMany({
-		select: { id: true, name: true },
+		select: {
+			id: true,
+			name: true,
+		},
 		where: { channelMode: { equals: null } },
 	});
 
@@ -245,11 +294,11 @@ if (!ONLY_TRANSCRIPTS && !ONLY_FEEDBACK) {
 			const provider = (process.env.DB_PROVIDER || (process.env.DATABASE_URL || '')).toLowerCase();
 			try {
 				if (provider.includes('postgres')) {
-					await prisma.$executeRawUnsafe("UPDATE \"Category\" SET \"channelMode\" = 'CHANNEL' WHERE \"channelMode\" IS NULL");
+					await prisma.$executeRawUnsafe('UPDATE "Category" SET "channelMode" = \'CHANNEL\' WHERE "channelMode" IS NULL');
 				} else if (provider.includes('mysql')) {
-					await prisma.$executeRawUnsafe("UPDATE `Category` SET `channelMode` = 'CHANNEL' WHERE `channelMode` IS NULL");
+					await prisma.$executeRawUnsafe('UPDATE `Category` SET `channelMode` = \'CHANNEL\' WHERE `channelMode` IS NULL');
 				} else {
-					await prisma.$executeRawUnsafe("UPDATE Category SET channelMode = 'CHANNEL' WHERE channelMode IS NULL");
+					await prisma.$executeRawUnsafe('UPDATE Category SET channelMode = \'CHANNEL\' WHERE channelMode IS NULL');
 				}
 				ok(`Updated ${categoriesWithoutMode.length} categories (via raw SQL).`);
 			} catch (err2) {
@@ -289,7 +338,10 @@ if (!ONLY_FEEDBACK) {
 
 			while (offset < totalClosed) {
 				const batch = await prisma.ticket.findMany({
-					select: { id: true, number: true },
+					select: {
+						id: true,
+						number: true,
+					},
 					skip: offset,
 					take: BATCH_SIZE,
 					where,
@@ -403,10 +455,17 @@ if (!ONLY_TRANSCRIPTS && !SKIP_FEEDBACK) {
 					include: {
 						archivedMessages: {
 							orderBy: { createdAt: 'asc' },
-							select: { authorId: true, content: true, id: true },
+							select: {
+								authorId: true,
+								content: true,
+								id: true,
+							},
 						},
 						archivedUsers: {
-							select: { bot: true, userId: true },
+							select: {
+								bot: true,
+								userId: true,
+							},
 						},
 					},
 					skip: offset,

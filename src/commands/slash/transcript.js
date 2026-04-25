@@ -43,7 +43,10 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 			}),
 		});
 
-		Mustache.escape = text => text; // don't HTML-escape
+		// Markdown transcripts must not be HTML-escaped, but we don't want to
+		// mutate Mustache's *global* escape function — that would silently
+		// disable escaping for any other Mustache.render in the process. We
+		// scope the override to renders that go through `this.renderTranscript`.
 		this.template = fs.readFileSync(
 			join('./user/templates/', this.client.config.templates.transcript + '.mustache'),
 			{ encoding: 'utf8' },
@@ -73,33 +76,42 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 			.replace(/{+\s?(nick|display)(name)?\s?}+/gi, ticket.createdBy?.displayName)
 			.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number);
 		const fileName = `${channelName}.${this.client.config.templates.transcript.split('.').slice(-1)[0]}`;
-		const transcript = Mustache.render(this.template, {
-			channelName,
-			closedAtFull: function () {
-				return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
-					dateStyle: 'full',
-					timeStyle: 'long',
-					timeZone: 'Etc/UTC',
-				}).format(this.closedAt);
-			},
-			createdAtFull: function () {
-				return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
-					dateStyle: 'full',
-					timeStyle: 'long',
-					timeZone: 'Etc/UTC',
-				}).format(this.createdAt);
-			},
-			createdAtTimestamp: function () {
-				return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
-					dateStyle: 'short',
-					timeStyle: 'long',
-					timeZone: 'Etc/UTC',
-				}).format(this.createdAt);
-			},
-			guildName: client.guilds.cache.get(ticket.guildId)?.name,
-			pinned: ticket.pinnedMessageIds.join(', '),
-			ticket,
-		});
+		// Save/restore Mustache.escape around this single render so any other
+		// caller of Mustache.render keeps its default HTML-escaping. Cf. V8.
+		const previousEscape = Mustache.escape;
+		Mustache.escape = text => text;
+		let transcript;
+		try {
+			transcript = Mustache.render(this.template, {
+				channelName,
+				closedAtFull: function () {
+					return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
+						dateStyle: 'full',
+						timeStyle: 'long',
+						timeZone: 'Etc/UTC',
+					}).format(this.closedAt);
+				},
+				createdAtFull: function () {
+					return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
+						dateStyle: 'full',
+						timeStyle: 'long',
+						timeZone: 'Etc/UTC',
+					}).format(this.createdAt);
+				},
+				createdAtTimestamp: function () {
+					return new Intl.DateTimeFormat([ticket.guild.locale, 'en-GB'], {
+						dateStyle: 'short',
+						timeStyle: 'long',
+						timeZone: 'Etc/UTC',
+					}).format(this.createdAt);
+				},
+				guildName: client.guilds.cache.get(ticket.guildId)?.name,
+				pinned: ticket.pinnedMessageIds.join(', '),
+				ticket,
+			});
+		} finally {
+			Mustache.escape = previousEscape;
+		}
 
 		return {
 			fileName,

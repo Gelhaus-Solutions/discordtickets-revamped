@@ -1,15 +1,16 @@
 // @ts-nocheck
-import { error } from '@sveltejs/kit';
 
 /** @param {Parameters<import('./$types').PageLoad>[0]} event */
-export async function load({ fetch, params }) {
+export async function load({
+	fetch, params,
+}) {
 	const fetchOptions = { credentials: 'include' };
 
 	try {
 		const [feedbackRes, analyticsRes, categoriesRes] = await Promise.all([
 			fetch(`/api/admin/guilds/${params.guild}/feedback?limit=100`, fetchOptions),
 			fetch(`/api/admin/guilds/${params.guild}/analytics`, fetchOptions),
-			fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)
+			fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions),
 		]);
 
 		const feedbackData = feedbackRes.ok ? await feedbackRes.json() : { feedback: [] };
@@ -28,8 +29,8 @@ export async function load({ fetch, params }) {
 				4: feedback.filter(f => f.rating === 4).length,
 				3: feedback.filter(f => f.rating === 3).length,
 				2: feedback.filter(f => f.rating === 2).length,
-				1: feedback.filter(f => f.rating === 1).length
-			}
+				1: feedback.filter(f => f.rating === 1).length,
+			},
 		};
 
 		// Group feedback by category
@@ -49,17 +50,27 @@ export async function load({ fetch, params }) {
 			feedbackByCategory,
 			trend: feedbackData.trend || [],
 			categories,
-			analytics
+			analytics,
 		};
 	} catch (err) {
 		console.error('Failed to load feedback data:', err);
 		return {
 			feedback: [],
-			stats: { total: 0, avgRating: 0, byRating: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
+			stats: {
+				total: 0,
+				avgRating: 0,
+				byRating: {
+					5: 0,
+					4: 0,
+					3: 0,
+					2: 0,
+					1: 0,
+				},
+			},
 			feedbackByCategory: {},
 			trend: [],
 			categories: [],
-			analytics: null
+			analytics: null,
 		};
 	}
 }

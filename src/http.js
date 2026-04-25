@@ -6,8 +6,25 @@ const { pathToFileURL } = require('url');
 const { files } = require('node-dir');
 const { getPrivilegeLevel } = require('./lib/users');
 const { format } = require('util');
+const { hkdfSync } = require('crypto');
 
 process.env.ORIGIN = process.env.HTTP_INTERNAL || process.env.HTTP_EXTERNAL;
+
+// Derive a JWT-signing secret. Prefer an explicit JWT_SECRET so JWT signing
+// and at-rest data encryption don't share key material. If only
+// ENCRYPTION_KEY is set, derive a separate sub-key via HKDF — this keeps
+// existing deployments working while still giving cryptographic key
+// separation between the two purposes.
+function resolveJwtSecret(client) {
+	if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+	if (!process.env.ENCRYPTION_KEY) {
+		throw new Error('Neither JWT_SECRET nor ENCRYPTION_KEY is set');
+	}
+	if (client?.log?.warn) {
+		client.log.warn('JWT_SECRET is not set — deriving JWT signing key from ENCRYPTION_KEY via HKDF. Set JWT_SECRET for proper key separation.');
+	}
+	return Buffer.from(hkdfSync('sha256', process.env.ENCRYPTION_KEY, Buffer.alloc(0), 'discord-tickets:jwt:v1', 32)).toString('base64');
+}
 
 module.exports = async client => {
 	// for file uploads
@@ -16,13 +33,26 @@ module.exports = async client => {
 	// cookies plugin, must be registered before oauth2 since oauth2@7.2.0
 	fastify.register(require('@fastify/cookie'));
 
-	// jwt plugin
+	// security headers
+	fastify.register(require('@fastify/helmet'), {
+		// Allow inline styles/scripts the SvelteKit dashboard build needs;
+		// this can be tightened once the dashboard ships hashes/nonces.
+		contentSecurityPolicy: false,
+	});
+
+	// rate limiting (defense-in-depth; per-route stricter limits below)
+	fastify.register(require('@fastify/rate-limit'), {
+		max: 300,
+		timeWindow: '1 minute',
+	});
+
+	// jwt plugin (separate secret from data encryption, see V13)
 	fastify.register(require('@fastify/jwt'), {
 		cookie: {
 			cookieName: 'token',
 			signed: false,
 		},
-		secret: process.env.ENCRYPTION_KEY,
+		secret: resolveJwtSecret(client),
 	});
 
 	// Activate Sentry if SENTRY_DNS is set
@@ -35,8 +65,14 @@ module.exports = async client => {
 	fastify.decorate('authenticate', async (req, res) => {
 		try {
 			const data = await req.jwtVerify();
+			// Reject tokens that don't carry the expected lifetime fields rather
+			// than letting `undefined < Date.now()` silently return false.
+			if (typeof data.expiresAt !== 'number' || typeof data.createdAt !== 'number') throw 'expired';
 			if (data.expiresAt < Date.now()) throw 'expired';
-			if (data.createdAt < new Date(process.env.INVALIDATE_TOKENS).getTime()) throw 'expired';
+			if (process.env.INVALIDATE_TOKENS) {
+				const cutoff = new Date(process.env.INVALIDATE_TOKENS).getTime();
+				if (Number.isFinite(cutoff) && data.createdAt < cutoff) throw 'expired';
+			}
 		} catch (error) {
 			return res.code(401).send({
 				error: 'Unauthorised',
@@ -116,10 +152,11 @@ module.exports = async client => {
 		}
 	});
 
-	// body processing
+	// body processing — own keys only (avoid walking prototype if upstream
+	// hands us a polluted object).
 	fastify.addHook('preHandler', (req, res, done) => {
 		if (req.body && typeof req.body === 'object') {
-			for (const prop in req.body) {
+			for (const prop of Object.keys(req.body)) {
 				if (typeof req.body[prop] === 'string') {
 					req.body[prop] = req.body[prop].trim();
 				}

@@ -44,11 +44,7 @@ module.exports.get = fastify => ({
 			},
 			guildId,
 			...(categoryId
-				? {
-					ticket: {
-						categoryId,
-					},
-				}
+				? { ticket: { categoryId } }
 				: {}),
 		};
 
@@ -65,9 +61,7 @@ module.exports.get = fastify => ({
 						number: true,
 					},
 				},
-				user: {
-					select: { id: true },
-				},
+				user: { select: { id: true } },
 			},
 			orderBy: { createdAt: 'desc' },
 			skip,
@@ -106,7 +100,13 @@ module.exports.get = fastify => ({
 			where: baseWhere,
 		});
 
-		const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+		const ratingCounts = {
+			1: 0,
+			2: 0,
+			3: 0,
+			4: 0,
+			5: 0,
+		};
 		let totalRating = 0;
 		let totalCount = 0;
 		for (const group of allFeedback) {
@@ -118,14 +118,23 @@ module.exports.get = fastify => ({
 
 		// Trend: feedback per day
 		const feedbackByDay = await client.prisma.feedback.findMany({
-			select: { createdAt: true, rating: true },
+			select: {
+				createdAt: true,
+				rating: true,
+			},
 			where: baseWhere,
 		});
 
 		const trendMap = {};
 		for (const f of feedbackByDay) {
 			const day = f.createdAt.toISOString().slice(0, 10);
-			if (!trendMap[day]) trendMap[day] = { count: 0, day, totalRating: 0 };
+			if (!trendMap[day]) {
+				trendMap[day] = {
+					count: 0,
+					day,
+					totalRating: 0,
+				};
+			}
 			trendMap[day].count++;
 			trendMap[day].totalRating += f.rating;
 		}

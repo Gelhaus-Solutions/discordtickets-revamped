@@ -108,7 +108,9 @@ function stringToColor(str) {
  */
 function renderAttachment(attachment) {
 	if (!attachment) return '';
-	const { url, name, contentType } = attachment;
+	const {
+		url, name, contentType,
+	} = attachment;
 	if (!url) return '';
 	if (contentType?.startsWith('image/')) {
 		return `<div class="attachment image-attachment">
@@ -135,7 +137,7 @@ function renderEmbed(embed) {
 	let html = `<div class="embed" style="border-left: 4px solid ${escapeHtml(color)}">`;
 
 	if (embed.author?.name) {
-		html += `<div class="embed-author">`;
+		html += '<div class="embed-author">';
 		if (embed.author.iconURL) html += `<img class="embed-author-icon" src="${escapeHtml(embed.author.iconURL)}" loading="lazy">`;
 		html += `<span>${escapeHtml(embed.author.name)}</span></div>`;
 	}
@@ -172,7 +174,7 @@ function renderEmbed(embed) {
 	}
 
 	if (embed.footer) {
-		html += `<div class="embed-footer">`;
+		html += '<div class="embed-footer">';
 		if (embed.footer.iconURL) html += `<img class="embed-footer-icon" src="${escapeHtml(embed.footer.iconURL)}" loading="lazy">`;
 		html += `<span>${escapeHtml(embed.footer.text)}</span>`;
 		if (embed.timestamp) html += ` &bull; <span>${formatDate(embed.timestamp)}</span>`;
@@ -495,25 +497,73 @@ function buildHtml({
 
 	// Meta panel items
 	const metaItems = [
-		{ label: 'Ticket #', value: ticket.number },
-		{ label: 'Category', value: escapeHtml(category?.name || 'Unknown') },
-		{ label: 'Created By', value: userMap[ticket.createdById] ? decrypted.usernames[ticket.createdById] || `User ${ticket.createdById}` : `<@${ticket.createdById}>` },
-		{ label: 'Created At', value: formatDate(ticket.createdAt) },
+		{
+			label: 'Ticket #',
+			value: ticket.number,
+		},
+		{
+			label: 'Category',
+			value: escapeHtml(category?.name || 'Unknown'),
+		},
+		{
+			label: 'Created By',
+			value: userMap[ticket.createdById] ? decrypted.usernames[ticket.createdById] || `User ${ticket.createdById}` : `<@${ticket.createdById}>`,
+		},
+		{
+			label: 'Created At',
+			value: formatDate(ticket.createdAt),
+		},
 	];
-	if (ticket.closedAt) metaItems.push({ label: 'Closed At', value: formatDate(ticket.closedAt) });
-	if (duration) metaItems.push({ label: 'Duration', value: escapeHtml(duration) });
-	if (responseTime) metaItems.push({ label: 'First Response', value: escapeHtml(responseTime) });
+	if (ticket.closedAt) {
+		metaItems.push({
+			label: 'Closed At',
+			value: formatDate(ticket.closedAt),
+		});
+	}
+	if (duration) {
+		metaItems.push({
+			label: 'Duration',
+			value: escapeHtml(duration),
+		});
+	}
+	if (responseTime) {
+		metaItems.push({
+			label: 'First Response',
+			value: escapeHtml(responseTime),
+		});
+	}
 	if (ticket.closedById) {
 		const closerName = userMap[ticket.closedById] ? decrypted.usernames[ticket.closedById] || `User ${ticket.closedById}` : `User ${ticket.closedById}`;
-		metaItems.push({ label: 'Closed By', value: closerName });
+		metaItems.push({
+			label: 'Closed By',
+			value: closerName,
+		});
 	}
 	if (ticket.claimedById) {
 		const claimerName = userMap[ticket.claimedById] ? decrypted.usernames[ticket.claimedById] || `User ${ticket.claimedById}` : `User ${ticket.claimedById}`;
-		metaItems.push({ label: 'Assigned To', value: claimerName });
+		metaItems.push({
+			label: 'Assigned To',
+			value: claimerName,
+		});
 	}
-	if (closedReason) metaItems.push({ label: 'Close Reason', value: escapeHtml(closedReason) });
-	if (topic) metaItems.push({ label: 'Topic', value: escapeHtml(topic) });
-	if (ticket.messageCount) metaItems.push({ label: 'Messages', value: String(ticket.messageCount) });
+	if (closedReason) {
+		metaItems.push({
+			label: 'Close Reason',
+			value: escapeHtml(closedReason),
+		});
+	}
+	if (topic) {
+		metaItems.push({
+			label: 'Topic',
+			value: escapeHtml(topic),
+		});
+	}
+	if (ticket.messageCount) {
+		metaItems.push({
+			label: 'Messages',
+			value: String(ticket.messageCount),
+		});
+	}
 
 	const metaHtml = metaItems
 		.map(item => `<div class="meta-item"><h3>${item.label}</h3><p>${item.value}</p></div>`)
@@ -574,7 +624,9 @@ function buildHtml({
 				parsedContent = { content: decrypted.messages?.[msg.id] || '' };
 			}
 
-			const { content, embeds = [], attachments = [], reference } = parsedContent;
+			const {
+				content, embeds = [], attachments = [], reference,
+			} = parsedContent;
 			const isDeleted = msg.deleted;
 			const isEdited = msg.edited;
 			const isBot = author?.bot;
@@ -693,14 +745,10 @@ async function generateHtmlTranscript(client, ticketId) {
 				archivedMessages: { orderBy: { createdAt: 'asc' } },
 				archivedRoles: true,
 				archivedUsers: true,
-				category: {
-					include: { questions: { orderBy: { order: 'asc' } } },
-				},
+				category: { include: { questions: { orderBy: { order: 'asc' } } } },
 				feedback: true,
 				guild: true,
-				questionAnswers: {
-					include: { question: true },
-				},
+				questionAnswers: { include: { question: true } },
 			},
 			where: { id: ticketId },
 		});

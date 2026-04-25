@@ -4,6 +4,16 @@ module.exports.get = fastify => ({
 		const client = req.routeOptions.config.client;
 		const { ticketId } = req.params;
 
+		// Reject obviously malformed ids before touching the DB; ticket ids are
+		// short-unique-id strings (alphanumeric).
+		if (typeof ticketId !== 'string' || !/^[A-Za-z0-9]{1,32}$/.test(ticketId)) {
+			return res.code(404).send({
+				error: 'Not Found',
+				message: 'Ticket not found.',
+				statusCode: 404,
+			});
+		}
+
 		// Fetch the ticket to get its guild ID
 		try {
 			const ticket = await client.prisma.ticket.findUnique({
@@ -34,4 +44,5 @@ module.exports.get = fastify => ({
 			});
 		}
 	},
+	onRequest: [fastify.authenticate],
 });

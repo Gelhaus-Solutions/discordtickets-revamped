@@ -952,7 +952,7 @@ module.exports = class TicketManager {
 		// Add checkmark to channel name
 		const currentName = channel.name;
 		if (!currentName.startsWith('✅')) {
-			await channel.setName('✅' + currentName, `Auto-assigned to first staff responder`).catch(() => null);
+			await channel.setName('✅' + currentName, 'Auto-assigned to first staff responder').catch(() => null);
 		}
 
 		// For private threads: ensure the assigned user is a member
@@ -1465,7 +1465,7 @@ module.exports = class TicketManager {
 					if (cleanName !== channel.name) {
 						await channel.setName(cleanName, closeReason).catch(() => null);
 					}
-					
+
 					// For threads/forum posts: delete the old closing message and send a new archived message
 					if (ticket.openingMessageId) {
 						try {
@@ -1477,11 +1477,11 @@ module.exports = class TicketManager {
 							// Silently fail if we can't delete the old message
 						}
 					}
-					
+
 					// Lock and archive the thread
 					await channel.setLocked(true, closeReason);
 					await channel.setArchived(true, closeReason);
-					
+
 					// Send a final "archived" message
 					try {
 						await channel.send({

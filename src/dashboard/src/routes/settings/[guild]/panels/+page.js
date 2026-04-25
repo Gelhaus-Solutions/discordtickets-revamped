@@ -1,7 +1,9 @@
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageLoad} */
-export async function load({ fetch, params }) {
+export async function load({
+	fetch, params,
+}) {
 	const fetchOptions = { credentials: 'include' };
 	const response = await fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions);
 	const isJSON = response.headers.get('Content-Type')?.includes('json');
@@ -13,7 +15,7 @@ export async function load({ fetch, params }) {
 			categories: body,
 			channels: await (
 				await fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions)
-			).json()
+			).json(),
 		};
 	}
 }

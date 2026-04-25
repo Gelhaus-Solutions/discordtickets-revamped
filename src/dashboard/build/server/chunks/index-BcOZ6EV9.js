@@ -160,7 +160,7 @@ function redirect(status, location) {
 	throw new Redirect(
 		// @ts-ignore
 		status,
-		location.toString()
+		location.toString(),
 	);
 }
 
@@ -188,7 +188,7 @@ function json(data, init) {
 
 	return new Response(body, {
 		...init,
-		headers
+		headers,
 	});
 }
 
@@ -204,15 +204,17 @@ function text(body, init) {
 		headers.set('content-length', encoded.byteLength.toString());
 		return new Response(encoded, {
 			...init,
-			headers
+			headers,
 		});
 	}
 
 	return new Response(body, {
 		...init,
-		headers
+		headers,
 	});
 }
 
-export { ActionFailure as A, HttpError as H, Redirect as R, SvelteKitError as S, error as e, json as j, redirect as r, text as t };
-//# sourceMappingURL=index-BcOZ6EV9.js.map
+export {
+	ActionFailure as A, HttpError as H, Redirect as R, SvelteKitError as S, error as e, json as j, redirect as r, text as t,
+};
+// # sourceMappingURL=index-BcOZ6EV9.js.map

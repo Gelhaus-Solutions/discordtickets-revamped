@@ -71,10 +71,26 @@ module.exports.post = fastify => ({
 			});
 		}
 
+		const isHttpUrl = u => {
+			if (typeof u !== 'string') return false;
+			try {
+				const parsed = new URL(u);
+				return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+			} catch {
+				return false;
+			}
+		};
+
 		if (data.title) embed.setTitle(data.title);
 		if (data.description) embed.setDescription(data.description);
-		if (data.image) embed.setImage(data.image);
-		if (data.thumbnail) embed.setThumbnail(data.thumbnail);
+		if (data.image) {
+			if (!isHttpUrl(data.image)) throw new Error('Embed image must be an http(s) URL');
+			embed.setImage(data.image);
+		}
+		if (data.thumbnail) {
+			if (!isHttpUrl(data.thumbnail)) throw new Error('Embed thumbnail must be an http(s) URL');
+			embed.setThumbnail(data.thumbnail);
+		}
 
 		if (data.type === 'MESSAGE') {
 			await channel.send({ embeds: [embed] });

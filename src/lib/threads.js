@@ -85,7 +85,9 @@ function lazyPool(num, name, options) {
 					if (name === 'crypto') {
 						try {
 							// Lazy-require local crypto implementation
-							const { decrypt, encrypt } = require('./crypto');
+							const {
+								decrypt, encrypt,
+							} = require('./crypto');
 							const pseudo = {
 								decrypt: data => decrypt(data),
 								encrypt: data => encrypt(data),

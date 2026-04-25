@@ -12,7 +12,9 @@ const transcriptCandidates = [
 ];
 let transcriptPath = null;
 for (const p of transcriptCandidates) {
-	if (fs.existsSync(p)) { transcriptPath = p; break; }
+	if (fs.existsSync(p)) {
+		transcriptPath = p; break;
+	}
 }
 if (!transcriptPath) {
 	throw new Error('transcript-html module not found; checked common locations');
@@ -30,7 +32,9 @@ module.exports.get = fastify => ({
 	handler: async (req, res) => {
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
-		const { guild: guildId, ticket: ticketId } = req.params;
+		const {
+			guild: guildId, ticket: ticketId,
+		} = req.params;
 		const forceRegen = req.query.regen === '1';
 		const asDownload = req.query.download === '1';
 

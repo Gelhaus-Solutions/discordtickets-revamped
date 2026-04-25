@@ -29,37 +29,39 @@ export const nodes = [
 	() => import('./nodes/22'),
 	() => import('./nodes/23'),
 	() => import('./nodes/24'),
-	() => import('./nodes/25')
+	() => import('./nodes/25'),
 ];
 
 export const server_loads = [0];
 
 export const dictionary = {
-		"/(default)": [8,[2],[3]],
-		"/(default)/invite": [13,[2],[3]],
-		"/(default)/login": [14,[2],[3]],
-		"/settings": [16,[5],[6]],
-		"/settings/[guild]": [17,[5],[6]],
-		"/settings/[guild]/categories": [18,[5,7],[6]],
-		"/settings/[guild]/categories/[category]": [19,[5,7],[6]],
-		"/settings/[guild]/customization": [20,[5,7],[6]],
-		"/settings/[guild]/feedback": [21,[5,7],[6]],
-		"/settings/[guild]/general": [22,[5,7],[6]],
-		"/settings/[guild]/panels": [23,[5,7],[6]],
-		"/settings/[guild]/tags": [24,[5,7],[6]],
-		"/settings/[guild]/transcripts": [25,[5,7],[6]],
-		"/(default)/view/[ticket]": [15,[2],[3]],
-		"/(default)/[guild]": [9,[2,4],[3]],
-		"/(default)/[guild]/feedback": [10,[2,4],[3]],
-		"/(default)/[guild]/staff": [11,[2,4],[3]],
-		"/(default)/[guild]/tickets": [12,[2,4],[3]]
-	};
+	'/(default)': [8, [2], [3]],
+	'/(default)/invite': [13, [2], [3]],
+	'/(default)/login': [14, [2], [3]],
+	'/settings': [16, [5], [6]],
+	'/settings/[guild]': [17, [5], [6]],
+	'/settings/[guild]/categories': [18, [5, 7], [6]],
+	'/settings/[guild]/categories/[category]': [19, [5, 7], [6]],
+	'/settings/[guild]/customization': [20, [5, 7], [6]],
+	'/settings/[guild]/feedback': [21, [5, 7], [6]],
+	'/settings/[guild]/general': [22, [5, 7], [6]],
+	'/settings/[guild]/panels': [23, [5, 7], [6]],
+	'/settings/[guild]/tags': [24, [5, 7], [6]],
+	'/settings/[guild]/transcripts': [25, [5, 7], [6]],
+	'/(default)/view/[ticket]': [15, [2], [3]],
+	'/(default)/[guild]': [9, [2, 4], [3]],
+	'/(default)/[guild]/feedback': [10, [2, 4], [3]],
+	'/(default)/[guild]/staff': [11, [2, 4], [3]],
+	'/(default)/[guild]/tickets': [12, [2, 4], [3]],
+};
 
 export const hooks = {
-	handleError: client_hooks.handleError || (({ error }) => { console.error(error) }),
+	handleError: client_hooks.handleError || (({ error }) => {
+		console.error(error);
+	}),
 	init: client_hooks.init,
 	reroute: (() => {}),
-	transport: {}
+	transport: {},
 };
 
 export const decoders = Object.fromEntries(Object.entries(hooks.transport).map(([k, v]) => [k, v.decode]));

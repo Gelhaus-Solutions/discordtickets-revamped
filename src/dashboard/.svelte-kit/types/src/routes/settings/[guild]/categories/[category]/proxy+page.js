@@ -2,7 +2,9 @@
 import { error } from '@sveltejs/kit';
 
 /** @param {Parameters<import('./$types').PageLoad>[0]} event */
-export async function load({ fetch, params }) {
+export async function load({
+	fetch, params,
+}) {
 	const fetchOptions = { credentials: 'include' };
 	let body;
 	if (params.category === 'new') {
@@ -25,12 +27,12 @@ export async function load({ fetch, params }) {
 			staffRoles: [],
 			totalLimit: 50,
 			channelMode: 'CHANNEL',
-			backupCategoryId: null
+			backupCategoryId: null,
 		};
 	} else {
 		const response = await fetch(
 			`/api/admin/guilds/${params.guild}/categories/${params.category}`,
-			fetchOptions
+			fetchOptions,
 		);
 		const isJSON = response.headers.get('Content-Type')?.includes('json');
 		body = isJSON ? await response.json() : await response.text();
@@ -54,6 +56,6 @@ export async function load({ fetch, params }) {
 		categories: await (
 			await fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)
 		).json(),
-		settings: await (await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)).json()
+		settings: await (await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)).json(),
 	};
 }

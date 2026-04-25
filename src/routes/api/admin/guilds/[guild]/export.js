@@ -49,7 +49,7 @@ module.exports.get = fastify => ({
 		if (Object.keys(exportsRunning).includes(id)) {
 			const time = exportsRunning[id];
 			// Check if a minute has already passed - something probably failed but prevented this guild to be removed from the list
-			if (time + 60000 <= (new Date().getDate())) {
+			if (time + 60000 <= Date.now()) {
 				exportsRunning[id] = new Date().getTime();
 			} else {
 				return res.status(429).send('An export is already running. Please wait for it to finish and try again afterwards.');

@@ -1,1 +1,1 @@
-import{e}from"./DIeogL5L.js";e();
+import{ e }from'./DIeogL5L.js';e();

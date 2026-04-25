@@ -1,15 +1,19 @@
 // @ts-nocheck
-import { error, redirect } from '@sveltejs/kit';
+import {
+	error, redirect,
+} from '@sveltejs/kit';
 import Negotiator from 'negotiator';
 import { getSupportedLocales } from '$lib/i18n';
 import ms from 'ms';
 
 /** @param {Parameters<import('./$types').LayoutServerLoad>[0]} event */
-export async function load({ cookies, fetch, request, url }) {
+export async function load({
+	cookies, fetch, request, url,
+}) {
 	if (url.pathname === '/invite') {
-		redirect(307, `/auth/login?invite&guild=${url.searchParams.get('guild') || ''}`)
+		redirect(307, `/auth/login?invite&guild=${url.searchParams.get('guild') || ''}`);
 	}
-	const response = await fetch(`/api/users/@me`);
+	const response = await fetch('/api/users/@me');
 	const isJSON = response.headers.get('Content-Type')?.includes('json');
 	const body = isJSON ? await response.json() : await response.text();
 	if (url.pathname !== '/login') {
@@ -37,13 +41,13 @@ export async function load({ cookies, fetch, request, url }) {
 			path: '/',
 			sameSite: 'lax',
 			secure: false,
-			httpOnly: false
+			httpOnly: false,
 		});
 	}
 	return {
-		client: await (await fetch(`/api/client`, { credentials: 'include' })).json(),
+		client: await (await fetch('/api/client', { credentials: 'include' })).json(),
 		locale,
 		theme: cookies.get('theme'),
-		user: body
+		user: body,
 	};
 }

@@ -25,12 +25,12 @@ async function runMigrations(client) {
 		// This is safe for production as it only applies pending migrations
 		try {
 			execSync(
-				`npx prisma migrate deploy`,
+				'npx prisma migrate deploy',
 				{
 					cwd: process.cwd(),
 					stdio: 'inherit',
-					env: { ...process.env }
-				}
+					env: { ...process.env },
+				},
 			);
 			client.log.info('Database migrations completed successfully');
 		} catch (error) {

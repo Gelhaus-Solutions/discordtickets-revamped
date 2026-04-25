@@ -116,12 +116,21 @@ module.exports.post = fastify => ({
 
 		// Prepare category data for Prisma
 		const categoryData = { ...data };
-		
+
+		// Strip any client-supplied fields that could override the trusted scope
+		// via spread (cross-guild create / id collision).
+		delete categoryData.guild;
+		delete categoryData.guildId;
+		delete categoryData.id;
+		delete categoryData.createdAt;
+		delete categoryData.tickets;
+		delete categoryData.primaryCategories;
+
 		// For THREAD and FORUM modes, don't send totalLimit (it's not applicable)
 		if (categoryData.channelMode === 'THREAD' || categoryData.channelMode === 'FORUM') {
 			delete categoryData.totalLimit;
 		}
-		
+
 		// Handle backupCategory relation
 		if (categoryData.backupCategoryId) {
 			categoryData.backupCategory = { connect: { id: categoryData.backupCategoryId } };
@@ -130,8 +139,8 @@ module.exports.post = fastify => ({
 
 		const category = await client.prisma.category.create({
 			data: {
-				guild: { connect: { id: guild.id } },
 				...categoryData,
+				guild: { connect: { id: guild.id } },
 				questions: { createMany: { data: categoryData.questions ?? [] } },
 			},
 		});

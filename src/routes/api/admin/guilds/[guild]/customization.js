@@ -1,4 +1,47 @@
-const { PermissionFlagsBits, Routes } = require('discord.js');
+const {
+	PermissionFlagsBits, Routes,
+} = require('discord.js');
+
+/**
+ * Whitelist + validate guild customization PATCH input. Only `botUsername`,
+ * `botBio`, `botAvatar`, `botBanner` are accepted. Avatar/banner must be
+ * `null` or a `data:image/...;base64,...` data URI; arbitrary URLs are
+ * rejected because Discord renders them client-side and they can be used
+ * as tracking pixels or to leak data.
+ */
+function validateCustomization(data) {
+	const out = {};
+	if (Object.prototype.hasOwnProperty.call(data, 'botUsername')) {
+		if (data.botUsername === null || data.botUsername === '') {
+			out.botUsername = null;
+		} else if (typeof data.botUsername === 'string' && data.botUsername.length <= 32) {
+			out.botUsername = data.botUsername;
+		} else {
+			throw new Error('Invalid botUsername (must be string ≤ 32 chars or null)');
+		}
+	}
+	if (Object.prototype.hasOwnProperty.call(data, 'botBio')) {
+		if (data.botBio === null || data.botBio === '') {
+			out.botBio = null;
+		} else if (typeof data.botBio === 'string' && data.botBio.length <= 190) {
+			out.botBio = data.botBio;
+		} else {
+			throw new Error('Invalid botBio (must be string ≤ 190 chars or null)');
+		}
+	}
+	for (const field of ['botAvatar', 'botBanner']) {
+		if (!Object.prototype.hasOwnProperty.call(data, field)) continue;
+		const v = data[field];
+		if (v === null || v === '') {
+			out[field] = null;
+		} else if (typeof v === 'string' && /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(v) && v.length < 8 * 1024 * 1024) {
+			out[field] = v;
+		} else {
+			throw new Error(`Invalid ${field} (must be data:image/<png|jpeg|gif|webp>;base64,... under 8 MiB, or null)`);
+		}
+	}
+	return out;
+}
 
 module.exports.patch = fastify => ({
 	handler: async req => {
@@ -9,10 +52,17 @@ module.exports.patch = fastify => ({
 
 		// 1. Update DB first
 		const customization = await client.prisma.guild.upsert({
-			create: { id, ...filteredData },
+			create: {
+				id,
+				...filteredData,
+			},
 			update: filteredData,
 			where: { id },
-			select: { botAvatar: true, botBio: true, botUsername: true },
+			select: {
+				botAvatar: true,
+				botBio: true,
+				botUsername: true,
+			},
 		});
 
 		// 2. Prep Discord REST body (use Routes.guildMember to PATCH /guilds/:guild/members/@me)

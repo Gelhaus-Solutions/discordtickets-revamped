@@ -22,11 +22,18 @@ module.exports.post = fastify => ({
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const guild = client.guilds.cache.get(req.params.guild);
-		const data = req.body;
+		const data = req.body ?? {};
+		// Whitelist: prevent client-supplied `guild`, `guildId`, `id`, `createdAt`
+		// from overriding the trusted scope via object spread.
+		const safeData = {
+			content: typeof data.content === 'string' ? data.content : '',
+			name: typeof data.name === 'string' ? data.name : '',
+			regex: typeof data.regex === 'string' ? data.regex : null,
+		};
 		const tag = await client.prisma.tag.create({
 			data: {
+				...safeData,
 				guild: { connect: { id: guild.id } },
-				...data,
 			},
 		});
 

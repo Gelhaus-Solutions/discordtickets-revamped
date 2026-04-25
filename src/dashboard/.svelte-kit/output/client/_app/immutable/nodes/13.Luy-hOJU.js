@@ -1,1 +1,6 @@
-import{r}from"../chunks/Cxx9n8vM.js";async function t({url:e}){r(307,`/auth/login?invite&guild=${e.searchParams.get("guild")||""}`)}const a=Object.freeze(Object.defineProperty({__proto__:null,load:t},Symbol.toStringTag,{value:"Module"}));export{a as universal};
+import{ r }from'../chunks/Cxx9n8vM.js';async function t({ url:e }){
+	r(307, `/auth/login?invite&guild=${e.searchParams.get('guild')||''}`);
+}const a=Object.freeze(Object.defineProperty({
+	__proto__:null,
+	load:t,
+}, Symbol.toStringTag, { value:'Module' }));export{ a as universal };

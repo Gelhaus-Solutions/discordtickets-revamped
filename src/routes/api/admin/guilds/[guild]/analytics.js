@@ -17,7 +17,9 @@ module.exports.get = fastify => ({
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const guildId = req.params.guild;
-		const { since: sinceQ, until: untilQ, categoryId: categoryIdQ } = req.query;
+		const {
+			since: sinceQ, until: untilQ, categoryId: categoryIdQ,
+		} = req.query;
 
 		const sinceDate = sinceQ
 			? new Date(Number(sinceQ) * 1000)
@@ -47,7 +49,12 @@ module.exports.get = fastify => ({
 				closedById: true,
 				createdAt: true,
 				createdById: true,
-				feedback: { select: { comment: true, rating: true } },
+				feedback: {
+					select: {
+						comment: true,
+						rating: true,
+					},
+				},
 				firstResponseAt: true,
 				id: true,
 				messageCount: true,
@@ -60,7 +67,10 @@ module.exports.get = fastify => ({
 
 		// ── 2. Category breakdown ──────────────────────────────────────────────
 		const categoriesRaw = await client.prisma.category.findMany({
-			select: { id: true, name: true },
+			select: {
+				id: true,
+				name: true,
+			},
 			where: { guildId },
 		});
 		const catMap = Object.fromEntries(categoriesRaw.map(c => [c.id, c.name]));
@@ -96,7 +106,10 @@ module.exports.get = fastify => ({
 		cursor.setUTCHours(0, 0, 0, 0);
 		while (cursor <= untilDate) {
 			const day = cursor.toISOString().slice(0, 10);
-			filledTicketsPerDay.push({ count: ticketsPerDay[day] || 0, date: day });
+			filledTicketsPerDay.push({
+				count: ticketsPerDay[day] || 0,
+				date: day,
+			});
 			cursor.setUTCDate(cursor.getUTCDate() + 1);
 		}
 
@@ -127,12 +140,18 @@ module.exports.get = fastify => ({
 		for (const t of tickets) {
 			const catName = catMap[t.categoryId] || 'Unknown';
 			if (t.firstResponseAt) {
-				catResponseTotals[catName] = catResponseTotals[catName] || { count: 0, total: 0 };
+				catResponseTotals[catName] = catResponseTotals[catName] || {
+					count: 0,
+					total: 0,
+				};
 				catResponseTotals[catName].total += new Date(t.firstResponseAt) - new Date(t.createdAt);
 				catResponseTotals[catName].count++;
 			}
 			if (!t.open && t.closedAt) {
-				catResolutionTotals[catName] = catResolutionTotals[catName] || { count: 0, total: 0 };
+				catResolutionTotals[catName] = catResolutionTotals[catName] || {
+					count: 0,
+					total: 0,
+				};
 				catResolutionTotals[catName].total += new Date(t.closedAt) - new Date(t.createdAt);
 				catResolutionTotals[catName].count++;
 			}
@@ -191,7 +210,12 @@ module.exports.get = fastify => ({
 		}
 
 		// ── 7. Priority breakdown ─────────────────────────────────────────────
-		const priorityBreakdown = { HIGH: 0, LOW: 0, MEDIUM: 0, NONE: 0 };
+		const priorityBreakdown = {
+			HIGH: 0,
+			LOW: 0,
+			MEDIUM: 0,
+			NONE: 0,
+		};
 		for (const t of tickets) {
 			const p = t.priority || 'NONE';
 			priorityBreakdown[p] = (priorityBreakdown[p] || 0) + 1;
@@ -199,7 +223,13 @@ module.exports.get = fastify => ({
 
 		// ── 8. Feedback / ratings ─────────────────────────────────────────────
 		const feedbackTickets = tickets.filter(t => t.feedback);
-		const ratingCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+		const ratingCounts = {
+			1: 0,
+			2: 0,
+			3: 0,
+			4: 0,
+			5: 0,
+		};
 		let ratingTotal = 0;
 		for (const t of feedbackTickets) {
 			const r = t.feedback.rating;

@@ -1,8 +1,12 @@
 // @ts-nocheck
-import { error, redirect } from '@sveltejs/kit';
+import {
+	error, redirect,
+} from '@sveltejs/kit';
 
 /** @param {Parameters<import('./$types').PageLoad>[0]} event */
-export async function load({ fetch, params, url }) {
+export async function load({
+	fetch, params, url,
+}) {
 	const response = await fetch(`/api/admin/guilds/${params.guild}`);
 	const isJSON = response.headers.get('Content-Type')?.includes('json');
 	const body = isJSON ? await response.json() : await response.text();

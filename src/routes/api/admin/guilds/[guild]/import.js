@@ -13,6 +13,16 @@ function parseJSON(string) {
 	}
 }
 
+function escapeHtml(str) {
+	if (str === null || str === undefined) return '';
+	return String(str)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#039;');
+}
+
 // put would be better but forms can only get or post
 module.exports.post = fastify => ({
 	/**
@@ -54,7 +64,11 @@ module.exports.post = fastify => ({
 				this.write('text-orange-500', 'text-orange-700 dark:text-orange-200', 'WARN', string);
 			},
 			write(style1, style2, prefix, string) {
-				res.raw.write(`<p><span class="${style1}">[${prefix}]</span> <span class="${style2}">${string}</span></p>`);
+				// `string` may originate from caught Error objects whose messages
+				// can include attacker-controlled values from the uploaded ZIP.
+				// Escape both the prefix and the message before streaming HTML.
+				const safeMessage = escapeHtml(string && string.message ? string.message : string);
+				res.raw.write(`<p><span class="${escapeHtml(style1)}">[${escapeHtml(prefix)}]</span> <span class="${escapeHtml(style2)}">${safeMessage}</span></p>`);
 			},
 		};
 

@@ -7,7 +7,7 @@ const File = /** @type {import('node:buffer') & { File?: File}} */ (buffer).File
 /** @type {Record<string, any>} */
 const globals = {
 	crypto: webcrypto,
-	File
+	File,
 };
 
 // exported for dev/preview and node environments
@@ -24,7 +24,7 @@ function installPolyfills() {
 			enumerable: true,
 			configurable: true,
 			writable: true,
-			value: globals[name]
+			value: globals[name],
 		});
 	}
 }

@@ -1,51 +1,51 @@
-import { error } from "@sveltejs/kit";
-async function load({ fetch, params }) {
-  const fetchOptions = { credentials: "include" };
-  let body;
-  if (params.category === "new") {
-    body = {
-      channelName: "",
-      claiming: false,
-      description: "",
-      discordCategory: "new",
-      enableFeedback: false,
-      emoji: "",
-      image: "",
-      memberLimit: 1,
-      name: "",
-      openingMessage: "",
-      pingRoles: [],
-      questions: [],
-      ratelimit: null,
-      requiredRoles: [],
-      requireTopic: false,
-      staffRoles: [],
-      totalLimit: 50,
-      channelMode: "CHANNEL",
-      backupCategoryId: null
-    };
-  } else {
-    const response = await fetch(
-      `/api/admin/guilds/${params.guild}/categories/${params.category}`,
-      fetchOptions
-    );
-    const isJSON = response.headers.get("Content-Type")?.includes("json");
-    body = isJSON ? await response.json() : await response.text();
-    if (!response.ok) {
-      error(response.status, isJSON ? JSON.stringify(body) : body);
-    }
-  }
-  let url = `/api/admin/guilds/${params.guild}/categories`;
-  if (params.category !== "new") url += `/${params.category}`;
-  return {
-    url,
-    category: body,
-    channels: await (await fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions)).json(),
-    roles: await (await fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`, fetchOptions)).json(),
-    categories: await (await fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)).json(),
-    settings: await (await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)).json()
-  };
+import { error } from '@sveltejs/kit';
+async function load({
+	fetch, params,
+}) {
+	const fetchOptions = { credentials: 'include' };
+	let body;
+	if (params.category === 'new') {
+		body = {
+			channelName: '',
+			claiming: false,
+			description: '',
+			discordCategory: 'new',
+			enableFeedback: false,
+			emoji: '',
+			image: '',
+			memberLimit: 1,
+			name: '',
+			openingMessage: '',
+			pingRoles: [],
+			questions: [],
+			ratelimit: null,
+			requiredRoles: [],
+			requireTopic: false,
+			staffRoles: [],
+			totalLimit: 50,
+			channelMode: 'CHANNEL',
+			backupCategoryId: null,
+		};
+	} else {
+		const response = await fetch(
+			`/api/admin/guilds/${params.guild}/categories/${params.category}`,
+			fetchOptions,
+		);
+		const isJSON = response.headers.get('Content-Type')?.includes('json');
+		body = isJSON ? await response.json() : await response.text();
+		if (!response.ok) {
+			error(response.status, isJSON ? JSON.stringify(body) : body);
+		}
+	}
+	let url = `/api/admin/guilds/${params.guild}/categories`;
+	if (params.category !== 'new') url += `/${params.category}`;
+	return {
+		url,
+		category: body,
+		channels: await (await fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions)).json(),
+		roles: await (await fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`, fetchOptions)).json(),
+		categories: await (await fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)).json(),
+		settings: await (await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)).json(),
+	};
 }
-export {
-  load
-};
+export { load };

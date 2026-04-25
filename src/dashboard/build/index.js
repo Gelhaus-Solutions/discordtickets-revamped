@@ -1,7 +1,9 @@
 import http from 'node:http';
 import process from 'node:process';
 import { handler } from './handler.js';
-import { env, timeout_env } from './env.js';
+import {
+	env, timeout_env,
+} from './env.js';
 import { setImmediate } from 'node:timers';
 import * as qs from 'node:querystring';
 
@@ -10,8 +12,13 @@ import * as qs from 'node:querystring';
  * @param {boolean} [loose] Allow open-ended matching. Ignored with `RegExp` input.
  */
 function parse$1(input, loose) {
-	if (input instanceof RegExp) return { keys:false, pattern:input };
-	var c, o, tmp, ext, keys=[], pattern='', arr = input.split('/');
+	if (input instanceof RegExp) {
+		return {
+			keys:false,
+			pattern:input,
+		};
+	}
+	let c, o, tmp, ext, keys=[], pattern='', arr = input.split('/');
 	arr[0] || arr.shift();
 
 	while (tmp = arr.shift()) {
@@ -22,9 +29,9 @@ function parse$1(input, loose) {
 		} else if (c === ':') {
 			o = tmp.indexOf('?', 1);
 			ext = tmp.indexOf('.', 1);
-			keys.push( tmp.substring(1, !!~o ? o : !!~ext ? ext : tmp.length) );
+			keys.push(tmp.substring(1, ~o ? o : ~ext ? ext : tmp.length));
 			pattern += !!~o && !~ext ? '(?:/([^/]+?))?' : '/([^/]+?)';
-			if (!!~ext) pattern += (!!~o ? '?' : '') + '\\' + tmp.substring(ext);
+			if (~ext) pattern += (~o ? '?' : '') + '\\' + tmp.substring(ext);
 		} else {
 			pattern += '/' + tmp;
 		}
@@ -32,12 +39,12 @@ function parse$1(input, loose) {
 
 	return {
 		keys: keys,
-		pattern: new RegExp('^' + pattern + (loose ? '(?=$|\/)' : '\/?$'), 'i')
+		pattern: new RegExp('^' + pattern + (loose ? '(?=$|\/)' : '\/?$'), 'i'),
 	};
 }
 
 const MAP = {
-	"": 0,
+	'': 0,
 	GET: 1,
 	HEAD: 2,
 	PATCH: 3,
@@ -66,27 +73,43 @@ class Trouter {
 	}
 
 	use(route, ...fns) {
-		let handlers = [].concat.apply([], fns);
-		let { keys, pattern } = parse$1(route, true);
-		this.routes.push({ keys, pattern, method: '', handlers, midx: MAP[''] });
+		const handlers = [].concat.apply([], fns);
+		const {
+			keys, pattern,
+		} = parse$1(route, true);
+		this.routes.push({
+			keys,
+			pattern,
+			method: '',
+			handlers,
+			midx: MAP[''],
+		});
 		return this;
 	}
 
 	add(method, route, ...fns) {
-		let { keys, pattern } = parse$1(route);
-		let handlers = [].concat.apply([], fns);
-		this.routes.push({ keys, pattern, method, handlers, midx: MAP[method] });
+		const {
+			keys, pattern,
+		} = parse$1(route);
+		const handlers = [].concat.apply([], fns);
+		this.routes.push({
+			keys,
+			pattern,
+			method,
+			handlers,
+			midx: MAP[method],
+		});
 		return this;
 	}
 
 	find(method, url) {
-		let midx = MAP[method];
-		let isHEAD = (midx === 2);
+		const midx = MAP[method];
+		const isHEAD = (midx === 2);
 		let i=0, j=0, k, tmp, arr=this.routes;
 		let matches=[], params={}, handlers=[];
 		for (; i < arr.length; i++) {
 			tmp = arr[i];
-			if (tmp.midx === midx  || tmp.midx === 0 || (isHEAD && tmp.midx===1) ) {
+			if (tmp.midx === midx  || tmp.midx === 0 || (isHEAD && tmp.midx===1)) {
 				if (tmp.keys === false) {
 					matches = tmp.pattern.exec(url);
 					if (matches === null) continue;
@@ -103,7 +126,10 @@ class Trouter {
 			} // else not a match
 		}
 
-		return { params, handlers };
+		return {
+			params,
+			handlers,
+		};
 	}
 }
 
@@ -123,16 +149,16 @@ class Trouter {
  * @returns {ParsedURL|void}
  */
 function parse(req) {
-	let raw = req.url;
+	const raw = req.url;
 	if (raw == null) return;
 
-	let prev = req._parsedUrl;
+	const prev = req._parsedUrl;
 	if (prev && prev.raw === raw) return prev;
 
 	let pathname=raw, search='', query;
 
 	if (raw.length > 1) {
-		let idx = raw.indexOf('?', 1);
+		const idx = raw.indexOf('?', 1);
 
 		if (idx !== -1) {
 			search = raw.substring(idx);
@@ -143,7 +169,12 @@ function parse(req) {
 		}
 	}
 
-	return req._parsedUrl = { pathname, search, query, raw };
+	return req._parsedUrl = {
+		pathname,
+		search,
+		query,
+		raw,
+	};
 }
 
 function onError(err, req, res) {
@@ -193,7 +224,7 @@ class Polka extends Trouter {
 					req.path = req._parsedUrl.pathname;
 					req.url = req.path + req._parsedUrl.search;
 					next();
-				}
+				},
 			);
 		}
 		return this; // chainable
@@ -206,8 +237,8 @@ class Polka extends Trouter {
 	}
 
 	handler(req, res, next) {
-		let info = this.parse(req), path = info.pathname;
-		let obj = this.find(req.method, req.path=path);
+		const info = this.parse(req), path = info.pathname;
+		const obj = this.find(req.method, req.path=path);
 
 		req.url = path + info.search;
 		req.originalUrl = req.originalUrl || req.url;
@@ -216,14 +247,15 @@ class Polka extends Trouter {
 		req.params = obj.params;
 
 		if (path.length > 1 && path.indexOf('%', 1) !== -1) {
-			for (let k in req.params) {
-				try { req.params[k] = decodeURIComponent(req.params[k]); }
-				catch (e) { /* malform uri segment */ }
+			for (const k in req.params) {
+				try {
+					req.params[k] = decodeURIComponent(req.params[k]);
+				} catch (e) { /* malform uri segment */ }
 			}
 		}
 
 		let i=0, arr=obj.handlers.concat(this.onNoMatch), len=arr.length;
-		let loop = async () => res.finished || (i < len) && arr[i++](req, res, next);
+		const loop = async () => res.finished || (i < len) && arr[i++](req, res, next);
 		(next = next || (err => err ? this.onError(err, req, res, next) : loop().catch(next)))(); // init
 	}
 }
@@ -248,7 +280,7 @@ if (listen_pid !== 0 && listen_pid !== process.pid) {
 }
 if (listen_fds > 1) {
 	throw new Error(
-		`only one socket is allowed for socket activation, but LISTEN_FDS was set to ${listen_fds}`
+		`only one socket is allowed for socket activation, but LISTEN_FDS was set to ${listen_fds}`,
 	);
 }
 
@@ -284,7 +316,11 @@ if (socket_activation) {
 		console.log(`Listening on file descriptor ${SD_LISTEN_FDS_START}`);
 	});
 } else {
-	server.listen({ path, host, port }, () => {
+	server.listen({
+		path,
+		host,
+		port,
+	}, () => {
 		console.log(`Listening on ${path || `http://${host}:${port}`}`);
 	});
 }
@@ -297,7 +333,7 @@ function graceful_shutdown(reason) {
 	// time out rather than close it even if it is not handling any requests, so call this first
 	httpServer.closeIdleConnections();
 
-	httpServer.close((error) => {
+	httpServer.close(error => {
 		// occurs if the server is already closed
 		if (error) return;
 
@@ -318,7 +354,7 @@ function graceful_shutdown(reason) {
 httpServer.on(
 	'request',
 	/** @param {import('node:http').IncomingMessage} req */
-	(req) => {
+	req => {
 		requests++;
 
 		if (socket_activation && idle_timeout_id) {
@@ -336,10 +372,12 @@ httpServer.on(
 				idle_timeout_id = setTimeout(() => graceful_shutdown('IDLE'), idle_timeout * 1000);
 			}
 		});
-	}
+	},
 );
 
 process.on('SIGTERM', graceful_shutdown);
 process.on('SIGINT', graceful_shutdown);
 
-export { host, path, port, server };
+export {
+	host, path, port, server,
+};

@@ -16,16 +16,9 @@ module.exports.get = fastify => ({
 			httpOnly: true,
 			path: '/',
 			sameSite: 'Strict',
-			secure: false,
+			secure: process.env.HTTP_EXTERNAL?.startsWith('https://') ?? true,
 		});
-		res.header('Content-Type', 'text/html');
-		return res.send(`
-<!DOCTYPE html>
-<html>
-<head><meta http-equiv="refresh" content="0; url='/'"></head>
-<body></body>
-</html>
-`);
+		return res.redirect('/');
 	},
 	onRequest: [fastify.authenticate],
 });

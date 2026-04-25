@@ -11,7 +11,10 @@ module.exports.get = () => ({
 
 		res.setCookie('oauth2-state', state.toString(), {
 			httpOnly: true,
+			maxAge: 600,
+			path: '/',
 			sameSite: 'lax',
+			secure: process.env.HTTP_EXTERNAL?.startsWith('https://') ?? true,
 		});
 
 		const params = {

@@ -212,22 +212,22 @@ module.exports = class extends Listener {
 
 					// set first and last message timestamps
 					const data = { lastMessageAt: new Date() };
-				const isStaffMember = await isStaff(message.guild, message.author.id);
-				if (ticket.firstResponseAt === null && isStaffMember) data.firstResponseAt = new Date();
-				ticket = await client.prisma.ticket.update({
-					data,
-					where: { id: ticket.id },
-				});
+					const isStaffMember = await isStaff(message.guild, message.author.id);
+					if (ticket.firstResponseAt === null && isStaffMember) data.firstResponseAt = new Date();
+					ticket = await client.prisma.ticket.update({
+						data,
+						where: { id: ticket.id },
+					});
 
-				// auto-assign to first staff responder (per-category opt-in)
-				if (
-					isStaffMember &&
+					// auto-assign to first staff responder (per-category opt-in)
+					if (
+						isStaffMember &&
 					ticket.category?.autoAssign &&
 					!ticket.claimedById
-				) {
-					client.tickets.autoClaim(message.channel, message.author.id)
-						.catch(err => client.log.warn('Auto-assign failed for ticket %s: %s', ticket.id, err.message));
-				}
+					) {
+						client.tickets.autoClaim(message.channel, message.author.id)
+							.catch(err => client.log.warn('Auto-assign failed for ticket %s: %s', ticket.id, err.message));
+					}
 					if (client.tickets.$stale.has(ticket.id)) {
 						const $ticket = client.tickets.$stale.get(ticket.id);
 						$ticket.messages++;

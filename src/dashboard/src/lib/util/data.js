@@ -5,7 +5,7 @@ export function flatten(object) {
 	for (let [k, v] of Object.entries(object)) {
 		if (typeof v === 'string') {
 			try {
-				let j = JSON.parse(v);
+				const j = JSON.parse(v);
 				if (typeof j === 'object') v = flatten(j);
 				else v = String(j);
 			} catch {
