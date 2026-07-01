@@ -63,6 +63,7 @@ const env = {
 		const enabled = !['0', 'false', 'no', 'off'].includes((process.env.TEMPORAL_TLS_ENABLED || '').toLowerCase());
 		return (!enabled || !!v) || new Error('is required for mTLS (path to client private key); set TEMPORAL_TLS_ENABLED=false to disable');
 	},
+	TEMPORAL_SET_CURRENT_ON_START: () => true, // optional (default true; promote this build to Current on startup)
 	TEMPORAL_TLS_SERVER_NAME: () => true, // optional (SNI override)
 	TEMPORAL_WORKER_BUILD_ID: () => true, // optional (defaults to injected 6-char git SHA)
 };

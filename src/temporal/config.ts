@@ -18,6 +18,8 @@ export interface TemporalConfig {
 	deploymentName: string;
 	/** 6-char git SHA (or `dev`) identifying this worker build. */
 	buildId: string;
+	/** Set this build as the deployment's Current Version on startup. */
+	setCurrentOnStart: boolean;
 }
 
 const bool = (v: string | undefined, dflt: boolean): boolean => {
@@ -73,6 +75,7 @@ export function getTemporalConfig(): TemporalConfig {
 		tls,
 		deploymentName: process.env.TEMPORAL_DEPLOYMENT_NAME || DEFAULT_DEPLOYMENT_NAME,
 		buildId: resolveBuildId(),
+		setCurrentOnStart: bool(process.env.TEMPORAL_SET_CURRENT_ON_START, true),
 	};
 	return _config;
 }
