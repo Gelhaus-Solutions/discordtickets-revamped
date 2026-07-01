@@ -9,6 +9,16 @@ export interface TemporalTlsConfig {
 	serverName?: string;
 }
 
+export interface TemporalWorkerTuning {
+	/** Cap on concurrently-executing activities (keeps long jobs from starving fast ones). */
+	maxConcurrentActivityTaskExecutions: number;
+	maxConcurrentWorkflowTaskExecutions: number;
+	/** Sticky-cache size; larger = fewer workflow replays. */
+	maxCachedWorkflows: number;
+	/** Share one V8 isolate across workflow runs (lower memory). */
+	reuseV8Context: boolean;
+}
+
 export interface TemporalConfig {
 	/** `host:port` derived from TEMPORAL_ADDRESS + TEMPORAL_PORT. */
 	address: string;
@@ -20,11 +30,17 @@ export interface TemporalConfig {
 	buildId: string;
 	/** Set this build as the deployment's Current Version on startup. */
 	setCurrentOnStart: boolean;
+	worker: TemporalWorkerTuning;
 }
 
 const bool = (v: string | undefined, dflt: boolean): boolean => {
 	if (v === undefined || v === '') return dflt;
 	return ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
+};
+
+const int = (v: string | undefined, dflt: number): number => {
+	const n = v === undefined || v === '' ? NaN : Number(v);
+	return Number.isFinite(n) && n > 0 ? Math.floor(n) : dflt;
 };
 
 /**
@@ -76,6 +92,12 @@ export function getTemporalConfig(): TemporalConfig {
 		deploymentName: process.env.TEMPORAL_DEPLOYMENT_NAME || DEFAULT_DEPLOYMENT_NAME,
 		buildId: resolveBuildId(),
 		setCurrentOnStart: bool(process.env.TEMPORAL_SET_CURRENT_ON_START, true),
+		worker: {
+			maxConcurrentActivityTaskExecutions: int(process.env.TEMPORAL_MAX_CONCURRENT_ACTIVITIES, 20),
+			maxConcurrentWorkflowTaskExecutions: int(process.env.TEMPORAL_MAX_CONCURRENT_WORKFLOW_TASKS, 40),
+			maxCachedWorkflows: int(process.env.TEMPORAL_MAX_CACHED_WORKFLOWS, 250),
+			reuseV8Context: bool(process.env.TEMPORAL_REUSE_V8_CONTEXT, true),
+		},
 	};
 	return _config;
 }

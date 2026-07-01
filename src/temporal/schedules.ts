@@ -1,3 +1,4 @@
+import { ScheduleOverlapPolicy } from '@temporalio/client';
 import { getTemporalClient } from './client';
 import { getTemporalConfig } from './config';
 import { WorkflowType } from './task-queues';
@@ -11,6 +12,10 @@ interface ScheduleDef {
 }
 
 const HOUR = 60 * 60 * 1000;
+const MINUTE = 60 * 1000;
+
+/** Schedule ids that used to exist but have been retired — deleted on startup. */
+const RETIRED_SCHEDULE_IDS = ['db-maintenance'];
 
 export interface ScheduleFlags {
 	/** Post stats to Houston (client.config.stats). */
@@ -40,13 +45,16 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 			id: 'update-check',
 			workflowType: WorkflowType.updateCheck,
 		},
-		{
-			enabled: true,
-			every: 6 * HOUR,
-			id: 'db-maintenance',
-			workflowType: WorkflowType.dbMaintenance,
-		},
 	];
+
+	// Drop schedules that no longer exist in code (e.g. the old db-maintenance no-op).
+	for (const id of RETIRED_SCHEDULE_IDS) {
+		try {
+			await client.schedule.getHandle(id).delete();
+		} catch {
+			// not found — fine
+		}
+	}
 
 	for (const s of schedules) {
 		if (!s.enabled) {
@@ -65,8 +73,13 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 					workflowId: `${s.id}-scheduled`,
 					workflowType: s.workflowType,
 				},
+				// Never let a slow run overlap the next tick; spread load with jitter.
+				policies: { overlap: ScheduleOverlapPolicy.SKIP },
 				scheduleId: s.id,
-				spec: { intervals: [{ every: s.every }] },
+				spec: {
+					intervals: [{ every: s.every }],
+					jitter: 5 * MINUTE,
+				},
 			});
 		} catch (err) {
 			if (!nameIs(err, 'ScheduleAlreadyRunning')) throw err;

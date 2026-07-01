@@ -2,20 +2,35 @@ import {
 	ParentClosePolicy,
 	condition,
 	continueAsNew,
+	defineQuery,
 	defineSignal,
+	defineUpdate,
 	executeChild,
+	log,
 	proxyActivities,
 	setHandler,
+	startChild,
 } from '@temporalio/workflow';
 import type { Activities } from '../activities';
-import { SignalName, closeWorkflowId } from '../task-queues';
+import {
+	QueryName,
+	SignalName,
+	UpdateName,
+	closeWorkflowId,
+	reopenWorkflowId,
+} from '../task-queues';
 import type {
 	BulkCloseInput,
+	BulkCloseResult,
 	CascadeCloseUserInput,
 	CloseTicketInput,
 	ExportGuildInput,
 	GenerateTranscriptInput,
 	ImportGuildInput,
+	ReconfigureStaleInput,
+	ReopenState,
+	ReopenWindowInput,
+	StaleState,
 	StaleTicketInput,
 } from '../types';
 
@@ -45,22 +60,28 @@ export async function closeTicketWorkflow(input: CloseTicketInput): Promise<void
 // ---------------------------------------------------------------------------
 // Per-ticket stale lifecycle: inactive -> warn -> closing-soon -> auto-close.
 // Resettable by `newActivity`, cancellable by `cancelStale`, bounded by CAN.
+// Reconfigurable live by the `reconfigureStale` Update; inspectable via the
+// `getStaleState` Query.
 // ---------------------------------------------------------------------------
 const newActivitySignal = defineSignal<[number]>(SignalName.newActivity);
 const cancelStaleSignal = defineSignal<[]>(SignalName.cancelStale);
+const reconfigureStaleUpdate = defineUpdate<void, [ReconfigureStaleInput]>(UpdateName.reconfigureStale);
+const staleStateQuery = defineQuery<StaleState>(QueryName.staleState);
 
 const CONTINUE_AS_NEW_AFTER = 500;
 
 export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void> {
 	const cfg = await acts.getStaleConfig(input.ticketId);
 	if (!cfg.open) return;
-	const staleAfterMs = cfg.staleAfterMs;
+	let staleAfterMs = cfg.staleAfterMs;
 	if (!staleAfterMs) return; // stale handling disabled for this guild
 
 	let lastActivityAt = input.lastActivityAt || cfg.lastActivityAt || Date.now();
 	let activityVersion = 0;
 	let totalSignals = input.signalCount ?? 0;
 	let cancelled = false;
+	let phase: StaleState['phase'] = 'waiting';
+	let closeAtState: number | null = null;
 
 	setHandler(newActivitySignal, (at: number) => {
 		lastActivityAt = Math.max(lastActivityAt, at || Date.now());
@@ -70,6 +91,33 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 	setHandler(cancelStaleSignal, () => {
 		cancelled = true;
 	});
+	// Live reconfigure when guild settings change. A non-positive threshold means
+	// stale handling was disabled — stop the workflow. Bumping activityVersion
+	// breaks the current wait so Phase 1 recomputes against the new threshold.
+	setHandler(
+		reconfigureStaleUpdate,
+		(next: ReconfigureStaleInput) => {
+			if (next.staleAfterMs <= 0) {
+				cancelled = true;
+			} else {
+				staleAfterMs = next.staleAfterMs;
+			}
+			activityVersion++;
+		},
+		{
+			validator: (next: ReconfigureStaleInput) => {
+				if (!next || !Number.isFinite(next.staleAfterMs)) {
+					throw new Error('reconfigureStale: staleAfterMs must be a finite number');
+				}
+			},
+		},
+	);
+	setHandler(staleStateQuery, (): StaleState => ({
+		closeAt: closeAtState,
+		lastActivityAt,
+		phase,
+		staleAfterMs,
+	}));
 
 	// eslint-disable-next-line no-constant-condition
 	while (true) {
@@ -83,6 +131,8 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		}
 
 		// Phase 1 — wait for the inactivity threshold (resettable).
+		phase = 'waiting';
+		closeAtState = null;
 		const v1 = activityVersion;
 		const waitMs = lastActivityAt + staleAfterMs - Date.now();
 		if (waitMs > 0) await condition(() => cancelled || activityVersion !== v1, waitMs);
@@ -92,6 +142,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 
 		// Phase 2 — send the inactivity warning; get the auto-close epoch.
 		const closeAt = await acts.sendStaleWarning(input.ticketId);
+		phase = 'warned';
 		if (closeAt == null) {
 			// No auto-close: wait for the next activity, then re-arm.
 			const v2 = activityVersion;
@@ -99,6 +150,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 			if (cancelled) return;
 			continue;
 		}
+		closeAtState = closeAt;
 
 		// Phase 3 — halfway "closing soon" reminder.
 		const vWarn = activityVersion;
@@ -108,6 +160,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		if (cancelled) return;
 		if (activityVersion !== vWarn) continue;
 		if (!(await acts.isTicketOpen(input.ticketId))) return;
+		phase = 'closing-soon';
 		await acts.sendClosingSoon(input.ticketId, closeAt);
 
 		// Phase 4 — wait until the auto-close deadline, then close.
@@ -115,7 +168,33 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		if (waitC > 0) await condition(() => cancelled || activityVersion !== vWarn, waitC);
 		if (cancelled) return;
 		if (activityVersion !== vWarn) continue;
-		if (!(await acts.isTicketOpen(input.ticketId))) return;
+		// Re-read config at close time: checks open AND picks up a reopenWindow
+		// changed since this (potentially days-old) workflow started.
+		const closeCfg = await acts.getStaleConfig(input.ticketId);
+		if (!closeCfg.open) return;
+		phase = 'done';
+
+		// If the guild grants a reopen grace window, defer the destructive close to
+		// the reopen workflow; otherwise close immediately. startChild (not
+		// executeChild): the grace window can be hours long and this parent must
+		// not wait it out.
+		if (closeCfg.reopenWindowMs > 0) {
+			try {
+				await startChild(reopenWindowWorkflow, {
+					args: [{
+						guildId: input.guildId,
+						reason: 'inactivity',
+						ticketId: input.ticketId,
+						windowMs: closeCfg.reopenWindowMs,
+					}],
+					parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_ABANDON,
+					workflowId: reopenWorkflowId(input.ticketId),
+				});
+			} catch (err) {
+				if (!isAlreadyStarted(err)) throw err;
+			}
+			return;
+		}
 
 		try {
 			await executeChild(closeTicketWorkflow, {
@@ -135,12 +214,60 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 }
 
 // ---------------------------------------------------------------------------
+// Reopen grace window: soft-close (lock, keep the channel) then either reopen
+// on the `reopen` signal or perform the real terminal close when the window
+// expires. Inspectable via the `getReopenState` Query.
+// ---------------------------------------------------------------------------
+const reopenSignal = defineSignal<[]>(SignalName.reopen);
+const reopenStateQuery = defineQuery<ReopenState>(QueryName.reopenState);
+
+export async function reopenWindowWorkflow(input: ReopenWindowInput): Promise<ReopenState> {
+	let reopened = false;
+	const closeAt = Date.now() + Math.max(0, input.windowMs);
+
+	setHandler(reopenSignal, () => {
+		reopened = true;
+	});
+	setHandler(reopenStateQuery, (): ReopenState => ({ closeAt, reopened }));
+
+	// Enter the grace state: lock the channel (do NOT delete/archive) and post
+	// the reopen button + countdown.
+	await acts.softCloseTicket(input.ticketId, closeAt);
+
+	const waitMs = closeAt - Date.now();
+	if (waitMs > 0) await condition(() => reopened, waitMs);
+
+	if (reopened) {
+		await acts.reopenTicket(input.ticketId);
+		return { closeAt, reopened: true };
+	}
+
+	// Window expired — perform the real, terminal close.
+	try {
+		await executeChild(closeTicketWorkflow, {
+			args: [{
+				closedBy: input.closedBy ?? null,
+				lock: input.lock ?? false,
+				reason: input.reason ?? null,
+				ticketId: input.ticketId,
+			}],
+			parentClosePolicy: ParentClosePolicy.PARENT_CLOSE_POLICY_ABANDON,
+			workflowId: closeWorkflowId(input.ticketId),
+		});
+	} catch (err) {
+		if (!isAlreadyStarted(err)) throw err;
+	}
+	return { closeAt, reopened: false };
+}
+
+// ---------------------------------------------------------------------------
 // Bulk close (parent fan-out to bounded-concurrency child close workflows).
 // ---------------------------------------------------------------------------
-export async function bulkCloseWorkflow(input: BulkCloseInput): Promise<{ closed: number }> {
+export async function bulkCloseWorkflow(input: BulkCloseInput): Promise<BulkCloseResult> {
 	const concurrency = Math.max(1, input.concurrency ?? 5);
 	const queue = [...input.ticketIds];
 	let closed = 0;
+	let failed = 0;
 
 	const runOne = async (ticketId: string): Promise<void> => {
 		try {
@@ -155,8 +282,12 @@ export async function bulkCloseWorkflow(input: BulkCloseInput): Promise<{ closed
 			});
 			closed++;
 		} catch (err) {
-			if (!isAlreadyStarted(err)) {
-				// swallow individual failures so one bad ticket doesn't abort the batch
+			if (isAlreadyStarted(err)) {
+				closed++; // a close is already in flight for this ticket — idempotent
+			} else {
+				// Don't abort the whole batch on one bad ticket, but do record it.
+				failed++;
+				log.warn('bulkClose: failed to close ticket', { error: String(err), ticketId });
 			}
 		}
 	};
@@ -172,15 +303,16 @@ export async function bulkCloseWorkflow(input: BulkCloseInput): Promise<{ closed
 	await Promise.all(
 		Array.from({ length: Math.min(concurrency, queue.length) }, () => worker()),
 	);
-	return { closed };
+	if (failed > 0) log.warn('bulkClose finished with failures', { closed, failed });
+	return { closed, failed };
 }
 
 // ---------------------------------------------------------------------------
 // Cascade: close every open ticket a user created (they left the guild).
 // ---------------------------------------------------------------------------
-export async function cascadeCloseUserWorkflow(input: CascadeCloseUserInput): Promise<{ closed: number }> {
+export async function cascadeCloseUserWorkflow(input: CascadeCloseUserInput): Promise<BulkCloseResult> {
 	const ids = await acts.getOpenTicketIdsByUser(input.guildId, input.userId);
-	if (!ids.length) return { closed: 0 };
+	if (!ids.length) return { closed: 0, failed: 0 };
 	return bulkCloseWorkflow({
 		closedBy: null,
 		reason: input.reason ?? 'user left the server',
@@ -214,8 +346,4 @@ export async function houstonStatsWorkflow(): Promise<void> {
 
 export async function updateCheckWorkflow(): Promise<void> {
 	await acts.runUpdateCheck();
-}
-
-export async function dbMaintenanceWorkflow(): Promise<void> {
-	await acts.runDbMaintenance();
 }

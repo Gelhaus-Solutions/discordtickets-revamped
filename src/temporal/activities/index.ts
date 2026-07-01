@@ -47,7 +47,7 @@ export function makeActivities(deps: ActivityDeps) {
 		async getStaleConfig(ticketId: string): Promise<{
 			open: boolean;
 			staleAfterMs: number;
-			autoCloseMs: number;
+			reopenWindowMs: number;
 			lastActivityAt: number;
 		}> {
 			const ticket = await client.prisma.ticket.findUnique({
@@ -55,7 +55,7 @@ export function makeActivities(deps: ActivityDeps) {
 					createdAt: true,
 					guild: {
 						select: {
-							autoClose: true,
+							reopenWindow: true,
 							staleAfter: true,
 						},
 					},
@@ -64,12 +64,12 @@ export function makeActivities(deps: ActivityDeps) {
 				},
 				where: { id: ticketId },
 			});
-			if (!ticket) return { autoCloseMs: 0, lastActivityAt: 0, open: false, staleAfterMs: 0 };
+			if (!ticket) return { lastActivityAt: 0, open: false, reopenWindowMs: 0, staleAfterMs: 0 };
 			const last = ticket.lastMessageAt ?? ticket.createdAt;
 			return {
-				autoCloseMs: Number(ticket.guild?.autoClose ?? 0),
 				lastActivityAt: last ? new Date(last).getTime() : 0,
 				open: !!ticket.open,
+				reopenWindowMs: Number(ticket.guild?.reopenWindow ?? 0),
 				staleAfterMs: Number(ticket.guild?.staleAfter ?? 0),
 			};
 		},
@@ -81,6 +81,16 @@ export function makeActivities(deps: ActivityDeps) {
 
 		async sendClosingSoon(ticketId: string, closeAtEpoch: number): Promise<void> {
 			await client.tickets.sendClosingSoon(ticketId, closeAtEpoch);
+		},
+
+		/** Enter the reopen grace window: lock (don't delete) + post the reopen button. */
+		async softCloseTicket(ticketId: string, closeAtEpoch: number): Promise<void> {
+			await client.tickets.softClose(ticketId, closeAtEpoch);
+		},
+
+		/** Restore a ticket that was reopened within its grace window. */
+		async reopenTicket(ticketId: string): Promise<void> {
+			await client.tickets.reopen(ticketId);
 		},
 
 		async getOpenTicketIdsByUser(guildId: string, userId: string): Promise<string[]> {
@@ -101,11 +111,6 @@ export function makeActivities(deps: ActivityDeps) {
 
 		async runUpdateCheck(): Promise<void> {
 			await deps.checkForUpdates(client);
-		},
-
-		async runDbMaintenance(): Promise<void> {
-			// SQLite dropped; hook retained for future ANALYZE/VACUUM on the server DB.
-			client.log?.info?.cron?.('DB maintenance tick (no-op)');
 		},
 
 		async regenerateTranscript(ticketId: string): Promise<string | null> {

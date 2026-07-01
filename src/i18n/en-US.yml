@@ -23,6 +23,9 @@ buttons:
   reject_close_request:
     emoji: ✖️
     text: Reject
+  reopen:
+    emoji: 🔓
+    text: Reopen
   transcript:
     emoji: 📄
     text: Transcript

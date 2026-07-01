@@ -2,6 +2,13 @@
 /* eslint-disable max-lines */
 const TicketArchiver = require('./archiver');
 const { saveHtmlTranscript } = require('./transcript-html');
+const archiver = require('archiver');
+const unzipper = require('unzipper');
+const { createWriteStream } = require('node:fs');
+const { Readable } = require('node:stream');
+const { createInterface } = require('node:readline');
+const { iconURL } = require('../misc');
+const pkg = require('../../../package.json');
 const {
 	ActionRowBuilder,
 	ButtonBuilder,
@@ -1411,11 +1418,23 @@ module.exports = class TicketManager {
 		this.$closeRequests.delete(ticketId);
 		// Cancel the durable "auto-close if ignored" timeout, then close now.
 		await temporal.cancelCloseRequestTimeout(ticketId);
-		await temporal.startCloseTicket({
-			closedBy: pending.closedBy ?? interaction.user.id,
-			reason: pending.reason ?? null,
-			ticketId,
-		});
+		const reopenWindow = Number(ticket.guild.reopenWindow ?? 0);
+		if (reopenWindow > 0) {
+			// Grace window: soft-close now, terminal close when the window expires.
+			await temporal.startReopenWindow({
+				closedBy: pending.closedBy ?? interaction.user.id,
+				guildId: ticket.guildId,
+				reason: pending.reason ?? null,
+				ticketId,
+				windowMs: reopenWindow,
+			});
+		} else {
+			await temporal.startCloseTicket({
+				closedBy: pending.closedBy ?? interaction.user.id,
+				reason: pending.reason ?? null,
+				ticketId,
+			});
+		}
 	}
 
 	/**
@@ -1497,26 +1516,329 @@ module.exports = class TicketManager {
 	}
 
 	/**
-	 * Export a guild's data to a ZIP on disk (durable `exportGuildWorkflow`).
-	 * TODO: port the streaming logic from routes/api/admin/guilds/[guild]/export.js
-	 * into this method so the HTTP route can trigger the workflow and poll status.
-	 * @param {string} _guildId
-	 * @param {string} _outputPath
-	 * @param {() => void} [_heartbeat]
+	 * Soft-close a ticket at the start of its reopen grace window: mark it
+	 * pending-close, silence the stale/close automations, lock the channel
+	 * (never delete here) and post the reopen prompt. Called by the durable
+	 * `reopenWindowWorkflow`.
+	 * @param {string} ticketId
+	 * @param {number} closeAtEpoch epoch ms at which the ticket will be terminally closed
 	 */
-	async exportGuildToFile(_guildId, _outputPath, _heartbeat) {
-		throw new Error('exportGuildToFile is not yet implemented — see TODO in plan');
+	async softClose(ticketId, closeAtEpoch) {
+		const ticket = await this.getTicket(ticketId);
+		if (!ticket) return;
+		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
+
+		await this.client.prisma.ticket.update({
+			data: { pendingCloseAt: new Date() },
+			where: { id: ticketId },
+		});
+		this.$closeRequests.delete(ticketId);
+		// The grace window owns the close now: stop the stale workflow and any
+		// pending close-request timeout.
+		temporal.cancelStaleWorkflow(ticketId).catch(() => {});
+		temporal.cancelCloseRequestTimeout(ticketId).catch(() => {});
+
+		const channel = this.client.channels.cache.get(ticketId) || await this.client.channels.fetch(ticketId).catch(() => null);
+		if (!channel) return;
+
+		// Send the prompt before locking (mirrors finallyClose's thread ordering)
+		// so it is delivered even if the lock fails.
+		await channel.send({
+			components: [
+				new ActionRowBuilder()
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({ action: 'reopen' }))
+							.setStyle(ButtonStyle.Primary)
+							.setEmoji(getMessage('buttons.reopen.emoji'))
+							.setLabel(getMessage('buttons.reopen.text')),
+					),
+			],
+			embeds: [
+				new ExtendedEmbedBuilder({
+					iconURL: channel.guild.iconURL(),
+					text: ticket.guild.footer,
+				})
+					.setColor(ticket.guild.primaryColour)
+					.setTitle(getMessage('ticket.reopen.closed.title'))
+					.setDescription(getMessage('ticket.reopen.closed.description', { timestamp: Math.floor(closeAtEpoch / 1000) })),
+			],
+		}).catch(err => this.client.log.warn('Failed to send the reopen prompt in %s: %s', ticketId, err.message));
+
+		// Lock without deleting/archiving so the ticket can be restored. Locked
+		// (but unarchived) threads keep buttons clickable for everyone.
+		try {
+			if (channel.isThread?.()) {
+				await channel.setLocked(true, 'Ticket pending close (reopen window)');
+			} else {
+				await channel.permissionOverwrites.edit(
+					ticket.createdById,
+					{ SendMessages: false },
+					{ reason: 'Ticket pending close (reopen window)' },
+				);
+			}
+		} catch (err) {
+			this.client.log.warn('Failed to lock %s for the reopen window: %s', ticketId, err.message);
+		}
 	}
 
 	/**
-	 * Import a guild's data from a ZIP on disk (durable `importGuildWorkflow`).
-	 * TODO: port routes/api/admin/guilds/[guild]/import.js into this method.
-	 * @param {string} _guildId
-	 * @param {string} _archivePath
-	 * @param {() => void} [_heartbeat]
+	 * Restore a soft-closed ticket within its reopen grace window: clear the
+	 * pending-close marker, unlock the channel, and re-arm the stale workflow.
+	 * Called by the durable `reopenWindowWorkflow` after the `reopen` signal.
+	 * @param {string} ticketId
 	 */
-	async importGuildFromArchive(_guildId, _archivePath, _heartbeat) {
-		throw new Error('importGuildFromArchive is not yet implemented — see TODO in plan');
+	async reopen(ticketId) {
+		const ticket = await this.getTicket(ticketId);
+		if (!ticket) return;
+
+		// Reopening counts as activity, so the fresh stale timer starts from now.
+		await this.client.prisma.ticket.update({
+			data: {
+				lastMessageAt: new Date(),
+				pendingCloseAt: null,
+			},
+			where: { id: ticketId },
+		});
+
+		const channel = this.client.channels.cache.get(ticketId) || await this.client.channels.fetch(ticketId).catch(() => null);
+		if (channel) {
+			try {
+				if (channel.isThread?.()) {
+					if (channel.archived) await channel.setArchived(false, 'Ticket reopened');
+					await channel.setLocked(false, 'Ticket reopened');
+				} else {
+					await channel.permissionOverwrites.edit(
+						ticket.createdById,
+						{ SendMessages: true },
+						{ reason: 'Ticket reopened' },
+					);
+				}
+			} catch (err) {
+				this.client.log.warn('Failed to unlock %s after reopen: %s', ticketId, err.message);
+			}
+		}
+
+		temporal.ensureStaleWorkflow({
+			guildId: ticket.guildId,
+			lastActivityAt: Date.now(),
+			ticketId,
+		}).catch(error => this.client.log.error(error));
+	}
+
+	/**
+	 * Export a guild's data to a ZIP on disk. Runs inside the durable
+	 * `exportGuildWorkflow` activity; safe to retry (the output file is
+	 * truncated and rewritten). Heartbeats once per ticket batch.
+	 * @param {string} guildId
+	 * @param {string} outputPath absolute path the ZIP is written to
+	 * @param {() => void} [heartbeat]
+	 * @returns {Promise<string>} outputPath
+	 */
+	async exportGuildToFile(guildId, outputPath, heartbeat = () => { }) {
+		const client = this.client;
+		const guild = client.guilds.cache.get(guildId);
+		if (!guild) throw new Error(`Guild ${guildId} is not cached; cannot export`);
+
+		const settings = await client.prisma.guild.findUnique({
+			include: {
+				categories: { include: { questions: true } },
+				tags: true,
+			},
+			where: { id: guildId },
+		});
+		if (!settings) throw new Error(`Guild ${guildId} does not exist in the database`);
+
+		delete settings.id;
+		settings.categories = settings.categories.map(c => {
+			delete c.guildId;
+			return c;
+		});
+		settings.tags = settings.tags.map(t => {
+			delete t.guildId;
+			return t;
+		});
+
+		// TODO: sign so the importer can ensure files haven't been added (important for attachments)
+		const archive = archiver('zip', {
+			comment: JSON.stringify({
+				exportedAt: new Date().toISOString(),
+				exportedFromClientId: client.user.id,
+				originalGuildId: guildId,
+				originalGuildName: guild.name,
+				version: pkg.version,
+			}),
+		});
+
+		const output = createWriteStream(outputPath);
+		const written = new Promise((resolve, reject) => {
+			output.on('close', resolve);
+			output.on('error', reject);
+			archive.on('error', reject);
+		});
+		archive.on('warning', err => {
+			if (err.code === 'ENOENT') client.log.warn(err);
+			else archive.emit('error', err);
+		});
+		archive.pipe(output);
+
+		async function* ticketsGenerator() {
+			let done = false;
+			const take = 50;
+			const findOptions = {
+				include: {
+					archivedChannels: true,
+					archivedMessages: true,
+					archivedRoles: true,
+					archivedUsers: true,
+					feedback: true,
+					questionAnswers: true,
+				},
+				orderBy: { id: 'asc' },
+				take,
+				where: { guildId },
+			};
+			do {
+				const batch = await client.prisma.ticket.findMany(findOptions);
+				heartbeat();
+				if (batch.length < take) {
+					done = true;
+				} else {
+					findOptions.skip = 1;
+					findOptions.cursor = { id: batch[take - 1].id };
+				}
+				// ! map (parallel) not for...of (serial)
+				yield* batch.map(async ticket => await pools.export.queue(w => w.exportTicket(ticket)) + '\n');
+			} while (!done);
+		}
+		const ticketsStream = Readable.from(ticketsGenerator());
+
+		const icon = await fetch(iconURL(guild));
+		archive.append(Readable.from(icon.body), { name: 'icon.png' });
+		archive.append(JSON.stringify(settings), { name: 'settings.json' });
+		archive.append(ticketsStream, { name: 'tickets.jsonl' });
+		await archive.finalize();
+		await written;
+		return outputPath;
+	}
+
+	/**
+	 * Import a guild's data from a ZIP on disk. Runs inside the durable
+	 * `importGuildWorkflow` activity. Destructive: replaces the guild's
+	 * settings/categories and adds the archived tickets.
+	 * @param {string} guildId
+	 * @param {string} archivePath absolute path of the uploaded archive
+	 * @param {() => void} [heartbeat]
+	 */
+	async importGuildFromArchive(guildId, archivePath, heartbeat = () => { }) {
+		const client = this.client;
+		client.keyv.delete(`cache/stats/guild:${guildId}`);
+
+		// comment needs to be less than 512B
+		const zip = await unzipper.Open.file(archivePath, { tailSize: 512 });
+		const { files } = zip;
+		try {
+			const comment = JSON.parse(zip.comment);
+			client.log.info(`Importing guild ${guildId} from export v${comment.version} of "${comment.originalGuildName}"`);
+		} catch {
+			client.log.warn('Import archive comment is not parsable');
+		}
+
+		const settingsFile = files.find(f => f.path === 'settings.json');
+		if (!settingsFile) throw new Error('Archive does not contain settings.json');
+		// `settingsJSON` is frozen, `settings` can be mutated
+		const settingsJSON = JSON.parse(await settingsFile.buffer());
+		Object.freeze(settingsJSON);
+		const settings = structuredClone(settingsJSON);
+		const { categories } = settings;
+		delete settings.categories; // this also mutates `settings`
+		heartbeat();
+
+		await client.prisma.$transaction([
+			client.prisma.guild.delete({
+				select: { id: true },
+				where: { id: guildId },
+			}),
+			client.prisma.guild.create({
+				data: {
+					...settings,
+					id: guildId,
+					tags: {
+						createMany: {
+							data: settings.tags.map(tag => {
+								delete tag.id;
+								return tag;
+							}),
+						},
+					},
+				},
+				// select ID so it doesn't return everything else
+				select: { id: true },
+			}),
+		]);
+		heartbeat();
+
+		const newCategories = await client.prisma.$transaction(
+			categories.map(category => {
+				delete category.id;
+				return client.prisma.category.create({
+					data: {
+						...category,
+						guild: { connect: { id: guildId } },
+						questions: {
+							createMany: {
+								data: category.questions.map(question => {
+									delete question.categoryId;
+									return question;
+								}),
+							},
+						},
+					},
+					select: { id: true },
+				});
+			}),
+		);
+		heartbeat();
+
+		// settingsJSON.categories because `categories` has been mutated (no id)
+		const categoryMap = new Map(settingsJSON.categories.map((cat, idx) => ([cat.id, newCategories[idx].id])));
+
+		const ticketsFile = files.find(f => f.path === 'tickets.jsonl');
+		const ticketsPromises = [];
+		if (ticketsFile) {
+			const lines = createInterface({
+				crlfDelay: Infinity,
+				input: ticketsFile.stream(),
+			});
+			for await (const line of lines) {
+				// do not await in the loop
+				ticketsPromises.push(pools.import.queue(worker => worker.importTicket(line, guildId, categoryMap)));
+				if (ticketsPromises.length % 50 === 0) heartbeat();
+			}
+		}
+
+		const ticketsResolved = await Promise.all(ticketsPromises);
+		heartbeat();
+		const queries = [];
+		const allMessages = [];
+
+		for (const [ticket, ticketMessages] of ticketsResolved) {
+			queries.push(
+				client.prisma.ticket.create({
+					data: ticket,
+					select: { id: true },
+				}),
+			);
+			allMessages.push(...ticketMessages);
+		}
+
+		if (allMessages.length > 0) {
+			queries.push(client.prisma.archivedMessage.createMany({ data: allMessages }));
+		}
+
+		await client.prisma.$transaction(queries);
+		heartbeat();
+		client.log.success(`Imported ${settingsJSON.categories.length} categories and ${ticketsResolved.length} tickets into guild ${guildId}`);
 	}
 
 	/**
@@ -1548,6 +1870,7 @@ module.exports = class TicketManager {
 			closedReason: reason && await crypto.queue(w => w.encrypt(reason)),
 			messageCount: archivedMessages,
 			open: false,
+			pendingCloseAt: null,
 		};
 
 		/** @type {import("discord.js").TextChannel} */

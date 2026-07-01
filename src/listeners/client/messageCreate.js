@@ -229,8 +229,10 @@ module.exports = class extends Listener {
 						client.tickets.autoClaim(message.channel, message.author.id)
 							.catch(err => client.log.warn('Auto-assign failed for ticket %s: %s', ticket.id, err.message));
 					}
-					// Reset the durable inactivity timer for this ticket.
-					if (process.env.PUBLIC_BOT !== 'true') {
+					// Reset the durable inactivity timer for this ticket. Skipped while
+					// the ticket sits in a reopen grace window — signal-with-start would
+					// otherwise spawn a fresh stale workflow for a soft-closed ticket.
+					if (process.env.PUBLIC_BOT !== 'true' && !ticket.pendingCloseAt) {
 						temporal.signalTicketActivity({
 							guildId: message.guild.id,
 							lastActivityAt: Date.now(),

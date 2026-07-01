@@ -43,6 +43,11 @@ module.exports = class extends Listener {
 			stats: !!client.config.stats,
 			updates: !!client.config.updates,
 		});
+		// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
+		// before sync() starts workflows, so those starts are tagged. Non-fatal:
+		// when registration fails, starts simply omit the attributes.
+		const saOk = await temporal.ensureSearchAttributes();
+		if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged');
 		client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
 
 		// fill cache (also re-establishes stale workflows for open tickets)

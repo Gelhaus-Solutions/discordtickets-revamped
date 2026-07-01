@@ -137,6 +137,7 @@ model Guild {
     locale             String     @default("en-GB")
     logChannel         String?    @db.VarChar(19)
     primaryColour      String     @default("#009999")
+    reopenWindow       Int        @default(0)
     staleAfter         Int?
     successColour      String     @default("Green")
     tags               Tag[]
@@ -221,6 +222,7 @@ model Ticket {
     number              Int
     open                Boolean           @default(true)
     openingMessageId    String            @db.VarChar(19)
+    pendingCloseAt      DateTime?
     pinnedMessageIds    Json              @default("[]")
     priority            String?          @db.VarChar(50)
     referencedBy        Ticket[]          @relation("TicketsReferencedByTicket")

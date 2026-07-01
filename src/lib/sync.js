@@ -24,6 +24,7 @@ module.exports = async client => {
 					createdById: true,
 					guildId: true,
 					id: true,
+					pendingCloseAt: true,
 				},
 				where: { open: true },
 			},
@@ -51,9 +52,11 @@ module.exports = async client => {
 					client.log.warn('Failed to close ticket', ticket.id);
 					client.log.error(error);
 				}
-			} else if (process.env.PUBLIC_BOT !== 'true') {
+			} else if (process.env.PUBLIC_BOT !== 'true' && !ticket.pendingCloseAt) {
 				// Re-establish the durable inactivity workflow for this open ticket
 				// (idempotent; lastActivityAt: 0 lets the workflow read the DB value).
+				// Tickets in a reopen grace window are skipped — the durable
+				// reopenWindowWorkflow owns them until it reopens or closes.
 				temporal.ensureStaleWorkflow({
 					guildId: ticket.guildId,
 					lastActivityAt: 0,

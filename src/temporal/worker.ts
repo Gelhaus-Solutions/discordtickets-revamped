@@ -64,6 +64,12 @@ export async function startWorker(deps: ActivityDeps): Promise<Worker> {
 		namespace: cfg.namespace,
 		taskQueue: cfg.taskQueue,
 		workflowBundle: { codePath: join(__dirname, 'workflow-bundle.js') },
+		// Bound activity concurrency so a 60-min export/import can't monopolise the
+		// slots that fast stale/close activities need (single shared task queue).
+		maxConcurrentActivityTaskExecutions: cfg.worker.maxConcurrentActivityTaskExecutions,
+		maxConcurrentWorkflowTaskExecutions: cfg.worker.maxConcurrentWorkflowTaskExecutions,
+		maxCachedWorkflows: cfg.worker.maxCachedWorkflows,
+		reuseV8Context: cfg.worker.reuseV8Context,
 	};
 
 	// Worker Deployments / versioning keyed on the 6-char git SHA. Kept off the

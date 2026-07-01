@@ -1,17 +1,9 @@
-const unzipper = require('unzipper');
-const { createInterface } = require('node:readline');
-const pkg = require('../../../../../../package.json');
-const { pools } = require('../../../../../lib/threads');
-
-const { import: pool } = pools;
-
-function parseJSON(string) {
-	try {
-		return JSON.parse(string);
-	} catch {
-		return null;
-	}
-}
+const {
+	copyFile, unlink,
+} = require('node:fs/promises');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
+const temporal = require('../../../../../lib/temporal');
 
 function escapeHtml(str) {
 	if (str === null || str === undefined) return '';
@@ -39,14 +31,17 @@ module.exports.post = fastify => ({
 
 		client.log.info(`${member.user.username} is importing data to "${guild.name}"`);
 
-		client.keyv.delete(`cache/stats/guild:${id}`);
-
 		const [zFile] = await req.saveRequestFiles({
 			limits: {
 				fields: 1,
 				files: 1,
 			},
 		});
+
+		// Copy out of fastify's per-request temp dir so the archive outlives this
+		// request and survives a bot restart while the durable workflow runs.
+		const archivePath = join(tmpdir(), `tickets-import-${id}-${Date.now()}.zip`);
+		await copyFile(zFile.filepath, archivePath);
 
 		res.raw.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
 
@@ -73,124 +68,26 @@ module.exports.post = fastify => ({
 		};
 
 		try {
-		// comment needs to be less than 512B
-			const zip = await unzipper.Open.file(zFile.filepath, { tailSize: 512 });
-			const { files } = zip;
-			const comment = parseJSON(zip.comment);
-			client.log.info('Import comment', comment);
-			if (comment) {
-				userLog.info(`v${comment.version} -> v${pkg.version}`);
-			} else {
-				userLog.warn('Comment is not parsable');
-			}
-
-			userLog.info('Reading settings.json');
-			// `settingsJSON` is frozen, `settings` can be mutated
-			const settingsJSON = JSON.parse(await files.find(f => f.path === 'settings.json').buffer());
-			Object.freeze(settingsJSON);
-			const settings = structuredClone(settingsJSON);
-			const { categories } = settings;
-			delete settings.categories; // this also mutates `settings`
-
-			userLog.info('Importing general settings and tags');
-			await client.prisma.$transaction([
-				client.prisma.guild.delete({
-					select: { id: true },
-					where: { id },
-				}),
-				client.prisma.guild.create({
-					data: {
-						...settings,
-						id,
-						tags: {
-							createMany: {
-								data: settings.tags.map(tag => {
-									delete tag.id;
-									return tag;
-								}),
-							},
-						},
-					},
-					// select ID so it doesn't return everything else
-					select: { id: true },
-				}),
-			]);
-			userLog.success(`Imported general settings and ${settings.tags.length} tags`);
-
-			userLog.info('Importing categories');
-			const newCategories = await client.prisma.$transaction(
-				categories.map(category => {
-					delete category.id;
-					return client.prisma.category.create({
-						data: {
-							...category,
-							guild: { connect: { id } },
-							questions: {
-								createMany: {
-									data: category.questions.map(question => {
-										delete question.categoryId;
-										return question;
-									}),
-								},
-							},
-						},
-						select: { id: true },
-					});
-				}),
-			);
-
-			// settingsJSON.category because categories has been mutated (no id)
-			const categoryMap = new Map(settingsJSON.categories.map((cat, idx) => ([cat.id, newCategories[idx].id])));
-
-			for (const category of settingsJSON.categories) {
-				userLog.info(`"${category.name}" ID ${category.id} -> ${categoryMap.get(category.id)}`);
-			}
-
-			userLog.success(`Imported ${categories.length} categories`);
-
-			userLog.info('Reading tickets.jsonl');
-			const stream = files.find(f => f.path === 'tickets.jsonl').stream();
-			const lines = createInterface({
-				crlfDelay: Infinity,
-				input: stream,
+			userLog.info('Starting the durable import workflow');
+			// Per-guild workflow id (`import-<id>`): Temporal rejects a concurrent
+			// import for the same guild.
+			const handle = await temporal.startImportGuild({
+				archivePath,
+				guildId: id,
+				requestedBy: req.user.id,
 			});
-			const ticketsPromises = [];
-
-			userLog.info('Encrypting tickets');
-
-			for await (const line of lines) {
-				// do not await in the loop
-				ticketsPromises.push(pool.queue(worker => worker.importTicket(line, id, categoryMap)));
-			}
-
-			// TODO: batch 100 tickets per query?
-			const ticketsResolved = await Promise.all(ticketsPromises);
-			const queries = [];
-			const allMessages = [];
-
-			for (const [ticket, ticketMessages] of ticketsResolved) {
-				queries.push(
-					client.prisma.ticket.create({
-						data: ticket,
-						select: { id: true },
-					}),
-				);
-				allMessages.push(...ticketMessages);
-			}
-
-			if (allMessages.length > 0) {
-				queries.push(client.prisma.archivedMessage.createMany({ data: allMessages }));
-			}
-
-			userLog.info('Importing tickets');
-			await client.prisma.$transaction(queries);
-			userLog.success(`Imported ${ticketsResolved.length} tickets`);
+			userLog.info('Importing settings, categories and tickets — this may take a while');
+			await handle.result();
 			userLog.success('(DONE) All data has been imported');
-
 		} catch (error) {
-			client.log.error(error);
-			userLog.error(error);
+			if (temporal.isWorkflowAlreadyStarted(error)) {
+				userLog.error('An import is already running for this guild. Please wait for it to finish.');
+			} else {
+				client.log.error(error);
+				userLog.error(error);
+			}
 		} finally {
+			unlink(archivePath).catch(() => { });
 			res.raw.end();
 		}
 	},

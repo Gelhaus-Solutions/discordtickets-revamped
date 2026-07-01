@@ -12,6 +12,7 @@ export const DEFAULT_DEPLOYMENT_NAME = 'discord-tickets';
 export const WorkflowType = {
 	staleTicket: 'staleTicketWorkflow',
 	closeTicket: 'closeTicketWorkflow',
+	reopenWindow: 'reopenWindowWorkflow',
 	bulkClose: 'bulkCloseWorkflow',
 	cascadeCloseUser: 'cascadeCloseUserWorkflow',
 	exportGuild: 'exportGuildWorkflow',
@@ -19,7 +20,26 @@ export const WorkflowType = {
 	generateTranscript: 'generateTranscriptWorkflow',
 	houstonStats: 'houstonStatsWorkflow',
 	updateCheck: 'updateCheckWorkflow',
-	dbMaintenance: 'dbMaintenanceWorkflow',
+} as const;
+
+/** Coarse workflow classification, exposed as the `WorkflowKind` search attribute. */
+export const WorkflowKind = {
+	stale: 'stale',
+	close: 'close',
+	reopen: 'reopen',
+	bulkClose: 'bulk-close',
+	cascadeClose: 'cascade-close',
+	export: 'export',
+	import: 'import',
+	transcript: 'transcript',
+} as const;
+
+/** Custom Search Attribute keys (registered on the namespace at startup). */
+export const SearchAttr = {
+	ticketId: 'TicketId',
+	guildId: 'GuildId',
+	userId: 'UserId',
+	kind: 'WorkflowKind',
 } as const;
 
 /** Signal names used across workflows. */
@@ -27,10 +47,26 @@ export const SignalName = {
 	newActivity: 'newActivity',
 	requestClose: 'requestClose',
 	cancelStale: 'cancelStale',
+	reopen: 'reopen',
+} as const;
+
+/** Update names used across workflows. */
+export const UpdateName = {
+	reconfigureStale: 'reconfigureStale',
+} as const;
+
+/** Query names used across workflows. */
+export const QueryName = {
+	staleState: 'getStaleState',
+	reopenState: 'getReopenState',
 } as const;
 
 /** Deterministic workflow ids so start/signal is idempotent. */
 export const staleWorkflowId = (ticketId: string): string => `stale-${ticketId}`;
 export const closeWorkflowId = (ticketId: string): string => `close-${ticketId}`;
-export const exportWorkflowId = (guildId: string, stamp: string): string => `export-${guildId}-${stamp}`;
-export const importWorkflowId = (guildId: string, stamp: string): string => `import-${guildId}-${stamp}`;
+export const reopenWorkflowId = (ticketId: string): string => `reopen-${ticketId}`;
+// Per-guild (no timestamp): a second concurrent export/import for the same
+// guild fails with WorkflowExecutionAlreadyStartedError, which the HTTP routes
+// surface as 429. Re-running after completion reuses the id (allowed).
+export const exportWorkflowId = (guildId: string): string => `export-${guildId}`;
+export const importWorkflowId = (guildId: string): string => `import-${guildId}`;

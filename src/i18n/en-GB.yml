@@ -23,6 +23,9 @@ buttons:
   reject_close_request:
     emoji: ✖️
     text: Reject
+  reopen:
+    emoji: 🔓
+    text: Reopen
   transcript:
     emoji: 📄
     text: Transcript
@@ -501,6 +504,21 @@ ticket:
       topic: Topic
     title: ℹ️ Reference
   released: ♻️ {user} has released this ticket.
+  reopen:
+    closed:
+      description: |
+        This ticket has been closed and will be removed <t:{timestamp}:R>.
+        Click the button below to reopen it.
+      title: 🔒 Ticket closed
+    no_window:
+      description: The reopen window for this ticket has expired or doesn't exist.
+      title: ❌ This ticket can't be reopened
+    not_allowed:
+      description: Only the ticket creator or staff can reopen this ticket.
+      title: ❌ You can't reopen this ticket
+    reopened:
+      description: "{user} reopened this ticket."
+      title: 🔓 Ticket reopened
   working_hours:
     next:
       description:
