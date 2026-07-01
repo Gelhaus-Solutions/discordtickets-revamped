@@ -1595,17 +1595,8 @@ module.exports = class TicketManager {
 						await channel.setName(cleanName, closeReason).catch(() => null);
 					}
 
-					// For threads/forum posts: delete the old closing message and send a new archived message
-					if (ticket.openingMessageId) {
-						try {
-							const oldMessage = await channel.messages.fetch(ticket.openingMessageId).catch(() => null);
-							if (oldMessage) {
-								await oldMessage.delete().catch(() => null);
-							}
-						} catch (err) {
-							// Silently fail if we can't delete the old message
-						}
-					}
+					// For threads/forum posts: keep the original opening message intact
+					// and just send a new archived message below it.
 					// Send the final "archived" message first — sending to an archived
 					// thread would unarchive it, so this must happen while it's still active.
 					// The actual archive/lock happens via the channel.edit() call below.

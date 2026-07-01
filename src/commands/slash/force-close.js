@@ -121,6 +121,10 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 				],
 			});
 
+			// Terminate any pending close-request auto-close timeout so it doesn't
+			// linger as a Running workflow after the force close.
+			await temporal.cancelCloseRequestTimeout(ticket.id).catch(() => {});
+
 			await temporal.startCloseTicket({
 				closedBy: interaction.user.id,
 				lock: interaction.options.getBoolean('lock', false) ?? false,
@@ -227,6 +231,9 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 							],
 							flags: MessageFlags.Ephemeral,
 						});
+						// Terminate any pending close-request auto-close timeouts so they
+						// don't linger as Running workflows after the force close.
+						await Promise.all(tickets.map(t => temporal.cancelCloseRequestTimeout(t.id).catch(() => {})));
 						// Durable parent workflow fans out bounded-concurrency child closes.
 						await temporal.startBulkClose({
 							closedBy: interaction.user.id,
@@ -287,6 +294,10 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 						.setDescription(getMessage('commands.slash.force-close.closed_one.description', { ticket: ticket.id })),
 				],
 			});
+
+			// Terminate any pending close-request auto-close timeout so it doesn't
+			// linger as a Running workflow after the force close.
+			await temporal.cancelCloseRequestTimeout(ticket.id).catch(() => {});
 
 			setTimeout(async () => {
 				await client.tickets.finallyClose(ticket.id, {
