@@ -24,6 +24,12 @@ services:
       MYSQL_PASSWORD: insecure # change this to a secure password
       MYSQL_ROOT_PASSWORD: insecure # change this to a (different) secure password
       MYSQL_USER: tickets
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s # allow time for first-run init / version upgrades
 
   # --- Temporal cluster (self-hosted) -------------------------------------
   temporal-postgresql:
@@ -37,13 +43,20 @@ services:
     environment:
       POSTGRES_USER: temporal
       POSTGRES_PASSWORD: temporal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   temporal:
     image: temporalio/auto-setup:1.25.2
     restart: unless-stopped
     hostname: temporal
     depends_on:
-      - temporal-postgresql
+      temporal-postgresql:
+        condition: service_healthy
     networks:
       - discord-tickets
     ports:
@@ -71,8 +84,10 @@ services:
   bot:
     image: ghcr.io/gelhaus-corp/discordtickets-revamped:latest # Or use :main for development builds
     depends_on:
-      - mysql
-      - temporal
+      mysql:
+        condition: service_healthy
+      temporal:
+        condition: service_started
     restart: unless-stopped
     hostname: bot
     networks:
