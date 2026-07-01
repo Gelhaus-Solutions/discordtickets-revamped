@@ -3,6 +3,7 @@
 /node_modules/
 /prisma/
 /user/
+/dist/
 .idea/
 # files
 *.env*

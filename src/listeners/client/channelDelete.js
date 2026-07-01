@@ -1,4 +1,5 @@
 const { Listener } = require('@eartharoid/dbf');
+const temporal = require('../../lib/temporal');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -19,8 +20,11 @@ module.exports = class extends Listener {
 		});
 
 		if (ticket?.open) {
-			await client.tickets.finallyClose(ticket.id, { reason: 'channel deleted' });
-			this.client.log.info.tickets(`Closed ticket ${ticket.id} because the channel was deleted`);
+			await temporal.startCloseTicket({
+				reason: 'channel deleted',
+				ticketId: ticket.id,
+			}).catch(err => client.log.error(err));
+			this.client.log.info.tickets(`Closing ticket ${ticket.id} because the channel was deleted`);
 		}
 	}
 };

@@ -13,6 +13,7 @@ const {
 	getCommonGuilds,
 	isStaff,
 } = require('../../lib/users');
+const temporal = require('../../lib/temporal');
 const ms = require('ms');
 const emoji = require('node-emoji');
 
@@ -228,15 +229,13 @@ module.exports = class extends Listener {
 						client.tickets.autoClaim(message.channel, message.author.id)
 							.catch(err => client.log.warn('Auto-assign failed for ticket %s: %s', ticket.id, err.message));
 					}
-					if (client.tickets.$stale.has(ticket.id)) {
-						const $ticket = client.tickets.$stale.get(ticket.id);
-						$ticket.messages++;
-						if ($ticket.messages >= 1) {
-							await message.channel.messages.delete($ticket.message.id);
-							client.tickets.$stale.delete(ticket.id);
-						} else {
-							client.tickets.$stale.set(ticket.id, $ticket);
-						}
+					// Reset the durable inactivity timer for this ticket.
+					if (process.env.PUBLIC_BOT !== 'true') {
+						temporal.signalTicketActivity({
+							guildId: message.guild.id,
+							lastActivityAt: Date.now(),
+							ticketId: ticket.id,
+						}).catch(err => client.log.error(err));
 					}
 				}
 

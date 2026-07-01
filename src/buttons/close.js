@@ -2,6 +2,7 @@ const { Button } = require('@eartharoid/dbf');
 const ExtendedEmbedBuilder = require('../lib/embed');
 const { isStaff } = require('../lib/users');
 const { MessageFlags } = require('discord.js');
+const temporal = require('../lib/temporal');
 
 module.exports = class CloseButton extends Button {
 	constructor(client, options) {
@@ -73,7 +74,9 @@ module.exports = class CloseButton extends Button {
 						});
 
 					} finally { // this should run regardless of whatever happens above
-						client.tickets.$stale.delete(ticket.id);
+						client.tickets.$closeRequests.delete(ticket.id);
+						// Close request rejected: cancel the durable auto-close timeout.
+						temporal.cancelCloseRequestTimeout(ticket.id).catch(() => {});
 					}
 				}
 			}

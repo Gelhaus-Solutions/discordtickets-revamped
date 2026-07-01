@@ -2,6 +2,11 @@
 # You should read this compose file IN FULL before deploying!
 # Not setting environment variables properly could cause performance/stability issues or severe security vulnerabilities!
 # Read https://discordtickets.app/self-hosting/configuration so that you know what everything means! It's worth it!
+#
+# This stack now REQUIRES a Temporal cluster (all async/scheduled work runs on it).
+# For local/dev the Temporal frontend is reached insecurely (TEMPORAL_TLS_ENABLED=false).
+# For production, terminate the frontend with mTLS and set the TEMPORAL_TLS_* paths
+# (mount your certs) + TEMPORAL_ADDRESS/PORT to your secured Temporal frontend.
 
 version: "3.9"
 
@@ -20,10 +25,54 @@ services:
       MYSQL_ROOT_PASSWORD: insecure # change this to a (different) secure password
       MYSQL_USER: tickets
 
+  # --- Temporal cluster (self-hosted) -------------------------------------
+  temporal-postgresql:
+    image: postgres:16
+    restart: unless-stopped
+    hostname: temporal-postgresql
+    networks:
+      - discord-tickets
+    volumes:
+      - temporal-postgresql:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+
+  temporal:
+    image: temporalio/auto-setup:1.25.2
+    restart: unless-stopped
+    hostname: temporal
+    depends_on:
+      - temporal-postgresql
+    networks:
+      - discord-tickets
+    ports:
+      - 7233:7233 # frontend gRPC (secure this / put mTLS in front for production)
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: temporal
+      POSTGRES_SEEDS: temporal-postgresql
+
+  temporal-ui:
+    image: temporalio/ui:2.31.2
+    restart: unless-stopped
+    depends_on:
+      - temporal
+    networks:
+      - discord-tickets
+    ports:
+      - 8233:8080 # Temporal Web UI -> http://localhost:8233
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:8233
+
   bot:
     image: ghcr.io/gelhaus-corp/discordtickets-revamped:latest # Or use :main for development builds
     depends_on:
       - mysql
+      - temporal
     restart: unless-stopped
     hostname: bot
     networks:
@@ -34,6 +83,8 @@ services:
       - tickets-bot:/home/container/user
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      # For production mTLS, mount your Temporal client certs read-only, e.g.:
+      # - ./certs:/home/container/certs:ro
     tty: true
     stdin_open: true
     # Please refer to the documentation:
@@ -56,10 +107,22 @@ services:
       PUBLISH_COMMANDS: "false"
       SUPER: 319467558166069248 # comma-separated list of discord user IDs with superuser access to change bot settings for all guilds the bot is in, regardless of the users permissions
       # IMPORTANT: You should read https://discordtickets.app/self-hosting/configuration/#super before continuing!
-      
+      # --- Temporal ---
+      TEMPORAL_ADDRESS: temporal # host/IP of the Temporal frontend
+      TEMPORAL_PORT: 7233
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_TASK_QUEUE: discord-tickets
+      TEMPORAL_DEPLOYMENT_NAME: discord-tickets
+      TEMPORAL_TLS_ENABLED: "false" # set true + the paths below for production mTLS
+      # TEMPORAL_TLS_CERT_PATH: /home/container/certs/client.pem
+      # TEMPORAL_TLS_KEY_PATH: /home/container/certs/client.key
+      # TEMPORAL_TLS_CA_PATH: /home/container/certs/ca.pem
+      # TEMPORAL_TLS_SERVER_NAME: temporal.your-domain.example
+
 networks:
   discord-tickets:
 
 volumes:
   tickets-mysql:
   tickets-bot:
+  temporal-postgresql:

@@ -10,6 +10,7 @@ const {
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
 const ms = require('ms');
+const temporal = require('../../lib/temporal');
 
 module.exports = class ForceCloseSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -120,13 +121,12 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 				],
 			});
 
-			setTimeout(async () => {
-				await client.tickets.finallyClose(ticket.id, {
-					closedBy: interaction.user.id,
-					lock: interaction.options.getBoolean('lock', false) ?? false,
-					reason: interaction.options.getString('reason', false),
-				});
-			}, ms('3s'));
+			await temporal.startCloseTicket({
+				closedBy: interaction.user.id,
+				lock: interaction.options.getBoolean('lock', false) ?? false,
+				reason: interaction.options.getString('reason', false),
+				ticketId: ticket.id,
+			});
 
 		} else if (interaction.options.getString('time', false)) { // if time option is passed
 			const time = ms(interaction.options.getString('time', false));
@@ -227,15 +227,13 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 							],
 							flags: MessageFlags.Ephemeral,
 						});
-						setTimeout(async () => {
-							for (const ticket of tickets) {
-								await client.tickets.finallyClose(ticket.id, {
-									closedBy: interaction.user.id,
-									lock: interaction.options.getBoolean('lock', false) ?? false,
-									reason: interaction.options.getString('reason', false),
-								});
-							}
-						}, ms('3s'));
+						// Durable parent workflow fans out bounded-concurrency child closes.
+						await temporal.startBulkClose({
+							closedBy: interaction.user.id,
+							lock: interaction.options.getBoolean('lock', false) ?? false,
+							reason: interaction.options.getString('reason', false),
+							ticketIds: tickets.map(t => t.id),
+						});
 					} else {
 						await interaction.deleteReply();
 					}

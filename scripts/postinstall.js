@@ -4,9 +4,7 @@ const fs = require('fs-extra');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const { short } = require('leeks.js');
-const {
-	resolve, join,
-} = require('path');
+const { resolve } = require('path');
 
 const fallback = { prisma: './node_modules/prisma/build/index.js' };
 
@@ -36,7 +34,7 @@ async function npx(cmd) {
 	if (stderr) console.log(stderr.toString());
 }
 
-const providers = ['mysql', 'postgresql', 'sqlite'];
+const providers = ['mysql', 'postgresql'];
 const provider = process.env.DB_PROVIDER;
 
 if (!provider) {
@@ -58,11 +56,6 @@ if (fs.existsSync(pathify('./prisma'))) {
 	fs.mkdirSync(pathify('./prisma'));
 }
 fs.copySync(pathify(`./db/${provider}`), pathify('./prisma')); // copy schema & migrations
-
-if (provider === 'sqlite' && !process.env.DB_CONNECTION_URL) {
-	process.env.DB_CONNECTION_URL = 'file:' + join(process.cwd(), './user/database.db');
-	log(`set DB_CONNECTION_URL=${process.env.DB_CONNECTION_URL}`);
-}
 
 (async () => {
 	await npx('prisma generate');

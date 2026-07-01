@@ -9,34 +9,47 @@ RUN chmod +x ./scripts/start.sh
 
 COPY package.json bun.lock ./
 
-# Some CI environments produce a lockfile drift; using a non-frozen install
-# here makes the build more robust. If you prefer strict reproducibility,
-# update and commit `bun.lock` and re-enable `--frozen-lockfile`.
-RUN CI=true bun install --production --no-frozen-lockfile
+# Full install (incl. devDependencies) so the TypeScript Temporal layer can be
+# compiled and the workflow bundle produced. If you prefer strict
+# reproducibility, update and commit `bun.lock` and re-enable `--frozen-lockfile`.
+RUN CI=true bun install --no-frozen-lockfile
 
 COPY --link . .
 
-FROM node:22-alpine3.20 AS runner
+# Compile src/temporal/*.ts -> dist/temporal and pre-bundle the workflow code.
+RUN bun run temporal.build
+
+# 6-char git SHA identifying this worker build (Temporal Worker Deployments).
+ARG GIT_SHA=dev
+RUN mkdir -p dist/temporal && printf "%s" "${GIT_SHA}" > dist/temporal/build-id.txt
+
+# NOTE: glibc runner (bookworm) — Temporal's native @temporalio/core-bridge
+# addon is libc-specific, so the runtime libc must match the builder's (debian).
+FROM node:22-bookworm-slim AS runner
 LABEL org.opencontainers.image.source=https://github.com/discord-tickets/bot \
 	org.opencontainers.image.description="The most popular open-source ticket bot for Discord." \
 	org.opencontainers.image.licenses="GPL-3.0-or-later"
 
-RUN apk --no-cache add curl
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends curl ca-certificates \
+	&& rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --home /home/container container
+RUN useradd --create-home --home-dir /home/container --shell /bin/sh container
 RUN mkdir /app \
 	&& chown container:container /app \
 	&& chmod -R 777 /app
 
 RUN mkdir -p /home/container/user /home/container/logs \
-    && chown -R container:container /home/container
+	&& chown -R container:container /home/container
 
 USER container
+ARG GIT_SHA=dev
 ENV USER=container \
 	HOME=/home/container \
 	NODE_ENV=production \
 	HTTP_HOST=0.0.0.0 \
-	DOCKER=true
+	DOCKER=true \
+	TEMPORAL_WORKER_BUILD_ID=${GIT_SHA}
 
 WORKDIR /home/container
 

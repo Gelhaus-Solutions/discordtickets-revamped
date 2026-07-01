@@ -1,4 +1,5 @@
 const { Listener } = require('@eartharoid/dbf');
+const temporal = require('../../lib/temporal');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -17,16 +18,11 @@ module.exports = class extends Listener {
 		/** @type {import("client")} */
 		const client = this.client;
 
-		const tickets = await client.prisma.ticket.findMany({
-			where: {
-				createdById: member.id,
-				guildId: member.guild.id,
-				open: true,
-			},
-		});
-
-		for (const ticket of tickets) {
-			await client.tickets.finallyClose(ticket.id, { reason: 'user left server' });
-		}
+		// Durable parent workflow fans out to a child close per open ticket.
+		await temporal.startCascadeCloseUser({
+			guildId: member.guild.id,
+			reason: 'user left server',
+			userId: member.id,
+		}).catch(err => client.log.error(err));
 	}
 };

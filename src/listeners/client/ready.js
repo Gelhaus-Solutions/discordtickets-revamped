@@ -7,7 +7,8 @@ const {
 	getAverageRating,
 	sendToHouston,
 } = require('../../lib/stats');
-const handleStaleTickets = require('../../lib/stale');
+const { saveHtmlTranscript } = require('../../lib/tickets/transcript-html');
+const temporal = require('../../lib/temporal');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -29,7 +30,22 @@ module.exports = class extends Listener {
 
 		await client.initAfterLogin();
 
-		// fill cache
+		// Connect to Temporal, start the embedded worker, and ensure schedules.
+		// All durable/async/scheduled work runs through Temporal from here on.
+		await temporal.initTemporalClient();
+		await temporal.startWorker({
+			checkForUpdates,
+			client,
+			saveHtmlTranscript,
+			sendToHouston,
+		});
+		await temporal.ensureSchedules({
+			stats: !!client.config.stats,
+			updates: !!client.config.updates,
+		});
+		client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
+
+		// fill cache (also re-establishes stale workflows for open tickets)
 		await sync(client);
 
 		if (process.env.PUBLISH_COMMANDS === 'true') {
@@ -104,24 +120,14 @@ module.exports = class extends Listener {
 			client.log.info('Presence activities are disabled');
 		}
 
-		// stats posting
-		if (client.config.stats) {
-			sendToHouston(client);
-			setInterval(() => sendToHouston(client), ms('12h'));
-		}
-
-		if (client.config.updates) {
-			checkForUpdates(client);
-			setInterval(() => checkForUpdates(client), ms('1w'));
-		}
+		// Stats posting (Houston) and update checks are now Temporal Schedules
+		// (see temporal.ensureSchedules above), replacing the old setInterval loops.
 
 		if (process.env.PUBLIC_BOT === 'true') {
 			client.log.notice('Inactivity warnings and auto-close features are disabled');
 			client.log.warn('Unset PUBLIC_BOT to re-enable stale ticket handling');
 		} else {
-			// send inactivity warnings and close stale tickets
-			const staleInterval = ms('15m');
-			setInterval(() => handleStaleTickets(client, staleInterval), staleInterval);
+			client.log.info('Stale ticket handling runs via per-ticket Temporal workflows');
 		}
 	}
 };

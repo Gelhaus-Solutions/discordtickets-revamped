@@ -1,3 +1,5 @@
+const temporal = require('./temporal');
+
 /**
  * @param {import("client")} client
  */
@@ -49,6 +51,14 @@ module.exports = async client => {
 					client.log.warn('Failed to close ticket', ticket.id);
 					client.log.error(error);
 				}
+			} else if (process.env.PUBLIC_BOT !== 'true') {
+				// Re-establish the durable inactivity workflow for this open ticket
+				// (idempotent; lastActivityAt: 0 lets the workflow read the DB value).
+				temporal.ensureStaleWorkflow({
+					guildId: ticket.guildId,
+					lastActivityAt: 0,
+					ticketId: ticket.id,
+				}).catch(error => client.log.error(error));
 			}
 
 		}

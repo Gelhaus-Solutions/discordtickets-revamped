@@ -28,6 +28,7 @@ const {
 	getAverageTimes, getAverageRating,
 } = require('../stats');
 const { pools } = require('../threads');
+const temporal = require('../temporal');
 
 const { crypto } = pools;
 
@@ -51,7 +52,10 @@ module.exports = class TicketManager {
 		this.archiver = new TicketArchiver(client);
 		this.$count = { categories: {} };
 		this.$numbers = {};
-		this.$stale = new Collection();
+		// Transient in-memory state for pending manual close requests
+		// ({ closedBy, reason }). The durable inactivity/auto-close lifecycle
+		// now lives in the per-ticket `staleTicketWorkflow` (see src/temporal).
+		this.$closeRequests = new Collection();
 	}
 
 	/**
@@ -809,6 +813,15 @@ module.exports = class TicketManager {
 			this.$count.categories[categoryId].total++;
 			this.$count.categories[categoryId][creator.id]++;
 
+			// Start the durable per-ticket inactivity workflow (unless public bot).
+			if (process.env.PUBLIC_BOT !== 'true') {
+				temporal.ensureStaleWorkflow({
+					guildId: ticket.guildId,
+					lastActivityAt: ticket.createdAt.getTime(),
+					ticketId: ticket.id,
+				}).catch(error => this.client.log.error(error));
+			}
+
 			if (category.cooldown) {
 				const cacheKey = `cooldowns/category-member:${category.id}-${ticket.createdById}`;
 				const expiresAt = ticket.createdAt.getTime() + category.cooldown;
@@ -1327,7 +1340,7 @@ module.exports = class TicketManager {
 			);
 		}
 
-		const sent = await interaction.editReply({
+		await interaction.editReply({
 			components: [
 				new ActionRowBuilder()
 					.addComponents(
@@ -1353,14 +1366,18 @@ module.exports = class TicketManager {
 			embeds: [embed],
 		});
 
-		this.$stale.set(ticket.id, {
-			closeAt: ticket.guild.autoClose ? Date.now() + ticket.guild.autoClose : null,
-			closedBy: interaction.user.id, // null if set as stale due to inactivity
-			message: sent,
-			messages: 0,
+		this.$closeRequests.set(ticket.id, {
+			closedBy: interaction.user.id,
 			reason,
-			staleSince: Date.now(),
 		});
+
+		// Durable auto-close if the request is ignored (survives restarts).
+		if (ticket.guild.autoClose) {
+			temporal.startCloseRequestTimeout(ticket.id, ticket.guild.autoClose, {
+				closedBy: interaction.user.id,
+				reason,
+			}).catch(error => this.client.log.error(error));
+		}
 
 		if (ticket.priority && ticket.priority !== 'LOW') {
 			await this.client.prisma.ticket.update({
@@ -1389,8 +1406,117 @@ module.exports = class TicketManager {
 					.setDescription(getMessage('ticket.close.closed.description')),
 			],
 		});
-		await new Promise(resolve => setTimeout(resolve, 3e3));
-		await this.finallyClose(interaction.channel.id, this.$stale.get(interaction.channel.id) || {});
+		const ticketId = interaction.channel.id;
+		const pending = this.$closeRequests.get(ticketId) || {};
+		this.$closeRequests.delete(ticketId);
+		// Cancel the durable "auto-close if ignored" timeout, then close now.
+		await temporal.cancelCloseRequestTimeout(ticketId);
+		await temporal.startCloseTicket({
+			closedBy: pending.closedBy ?? interaction.user.id,
+			reason: pending.reason ?? null,
+			ticketId,
+		});
+	}
+
+	/**
+	 * Send the inactivity warning for a stale ticket. Called by the durable
+	 * `staleTicketWorkflow`. Returns the auto-close epoch (ms) or null.
+	 * @param {string} ticketId
+	 * @returns {Promise<number | null>}
+	 */
+	async sendStaleWarning(ticketId) {
+		const ticket = await this.getTicket(ticketId);
+		if (!ticket) return null;
+		const guild = ticket.guild;
+		const getMessage = this.client.i18n.getLocale(guild.locale);
+		const closeCommand = this.client.application.commands.cache.find(c => c.name === 'close');
+		const channel = this.client.channels.cache.get(ticketId) || await this.client.channels.fetch(ticketId).catch(() => null);
+		if (!channel) {
+			await this.finallyClose(ticketId, { reason: 'channel deleted' });
+			return null;
+		}
+
+		const messages = (await channel.messages.fetch({ limit: 5 })).filter(m => m.author.id !== this.client.user.id);
+		let ping = '';
+		if (messages.size > 0) {
+			const lastMessage = messages.first();
+			const staff = await isStaff(channel.guild, lastMessage.author.id);
+			if (staff) ping = `<@${ticket.createdById}>`;
+			else ping = (ticket.category?.pingRoles || []).map(r => `<@&${r}>`).join(' ');
+		}
+
+		await channel.send({
+			components: [
+				new ActionRowBuilder()
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({ action: 'close' }))
+							.setStyle(ButtonStyle.Danger)
+							.setEmoji(getMessage('buttons.close.emoji'))
+							.setLabel(getMessage('buttons.close.text')),
+					),
+			],
+			content: ping,
+			embeds: [
+				new ExtendedEmbedBuilder({
+					iconURL: channel.guild.iconURL(),
+					text: guild.footer,
+				})
+					.setColor(guild.primaryColour)
+					.setTitle(getMessage('ticket.inactive.title'))
+					.setDescription(getMessage('ticket.inactive.description', {
+						close: closeCommand ? `</${closeCommand.name}:${closeCommand.id}>` : '`/close`',
+						timestamp: Math.floor((ticket.lastMessageAt || ticket.createdAt).getTime() / 1000),
+					})),
+			],
+		});
+
+		return guild.autoClose ? Date.now() + guild.autoClose : null;
+	}
+
+	/**
+	 * Send the "closing soon" reminder. Called by the `staleTicketWorkflow`.
+	 * @param {string} ticketId
+	 * @param {number} closeAtEpoch epoch ms at which the ticket will auto-close
+	 */
+	async sendClosingSoon(ticketId, closeAtEpoch) {
+		const ticket = await this.getTicket(ticketId);
+		if (!ticket) return;
+		const guild = ticket.guild;
+		const getMessage = this.client.i18n.getLocale(guild.locale);
+		const channel = this.client.channels.cache.get(ticketId) || await this.client.channels.fetch(ticketId).catch(() => null);
+		if (!channel) return;
+		await channel.send({
+			embeds: [
+				new ExtendedEmbedBuilder()
+					.setColor(guild.primaryColour)
+					.setTitle(getMessage('ticket.closing_soon.title'))
+					.setDescription(getMessage('ticket.closing_soon.description', { timestamp: Math.floor(closeAtEpoch / 1000) })),
+			],
+		});
+	}
+
+	/**
+	 * Export a guild's data to a ZIP on disk (durable `exportGuildWorkflow`).
+	 * TODO: port the streaming logic from routes/api/admin/guilds/[guild]/export.js
+	 * into this method so the HTTP route can trigger the workflow and poll status.
+	 * @param {string} _guildId
+	 * @param {string} _outputPath
+	 * @param {() => void} [_heartbeat]
+	 */
+	async exportGuildToFile(_guildId, _outputPath, _heartbeat) {
+		throw new Error('exportGuildToFile is not yet implemented — see TODO in plan');
+	}
+
+	/**
+	 * Import a guild's data from a ZIP on disk (durable `importGuildWorkflow`).
+	 * TODO: port routes/api/admin/guilds/[guild]/import.js into this method.
+	 * @param {string} _guildId
+	 * @param {string} _archivePath
+	 * @param {() => void} [_heartbeat]
+	 */
+	async importGuildFromArchive(_guildId, _archivePath, _heartbeat) {
+		throw new Error('importGuildFromArchive is not yet implemented — see TODO in plan');
 	}
 
 	/**
@@ -1441,7 +1567,9 @@ module.exports = class TicketManager {
 				},
 				where: { id: ticket.id },
 			});
-			if (this.$stale.has(ticketId)) this.$stale.delete(ticketId);
+			this.$closeRequests.delete(ticketId);
+			// Terminal close: stop the durable inactivity workflow for this ticket.
+			temporal.cancelStaleWorkflow(ticketId).catch(() => {});
 			this.$count.categories[ticket.categoryId] ??= {};
 			this.$count.categories[ticket.categoryId].total -= 1;
 			this.$count.categories[ticket.categoryId][ticket.createdById] -= 1;

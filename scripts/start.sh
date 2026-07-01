@@ -19,6 +19,13 @@ echo "Preparing the database..."
 script=scripts/postinstall
 node "$base_dir/$script"
 
+# Build the Temporal TypeScript layer if it hasn't been built (e.g. local dev).
+# In Docker/CI this is already produced during the image build.
+if [ ! -f "$base_dir/dist/temporal/index.js" ]; then
+    echo "Building Temporal layer..."
+    (cd "$base_dir" && npm run temporal.build)
+fi
+
 echo "Starting..."
 script=src/
 node "$base_dir/$script"

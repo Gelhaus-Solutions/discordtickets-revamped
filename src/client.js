@@ -11,8 +11,8 @@ const fs = require('fs');
 const { join } = require('path');
 const YAML = require('yaml');
 const TicketManager = require('./lib/tickets/manager');
-const sqliteMiddleware = require('./lib/middleware/prisma-sqlite');
 const runMigrations = require('./lib/migrate');
+const temporal = require('./lib/temporal');
 const ms = require('ms');
 
 module.exports = class Client extends FrameworkClient {
@@ -121,10 +121,6 @@ module.exports = class Client extends FrameworkClient {
 			})),
 		};
 
-		if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_CONNECTION_URL) {
-			prisma_options.datasources = { db: { url: 'file:' + join(process.cwd(), './user/database.db') } };
-		}
-
 		/** @type {PrismaClient} */
 		this.prisma = new PrismaClient(prisma_options);
 
@@ -141,23 +137,16 @@ module.exports = class Client extends FrameworkClient {
 			process.exit(1);
 		}
 
-		if (process.env.DB_PROVIDER === 'sqlite') {
-			// rewrite queries that use unsupported features
-			this.prisma.$use(sqliteMiddleware);
-			// make sqlite faster (missing parentheses are not a mistake, `$queryRaw` is a tagged template literal)
-			this.log.debug(await this.prisma.$queryRaw`PRAGMA journal_mode=WAL;`); // https://www.sqlite.org/wal.html
-			this.log.debug(await this.prisma.$queryRaw`PRAGMA synchronous=normal;`); // https://www.sqlite.org/pragma.html#pragma_synchronous
-
-			setInterval(async () => {
-				this.log.info.cron('Optimising SQLite database');
-				this.log.debug(await this.prisma.$queryRaw`PRAGMA optimize;`); // https://www.sqlite.org/pragma.html#pragma_optimize
-			}, ms('6h'));
-		}
-
 		return super.login(token);
 	}
 
 	async destroy() {
+		try {
+			await temporal.stopWorker();
+			await temporal.closeTemporalClient();
+		} catch (error) {
+			this.log.error(error);
+		}
 		await this.prisma.$disconnect();
 		return super.destroy();
 	}

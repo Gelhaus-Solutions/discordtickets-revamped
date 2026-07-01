@@ -1,4 +1,5 @@
 const { Listener } = require('@eartharoid/dbf');
+const temporal = require('../../lib/temporal');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -20,8 +21,11 @@ module.exports = class extends Listener {
 		});
 
 		if (ticket?.open) {
-			await client.tickets.finallyClose(ticket.id, { reason: 'thread deleted' });
-			client.log.info.tickets(`Closed ticket ${ticket.id} because the thread was deleted`);
+			await temporal.startCloseTicket({
+				reason: 'thread deleted',
+				ticketId: ticket.id,
+			}).catch(err => client.log.error(err));
+			client.log.info.tickets(`Closing ticket ${ticket.id} because the thread was deleted`);
 		}
 	}
 };
