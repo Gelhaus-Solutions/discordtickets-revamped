@@ -9,3 +9,4 @@
 !.npmrc
 !package.json
 !bun.lock
+!tsconfig.temporal.json
