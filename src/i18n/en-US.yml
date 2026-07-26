@@ -36,3 +36,12 @@ commands:
   message:
     create:
       name: Create ticket from message
+    pin:
+      not_pinnable:
+        description: |
+          This message can't be pinned.
+          Please ask an administrator to check the bot's permissions.
+  slash:
+    add:
+      not_staff:
+        description: Only staff members can add members to others' tickets.
