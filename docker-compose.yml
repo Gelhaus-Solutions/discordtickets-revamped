@@ -8,8 +8,6 @@
 # For production, terminate the frontend with mTLS and set the TEMPORAL_TLS_* paths
 # (mount your certs) + TEMPORAL_ADDRESS/PORT to your secured Temporal frontend.
 
-version: "3.9"
-
 services:
   mysql:
     image: mysql:8
@@ -82,7 +80,7 @@ services:
       TEMPORAL_CORS_ORIGINS: http://localhost:8233
 
   bot:
-    image: ghcr.io/gelhaus-corp/discordtickets-revamped:latest # Or use :main for development builds
+    image: ghcr.io/gelhaus-solutions/discordtickets-revamped:latest # Or use :main for development builds
     depends_on:
       mysql:
         condition: service_healthy
@@ -122,6 +120,19 @@ services:
       PUBLISH_COMMANDS: "false"
       SUPER: 319467558166069248 # comma-separated list of discord user IDs with superuser access to change bot settings for all guilds the bot is in, regardless of the users permissions
       # IMPORTANT: You should read https://discordtickets.app/self-hosting/configuration/#super before continuing!
+      CPU_LIMIT: # optional: cap the worker thread pool (defaults to the number of available cores)
+      # Secret used to sign dashboard JWTs. If left empty it is derived from
+      # ENCRYPTION_KEY via HKDF and the bot logs a warning on every start;
+      # set it to an independent random value (`npm run keygen`) instead.
+      JWT_SECRET:
+      # Houston-compatible endpoint for anonymous usage stats. Leave empty to
+      # report nothing (this fork does not post to upstream's stats server).
+      STATS_URL:
+      # --- Sentry (optional) ---
+      SENTRY_DSN: # leave empty to disable error reporting entirely
+      SENTRY_LOGGING: "false"
+      SENTRY_SAMPLE_RATE: "0.1"
+      SENTRY_PROFILING_RATE: "1.0"
       # --- Temporal ---
       TEMPORAL_ADDRESS: temporal # host/IP of the Temporal frontend
       TEMPORAL_PORT: 7233

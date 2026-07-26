@@ -4,9 +4,15 @@
 !db
 !scripts
 !src
-!user
 # and these files
 !.npmrc
 !package.json
 !bun.lock
 !tsconfig.temporal.json
+
+# ...but never ship vendored dependencies or build caches from inside them.
+# The dashboard is served from its committed `build/` output, which
+# adapter-node bundles, so src/dashboard/node_modules is not needed at runtime.
+**/node_modules
+**/.svelte-kit
+**/*.log

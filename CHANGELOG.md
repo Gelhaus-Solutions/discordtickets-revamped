@@ -1,3 +1,70 @@
+# Changelog
+
+This fork has its own release line starting at `v1.0.0`. Full notes for each
+release are on the [releases page](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases).
+Everything below the "Upstream history" heading is the changelog of
+[discord-tickets/bot](https://github.com/discord-tickets/bot), which this fork
+was branched from at 4.0.50 — those version numbers are unrelated to ours.
+
+## [1.4.0](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.4.0) (2026-07-26)
+
+### Features
+
+* **temporal:** all async and scheduled work (stale tickets, auto-close, cron, transcript export/import) now runs on a Temporal cluster instead of in-process timers — a Temporal cluster is required from this release on
+* **temporal:** search attributes, workflow queries, a reconfigure Update, a reopen grace window and durable export/import
+* embedded Temporal worker with Worker Deployment versioning (build id from the git SHA)
+
+### Breaking changes
+
+* SQLite support removed — `DB_PROVIDER` must be `mysql` or `postgresql`
+* `TEMPORAL_ADDRESS` and `TEMPORAL_PORT` are required; mTLS is on by default (`TEMPORAL_TLS_ENABLED`)
+
+## [1.3.0](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.3.0) (2026-04-25)
+
+### Security
+
+* addresses 18 security advisories (`GSSA-2026-04-*`) — see the [release notes](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.3.0). Upgrading is strongly recommended.
+
+## [1.2.0](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.2.0) (2026-04-15)
+
+### Bug Fixes
+
+* forum ticket opening messages are created with both embeds at creation time
+* thread close/lock behaviour
+* guild customization persistence, image/profile validation, and avatar/banner application
+
+## [1.1.1](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.1.1) (2026-03-01)
+
+### Bug Fixes
+
+* fallback for missing translation keys in customization log embeds
+* 5 MB limit and error handling on dashboard image uploads
+* replaced the missing wordmark image in the dashboard top bar with a text logo
+
+## [1.1.0](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.1.0) (2026-03-01)
+
+### Features
+
+* per-server bot customization (avatar, username, description)
+* feedback analytics with date/category filtering and trends
+* transcript centre with server-side pagination
+* automatic database migrations at bot startup
+* `GET`/`PATCH` `/api/admin/guilds/{guild}/customization`
+
+### Bug Fixes
+
+* "Close with Reason" button Prisma error
+
+## 1.0.0 – 1.0.9 (2026-02-28)
+
+Initial releases of the fork: thread and forum ticket modes, feedback portal,
+vendored dashboard, HTML transcripts, auto-assign, backup categories, and the
+removal of the total-ticket limit for thread/forum tickets.
+
+---
+
+# Upstream history
+
 ## [4.0.50](https://github.com/discord-tickets/bot/compare/v4.0.49...v4.0.50) (2026-03-02)
 
 

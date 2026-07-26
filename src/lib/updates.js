@@ -3,23 +3,29 @@ const { short } = require('leeks.js');
 const ExtendedEmbedBuilder = require('./embed');
 const { version: currentVersion } = require('../../package.json');
 
+const REPO = 'Gelhaus-Solutions/discordtickets-revamped';
+
 /** @param {import("client")} client */
 module.exports = client => {
 	client.log.info.cron('Checking for updates...');
-	fetch('https://api.github.com/repos/discord-tickets/bot/releases')
+	// This fork has its own release line (v1.x), so it checks its own releases —
+	// not discord-tickets/bot, whose versions are unrelated to ours.
+	fetch(`https://api.github.com/repos/${REPO}/releases`)
 		.then(res => res.json())
 		.then(async json => {
+			if (!Array.isArray(json)) return client.log.warn('Failed to check for updates: unexpected response from GitHub');
 			// releases are ordered by date, so a patch for an old version could be before the latest version
 			const releases = json
 				.filter(release => !release.prerelease)
 				.sort((a, b) => semver.compare(semver.coerce(b.tag_name)?.version, semver.coerce(a.tag_name)?.version));
 			const latestRelease = releases[0];
+			if (!latestRelease) return client.log.info('No releases found');
 			const latestVersion = semver.coerce(latestRelease.tag_name)?.version;
 			const compared = semver.compare(latestVersion, currentVersion);
 
 			switch (compared) {
 			case -1: {
-				client.log.notice('You are running a pre-release version of Discord Tickets');
+				client.log.notice('You are running a pre-release version of Discord Tickets (revamped)');
 				break;
 			}
 			case 0: {
@@ -31,12 +37,12 @@ module.exports = client => {
 				if (currentRelease === -1) return client.log.warn('Failed to find current release');
 				const behind = currentRelease;
 				currentRelease = releases[currentRelease];
-				const changelog = `https://discordtickets.app/changelogs/v${latestVersion}/`;
-				const guide = 'https://discordtickets.app/self-hosting/updating/';
+				const changelog = `https://github.com/${REPO}/releases/tag/${latestRelease.tag_name}`;
+				const guide = `https://github.com/${REPO}#old-instance`;
 				const { default: boxen } = await import('boxen');
 
 				client.log.notice(
-					short('&r&6A new version of Discord Tickets is available (&c%s&6 -> &a%s&6)&r\n'),
+					short('&r&6A new version of Discord Tickets (revamped) is available (&c%s&6 -> &a%s&6)&r\n'),
 					currentVersion,
 					latestVersion,
 					boxen(

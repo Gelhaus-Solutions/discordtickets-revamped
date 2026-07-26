@@ -1,8 +1,8 @@
 {
-	"name": "discord-tickets",
-	"version": "4.0.50",
+	"name": "discordtickets-revamped",
+	"version": "1.4.0",
 	"private": "true",
-	"description": "The most popular open-source ticket management bot for Discord.",
+	"description": "A fork of Discord Tickets, the open-source ticket management bot for Discord, with more features and fewer bugs.",
 	"main": "src/",
 	"scripts": {
 		"db.dump": "node scripts/dump.mjs",
@@ -20,7 +20,7 @@
 		"start": "node .",
 		"studio": "npx prisma studio",
 		"test": "node scripts/check-i18n",
-		"__prepare": "husky install"
+		"prepare": "husky install || exit 0"
 	},
 	"commitlint": {
 		"extends": [
@@ -28,13 +28,16 @@
 		]
 	},
 	"lint-staged": {
-		"**/*.js": [
+		"**/*.{js,mjs,cjs}": [
 			"npm run lint --"
+		],
+		"src/temporal/**/*.ts": [
+			"sh -c 'npm run temporal.typecheck'"
 		]
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/discord-tickets/bot.git"
+		"url": "git+https://github.com/Gelhaus-Solutions/discordtickets-revamped.git"
 	},
 	"keywords": [
 		"discord",
@@ -42,13 +45,16 @@
 		"bot"
 	],
 	"author": "eartharoid",
+	"contributors": [
+		"Enno Gelhaus <egelhaus@ennogelhaus.de>"
+	],
 	"license": "GPL-3.0-or-later",
 	"bugs": {
-		"url": "https://github.com/discord-tickets/bot/issues"
+		"url": "https://github.com/Gelhaus-Solutions/discordtickets-revamped/issues"
 	},
-	"homepage": "https://discordtickets.app",
+	"homepage": "https://github.com/Gelhaus-Solutions/discordtickets-revamped",
 	"engines": {
-		"node": ">=18"
+		"node": ">=20"
 	},
 	"dependencies": {
 		"@eartharoid/dbf": "^0.4.2",

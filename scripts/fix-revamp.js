@@ -112,9 +112,9 @@ function replaceInFile(file, find, replace) {
 			if (provider.includes('postgres') || provider.includes('postgresql')) {
 				console.log('Applying Postgres-safe changes...');
 				try {
-					await prisma.$executeRawUnsafe('ALTER TABLE \"Category\" ADD COLUMN IF NOT EXISTS \"autoAssign\" boolean DEFAULT false;');
-					await prisma.$executeRawUnsafe('ALTER TABLE \"Ticket\" ADD COLUMN IF NOT EXISTS \"htmlTranscript\" text;');
-					await prisma.$executeRawUnsafe('UPDATE \"Category\" SET \"channelMode\" = \'CHANNEL\' WHERE \"channelMode\" IS NULL;');
+					await prisma.$executeRawUnsafe('ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "autoAssign" boolean DEFAULT false;');
+					await prisma.$executeRawUnsafe('ALTER TABLE "Ticket" ADD COLUMN IF NOT EXISTS "htmlTranscript" text;');
+					await prisma.$executeRawUnsafe('UPDATE "Category" SET "channelMode" = \'CHANNEL\' WHERE "channelMode" IS NULL;');
 					console.log('Postgres schema adjustments applied (if needed)');
 				} catch (err) {
 					console.warn('Postgres changes failed:', err.message);

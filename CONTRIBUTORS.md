@@ -7,6 +7,10 @@
 
 Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
+> [!NOTE]
+>
+> This list is inherited from the upstream project, [discord-tickets/bot](https://github.com/discord-tickets/bot) — the contributions linked below were made there. Contributors to this fork are added on top of it.
+
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->

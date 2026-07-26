@@ -1,7 +1,13 @@
 <!--
-	Thank you for contributing to Discord Tickets.
-	If you haven't already, please read the CONTRIBUTING guidelines (https://github.com/discord-tickets/.github/blob/main/CONTRIBUTING.md) before creating a pull request.
-	Unless this pull request is for something minor like a fixing a typo, you should create an issue first.
+	Thank you for contributing to Discord Tickets (revamped).
+	Please read the README (https://github.com/Gelhaus-Solutions/discordtickets-revamped#development) before creating a pull request.
+	Unless this pull request is for something minor like fixing a typo, you should create an issue first.
+
+	Reminders:
+	- Commits must follow conventional commits (they are linted in CI).
+	- If you changed anything under src/dashboard, run `npm run build` there and commit `src/dashboard/build`.
+	- If you changed anything under src/temporal, run `bun run temporal.typecheck`.
+	- If you changed a database schema, update both db/mysql and db/postgresql.
 -->
 
 **Versioning information**

@@ -2,14 +2,16 @@
 
 ## Supported versions
 
-Release versions that will receive security updates.
+This fork has its own release line, starting at `v1.0.0`. (It is based on upstream
+[discord-tickets/bot](https://github.com/discord-tickets/bot) 4.x — upstream versions
+are not covered by this policy, report those to upstream.)
 
-| Version | Supported |
-| ------- | --------- |
-| 1.x     | ❌        |
-| 2.x     | ❌        |
-| 3.x     | ❌        |
-| 4.x     | ✅        |
+Release versions that will receive security updates:
+
+| Version   | Supported |
+| --------- | --------- |
+| 1.4.x     | ✅        |
+| < 1.4     | ❌        |
 
 ## Reporting a vulnerability
 

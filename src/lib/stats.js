@@ -17,10 +17,20 @@ const getAverageTimes = closedTickets => stats.queue(async w => ({
 }));
 
 /**
- * Report stats to Houston
+ * Report stats to a Houston-compatible endpoint.
+ *
+ * This is opt-in: upstream posted to https://stats.discordtickets.app, but this
+ * fork has its own release line and would only pollute upstream's data, so
+ * nothing is sent unless STATS_URL is set to an endpoint you control.
  * @param {import("../client")} client
  */
 async function sendToHouston(client) {
+	const endpoint = process.env.STATS_URL;
+	if (!endpoint) {
+		client.log.verbose('Stats reporting is disabled (STATS_URL is not set)');
+		return;
+	}
+
 	client.log.info.cron('Preparing Houston report');
 	const guilds = await client.prisma.guild.findMany({
 		include: {
@@ -66,7 +76,7 @@ async function sendToHouston(client) {
 
 	try {
 		client.log.verbose('Reporting to Houston:', stats);
-		const res = await fetch('https://stats.discordtickets.app/api/v4/houston', {
+		const res = await fetch(endpoint, {
 			body: JSON.stringify(stats),
 			headers: { 'content-type': 'application/json' },
 			method: 'POST',

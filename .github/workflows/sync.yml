@@ -1,20 +1,26 @@
 name: Upstream Sync
 
+# This fork has diverged substantially from discord-tickets/bot (SQLite support
+# removed, Temporal layer added, dashboard vendored in), so upstream merges are
+# expected to conflict. When they do, the workflow opens an issue instead of
+# pushing a broken branch.
+
 on:
   schedule:
     - cron: '0 0 */3 * *'
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      issues: write
       pull-requests: write
-    
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -31,34 +37,70 @@ jobs:
       - name: Check for Changes
         id: check_changes
         run: |
-          # Compare the upstream main with our local main
-          # If there are 0 commits difference, we set 'changed=false'
+          # Number of upstream commits we don't have yet.
           UPSTREAM_CHANGES=$(git rev-list HEAD..upstream/main --count)
           echo "Changes found: $UPSTREAM_CHANGES"
           if [ "$UPSTREAM_CHANGES" -eq "0" ]; then
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "count=$UPSTREAM_CHANGES" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Rebase and Push
+      - name: Merge upstream into feat/upstream
+        id: merge
         if: steps.check_changes.outputs.changed == 'true'
         run: |
+          # The branch is recreated from origin/main on every run, so the push
+          # has to be forced.
           git checkout -B feat/upstream origin/main
-          git merge --no-ff --no-edit upstream/main
-          git push origin feat/upstream
+          if git merge --no-ff --no-edit upstream/main; then
+            git push --force origin feat/upstream
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+          else
+            git merge --abort
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create Pull Request
-        if: steps.check_changes.outputs.changed == 'true'
-        uses: repo-sync/pull-request@v2
-        with:
-          source_branch: "feat/upstream"
-          destination_branch: "main"
-          pr_title: "🔄 Upstream Sync: New Updates detected"
-          pr_body: |
-            ## 🤖 Automated Upstream Sync
-            New commits were detected in the upstream repository.
-            
-            **Action:**
-            The `feat/upstream` branch has been rebased. Please review these changes before merging into `main`.
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.merge.outputs.conflict == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Reuse the open PR if there already is one for this branch.
+          if [ -n "$(gh pr list --head feat/upstream --state open --json number --jq '.[].number')" ]; then
+            echo "A pull request for feat/upstream is already open, nothing to do."
+            exit 0
+          fi
+          gh pr create \
+            --base main \
+            --head feat/upstream \
+            --title "🔄 Upstream Sync: new updates detected" \
+            --body "## 🤖 Automated Upstream Sync
+
+          ${{ steps.check_changes.outputs.count }} new commit(s) were detected in [discord-tickets/bot](https://github.com/discord-tickets/bot).
+
+          \`upstream/main\` has been merged into \`feat/upstream\` (branched from \`main\`). Please review carefully before merging — this fork has diverged significantly."
+
+      - name: Report conflicts
+        if: steps.merge.outputs.conflict == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TITLE="🔄 Upstream sync needs manual attention"
+          if [ -n "$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[].number')" ]; then
+            echo "An issue is already open, nothing to do."
+            exit 0
+          fi
+          gh issue create \
+            --title "$TITLE" \
+            --body "Merging \`upstream/main\` (discord-tickets/bot) into \`main\` produced conflicts, so no branch was pushed.
+
+          ${{ steps.check_changes.outputs.count }} upstream commit(s) are unmerged. Resolve them manually:
+
+          \`\`\`sh
+          git remote add upstream https://github.com/discord-tickets/bot.git
+          git fetch upstream main
+          git checkout -b feat/upstream main
+          git merge upstream/main
+          \`\`\`"

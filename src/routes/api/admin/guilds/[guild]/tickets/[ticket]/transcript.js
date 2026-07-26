@@ -13,7 +13,8 @@ const transcriptCandidates = [
 let transcriptPath = null;
 for (const p of transcriptCandidates) {
 	if (fs.existsSync(p)) {
-		transcriptPath = p; break;
+		transcriptPath = p;
+		break;
 	}
 }
 if (!transcriptPath) {

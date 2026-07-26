@@ -14,7 +14,7 @@ module.exports = version => {
 		.split('\n')
 		.forEach(line => console.log(colours.cyan(line)));
 	console.log('');
-	console.log(colours.cyanBright(`${link('Discord Tickets', 'https://discordtickets.app')} bot v${version} by eartharoid`));
-	console.log(colours.cyanBright('Sponsor this project at https://discordtickets.app/sponsor'));
+	console.log(colours.cyanBright(`${link('Discord Tickets (revamped)', 'https://github.com/Gelhaus-Solutions/discordtickets-revamped')} bot v${version}`));
+	console.log(colours.cyanBright(`A fork of ${link('Discord Tickets', 'https://discordtickets.app')} by eartharoid — sponsor the original project at https://discordtickets.app/sponsor`));
 	console.log('\n');
 };

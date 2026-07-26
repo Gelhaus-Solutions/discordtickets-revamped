@@ -1,6 +1,7 @@
 # directories
 /.history/
-/node_modules/
+node_modules/
+.svelte-kit/
 /prisma/
 /user/
 /dist/
@@ -11,4 +12,4 @@
 *.log
 *.DS_Store
 summary.md
-package-lock.json
+/package-lock.json

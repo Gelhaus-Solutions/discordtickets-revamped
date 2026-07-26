@@ -5,9 +5,17 @@
 		"moduleResolution": "Node",
 		"baseUrl": "src",
 		"resolveJsonModule": true,
-		"checkJs": false,
+		"checkJs": false
 	},
 	"include": [
-		"src/**/*.js"
+		"src/**/*.js",
+		"scripts/**/*.js",
+		"scripts/**/*.mjs"
+	],
+	"exclude": [
+		"node_modules",
+		"dist",
+		"src/dashboard",
+		"src/temporal"
 	]
 }

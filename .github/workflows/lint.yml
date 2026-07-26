@@ -1,11 +1,13 @@
 name: Lint
+
 on: [push, pull_request]
-  # push:
-    # branches:
-      # - main
-  # pull_request:
-    # branches:
-      # - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
 
 jobs:
   commitlint:
@@ -14,15 +16,29 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@v5
-        with:
-          configFile: .commitlintrc.js
+      # The commitlint config lives in the "commitlint" key of package.json,
+      # so no configFile is passed here.
+      - uses: wagoid/commitlint-github-action@v6
+
   eslint:
-   runs-on: ubuntu-latest
-   steps:
-    - uses: actions/checkout@v6
-    - uses: oven-sh/setup-bun@v2
-      with:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
           bun-version: latest
-    - run: bun install
-    - run: bun run lint
+      - run: bun install
+      - run: bun run lint
+
+  typecheck:
+    name: Typecheck (Temporal layer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      # src/temporal/**/*.ts is excluded from eslint (see eslint.config.mjs),
+      # so TypeScript is the only thing checking it.
+      - run: bun run temporal.typecheck

@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
-. "$(where npx | head -n 1)" --no -- commitlint --edit ${1}
+
+npx --no -- commitlint --edit "$1"

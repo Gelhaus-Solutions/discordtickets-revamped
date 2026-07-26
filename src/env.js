@@ -42,6 +42,7 @@ const env = {
 	OVERRIDE_ARCHIVE: () => true, // optional
 	PUBLIC_BOT: () => true, // optional
 	PUBLISH_COMMANDS: () => true, // optional
+	STATS_URL: () => true, // optional (Houston-compatible endpoint; stats are not reported when unset)
 	SUPER: () => true, // optional
 	// Temporal — required (durable execution backs all async/scheduled work)
 	TEMPORAL_ADDRESS: v =>

@@ -26,8 +26,8 @@ RUN mkdir -p dist/temporal && printf "%s" "${GIT_SHA}" > dist/temporal/build-id.
 # NOTE: glibc runner (bookworm) — Temporal's native @temporalio/core-bridge
 # addon is libc-specific, so the runtime libc must match the builder's (debian).
 FROM node:22-bookworm-slim AS runner
-LABEL org.opencontainers.image.source=https://github.com/discord-tickets/bot \
-	org.opencontainers.image.description="The most popular open-source ticket bot for Discord." \
+LABEL org.opencontainers.image.source=https://github.com/Gelhaus-Solutions/discordtickets-revamped \
+	org.opencontainers.image.description="A fork of Discord Tickets, the open-source ticket bot for Discord, with more features and fewer bugs." \
 	org.opencontainers.image.licenses="GPL-3.0-or-later"
 
 RUN apt-get update \
@@ -44,10 +44,13 @@ RUN mkdir -p /home/container/user /home/container/logs \
 
 USER container
 ARG GIT_SHA=dev
+# HTTP_PORT is defaulted here so the HEALTHCHECK below still resolves a URL when
+# the container is run without one being passed in. Override it as needed.
 ENV USER=container \
 	HOME=/home/container \
 	NODE_ENV=production \
 	HTTP_HOST=0.0.0.0 \
+	HTTP_PORT=8169 \
 	DOCKER=true \
 	TEMPORAL_WORKER_BUILD_ID=${GIT_SHA}
 
