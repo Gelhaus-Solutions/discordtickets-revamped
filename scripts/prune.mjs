@@ -1,6 +1,5 @@
 import { config } from 'dotenv';
 import { program } from 'commander';
-import { join } from 'path';
 import ora from 'ora';
 import { PrismaClient } from '@prisma/client';
 
@@ -17,20 +16,11 @@ const options = program.opts();
 
 let spinner = ora('Connecting').start();
 
-const prisma_options = {};
-
-if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_CONNECTION_URL) {
-	prisma_options.datasources = { db: { url: 'file:' + join(process.cwd(), './user/database.db') } };
-}
-
-const prisma = new PrismaClient(prisma_options);
-
-if (process.env.DB_PROVIDER === 'sqlite') {
-	const { default: sqliteMiddleware } = await import('../src/lib/middleware/prisma-sqlite.js');
-	prisma.$use(sqliteMiddleware);
-	await prisma.$queryRaw`PRAGMA journal_mode=WAL;`;
-	await prisma.$queryRaw`PRAGMA synchronous=normal;`;
-}
+// SQLite is no longer supported by this fork; the provider-specific branches
+// that used to live here could not run at all (no SQLite Prisma client can be
+// generated, and the middleware they imported has been removed). See
+// MIGRATING.md for moving a SQLite install to PostgreSQL or MySQL.
+const prisma = new PrismaClient();
 
 spinner.succeed('Connected');
 

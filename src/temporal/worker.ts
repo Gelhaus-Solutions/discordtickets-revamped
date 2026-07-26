@@ -37,6 +37,16 @@ async function setCurrentDeploymentVersion(cfg: TemporalConfig, deps: ActivityDe
 			);
 			return;
 		} catch (err) {
+			// Worker Deployments need Temporal server >= 1.27. On anything older
+			// the method simply doesn't exist, so the server answers UNIMPLEMENTED
+			// and every retry gets the same answer — this used to burn the full 15
+			// seconds of the loop on every single startup. Give up immediately.
+			if (isUnimplemented(err)) {
+				deps.client.log?.info?.(
+					'Temporal server does not support Worker Deployments; skipping version promotion',
+				);
+				return;
+			}
 			if (attempt === maxAttempts) {
 				deps.client.log?.warn?.(
 					`Could not set current deployment version ${cfg.deploymentName}.${cfg.buildId}: ${(err as Error)?.message ?? err}`,
@@ -46,6 +56,14 @@ async function setCurrentDeploymentVersion(cfg: TemporalConfig, deps: ActivityDe
 			await new Promise(resolve => setTimeout(resolve, 1000));
 		}
 	}
+}
+
+/** Whether a gRPC error means the server doesn't implement the method at all. */
+function isUnimplemented(err: unknown): boolean {
+	// grpc-js status code 12 === UNIMPLEMENTED
+	const code = (err as { code?: unknown })?.code;
+	if (code === 12) return true;
+	return /unimplemented|unknown method|not implemented/i.test(String((err as Error)?.message ?? ''));
 }
 
 /**
@@ -97,8 +115,22 @@ export async function startWorker(deps: ActivityDeps): Promise<Worker> {
 	return _worker;
 }
 
+/**
+ * Whether the embedded worker is actually polling.
+ *
+ * This used to be `_worker !== null`, which is set once at creation and only
+ * cleared by an explicit stopWorker() — so a worker that had since failed still
+ * reported healthy. `getState()` reflects the real lifecycle
+ * (INITIALIZED / RUNNING / STOPPING / STOPPED / FAILED).
+ */
 export function isWorkerRunning(): boolean {
-	return _worker !== null;
+	if (!_worker) return false;
+	try {
+		return _worker.getState() === 'RUNNING';
+	} catch {
+		// Older SDKs without getState(): fall back to "was created".
+		return true;
+	}
 }
 
 export async function stopWorker(): Promise<void> {

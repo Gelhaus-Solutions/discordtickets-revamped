@@ -76,9 +76,9 @@ module.exports.patch = fastify => ({
 		const data = req.body;
 
 		const select = {
+			autoAssign: true,
 			backupCategoryId: true,
 			channelMode: true,
-			autoAssign: true,
 			channelName: true,
 			claiming: true,
 			// createdAt: true,
@@ -132,8 +132,21 @@ module.exports.patch = fastify => ({
 			delete data.totalLimit;
 		}
 
-		// Handle backupCategory relation
+		// Handle backupCategory relation.
+		//
+		// The id is client-supplied and `Category.backupCategoryId` is a bare FK
+		// with no guild constraint, so this must verify ownership. Without it, an
+		// admin of one guild could point a category's overflow at another guild's
+		// category and have tickets created in that guild's Discord category,
+		// with its staff roles.
 		if (data.backupCategoryId) {
+			const backup = await client.prisma.category.findUnique({
+				select: { guildId: true },
+				where: { id: data.backupCategoryId },
+			});
+			if (backup?.guildId !== guildId) {
+				return res.status(400).send(new Error('backupCategoryId must reference a category in this guild'));
+			}
 			data.backupCategory = { connect: { id: data.backupCategoryId } };
 		} else if (data.backupCategoryId === null) {
 			data.backupCategory = { disconnect: true };

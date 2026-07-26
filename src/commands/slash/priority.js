@@ -25,8 +25,12 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 			nameLocalizations: client.i18n.getAllMessages(`commands.slash.${name}.name`),
 			options: [
 				{
-					maxLength: 32,
-					minLength: 1,
+					// Restored from the three fixed choices. As free text this
+					// accepted any 32-character string, so `getEmoji` fell through to
+					// 🔵 for anything unrecognised, the channel-name emoji desynced
+					// from the stored value, and the localised HIGH/MEDIUM/LOW choice
+					// strings became dead in all 27 locales.
+					choices: ['HIGH', 'MEDIUM', 'LOW'],
 					name: 'priority',
 					required: true,
 					type: ApplicationCommandOptionType.String,
@@ -35,6 +39,13 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 				option.descriptionLocalizations = client.i18n.getAllMessages(`commands.slash.${name}.options.${option.name}.description`);
 				option.description = option.descriptionLocalizations['en-GB'] || client.i18n.getMessage(null, `commands.slash.${name}.options.${option.name}.description`) || 'No description';
 				option.nameLocalizations = client.i18n.getAllMessages(`commands.slash.${name}.options.${option.name}.name`);
+				if (option.choices) {
+					option.choices = option.choices.map(choice => ({
+						name: client.i18n.getMessage(null, `commands.slash.priority.options.${option.name}.choices.${choice}`),
+						nameLocalizations: client.i18n.getAllMessages(`commands.slash.priority.options.${option.name}.choices.${choice}`),
+						value: choice,
+					}));
+				}
 				return option;
 			}),
 		});
@@ -72,13 +83,16 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 		}
 
 		if (!(await isStaff(interaction.guild, interaction.user.id))) { // if user is not staff
+			// `settings`, not `ticket.guild` — the query above only includes
+			// `category`, so `ticket.guild` is undefined and reading `.footer` off
+			// it threw a TypeError for every non-staff invocation.
 			return await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder({
 						iconURL: interaction.guild.iconURL(),
-						text: ticket.guild.footer,
+						text: settings.footer,
 					})
-						.setColor(ticket.guild.errorColour)
+						.setColor(settings.errorColour)
 						.setTitle(getMessage('commands.slash.move.not_staff.title'))
 						.setDescription(getMessage('commands.slash.move.not_staff.description')),
 				],

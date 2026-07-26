@@ -5,6 +5,30 @@ const { colours } = require('leeks.js');
 
 const providers = ['mysql', 'postgresql'];
 
+// Must stay in step with src/temporal/config.ts. These used to disagree: this
+// file treated anything not in the falsy list as "on", while config.ts treated
+// anything not in the truthy list as "off". A value like `enabled` therefore
+// passed validation as TLS-on (demanding certificate paths) while the Temporal
+// client connected in plaintext — a silent fail-open.
+const TRUTHY_VALUES = ['1', 'true', 'yes', 'on'];
+const FALSY_VALUES = ['0', 'false', 'no', 'off'];
+
+/**
+ * @param {string|undefined} v
+ * @param {boolean} dflt
+ * @returns {boolean|Error} the parsed value, or an Error if unrecognised
+ */
+const parseBool = (v, dflt) => {
+	if (v === undefined || v === '') return dflt;
+	const value = v.trim().toLowerCase();
+	if (TRUTHY_VALUES.includes(value)) return true;
+	if (FALSY_VALUES.includes(value)) return false;
+	return new Error(`must be one of: ${[...TRUTHY_VALUES, ...FALSY_VALUES].map(s => `"${s}"`).join(', ')}`);
+};
+
+/** @returns {boolean} whether Temporal mTLS is on, defaulting to true. */
+const temporalTlsEnabled = () => parseBool(process.env.TEMPORAL_TLS_ENABLED, true) === true;
+
 // ideally the defaults would be set here too, but the pre-install script may run when `src/` is not available
 const env = {
 	DB_CONNECTION_URL: v =>
@@ -39,6 +63,12 @@ const env = {
 		new Error('is required'),
 	HTTP_TRUST_PROXY: () => true, // optional
 	INVALIDATE_TOKENS: () => true, // optional
+	// Optional. When unset, the JWT signing key is derived from ENCRYPTION_KEY
+	// via HKDF so signing and at-rest encryption don't share key material — but
+	// that derived key differs from the raw ENCRYPTION_KEY this used to sign
+	// with, so upgrading invalidates existing sessions and service API keys.
+	// Set JWT_SECRET to your ENCRYPTION_KEY value to keep them working.
+	JWT_SECRET: () => true,
 	OVERRIDE_ARCHIVE: () => true, // optional
 	PUBLIC_BOT: () => true, // optional
 	PUBLISH_COMMANDS: () => true, // optional
@@ -55,15 +85,18 @@ const env = {
 		new Error('is required (Temporal frontend port, e.g. 7233)'),
 	TEMPORAL_TASK_QUEUE: () => true, // optional (default "discord-tickets")
 	TEMPORAL_TLS_CA_PATH: () => true, // optional (server root CA for verification)
-	TEMPORAL_TLS_CERT_PATH: v => {
-		const enabled = !['0', 'false', 'no', 'off'].includes((process.env.TEMPORAL_TLS_ENABLED || '').toLowerCase());
-		return (!enabled || !!v) || new Error('is required for mTLS (path to client certificate); set TEMPORAL_TLS_ENABLED=false to disable');
+	TEMPORAL_TLS_CERT_PATH: v =>
+		(!temporalTlsEnabled() || !!v) ||
+		new Error('is required for mTLS (path to client certificate); set TEMPORAL_TLS_ENABLED=false to disable'),
+	// Optional (default true; set false for insecure local dev), but an
+	// unrecognised value is rejected rather than silently disabling TLS.
+	TEMPORAL_TLS_ENABLED: v => {
+		const parsed = parseBool(v, true);
+		return parsed instanceof Error ? parsed : true;
 	},
-	TEMPORAL_TLS_ENABLED: () => true, // optional (default true; set false for insecure local dev)
-	TEMPORAL_TLS_KEY_PATH: v => {
-		const enabled = !['0', 'false', 'no', 'off'].includes((process.env.TEMPORAL_TLS_ENABLED || '').toLowerCase());
-		return (!enabled || !!v) || new Error('is required for mTLS (path to client private key); set TEMPORAL_TLS_ENABLED=false to disable');
-	},
+	TEMPORAL_TLS_KEY_PATH: v =>
+		(!temporalTlsEnabled() || !!v) ||
+		new Error('is required for mTLS (path to client private key); set TEMPORAL_TLS_ENABLED=false to disable'),
 	TEMPORAL_SET_CURRENT_ON_START: () => true, // optional (default true; promote this build to Current on startup)
 	TEMPORAL_TLS_SERVER_NAME: () => true, // optional (SNI override)
 	TEMPORAL_WORKER_BUILD_ID: () => true, // optional (defaults to injected 6-char git SHA)

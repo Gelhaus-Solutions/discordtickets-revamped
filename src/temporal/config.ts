@@ -33,9 +33,26 @@ export interface TemporalConfig {
 	worker: TemporalWorkerTuning;
 }
 
-const bool = (v: string | undefined, dflt: boolean): boolean => {
+export const TRUTHY_VALUES = ['1', 'true', 'yes', 'on'];
+export const FALSY_VALUES = ['0', 'false', 'no', 'off'];
+
+/**
+ * Strict boolean env parsing.
+ *
+ * An unrecognised value is an error rather than `false`. This previously used an
+ * allow-list of truthy strings while src/env.js used a deny-list of falsy ones,
+ * so a plausible-but-non-canonical value like `TEMPORAL_TLS_ENABLED=enabled`
+ * passed validation as "TLS on" (demanding certificate paths) while the client
+ * here read it as `false` and connected in plaintext.
+ */
+const bool = (v: string | undefined, dflt: boolean, name: string): boolean => {
 	if (v === undefined || v === '') return dflt;
-	return ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
+	const value = v.trim().toLowerCase();
+	if (TRUTHY_VALUES.includes(value)) return true;
+	if (FALSY_VALUES.includes(value)) return false;
+	throw new Error(
+		`${name} must be one of ${[...TRUTHY_VALUES, ...FALSY_VALUES].join(', ')} (got "${v}")`,
+	);
 };
 
 const int = (v: string | undefined, dflt: number): number => {
@@ -65,7 +82,7 @@ export function getTemporalConfig(): TemporalConfig {
 	const host = process.env.TEMPORAL_ADDRESS || '127.0.0.1';
 	const port = process.env.TEMPORAL_PORT || '7233';
 
-	const tlsEnabled = bool(process.env.TEMPORAL_TLS_ENABLED, true);
+	const tlsEnabled = bool(process.env.TEMPORAL_TLS_ENABLED, true, 'TEMPORAL_TLS_ENABLED');
 	let tls: TemporalTlsConfig | false = false;
 	if (tlsEnabled) {
 		const clientCertPath = process.env.TEMPORAL_TLS_CERT_PATH;
@@ -91,12 +108,12 @@ export function getTemporalConfig(): TemporalConfig {
 		tls,
 		deploymentName: process.env.TEMPORAL_DEPLOYMENT_NAME || DEFAULT_DEPLOYMENT_NAME,
 		buildId: resolveBuildId(),
-		setCurrentOnStart: bool(process.env.TEMPORAL_SET_CURRENT_ON_START, true),
+		setCurrentOnStart: bool(process.env.TEMPORAL_SET_CURRENT_ON_START, true, 'TEMPORAL_SET_CURRENT_ON_START'),
 		worker: {
 			maxConcurrentActivityTaskExecutions: int(process.env.TEMPORAL_MAX_CONCURRENT_ACTIVITIES, 20),
 			maxConcurrentWorkflowTaskExecutions: int(process.env.TEMPORAL_MAX_CONCURRENT_WORKFLOW_TASKS, 40),
 			maxCachedWorkflows: int(process.env.TEMPORAL_MAX_CACHED_WORKFLOWS, 250),
-			reuseV8Context: bool(process.env.TEMPORAL_REUSE_V8_CONTEXT, true),
+			reuseV8Context: bool(process.env.TEMPORAL_REUSE_V8_CONTEXT, true, 'TEMPORAL_REUSE_V8_CONTEXT'),
 		},
 	};
 	return _config;

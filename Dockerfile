@@ -19,6 +19,16 @@ COPY --link . .
 # Compile src/temporal/*.ts -> dist/temporal and pre-bundle the workflow code.
 RUN bun run temporal.build
 
+# Pre-download the Prisma query engines and validate the schema at build time.
+# `bun install` above runs postinstall with DB_PROVIDER unset, which exits
+# early, so the image previously shipped an un-generated stub client and every
+# container start paid the full generate cost — with any failure surfacing only
+# at runtime. postinstall regenerates for the configured provider on boot; this
+# step exists so the engine binaries are already in the image. The URL is a
+# placeholder, `prisma generate` never connects.
+RUN DB_CONNECTION_URL="postgresql://build:build@127.0.0.1:5432/build" \
+	bunx prisma generate --schema db/postgresql/schema.prisma
+
 # 6-char git SHA identifying this worker build (Temporal Worker Deployments).
 ARG GIT_SHA=dev
 RUN mkdir -p dist/temporal && printf "%s" "${GIT_SHA}" > dist/temporal/build-id.txt

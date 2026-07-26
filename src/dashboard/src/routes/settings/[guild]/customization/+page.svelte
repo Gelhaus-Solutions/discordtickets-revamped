@@ -13,11 +13,29 @@
 	let error = $state(null);
 	let successMessage = $state('');
 
-	let customization = $state({
+	// Discord's limits for the Modify Current Member endpoint. Keep these in step
+	// with src/routes/api/admin/guilds/[guild]/customization.js.
+	const NICK_MAX_LENGTH = 32;
+	const BIO_MAX_LENGTH = 190;
+	// Each image is sent as a base64 data URI (~4/3 the source size), and the
+	// avatar and banner share one request against an 8 MiB body limit.
+	const IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+	const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/gif,image/webp';
+
+	const FIELDS = ['botAvatar', 'botBanner', 'botBio', 'botUsername'];
+
+	const fromData = () => ({
 		botAvatar: data?.botAvatar || '',
+		botBanner: data?.botBanner || '',
 		botBio: data?.botBio || '',
 		botUsername: data?.botUsername || ''
 	});
+
+	// Snapshot of what the server last confirmed, so only genuinely changed
+	// fields are submitted. Sending the whole object blanked the avatar whenever
+	// someone edited only the bio.
+	let saved = fromData();
+	let customization = $state(fromData());
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -38,15 +56,17 @@
 		const file = event.target.files?.[0];
 		if (!file) return;
 
-		// Check file size (limit to 5MB)
-		const maxSize = 5 * 1024 * 1024; // 5MB
-		if (file.size > maxSize) {
-			error = new Error(`File size must be less than 5MB. Selected file is ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+		if (file.size > IMAGE_MAX_BYTES) {
+			error = new Error(
+				`Image must be smaller than ${IMAGE_MAX_BYTES / 1024 / 1024}MB. The selected file is ${(file.size / 1024 / 1024).toFixed(2)}MB.`
+			);
+			event.target.value = '';
 			return;
 		}
 
 		const reader = new FileReader();
 		reader.onload = (e) => {
+			error = null;
 			customization[field] = e.target?.result;
 			modified = true;
 		};
@@ -67,26 +87,46 @@
 			successMessage = '';
 			loading = true;
 
+			const payload = {};
+			for (const field of FIELDS) {
+				if (customization[field] !== saved[field]) payload[field] = customization[field];
+			}
+
+			if (Object.keys(payload).length === 0) {
+				modified = false;
+				return;
+			}
+
 			const response = await fetch(`/api/admin/guilds/${$page.params.guild}/customization`, {
 				method: 'PATCH',
-				body: JSON.stringify(customization),
+				body: JSON.stringify(payload),
 				credentials: 'include',
 				headers: {
 					'Content-Type': 'application/json; charset=UTF-8'
 				}
 			});
 
-			const body = await response.json();
+			// A rejected upload (413) or a proxy error may not return JSON.
+			const body = await response.json().catch(() => ({
+				message: `${response.status} ${response.statusText}`
+			}));
 
-			if (!response.ok) {
-				throw body;
-			} else {
-				modified = false;
-				successMessage = 'Bot customization saved successfully!';
-				setTimeout(() => {
-					successMessage = '';
-				}, 3000);
-			}
+			if (!response.ok) throw body;
+
+			// The response is the stored profile; re-seed from it so the next save
+			// only sends what changed after this one.
+			saved = {
+				botAvatar: body?.botAvatar || '',
+				botBanner: body?.botBanner || '',
+				botBio: body?.botBio || '',
+				botUsername: body?.botUsername || ''
+			};
+			customization = { ...saved };
+			modified = false;
+			successMessage = 'Bot customization saved successfully!';
+			setTimeout(() => {
+				successMessage = '';
+			}, 3000);
 		} catch (err) {
 			error = err;
 			window.scroll({
@@ -132,7 +172,7 @@
 					Bot Avatar
 					<i
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-						title="Upload a custom avatar for the bot in this server (PNG, JPG, max 1MB)"
+						title="Upload a custom avatar for the bot in this server (PNG, JPG, GIF or WebP, max 2MB)"
 					></i>
 				</label>
 				<div class="mt-2 flex flex-col items-center gap-4">
@@ -157,8 +197,46 @@
 					<input
 						id="botAvatarInput"
 						type="file"
-						accept="image/*"
+						accept={ACCEPTED_IMAGE_TYPES}
 						onchange={(e) => handleImageUpload(e, 'botAvatar')}
+						class="max-w-xs"
+					/>
+				</div>
+			</div>
+
+			<!-- Bot Banner -->
+			<div>
+				<label for="botBannerInput" class="font-medium">
+					Bot Banner
+					<i
+						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+						title="Upload a custom banner for the bot in this server (PNG, JPG, GIF or WebP, max 2MB)"
+					></i>
+				</label>
+				<div class="mt-2 flex flex-col items-center gap-4">
+					{#if customization.botBanner}
+						<img
+							src={customization.botBanner}
+							alt="Bot Banner"
+							class="h-32 w-full rounded-lg border-2 border-blurple object-cover"
+						/>
+						<button
+							type="button"
+							onclick={() => clearImage('botBanner')}
+							class="rounded-lg bg-red-300 p-2 px-4 font-medium transition duration-300 hover:bg-red-500 hover:text-white dark:bg-red-500/50 dark:hover:bg-red-500 dark:hover:text-white"
+						>
+							<i class="fa-solid fa-trash"></i> Remove Banner
+						</button>
+					{:else}
+						<div class="flex h-32 w-full items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:border-slate-600 dark:bg-slate-800">
+							<i class="fa-solid fa-panorama text-4xl text-gray-300 dark:text-slate-600"></i>
+						</div>
+					{/if}
+					<input
+						id="botBannerInput"
+						type="file"
+						accept={ACCEPTED_IMAGE_TYPES}
+						onchange={(e) => handleImageUpload(e, 'botBanner')}
 						class="max-w-xs"
 					/>
 				</div>
@@ -167,10 +245,10 @@
 			<!-- Bot Username -->
 			<div>
 				<label for="botUsernameInput" class="font-medium">
-					Bot Username
+					Bot Nickname
 					<i
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-						title="Custom username for the bot in this server (max 80 characters)"
+						title="Custom nickname for the bot in this server (max {NICK_MAX_LENGTH} characters)"
 					></i>
 				</label>
 				<input
@@ -178,11 +256,11 @@
 					type="text"
 					class="input form-input mt-2"
 					placeholder="Leave blank to use default"
-					maxlength="80"
+					maxlength={NICK_MAX_LENGTH}
 					bind:value={customization.botUsername}
 				/>
 				<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
-					{customization.botUsername?.length || 0}/80
+					{customization.botUsername?.length || 0}/{NICK_MAX_LENGTH}
 				</p>
 			</div>
 
@@ -192,7 +270,7 @@
 					Bot Description
 					<i
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-						title="Custom description or bio for the bot in this server"
+						title="Custom description or bio for the bot in this server (max {BIO_MAX_LENGTH} characters)"
 					></i>
 				</label>
 				<textarea
@@ -200,11 +278,11 @@
 					class="input form-textarea mt-2"
 					placeholder="Leave blank to use default description"
 					rows="4"
-					maxlength="500"
+					maxlength={BIO_MAX_LENGTH}
 					bind:value={customization.botBio}
 				></textarea>
 				<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
-					{customization.botBio?.length || 0}/500
+					{customization.botBio?.length || 0}/{BIO_MAX_LENGTH}
 				</p>
 			</div>
 
@@ -224,7 +302,7 @@
 				Save Changes
 			</button>
 			<a
-				href="../general"
+				href="./general"
 				class="flex items-center justify-center rounded-lg bg-gray-300 p-2 px-5 font-medium transition duration-300 hover:bg-gray-500 hover:text-white dark:bg-slate-600 dark:hover:bg-slate-500"
 			>
 				<i class="fa-solid fa-arrow-left"></i>

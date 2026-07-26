@@ -1,5 +1,10 @@
 #!/usr/bin/env sh
 
+# Abort on the first failure. Without this, a failed environment check or a
+# failed `prisma migrate deploy` was ignored and the bot started anyway, against
+# a stale or half-migrated schema.
+set -e
+
 if [ "$PTERODACTYL" = "true" ]; then
     rm -rf /home/container/app
     cp -R /app /home/container/

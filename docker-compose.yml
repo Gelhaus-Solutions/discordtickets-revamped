@@ -65,6 +65,15 @@ services:
       POSTGRES_USER: temporal
       POSTGRES_PWD: temporal
       POSTGRES_SEEDS: temporal-postgresql
+    # auto-setup provisions the schema and default namespace on first run, which
+    # takes 20-60s. Without this the bot only waited for the container to
+    # *start*, so it reliably raced Temporal on a cold boot.
+    healthcheck:
+      test: ["CMD", "temporal", "operator", "namespace", "describe", "--address", "temporal:7233", "default"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   temporal-ui:
     image: temporalio/ui:2.31.2
@@ -85,7 +94,7 @@ services:
       mysql:
         condition: service_healthy
       temporal:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     hostname: bot
     networks:

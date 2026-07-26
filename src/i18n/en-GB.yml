@@ -83,6 +83,23 @@ commands:
         reason:
           description: The reason for closing the ticket
           name: reason
+    escalate:
+      description: Escalate a ticket to a different category
+      escalated: ⚠️ {by} has escalated this ticket from **{from}** to **{to}**.{reason}
+      name: escalate
+      no_category:
+        The selected category no longer exists. Pick another one from the
+        autocomplete list.
+      not_staff:
+        description: Only staff members can escalate tickets.
+        title: ❌ Error
+      options:
+        category:
+          description: The category to escalate the ticket to
+          name: category
+        reason:
+          description: The reason for escalating the ticket
+          name: reason
     force-close:
       closed_one:
         description: The ticket will be closed in a few seconds.
@@ -115,6 +132,11 @@ commands:
             Close all tickets in the specified category (must be used with
             `time`)
           name: category
+        lock:
+          description:
+            Also lock the thread so nobody can reply (threads are only archived
+            by default)
+          name: lock
         reason:
           description: The reason for closing the ticket(s)
           name: reason

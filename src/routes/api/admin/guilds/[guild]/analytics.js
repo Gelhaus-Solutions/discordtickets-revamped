@@ -1,6 +1,11 @@
 'use strict';
-const { pools } = require('../../../../../lib/threads');
-const { crypto } = pools;
+
+/** Widest reportable window (~2 years). Bounds the per-day loop below. */
+const MAX_RANGE_MS = 730 * 24 * 60 * 60 * 1000;
+/** Default window when `since` is not supplied. */
+const DEFAULT_RANGE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Upper bound on tickets loaded into memory for a single report. */
+const MAX_TICKETS = 20000;
 
 /**
  * GET /api/admin/guilds/:guild/analytics
@@ -21,15 +26,29 @@ module.exports.get = fastify => ({
 			since: sinceQ, until: untilQ, categoryId: categoryIdQ,
 		} = req.query;
 
-		const sinceDate = sinceQ
-			? new Date(Number(sinceQ) * 1000)
-			: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // default: 30 days
+		// `since`/`until` are client-supplied. They feed a per-day loop below, so
+		// an out-of-range value (most easily: milliseconds passed where seconds
+		// are expected, which lands in the year ~56000) would spin for millions
+		// of iterations and block the event loop — stopping the Discord gateway
+		// heartbeat and disconnecting the bot. Parse defensively and cap the span.
+		const parseTimestamp = (value, fallback) => {
+			if (value === undefined || value === '') return fallback;
+			const seconds = Number(value);
+			if (!Number.isFinite(seconds)) return fallback;
+			const date = new Date(seconds * 1000);
+			return Number.isNaN(date.getTime()) ? fallback : date;
+		};
 
-		const untilDate = untilQ
-			? new Date(Number(untilQ) * 1000)
-			: new Date();
+		const now = new Date();
+		let untilDate = parseTimestamp(untilQ, now);
+		if (untilDate > now) untilDate = now;
 
-		const categoryId = categoryIdQ ? Number(categoryIdQ) : undefined;
+		const defaultSince = new Date(untilDate.getTime() - DEFAULT_RANGE_MS);
+		let sinceDate = parseTimestamp(sinceQ, defaultSince);
+		if (sinceDate > untilDate) sinceDate = defaultSince;
+		if (untilDate - sinceDate > MAX_RANGE_MS) sinceDate = new Date(untilDate.getTime() - MAX_RANGE_MS);
+
+		const categoryId = Number.isFinite(Number(categoryIdQ)) ? Number(categoryIdQ) : undefined;
 
 		const baseWhere = {
 			guildId,
@@ -41,7 +60,11 @@ module.exports.get = fastify => ({
 		};
 
 		// ── 1. Fetch all tickets in range ──────────────────────────────────────
+		// Bounded: a busy guild can hold hundreds of thousands of tickets, and
+		// this whole set (plus its feedback relation) is held in memory to build
+		// the report.
 		const tickets = await client.prisma.ticket.findMany({
+			orderBy: { createdAt: 'desc' },
 			select: {
 				categoryId: true,
 				claimedById: true,
@@ -62,6 +85,7 @@ module.exports.get = fastify => ({
 				open: true,
 				priority: true,
 			},
+			take: MAX_TICKETS,
 			where: baseWhere,
 		});
 

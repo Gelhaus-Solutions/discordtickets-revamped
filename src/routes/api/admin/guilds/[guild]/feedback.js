@@ -2,6 +2,9 @@
 const { pools } = require('../../../../../lib/threads');
 const { crypto } = pools;
 
+/** Upper bound on feedback rows loaded to build the per-day trend. */
+const MAX_TREND_ROWS = 20000;
+
 /**
  * GET /api/admin/guilds/:guild/feedback
  *
@@ -116,12 +119,15 @@ module.exports.get = fastify => ({
 		}
 		const avgRating = totalCount > 0 ? Math.round((totalRating / totalCount) * 100) / 100 : null;
 
-		// Trend: feedback per day
+		// Trend: feedback per day. Bounded — this is aggregated in memory below,
+		// so a guild with a very long history would otherwise load every row.
 		const feedbackByDay = await client.prisma.feedback.findMany({
+			orderBy: { createdAt: 'desc' },
 			select: {
 				createdAt: true,
 				rating: true,
 			},
+			take: MAX_TREND_ROWS,
 			where: baseWhere,
 		});
 

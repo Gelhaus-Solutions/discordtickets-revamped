@@ -42,3 +42,75 @@ jobs:
       # src/temporal/**/*.ts is excluded from eslint (see eslint.config.mjs),
       # so TypeScript is the only thing checking it.
       - run: bun run temporal.typecheck
+
+  dashboard-build:
+    name: Vendored dashboard build is not stale
+    runs-on: ubuntu-latest
+    # src/dashboard/build/ is committed on purpose — src/http.js serves it and
+    # nothing (Dockerfile, CI, start.sh) rebuilds it, so changing the Svelte
+    # source without rebuilding ships a stale bundle that silently ignores the
+    # change.
+    #
+    # This compares commit recency rather than rebuilding and diffing: Rollup's
+    # chunk splitting is not stable between runs, so two builds of identical
+    # source produce different content-hashed chunk filenames and a byte-exact
+    # comparison would fail at random.
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Compare source and build commit times
+        run: |
+          src=$(git log -1 --format=%ct -- src/dashboard/src src/dashboard/package.json)
+          build=$(git log -1 --format=%ct -- src/dashboard/build)
+          if [ -z "$src" ]; then echo "No dashboard source history; nothing to check."; exit 0; fi
+          if [ -z "$build" ] || [ "$src" -gt "$build" ]; then
+            echo "::error::src/dashboard/src changed more recently than src/dashboard/build."
+            echo "Run 'npm run build' in src/dashboard and commit the output, or the dashboard will serve a stale bundle."
+            exit 1
+          fi
+          echo "Vendored dashboard build is at least as recent as its source."
+
+  schema-drift:
+    name: Prisma schema matches migrations
+    runs-on: ubuntu-latest
+    # `prisma migrate deploy` does not detect drift, so a schema.prisma that has
+    # diverged from its migration history goes unnoticed until someone runs
+    # `migrate dev` and is offered a database reset. This catches it in CI.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: shadow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 10
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: shadow
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd "mysqladmin ping -proot" --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: PostgreSQL
+        run: |
+          bunx prisma migrate diff \
+            --from-migrations db/postgresql/migrations \
+            --to-schema-datamodel db/postgresql/schema.prisma \
+            --shadow-database-url postgresql://postgres:postgres@localhost:5432/shadow \
+            --exit-code
+      - name: MySQL
+        run: |
+          bunx prisma migrate diff \
+            --from-migrations db/mysql/migrations \
+            --to-schema-datamodel db/mysql/schema.prisma \
+            --shadow-database-url mysql://root:root@localhost:3306/shadow \
+            --exit-code

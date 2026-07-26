@@ -169,7 +169,7 @@ module.exports = class TicketManager {
 	 * @param {string?} [data.topic]
 	 */
 	async create({
-		categoryId, interaction, topic, referencesMessageId, referencesTicketId,
+		categoryId, interaction, topic, referencesMessageId, referencesTicketId, skipRatelimit = false,
 	}) {
 		categoryId = Number(categoryId);
 		const category = await this.getCategory(categoryId);
@@ -204,8 +204,13 @@ module.exports = class TicketManager {
 		const member = interaction.member ?? await guild.members.fetch(interaction.user.id);
 		const getMessage = this.client.i18n.getLocale(category.guild.locale);
 
+		// `skipRatelimit` is set when falling back to a backup category. The key is
+		// derived from the guild and user only, so it is identical for the
+		// recursive call — and this method sets it *before* the capacity checks
+		// below, meaning the fallback always tripped its own rate limit and
+		// answered "you are being rate limited" instead of opening the ticket.
 		const rlKey = `ratelimits/guild-user:${category.guildId}-${interaction.user.id}`;
-		const rl = await this.client.keyv.get(rlKey);
+		const rl = skipRatelimit ? false : await this.client.keyv.get(rlKey);
 		if (rl) {
 			return await interaction.reply({
 				embeds: [
@@ -258,12 +263,13 @@ module.exports = class TicketManager {
 			const discordCategory = guild.channels.cache.get(category.discordCategory);
 			if (discordCategory && discordCategory.children.cache.size >= 50) {
 				// Try backup category first before erroring
-				if (category.backupCategoryId) {
+				if (category.backupCategoryId && !skipRatelimit) {
 					return this.create({
 						categoryId: category.backupCategoryId,
 						interaction,
 						referencesMessageId,
 						referencesTicketId,
+						skipRatelimit: true,
 						topic,
 					});
 				}
@@ -274,12 +280,13 @@ module.exports = class TicketManager {
 		const totalCount = await this.getTotalCount(category.id);
 		if (totalCount >= category.totalLimit) {
 			// Try backup category first before erroring
-			if (category.backupCategoryId) {
+			if (category.backupCategoryId && !skipRatelimit) {
 				return this.create({
 					categoryId: category.backupCategoryId,
 					interaction,
 					referencesMessageId,
 					referencesTicketId,
+					skipRatelimit: true,
 					topic,
 				});
 			}
@@ -477,9 +484,25 @@ module.exports = class TicketManager {
 				reason: `${creator.user.username} created a ticket`,
 				type: ChannelType.PrivateThread,
 			});
-			// Add creator and staff members to the private thread
-			await channel.members.add(creator.id);
-			await channel.members.add(this.client.user.id);
+			// Add the creator, the bot, and every staff member to the private
+			// thread. A private thread is only visible to explicit members (or
+			// users with Manage Threads) — mentioning a role in the opening
+			// message does not grant its members access, so without this loop
+			// staff simply could not see THREAD-mode tickets at all.
+			//
+			// Failures are tolerated: the thread already exists at this point, and
+			// throwing here would abandon it with no database row.
+			const threadMemberIds = new Set([creator.id, this.client.user.id]);
+			for (const roleId of category.staffRoles) {
+				const role = guild.roles.cache.get(roleId);
+				if (!role) continue;
+				for (const staffMember of role.members.values()) threadMemberIds.add(staffMember.id);
+			}
+			for (const memberId of threadMemberIds) {
+				await channel.members.add(memberId).catch(error =>
+					this.client.log.warn('Could not add %s to ticket thread %s: %s', memberId, channel.id, error.message),
+				);
+			}
 		} else if (channelMode === 'FORUM') {
 			// Create a forum post (thread) in a forum channel
 			forumChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
@@ -616,7 +639,12 @@ module.exports = class TicketManager {
 			);
 		}
 
-		if (category.claiming) {
+		// Must match the condition used when the row is rebuilt in claim() and
+		// release(), both of which test `guild.claimButton && category.claiming`.
+		// Dropping the claimButton half here meant that with claiming enabled but
+		// the button disabled, users saw a Claim button whose rebuilt row then
+		// contained no Unclaim button — leaving /release as the only way out.
+		if (category.guild.claimButton && category.claiming) {
 			components.addComponents(
 				new ButtonBuilder()
 					.setCustomId(JSON.stringify({ action: 'claim' }))
@@ -1245,9 +1273,13 @@ module.exports = class TicketManager {
 
 
 	/**
-	 * @param {import("discord.js").ChatInputCommandInteraction|import("discord.js").ButtonInteraction} interaction
+	 * @param {import("discord.js").ChatInputCommandInteraction
+	 * | import("discord.js").ButtonInteraction
+	 * | import("discord.js").ModalSubmitInteraction} interaction
+	 * @param {?string} [reasonOverride] Reason supplied out-of-band, e.g. by the
+	 * "Close with Reason" modal, where `interaction.options` doesn't exist.
 	 */
-	async beforeRequestClose(interaction) {
+	async beforeRequestClose(interaction, reasonOverride = null) {
 		const ticket = await this.getTicket(interaction.channel.id);
 		if (!ticket) {
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -1278,7 +1310,7 @@ module.exports = class TicketManager {
 
 		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
 		const staff = await isStaff(interaction.guild, interaction.user.id);
-		const reason = interaction.options?.getString('reason', false) || null; // ?. because it could be a button interaction
+		const reason = reasonOverride || interaction.options?.getString('reason', false) || null; // ?. because it could be a button interaction
 
 		if (ticket.createdById !== interaction.user.id && !staff) {
 			return await interaction.editReply({
@@ -1291,10 +1323,16 @@ module.exports = class TicketManager {
 			});
 		}
 
+		// `interaction.showModal` is absent on ModalSubmitInteraction — Discord
+		// does not allow opening a modal in response to a modal submit. Callers
+		// arriving from a modal (the "Close with Reason" flow) show the feedback
+		// modal themselves beforehand where appropriate, so skip it here rather
+		// than throwing a TypeError.
 		if (
 			ticket.createdById === interaction.user.id &&
 			ticket.category.enableFeedback &&
-			!ticket.feedback
+			!ticket.feedback &&
+			typeof interaction.showModal === 'function'
 		) {
 			return await interaction.showModal(this.buildFeedbackModal(ticket.guild.locale, {
 				next: 'requestClose',
@@ -1379,10 +1417,14 @@ module.exports = class TicketManager {
 		});
 
 		// Durable auto-close if the request is ignored (survives restarts).
+		// guildId and reopenWindow are passed so an ignored request gets the same
+		// grace window (and search attributes) as an accepted one.
 		if (ticket.guild.autoClose) {
 			temporal.startCloseRequestTimeout(ticket.id, ticket.guild.autoClose, {
 				closedBy: interaction.user.id,
+				guildId: ticket.guildId,
 				reason,
+				reopenWindowMs: Number(ticket.guild.reopenWindow ?? 0),
 			}).catch(error => this.client.log.error(error));
 		}
 
@@ -1402,6 +1444,51 @@ module.exports = class TicketManager {
 	async acceptClose(interaction) {
 		const ticket = await this.getTicket(interaction.channel.id);
 		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
+		const ticketId = interaction.channel.id;
+		const pending = this.$closeRequests.get(ticketId) || {};
+
+		// The durable close is started *before* confirming to the user. This ran
+		// the other way round, and unlike every other temporal.* call site it had
+		// no .catch() — so with Temporal unreachable the handler threw after the
+		// user had already been shown "✅ Ticket closed", and the ticket stayed
+		// open indefinitely.
+		try {
+			// Cancel the durable "auto-close if ignored" timeout, then close now.
+			await temporal.cancelCloseRequestTimeout(ticketId);
+			const reopenWindow = Number(ticket.guild.reopenWindow ?? 0);
+			if (reopenWindow > 0) {
+				// Grace window: soft-close now, terminal close when the window expires.
+				await temporal.startReopenWindow({
+					closedBy: pending.closedBy ?? interaction.user.id,
+					guildId: ticket.guildId,
+					reason: pending.reason ?? null,
+					ticketId,
+					windowMs: reopenWindow,
+				});
+			} else {
+				await temporal.startCloseTicket({
+					closedBy: pending.closedBy ?? interaction.user.id,
+					reason: pending.reason ?? null,
+					ticketId,
+				});
+			}
+		} catch (error) {
+			this.client.log.error('Failed to start close for ticket %s: %s', ticketId, error?.message ?? error);
+			return await interaction.editReply({
+				embeds: [
+					new ExtendedEmbedBuilder({
+						iconURL: interaction.guild.iconURL(),
+						text: ticket.guild.footer,
+					})
+						.setColor(ticket.guild.errorColour)
+						.setTitle(getMessage('misc.error.title'))
+						.setDescription(getMessage('misc.error.description')),
+				],
+			});
+		}
+
+		this.$closeRequests.delete(ticketId);
+
 		await interaction.editReply({
 			embeds: [
 				new ExtendedEmbedBuilder({
@@ -1413,28 +1500,6 @@ module.exports = class TicketManager {
 					.setDescription(getMessage('ticket.close.closed.description')),
 			],
 		});
-		const ticketId = interaction.channel.id;
-		const pending = this.$closeRequests.get(ticketId) || {};
-		this.$closeRequests.delete(ticketId);
-		// Cancel the durable "auto-close if ignored" timeout, then close now.
-		await temporal.cancelCloseRequestTimeout(ticketId);
-		const reopenWindow = Number(ticket.guild.reopenWindow ?? 0);
-		if (reopenWindow > 0) {
-			// Grace window: soft-close now, terminal close when the window expires.
-			await temporal.startReopenWindow({
-				closedBy: pending.closedBy ?? interaction.user.id,
-				guildId: ticket.guildId,
-				reason: pending.reason ?? null,
-				ticketId,
-				windowMs: reopenWindow,
-			});
-		} else {
-			await temporal.startCloseTicket({
-				closedBy: pending.closedBy ?? interaction.user.id,
-				reason: pending.reason ?? null,
-				ticketId,
-			});
-		}
 	}
 
 	/**
@@ -1850,7 +1915,27 @@ module.exports = class TicketManager {
 		lock = false,
 		reason = null,
 	}) {
+		// This runs as a Temporal activity with retries, and it is not naturally
+		// idempotent: a retry would decrement the in-memory category counters a
+		// second time (making a category falsely report itself full), send the
+		// closure DM again, and post a second entry in the log channel.
+		//
+		// Read `open` straight from the database rather than through getTicket(),
+		// whose 3-minute cache would still report the ticket as open for exactly
+		// the fast retries this needs to catch.
+		const current = await this.client.prisma.ticket.findUnique({
+			select: { open: true },
+			where: { id: ticketId },
+		});
+		if (!current) return;
+		if (current.open === false) {
+			this.client.log.info('Ticket %s is already closed; skipping duplicate close', ticketId);
+			return;
+		}
+
 		let ticket = await this.getTicket(ticketId);
+		if (!ticket) return;
+
 		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
 
 		const { _count: { archivedMessages } } = await this.client.prisma.ticket.findUnique({
@@ -1873,11 +1958,16 @@ module.exports = class TicketManager {
 			pendingCloseAt: null,
 		};
 
+		// Falls back to a fetch, matching sendStaleWarning/softClose/reopen. An
+		// archived thread is evicted from the channel cache, so a THREAD or FORUM
+		// ticket that auto-archived before this ran was treated as deleted: its
+		// pinned message ids were never recorded, the "Ticket Archived" embed was
+		// skipped, and the thread link button was omitted from the DM and the log.
 		/** @type {import("discord.js").TextChannel} */
-		const channel = this.client.channels.cache.get(ticketId);
+		const channel = this.client.channels.cache.get(ticketId) || await this.client.channels.fetch(ticketId).catch(() => null);
 		if (channel) {
-			const pinned = await channel.messages.fetchPinned();
-			data.pinnedMessageIds = [...pinned.keys()];
+			const pinned = await channel.messages.fetchPinned().catch(() => null);
+			if (pinned) data.pinnedMessageIds = [...pinned.keys()];
 		}
 
 		try {

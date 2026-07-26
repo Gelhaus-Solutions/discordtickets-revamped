@@ -1,26 +1,42 @@
 'use strict';
 const path = require('path');
 const fs = require('fs');
-// Resolve `transcript-html` from a number of common locations because the
-// running container's current working directory may differ from the repo root.
-const transcriptCandidates = [
-	path.join(__dirname, '../../../../../../lib/tickets/transcript-html.js'),
-	path.join(__dirname, '../../../../lib/tickets/transcript-html.js'),
-	path.join(process.cwd(), 'src', 'lib', 'tickets', 'transcript-html.js'),
-	path.join('/app', 'src', 'lib', 'tickets', 'transcript-html.js'),
-	path.join('/home/container', 'src', 'lib', 'tickets', 'transcript-html.js'),
-];
-let transcriptPath = null;
-for (const p of transcriptCandidates) {
-	if (fs.existsSync(p)) {
-		transcriptPath = p;
-		break;
-	}
+// A plain relative require. `require` resolves against this file's directory,
+// never the working directory, so the previous candidate-path search was
+// unnecessary — and actively harmful: two of its five candidates were at the
+// wrong depth, it only worked via its cwd fallbacks, and a miss was a top-level
+// `throw` at require time that took down the entire HTTP server rather than
+// just this route.
+const { generateHtmlTranscript } = require('../../../../../../../lib/tickets/transcript-html.js');
+
+// Transcripts are HTML built from user-authored Discord messages and served
+// from the same origin as the session cookie. The generator escapes its input,
+// but this is the second line of defence: no scripts at all, images only from
+// Discord's CDN, and nothing may frame or be framed. Applied per-response
+// because the global helmet config leaves CSP off for the SvelteKit dashboard,
+// which needs its own inline hydration scripts.
+const TRANSCRIPT_CSP = [
+	'default-src \'none\'',
+	'img-src \'self\' https://cdn.discordapp.com data:',
+	'style-src \'unsafe-inline\'',
+	'font-src data:',
+	'base-uri \'none\'',
+	'form-action \'none\'',
+	'frame-ancestors \'none\'',
+].join('; ');
+
+/**
+ * Send generated transcript HTML with a restrictive CSP.
+ * @param {import('fastify').FastifyReply} res
+ * @param {string} html
+ */
+function sendTranscript(res, html) {
+	return res
+		.header('Content-Security-Policy', TRANSCRIPT_CSP)
+		.header('X-Content-Type-Options', 'nosniff')
+		.type('text/html; charset=utf-8')
+		.send(html);
 }
-if (!transcriptPath) {
-	throw new Error('transcript-html module not found; checked common locations');
-}
-const { generateHtmlTranscript } = require(transcriptPath);
 
 /**
  * GET /api/admin/guilds/:guild/tickets/:ticket/transcript
@@ -84,7 +100,7 @@ module.exports.get = fastify => ({
 				if (asDownload) {
 					res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
 				}
-				return res.type('text/html; charset=utf-8').send(html);
+				return sendTranscript(res, html);
 			}
 		}
 
@@ -116,7 +132,7 @@ module.exports.get = fastify => ({
 		if (asDownload) {
 			res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
 		}
-		return res.type('text/html; charset=utf-8').send(html);
+		return sendTranscript(res, html);
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],
 });

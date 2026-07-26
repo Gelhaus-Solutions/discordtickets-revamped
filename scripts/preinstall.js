@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 const { randomBytes } = require('crypto');
 const fs = require('fs');
+const { resolve } = require('path');
 const { short } = require('leeks.js');
 
 function log (...strings) {
@@ -42,12 +43,29 @@ const env = {
 	TEMPORAL_TLS_ENABLED: false,
 };
 
+// The .env path must be resolved against the repository, not the working
+// directory. In Docker the cwd is /home/container while the app lives in /app,
+// so a relative './.env' was written somewhere ephemeral — meaning a brand new
+// ENCRYPTION_KEY was generated on every container recreate, permanently
+// orphaning every encrypted ticket topic, close reason, feedback comment and
+// archived message.
+const envPath = resolve(__dirname, '../.env');
+const ephemeral = process.env.DOCKER === 'true' || process.env.PTERODACTYL === 'true';
+
 // check ENCRYPTION_KEY because we don't want to force use of the .env file
-if (!process.env.ENCRYPTION_KEY && !fs.existsSync('./.env')) {
-	log('generating ENCRYPTION_KEY');
-	fs.writeFileSync('./.env', Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n'));
-	log('created .env file');
-	log(short('&r&0&!e WARNING &r &e&lkeep your environment variables safe, don\'t lose your encryption key or you will lose data'));
-} else {
+if (process.env.ENCRYPTION_KEY || fs.existsSync(envPath)) {
 	log('nothing to do');
+} else if (ephemeral) {
+	// Never silently mint a key in a container: it would differ on every
+	// recreate, and the previous one is unrecoverable.
+	console.error(short('&cENCRYPTION_KEY is not set.&r'));
+	console.error('Set it explicitly in your compose file / container environment before starting.');
+	console.error('Generate one with:  openssl rand -hex 24');
+	console.error(short('&e&lIf this instance already has data, you MUST reuse its original key or that data becomes unreadable.&r'));
+	process.exit(1);
+} else {
+	log('generating ENCRYPTION_KEY');
+	fs.writeFileSync(envPath, Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n'));
+	log(`created .env file at ${envPath}`);
+	log(short('&r&0&!e WARNING &r &e&lkeep your environment variables safe, don\'t lose your encryption key or you will lose data'));
 }

@@ -62,9 +62,26 @@ const logger = require('./lib/logger');
 let config = YAML.parse(fs.readFileSync(path.join(__dirname, 'user/config.yml'), 'utf8'));
 let log = logger(config);
 
-function exit(signal) {
+// `client.destroy()` is async — it drains the Temporal worker and disconnects
+// Prisma. Calling process.exit() on the same tick abandoned in-flight
+// activities, which Temporal then had to wait out (up to the 60-minute
+// startToCloseTimeout on export/import) before retrying them elsewhere.
+// The timeout keeps a stuck shutdown from hanging the container forever.
+const SHUTDOWN_TIMEOUT_MS = 20_000;
+let exiting = false;
+
+async function exit(signal) {
+	if (exiting) return;
+	exiting = true;
 	log.notice(`Received ${signal}`);
-	client.destroy();
+	try {
+		await Promise.race([
+			client.destroy(),
+			new Promise(resolve => setTimeout(resolve, SHUTDOWN_TIMEOUT_MS).unref()),
+		]);
+	} catch (error) {
+		log.error(error);
+	}
 	process.exit(0);
 }
 

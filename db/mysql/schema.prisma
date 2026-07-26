@@ -122,9 +122,10 @@ model Guild {
     autoTag            Json       @default("[]")
     archive            Boolean    @default(true)
     blocklist          Json       @default("[]")
-    botAvatar          String?    @db.Text
-    botBio             String?    @db.Text
-    botUsername        String?
+    botAvatar          String?    @db.LongText
+    botBanner          String?    @db.LongText
+    botBio             String?    @db.LongText
+    botUsername        String?    @db.VarChar(255)
     categories         Category[]
     claimButton        Boolean    @default(false)
     closeButton        Boolean    @default(false)

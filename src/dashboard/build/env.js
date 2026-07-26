@@ -16,18 +16,18 @@ const expected = new Set([
 	'SHUTDOWN_TIMEOUT',
 	'IDLE_TIMEOUT',
 	'KEEP_ALIVE_TIMEOUT',
-	'HEADERS_TIMEOUT',
+	'HEADERS_TIMEOUT'
 ]);
 
 const expected_unprefixed = new Set(['LISTEN_PID', 'LISTEN_FDS']);
 
-if ('') {
+if ("") {
 	for (const name in process.env) {
-		if (name.startsWith('')) {
-			const unprefixed = name.slice(''.length);
+		if (name.startsWith("")) {
+			const unprefixed = name.slice("".length);
 			if (!expected.has(unprefixed)) {
 				throw new Error(
-					`You should change envPrefix (${''}) to avoid conflicts with existing environment variables — unexpectedly saw ${name}`,
+					`You should change envPrefix (${""}) to avoid conflicts with existing environment variables — unexpectedly saw ${name}`
 				);
 			}
 		}
@@ -39,7 +39,7 @@ if ('') {
  * @param {any} fallback
  */
 function env(name, fallback) {
-	const prefix = expected_unprefixed.has(name) ? '' : '';
+	const prefix = expected_unprefixed.has(name) ? '' : "";
 	const prefixed = prefix + name;
 	return prefixed in process.env ? process.env[prefixed] : fallback;
 }
@@ -55,7 +55,7 @@ const integer_regexp = /^\d+$/;
  */
 function parsing_error(name, value, description) {
 	throw new Error(
-		`Invalid value for environment variable ${name}: ${JSON.stringify(value)} (${description})`,
+		`Invalid value for environment variable ${name}: ${JSON.stringify(value)} (${description})`
 	);
 }
 
@@ -91,6 +91,4 @@ function timeout_env(name, fallback) {
 	return parsed;
 }
 
-export {
-	env, timeout_env,
-};
+export { env, timeout_env };

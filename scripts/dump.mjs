@@ -14,20 +14,11 @@ let spinner = ora('Connecting').start();
 fse.ensureDirSync(join(process.cwd(), './user/dumps'));
 const file_path = join(process.cwd(), './user/dumps', `${dtf.fill('YYYY-MM-DD-HH-mm-ss')}-db.json`);
 
-const prisma_options = {};
-
-if (process.env.DB_PROVIDER === 'sqlite' && !process.env.DB_CONNECTION_URL) {
-	prisma_options.datasources = { db: { url: 'file:' + join(process.cwd(), './user/database.db') } };
-}
-
-const prisma = new PrismaClient(prisma_options);
-
-if (process.env.DB_PROVIDER === 'sqlite') {
-	const { default: sqliteMiddleware } = await import('../src/lib/middleware/prisma-sqlite.js');
-	prisma.$use(sqliteMiddleware);
-	await prisma.$queryRaw`PRAGMA journal_mode=WAL;`;
-	await prisma.$queryRaw`PRAGMA synchronous=normal;`;
-}
+// SQLite is no longer supported by this fork; the provider-specific branches
+// that used to live here could not run at all (no SQLite Prisma client can be
+// generated). To move a SQLite install across, run this script on the OLD
+// upstream instance and restore the dump here. See MIGRATING.md.
+const prisma = new PrismaClient();
 
 spinner.succeed('Connected');
 

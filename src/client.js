@@ -4,6 +4,7 @@ const {
 	Partials,
 } = require('discord.js');
 const logger = require('./lib/logger');
+const { setLogger: setThreadsLogger } = require('./lib/threads');
 const { PrismaClient } = require('@prisma/client');
 const Keyv = require('keyv');
 const I18n = require('@eartharoid/i18n');
@@ -11,7 +12,6 @@ const fs = require('fs');
 const { join } = require('path');
 const YAML = require('yaml');
 const TicketManager = require('./lib/tickets/manager');
-const runMigrations = require('./lib/migrate');
 const temporal = require('./lib/temporal');
 const ms = require('ms');
 
@@ -63,6 +63,10 @@ module.exports = class Client extends FrameworkClient {
 		// to maintain references, these shouldn't be reassigned
 		Object.assign(this.config, YAML.parse(fs.readFileSync('./user/config.yml', 'utf8')));
 		Object.assign(this.log, logger(this.config));
+
+		// Worker-pool diagnostics default to the console, which never reaches the
+		// configured log files. Hand them the real logger now that it exists.
+		setThreadsLogger(this.log);
 
 		this.banned_guilds = new Set(
 			(() => {
@@ -129,14 +133,12 @@ module.exports = class Client extends FrameworkClient {
 		this.prisma.$on('warn', e => this.log.warn.prisma(`${e.target} ${e.message}`));
 		this.prisma.$on('query', e => this.log.debug.prisma(e));
 
-		// Run database migrations
-		try {
-			await runMigrations(this);
-		} catch (error) {
-			this.log.error(`Failed to run migrations: ${error.message}`);
-			process.exit(1);
-		}
-
+		// Migrations are applied by scripts/postinstall.js before the process
+		// starts, which fails the boot if they don't succeed. There used to be a
+		// second runner here, but it resolved `prisma/schema.prisma` relative to
+		// the working directory — `/home/container` in Docker, where the schema
+		// lives at `/app` — so it silently skipped, and its catch-all swallowed
+		// every real failure anyway.
 		return super.login(token);
 	}
 

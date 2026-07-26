@@ -1,9 +1,15 @@
-const fastify = require('fastify')({ trustProxy: process.env.HTTP_TRUST_PROXY === 'true' });
+const fastify = require('fastify')({
+	// The customization endpoint accepts avatars/banners as base64 data URIs,
+	// which are ~4/3 the size of the source image. Fastify's 1 MiB default
+	// rejected anything over ~768 KiB before the handler ever ran.
+	bodyLimit: 8 * 1024 * 1024,
+	trustProxy: process.env.HTTP_TRUST_PROXY === 'true',
+});
 const { short } = require('leeks.js');
 const { join } = require('path');
 const { existsSync } = require('fs');
 const { pathToFileURL } = require('url');
-const { files } = require('node-dir');
+const { collectRouteFiles } = require('./lib/routes');
 const { getPrivilegeLevel } = require('./lib/users');
 const { format } = require('util');
 const { hkdfSync } = require('crypto');
@@ -27,27 +33,33 @@ function resolveJwtSecret(client) {
 }
 
 module.exports = async client => {
+	// These registrations are `await`ed rather than fire-and-forget because
+	// @fastify/rate-limit installs its limiter from an `onRoute` hook. An
+	// unawaited `register()` is only queued with avvio and doesn't boot until
+	// `listen()` — long after the route-loading block below — so the hook never
+	// fired for a single route and the limiter was a no-op on the whole app.
+
 	// for file uploads
-	fastify.register(require('@fastify/multipart'), { limits: { fileSize: 2 ** 27 } }); // 128 MiB
+	await fastify.register(require('@fastify/multipart'), { limits: { fileSize: 2 ** 27 } }); // 128 MiB
 
 	// cookies plugin, must be registered before oauth2 since oauth2@7.2.0
-	fastify.register(require('@fastify/cookie'));
+	await fastify.register(require('@fastify/cookie'));
 
 	// security headers
-	fastify.register(require('@fastify/helmet'), {
+	await fastify.register(require('@fastify/helmet'), {
 		// Allow inline styles/scripts the SvelteKit dashboard build needs;
 		// this can be tightened once the dashboard ships hashes/nonces.
 		contentSecurityPolicy: false,
 	});
 
 	// rate limiting (defense-in-depth; per-route stricter limits below)
-	fastify.register(require('@fastify/rate-limit'), {
+	await fastify.register(require('@fastify/rate-limit'), {
 		max: 300,
 		timeWindow: '1 minute',
 	});
 
 	// jwt plugin (separate secret from data encryption, see V13)
-	fastify.register(require('@fastify/jwt'), {
+	await fastify.register(require('@fastify/jwt'), {
 		cookie: {
 			cookieName: 'token',
 			signed: false,
@@ -201,11 +213,7 @@ module.exports = async client => {
 
 	// route loading
 	const dir = join(__dirname, '/routes');
-	files(dir, {
-		exclude: /^\./,
-		match: /.js$/,
-		sync: true,
-	}).forEach(file => {
+	collectRouteFiles(dir).forEach(file => {
 		const path = file
 			.substring(0, file.length - 3) // remove `.js`
 			.substring(dir.length) // remove higher directories

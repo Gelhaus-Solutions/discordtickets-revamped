@@ -56,13 +56,33 @@ async function getLogChannel(client, guildId) {
 }
 
 /**
+ * Write an admin audit entry, never throwing.
+ *
+ * Every call site fires this without awaiting, so an unhandled rejection here
+ * (a member who has since left, a deleted log channel, a Discord hiccup) would
+ * surface as a process-level unhandled rejection rather than a failed log line.
  * @param {import("client")} client
  * @param {object} details
  * @param {string} details.guildId
  * @param {string} details.userId
  * @param {string} details.action
 */
-async function logAdminEvent(client, {
+async function logAdminEvent(client, details) {
+	try {
+		return await sendAdminEventLog(client, details);
+	} catch (error) {
+		client.log.warn('Failed to write admin log for guild %s: %s', details?.guildId, error?.message ?? error);
+	}
+}
+
+/**
+ * @param {import("client")} client
+ * @param {object} details
+ * @param {string} details.guildId
+ * @param {string} details.userId
+ * @param {string} details.action
+*/
+async function sendAdminEventLog(client, {
 	guildId, userId, action, target, diff,
 }) {
 	const settings = await client.prisma.guild.findUnique({

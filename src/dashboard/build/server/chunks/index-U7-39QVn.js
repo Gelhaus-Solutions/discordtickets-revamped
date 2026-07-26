@@ -1,19 +1,15 @@
 import { g as getDefaultExportFromCjs } from './_commonjsHelpers-BFTU3MAI.js';
 
-const lib$2 = { exports: {} };
+var lib$2 = {exports: {}};
 
-let lib$1;
-let hasRequiredLib$2;
+var lib$1;
+var hasRequiredLib$2;
 
 function requireLib$2 () {
 	if (hasRequiredLib$2) return lib$1;
 	hasRequiredLib$2 = 1;
 
-	const _typeof = typeof Symbol === 'function' && typeof Symbol.iterator === 'symbol' ? function (obj) {
-		return typeof obj;
-	} : function (obj) {
-		return obj && typeof Symbol === 'function' && obj.constructor === Symbol && obj !== Symbol.prototype ? 'symbol' : typeof obj;
-	};
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 	/**
 	 * iterateObject
@@ -26,7 +22,7 @@ function requireLib$2 () {
 	 * @return {Function} The `iterateObject` function.
 	 */
 	function iterateObject(obj, fn) {
-	    let i = 0,
+	    var i = 0,
 	        keys = [];
 
 	    if (Array.isArray(obj)) {
@@ -35,7 +31,7 @@ function requireLib$2 () {
 	                break;
 	            }
 	        }
-	    } else if ((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) === 'object' && obj !== null) {
+	    } else if ((typeof obj === "undefined" ? "undefined" : _typeof(obj)) === "object" && obj !== null) {
 	        keys = Object.keys(obj);
 	        for (; i < keys.length; ++i) {
 	            if (fn(obj[keys[i]], keys[i], obj) === false) {
@@ -49,15 +45,15 @@ function requireLib$2 () {
 	return lib$1;
 }
 
-let lib;
-let hasRequiredLib$1;
+var lib;
+var hasRequiredLib$1;
 
 function requireLib$1 () {
 	if (hasRequiredLib$1) return lib;
 	hasRequiredLib$1 = 1;
 
 	// Dependencies
-	const iterateObject = requireLib$2();
+	var iterateObject = requireLib$2();
 
 	/**
 	 * mapObject
@@ -72,8 +68,8 @@ function requireLib$1 () {
 	 * @return {Object} The modified object.
 	 */
 	function mapObject(obj, fn, clone) {
-	    const dst = clone === true ? {} : clone ? clone : obj;
-	    iterateObject(obj, (v, n, o) => {
+	    var dst = clone === true ? {} : clone ? clone : obj;
+	    iterateObject(obj, function (v, n, o) {
 	        dst[n] = fn(v, n, o);
 	    });
 	    return dst;
@@ -83,17318 +79,17318 @@ function requireLib$1 () {
 	return lib;
 }
 
-const grinning = {
+var grinning = {
 	keywords: [
-		'face',
-		'smile',
-		'happy',
-		'joy',
-		':D',
-		'grin',
+		"face",
+		"smile",
+		"happy",
+		"joy",
+		":D",
+		"grin"
 	],
-	char: '😀',
+	char: "😀",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const grimacing = {
+var grimacing = {
 	keywords: [
-		'face',
-		'grimace',
-		'teeth',
+		"face",
+		"grimace",
+		"teeth"
 	],
-	char: '😬',
+	char: "😬",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const grin = {
+var grin = {
 	keywords: [
-		'face',
-		'happy',
-		'smile',
-		'joy',
-		'kawaii',
+		"face",
+		"happy",
+		"smile",
+		"joy",
+		"kawaii"
 	],
-	char: '😁',
+	char: "😁",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const joy = {
+var joy = {
 	keywords: [
-		'face',
-		'cry',
-		'tears',
-		'weep',
-		'happy',
-		'happytears',
-		'haha',
+		"face",
+		"cry",
+		"tears",
+		"weep",
+		"happy",
+		"happytears",
+		"haha"
 	],
-	char: '😂',
+	char: "😂",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const rofl = {
+var rofl = {
 	keywords: [
-		'face',
-		'rolling',
-		'floor',
-		'laughing',
-		'lol',
-		'haha',
+		"face",
+		"rolling",
+		"floor",
+		"laughing",
+		"lol",
+		"haha"
 	],
-	char: '🤣',
+	char: "🤣",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const partying = {
+var partying = {
 	keywords: [
-		'face',
-		'celebration',
-		'woohoo',
+		"face",
+		"celebration",
+		"woohoo"
 	],
-	char: '🥳',
+	char: "🥳",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smiley = {
+var smiley = {
 	keywords: [
-		'face',
-		'happy',
-		'joy',
-		'haha',
-		':D',
-		':)',
-		'smile',
-		'funny',
+		"face",
+		"happy",
+		"joy",
+		"haha",
+		":D",
+		":)",
+		"smile",
+		"funny"
 	],
-	char: '😃',
+	char: "😃",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smile = {
+var smile = {
 	keywords: [
-		'face',
-		'happy',
-		'joy',
-		'funny',
-		'haha',
-		'laugh',
-		'like',
-		':D',
-		':)',
+		"face",
+		"happy",
+		"joy",
+		"funny",
+		"haha",
+		"laugh",
+		"like",
+		":D",
+		":)"
 	],
-	char: '😄',
+	char: "😄",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sweat_smile = {
+var sweat_smile = {
 	keywords: [
-		'face',
-		'hot',
-		'happy',
-		'laugh',
-		'sweat',
-		'smile',
-		'relief',
+		"face",
+		"hot",
+		"happy",
+		"laugh",
+		"sweat",
+		"smile",
+		"relief"
 	],
-	char: '😅',
+	char: "😅",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const laughing = {
+var laughing = {
 	keywords: [
-		'happy',
-		'joy',
-		'lol',
-		'satisfied',
-		'haha',
-		'face',
-		'glad',
-		'XD',
-		'laugh',
+		"happy",
+		"joy",
+		"lol",
+		"satisfied",
+		"haha",
+		"face",
+		"glad",
+		"XD",
+		"laugh"
 	],
-	char: '😆',
+	char: "😆",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const innocent = {
+var innocent = {
 	keywords: [
-		'face',
-		'angel',
-		'heaven',
-		'halo',
+		"face",
+		"angel",
+		"heaven",
+		"halo"
 	],
-	char: '😇',
+	char: "😇",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const wink = {
+var wink = {
 	keywords: [
-		'face',
-		'happy',
-		'mischievous',
-		'secret',
-		';)',
-		'smile',
-		'eye',
+		"face",
+		"happy",
+		"mischievous",
+		"secret",
+		";)",
+		"smile",
+		"eye"
 	],
-	char: '😉',
+	char: "😉",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const blush = {
+var blush = {
 	keywords: [
-		'face',
-		'smile',
-		'happy',
-		'flushed',
-		'crush',
-		'embarrassed',
-		'shy',
-		'joy',
+		"face",
+		"smile",
+		"happy",
+		"flushed",
+		"crush",
+		"embarrassed",
+		"shy",
+		"joy"
 	],
-	char: '😊',
+	char: "😊",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const slightly_smiling_face = {
+var slightly_smiling_face = {
 	keywords: [
-		'face',
-		'smile',
+		"face",
+		"smile"
 	],
-	char: '🙂',
+	char: "🙂",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const upside_down_face = {
+var upside_down_face = {
 	keywords: [
-		'face',
-		'flipped',
-		'silly',
-		'smile',
+		"face",
+		"flipped",
+		"silly",
+		"smile"
 	],
-	char: '🙃',
+	char: "🙃",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const relaxed = {
+var relaxed = {
 	keywords: [
-		'face',
-		'blush',
-		'massage',
-		'happiness',
+		"face",
+		"blush",
+		"massage",
+		"happiness"
 	],
-	char: '☺️',
+	char: "☺️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const yum = {
+var yum = {
 	keywords: [
-		'happy',
-		'joy',
-		'tongue',
-		'smile',
-		'face',
-		'silly',
-		'yummy',
-		'nom',
-		'delicious',
-		'savouring',
+		"happy",
+		"joy",
+		"tongue",
+		"smile",
+		"face",
+		"silly",
+		"yummy",
+		"nom",
+		"delicious",
+		"savouring"
 	],
-	char: '😋',
+	char: "😋",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const relieved = {
+var relieved = {
 	keywords: [
-		'face',
-		'relaxed',
-		'phew',
-		'massage',
-		'happiness',
+		"face",
+		"relaxed",
+		"phew",
+		"massage",
+		"happiness"
 	],
-	char: '😌',
+	char: "😌",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const heart_eyes = {
+var heart_eyes = {
 	keywords: [
-		'face',
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'infatuation',
-		'crush',
-		'heart',
+		"face",
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"infatuation",
+		"crush",
+		"heart"
 	],
-	char: '😍',
+	char: "😍",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smiling_face_with_three_hearts = {
+var smiling_face_with_three_hearts = {
 	keywords: [
-		'face',
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'infatuation',
-		'crush',
-		'hearts',
-		'adore',
+		"face",
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"infatuation",
+		"crush",
+		"hearts",
+		"adore"
 	],
-	char: '🥰',
+	char: "🥰",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kissing_heart = {
+var kissing_heart = {
 	keywords: [
-		'face',
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'infatuation',
-		'kiss',
+		"face",
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"infatuation",
+		"kiss"
 	],
-	char: '😘',
+	char: "😘",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kissing = {
+var kissing = {
 	keywords: [
-		'love',
-		'like',
-		'face',
-		'3',
-		'valentines',
-		'infatuation',
-		'kiss',
+		"love",
+		"like",
+		"face",
+		"3",
+		"valentines",
+		"infatuation",
+		"kiss"
 	],
-	char: '😗',
+	char: "😗",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kissing_smiling_eyes = {
+var kissing_smiling_eyes = {
 	keywords: [
-		'face',
-		'affection',
-		'valentines',
-		'infatuation',
-		'kiss',
+		"face",
+		"affection",
+		"valentines",
+		"infatuation",
+		"kiss"
 	],
-	char: '😙',
+	char: "😙",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kissing_closed_eyes = {
+var kissing_closed_eyes = {
 	keywords: [
-		'face',
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'infatuation',
-		'kiss',
+		"face",
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"infatuation",
+		"kiss"
 	],
-	char: '😚',
+	char: "😚",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const stuck_out_tongue_winking_eye = {
+var stuck_out_tongue_winking_eye = {
 	keywords: [
-		'face',
-		'prank',
-		'childish',
-		'playful',
-		'mischievous',
-		'smile',
-		'wink',
-		'tongue',
+		"face",
+		"prank",
+		"childish",
+		"playful",
+		"mischievous",
+		"smile",
+		"wink",
+		"tongue"
 	],
-	char: '😜',
+	char: "😜",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const zany = {
+var zany = {
 	keywords: [
-		'face',
-		'goofy',
-		'crazy',
+		"face",
+		"goofy",
+		"crazy"
 	],
-	char: '🤪',
+	char: "🤪",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const raised_eyebrow = {
+var raised_eyebrow = {
 	keywords: [
-		'face',
-		'distrust',
-		'scepticism',
-		'disapproval',
-		'disbelief',
-		'surprise',
+		"face",
+		"distrust",
+		"scepticism",
+		"disapproval",
+		"disbelief",
+		"surprise"
 	],
-	char: '🤨',
+	char: "🤨",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const monocle = {
+var monocle = {
 	keywords: [
-		'face',
-		'stuffy',
-		'wealthy',
+		"face",
+		"stuffy",
+		"wealthy"
 	],
-	char: '🧐',
+	char: "🧐",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const stuck_out_tongue_closed_eyes = {
+var stuck_out_tongue_closed_eyes = {
 	keywords: [
-		'face',
-		'prank',
-		'playful',
-		'mischievous',
-		'smile',
-		'tongue',
+		"face",
+		"prank",
+		"playful",
+		"mischievous",
+		"smile",
+		"tongue"
 	],
-	char: '😝',
+	char: "😝",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const stuck_out_tongue = {
+var stuck_out_tongue = {
 	keywords: [
-		'face',
-		'prank',
-		'childish',
-		'playful',
-		'mischievous',
-		'smile',
-		'tongue',
+		"face",
+		"prank",
+		"childish",
+		"playful",
+		"mischievous",
+		"smile",
+		"tongue"
 	],
-	char: '😛',
+	char: "😛",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const money_mouth_face = {
+var money_mouth_face = {
 	keywords: [
-		'face',
-		'rich',
-		'dollar',
-		'money',
+		"face",
+		"rich",
+		"dollar",
+		"money"
 	],
-	char: '🤑',
+	char: "🤑",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const nerd_face = {
+var nerd_face = {
 	keywords: [
-		'face',
-		'nerdy',
-		'geek',
-		'dork',
+		"face",
+		"nerdy",
+		"geek",
+		"dork"
 	],
-	char: '🤓',
+	char: "🤓",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sunglasses = {
+var sunglasses = {
 	keywords: [
-		'face',
-		'cool',
-		'smile',
-		'summer',
-		'beach',
-		'sunglass',
+		"face",
+		"cool",
+		"smile",
+		"summer",
+		"beach",
+		"sunglass"
 	],
-	char: '😎',
+	char: "😎",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const star_struck = {
+var star_struck = {
 	keywords: [
-		'face',
-		'smile',
-		'starry',
-		'eyes',
-		'grinning',
+		"face",
+		"smile",
+		"starry",
+		"eyes",
+		"grinning"
 	],
-	char: '🤩',
+	char: "🤩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const clown_face = {
+var clown_face = {
 	keywords: [
-		'face',
+		"face"
 	],
-	char: '🤡',
+	char: "🤡",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const cowboy_hat_face = {
+var cowboy_hat_face = {
 	keywords: [
-		'face',
-		'cowgirl',
-		'hat',
+		"face",
+		"cowgirl",
+		"hat"
 	],
-	char: '🤠',
+	char: "🤠",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const hugs = {
+var hugs = {
 	keywords: [
-		'face',
-		'smile',
-		'hug',
+		"face",
+		"smile",
+		"hug"
 	],
-	char: '🤗',
+	char: "🤗",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smirk = {
+var smirk = {
 	keywords: [
-		'face',
-		'smile',
-		'mean',
-		'prank',
-		'smug',
-		'sarcasm',
+		"face",
+		"smile",
+		"mean",
+		"prank",
+		"smug",
+		"sarcasm"
 	],
-	char: '😏',
+	char: "😏",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const no_mouth = {
+var no_mouth = {
 	keywords: [
-		'face',
-		'hellokitty',
+		"face",
+		"hellokitty"
 	],
-	char: '😶',
+	char: "😶",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const neutral_face = {
+var neutral_face = {
 	keywords: [
-		'indifference',
-		'meh',
-		':|',
-		'neutral',
+		"indifference",
+		"meh",
+		":|",
+		"neutral"
 	],
-	char: '😐',
+	char: "😐",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const expressionless = {
+var expressionless = {
 	keywords: [
-		'face',
-		'indifferent',
-		'-_-',
-		'meh',
-		'deadpan',
+		"face",
+		"indifferent",
+		"-_-",
+		"meh",
+		"deadpan"
 	],
-	char: '😑',
+	char: "😑",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const unamused = {
+var unamused = {
 	keywords: [
-		'indifference',
-		'bored',
-		'straight face',
-		'serious',
-		'sarcasm',
-		'unimpressed',
-		'skeptical',
-		'dubious',
-		'side_eye',
+		"indifference",
+		"bored",
+		"straight face",
+		"serious",
+		"sarcasm",
+		"unimpressed",
+		"skeptical",
+		"dubious",
+		"side_eye"
 	],
-	char: '😒',
+	char: "😒",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const roll_eyes = {
+var roll_eyes = {
 	keywords: [
-		'face',
-		'eyeroll',
-		'frustrated',
+		"face",
+		"eyeroll",
+		"frustrated"
 	],
-	char: '🙄',
+	char: "🙄",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const thinking = {
+var thinking = {
 	keywords: [
-		'face',
-		'hmmm',
-		'think',
-		'consider',
+		"face",
+		"hmmm",
+		"think",
+		"consider"
 	],
-	char: '🤔',
+	char: "🤔",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const lying_face = {
+var lying_face = {
 	keywords: [
-		'face',
-		'lie',
-		'pinocchio',
+		"face",
+		"lie",
+		"pinocchio"
 	],
-	char: '🤥',
+	char: "🤥",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const hand_over_mouth = {
+var hand_over_mouth = {
 	keywords: [
-		'face',
-		'whoops',
-		'shock',
-		'surprise',
+		"face",
+		"whoops",
+		"shock",
+		"surprise"
 	],
-	char: '🤭',
+	char: "🤭",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const shushing = {
+var shushing = {
 	keywords: [
-		'face',
-		'quiet',
-		'shhh',
+		"face",
+		"quiet",
+		"shhh"
 	],
-	char: '🤫',
+	char: "🤫",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const symbols_over_mouth = {
+var symbols_over_mouth = {
 	keywords: [
-		'face',
-		'swearing',
-		'cursing',
-		'cussing',
-		'profanity',
-		'expletive',
+		"face",
+		"swearing",
+		"cursing",
+		"cussing",
+		"profanity",
+		"expletive"
 	],
-	char: '🤬',
+	char: "🤬",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const exploding_head = {
+var exploding_head = {
 	keywords: [
-		'face',
-		'shocked',
-		'mind',
-		'blown',
+		"face",
+		"shocked",
+		"mind",
+		"blown"
 	],
-	char: '🤯',
+	char: "🤯",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const flushed = {
+var flushed = {
 	keywords: [
-		'face',
-		'blush',
-		'shy',
-		'flattered',
+		"face",
+		"blush",
+		"shy",
+		"flattered"
 	],
-	char: '😳',
+	char: "😳",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const disappointed = {
+var disappointed = {
 	keywords: [
-		'face',
-		'sad',
-		'upset',
-		'depressed',
-		':(',
+		"face",
+		"sad",
+		"upset",
+		"depressed",
+		":("
 	],
-	char: '😞',
+	char: "😞",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const worried = {
+var worried = {
 	keywords: [
-		'face',
-		'concern',
-		'nervous',
-		':(',
+		"face",
+		"concern",
+		"nervous",
+		":("
 	],
-	char: '😟',
+	char: "😟",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const angry = {
+var angry = {
 	keywords: [
-		'mad',
-		'face',
-		'annoyed',
-		'frustrated',
+		"mad",
+		"face",
+		"annoyed",
+		"frustrated"
 	],
-	char: '😠',
+	char: "😠",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const rage = {
+var rage = {
 	keywords: [
-		'angry',
-		'mad',
-		'hate',
-		'despise',
+		"angry",
+		"mad",
+		"hate",
+		"despise"
 	],
-	char: '😡',
+	char: "😡",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const pensive = {
+var pensive = {
 	keywords: [
-		'face',
-		'sad',
-		'depressed',
-		'upset',
+		"face",
+		"sad",
+		"depressed",
+		"upset"
 	],
-	char: '😔',
+	char: "😔",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const confused = {
+var confused = {
 	keywords: [
-		'face',
-		'indifference',
-		'huh',
-		'weird',
-		'hmmm',
-		':/',
+		"face",
+		"indifference",
+		"huh",
+		"weird",
+		"hmmm",
+		":/"
 	],
-	char: '😕',
+	char: "😕",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const slightly_frowning_face = {
+var slightly_frowning_face = {
 	keywords: [
-		'face',
-		'frowning',
-		'disappointed',
-		'sad',
-		'upset',
+		"face",
+		"frowning",
+		"disappointed",
+		"sad",
+		"upset"
 	],
-	char: '🙁',
+	char: "🙁",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const frowning_face = {
+var frowning_face = {
 	keywords: [
-		'face',
-		'sad',
-		'upset',
-		'frown',
+		"face",
+		"sad",
+		"upset",
+		"frown"
 	],
-	char: '☹',
+	char: "☹",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const persevere = {
+var persevere = {
 	keywords: [
-		'face',
-		'sick',
-		'no',
-		'upset',
-		'oops',
+		"face",
+		"sick",
+		"no",
+		"upset",
+		"oops"
 	],
-	char: '😣',
+	char: "😣",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const confounded = {
+var confounded = {
 	keywords: [
-		'face',
-		'confused',
-		'sick',
-		'unwell',
-		'oops',
-		':S',
+		"face",
+		"confused",
+		"sick",
+		"unwell",
+		"oops",
+		":S"
 	],
-	char: '😖',
+	char: "😖",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const tired_face = {
+var tired_face = {
 	keywords: [
-		'sick',
-		'whine',
-		'upset',
-		'frustrated',
+		"sick",
+		"whine",
+		"upset",
+		"frustrated"
 	],
-	char: '😫',
+	char: "😫",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const weary = {
+var weary = {
 	keywords: [
-		'face',
-		'tired',
-		'sleepy',
-		'sad',
-		'frustrated',
-		'upset',
+		"face",
+		"tired",
+		"sleepy",
+		"sad",
+		"frustrated",
+		"upset"
 	],
-	char: '😩',
+	char: "😩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const pleading = {
+var pleading = {
 	keywords: [
-		'face',
-		'begging',
-		'mercy',
+		"face",
+		"begging",
+		"mercy"
 	],
-	char: '🥺',
+	char: "🥺",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const triumph = {
+var triumph = {
 	keywords: [
-		'face',
-		'gas',
-		'phew',
-		'proud',
-		'pride',
+		"face",
+		"gas",
+		"phew",
+		"proud",
+		"pride"
 	],
-	char: '😤',
+	char: "😤",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const open_mouth = {
+var open_mouth = {
 	keywords: [
-		'face',
-		'surprise',
-		'impressed',
-		'wow',
-		'whoa',
-		':O',
+		"face",
+		"surprise",
+		"impressed",
+		"wow",
+		"whoa",
+		":O"
 	],
-	char: '😮',
+	char: "😮",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const scream = {
+var scream = {
 	keywords: [
-		'face',
-		'munch',
-		'scared',
-		'omg',
+		"face",
+		"munch",
+		"scared",
+		"omg"
 	],
-	char: '😱',
+	char: "😱",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const fearful = {
+var fearful = {
 	keywords: [
-		'face',
-		'scared',
-		'terrified',
-		'nervous',
-		'oops',
-		'huh',
+		"face",
+		"scared",
+		"terrified",
+		"nervous",
+		"oops",
+		"huh"
 	],
-	char: '😨',
+	char: "😨",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const cold_sweat = {
+var cold_sweat = {
 	keywords: [
-		'face',
-		'nervous',
-		'sweat',
+		"face",
+		"nervous",
+		"sweat"
 	],
-	char: '😰',
+	char: "😰",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const hushed = {
+var hushed = {
 	keywords: [
-		'face',
-		'woo',
-		'shh',
+		"face",
+		"woo",
+		"shh"
 	],
-	char: '😯',
+	char: "😯",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const frowning = {
+var frowning = {
 	keywords: [
-		'face',
-		'aw',
-		'what',
+		"face",
+		"aw",
+		"what"
 	],
-	char: '😦',
+	char: "😦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const anguished = {
+var anguished = {
 	keywords: [
-		'face',
-		'stunned',
-		'nervous',
+		"face",
+		"stunned",
+		"nervous"
 	],
-	char: '😧',
+	char: "😧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const cry = {
+var cry = {
 	keywords: [
-		'face',
-		'tears',
-		'sad',
-		'depressed',
-		'upset',
-		':\'(',
+		"face",
+		"tears",
+		"sad",
+		"depressed",
+		"upset",
+		":'("
 	],
-	char: '😢',
+	char: "😢",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const disappointed_relieved = {
+var disappointed_relieved = {
 	keywords: [
-		'face',
-		'phew',
-		'sweat',
-		'nervous',
+		"face",
+		"phew",
+		"sweat",
+		"nervous"
 	],
-	char: '😥',
+	char: "😥",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const drooling_face = {
+var drooling_face = {
 	keywords: [
-		'face',
+		"face"
 	],
-	char: '🤤',
+	char: "🤤",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sleepy = {
+var sleepy = {
 	keywords: [
-		'face',
-		'tired',
-		'rest',
-		'nap',
+		"face",
+		"tired",
+		"rest",
+		"nap"
 	],
-	char: '😪',
+	char: "😪",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sweat = {
+var sweat = {
 	keywords: [
-		'face',
-		'hot',
-		'sad',
-		'tired',
-		'exercise',
+		"face",
+		"hot",
+		"sad",
+		"tired",
+		"exercise"
 	],
-	char: '😓',
+	char: "😓",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const hot = {
+var hot = {
 	keywords: [
-		'face',
-		'feverish',
-		'heat',
-		'red',
-		'sweating',
+		"face",
+		"feverish",
+		"heat",
+		"red",
+		"sweating"
 	],
-	char: '🥵',
+	char: "🥵",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const cold = {
+var cold = {
 	keywords: [
-		'face',
-		'blue',
-		'freezing',
-		'frozen',
-		'frostbite',
-		'icicles',
+		"face",
+		"blue",
+		"freezing",
+		"frozen",
+		"frostbite",
+		"icicles"
 	],
-	char: '🥶',
+	char: "🥶",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sob = {
+var sob = {
 	keywords: [
-		'face',
-		'cry',
-		'tears',
-		'sad',
-		'upset',
-		'depressed',
+		"face",
+		"cry",
+		"tears",
+		"sad",
+		"upset",
+		"depressed"
 	],
-	char: '😭',
+	char: "😭",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const dizzy_face = {
+var dizzy_face = {
 	keywords: [
-		'spent',
-		'unconscious',
-		'xox',
-		'dizzy',
+		"spent",
+		"unconscious",
+		"xox",
+		"dizzy"
 	],
-	char: '😵',
+	char: "😵",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const astonished = {
+var astonished = {
 	keywords: [
-		'face',
-		'xox',
-		'surprised',
-		'poisoned',
+		"face",
+		"xox",
+		"surprised",
+		"poisoned"
 	],
-	char: '😲',
+	char: "😲",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const zipper_mouth_face = {
+var zipper_mouth_face = {
 	keywords: [
-		'face',
-		'sealed',
-		'zipper',
-		'secret',
+		"face",
+		"sealed",
+		"zipper",
+		"secret"
 	],
-	char: '🤐',
+	char: "🤐",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const nauseated_face = {
+var nauseated_face = {
 	keywords: [
-		'face',
-		'vomit',
-		'gross',
-		'green',
-		'sick',
-		'throw up',
-		'ill',
+		"face",
+		"vomit",
+		"gross",
+		"green",
+		"sick",
+		"throw up",
+		"ill"
 	],
-	char: '🤢',
+	char: "🤢",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sneezing_face = {
+var sneezing_face = {
 	keywords: [
-		'face',
-		'gesundheit',
-		'sneeze',
-		'sick',
-		'allergy',
+		"face",
+		"gesundheit",
+		"sneeze",
+		"sick",
+		"allergy"
 	],
-	char: '🤧',
+	char: "🤧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const vomiting = {
+var vomiting = {
 	keywords: [
-		'face',
-		'sick',
+		"face",
+		"sick"
 	],
-	char: '🤮',
+	char: "🤮",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const mask = {
+var mask = {
 	keywords: [
-		'face',
-		'sick',
-		'ill',
-		'disease',
+		"face",
+		"sick",
+		"ill",
+		"disease"
 	],
-	char: '😷',
+	char: "😷",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const face_with_thermometer = {
+var face_with_thermometer = {
 	keywords: [
-		'sick',
-		'temperature',
-		'thermometer',
-		'cold',
-		'fever',
+		"sick",
+		"temperature",
+		"thermometer",
+		"cold",
+		"fever"
 	],
-	char: '🤒',
+	char: "🤒",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const face_with_head_bandage = {
+var face_with_head_bandage = {
 	keywords: [
-		'injured',
-		'clumsy',
-		'bandage',
-		'hurt',
+		"injured",
+		"clumsy",
+		"bandage",
+		"hurt"
 	],
-	char: '🤕',
+	char: "🤕",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const woozy = {
+var woozy = {
 	keywords: [
-		'face',
-		'dizzy',
-		'intoxicated',
-		'tipsy',
-		'wavy',
+		"face",
+		"dizzy",
+		"intoxicated",
+		"tipsy",
+		"wavy"
 	],
-	char: '🥴',
+	char: "🥴",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sleeping = {
+var sleeping = {
 	keywords: [
-		'face',
-		'tired',
-		'sleepy',
-		'night',
-		'zzz',
+		"face",
+		"tired",
+		"sleepy",
+		"night",
+		"zzz"
 	],
-	char: '😴',
+	char: "😴",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const zzz = {
+var zzz = {
 	keywords: [
-		'sleepy',
-		'tired',
-		'dream',
+		"sleepy",
+		"tired",
+		"dream"
 	],
-	char: '💤',
+	char: "💤",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const poop = {
+var poop = {
 	keywords: [
-		'hankey',
-		'shitface',
-		'fail',
-		'turd',
-		'shit',
+		"hankey",
+		"shitface",
+		"fail",
+		"turd",
+		"shit"
 	],
-	char: '💩',
+	char: "💩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smiling_imp = {
+var smiling_imp = {
 	keywords: [
-		'devil',
-		'horns',
+		"devil",
+		"horns"
 	],
-	char: '😈',
+	char: "😈",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const imp = {
+var imp = {
 	keywords: [
-		'devil',
-		'angry',
-		'horns',
+		"devil",
+		"angry",
+		"horns"
 	],
-	char: '👿',
+	char: "👿",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const japanese_ogre = {
+var japanese_ogre = {
 	keywords: [
-		'monster',
-		'red',
-		'mask',
-		'halloween',
-		'scary',
-		'creepy',
-		'devil',
-		'demon',
-		'japanese',
-		'ogre',
+		"monster",
+		"red",
+		"mask",
+		"halloween",
+		"scary",
+		"creepy",
+		"devil",
+		"demon",
+		"japanese",
+		"ogre"
 	],
-	char: '👹',
+	char: "👹",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const japanese_goblin = {
+var japanese_goblin = {
 	keywords: [
-		'red',
-		'evil',
-		'mask',
-		'monster',
-		'scary',
-		'creepy',
-		'japanese',
-		'goblin',
+		"red",
+		"evil",
+		"mask",
+		"monster",
+		"scary",
+		"creepy",
+		"japanese",
+		"goblin"
 	],
-	char: '👺',
+	char: "👺",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const skull = {
+var skull = {
 	keywords: [
-		'dead',
-		'skeleton',
-		'creepy',
-		'death',
+		"dead",
+		"skeleton",
+		"creepy",
+		"death"
 	],
-	char: '💀',
+	char: "💀",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const ghost = {
+var ghost = {
 	keywords: [
-		'halloween',
-		'spooky',
-		'scary',
+		"halloween",
+		"spooky",
+		"scary"
 	],
-	char: '👻',
+	char: "👻",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const alien = {
+var alien = {
 	keywords: [
-		'UFO',
-		'paul',
-		'weird',
-		'outer_space',
+		"UFO",
+		"paul",
+		"weird",
+		"outer_space"
 	],
-	char: '👽',
+	char: "👽",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const robot = {
+var robot = {
 	keywords: [
-		'computer',
-		'machine',
-		'bot',
+		"computer",
+		"machine",
+		"bot"
 	],
-	char: '🤖',
+	char: "🤖",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smiley_cat = {
+var smiley_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'happy',
-		'smile',
+		"animal",
+		"cats",
+		"happy",
+		"smile"
 	],
-	char: '😺',
+	char: "😺",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smile_cat = {
+var smile_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'smile',
+		"animal",
+		"cats",
+		"smile"
 	],
-	char: '😸',
+	char: "😸",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const joy_cat = {
+var joy_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'haha',
-		'happy',
-		'tears',
+		"animal",
+		"cats",
+		"haha",
+		"happy",
+		"tears"
 	],
-	char: '😹',
+	char: "😹",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const heart_eyes_cat = {
+var heart_eyes_cat = {
 	keywords: [
-		'animal',
-		'love',
-		'like',
-		'affection',
-		'cats',
-		'valentines',
-		'heart',
+		"animal",
+		"love",
+		"like",
+		"affection",
+		"cats",
+		"valentines",
+		"heart"
 	],
-	char: '😻',
+	char: "😻",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const smirk_cat = {
+var smirk_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'smirk',
+		"animal",
+		"cats",
+		"smirk"
 	],
-	char: '😼',
+	char: "😼",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kissing_cat = {
+var kissing_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'kiss',
+		"animal",
+		"cats",
+		"kiss"
 	],
-	char: '😽',
+	char: "😽",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const scream_cat = {
+var scream_cat = {
 	keywords: [
-		'animal',
-		'cats',
-		'munch',
-		'scared',
-		'scream',
+		"animal",
+		"cats",
+		"munch",
+		"scared",
+		"scream"
 	],
-	char: '🙀',
+	char: "🙀",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const crying_cat_face = {
+var crying_cat_face = {
 	keywords: [
-		'animal',
-		'tears',
-		'weep',
-		'sad',
-		'cats',
-		'upset',
-		'cry',
+		"animal",
+		"tears",
+		"weep",
+		"sad",
+		"cats",
+		"upset",
+		"cry"
 	],
-	char: '😿',
+	char: "😿",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const pouting_cat = {
+var pouting_cat = {
 	keywords: [
-		'animal',
-		'cats',
+		"animal",
+		"cats"
 	],
-	char: '😾',
+	char: "😾",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const palms_up = {
+var palms_up = {
 	keywords: [
-		'hands',
-		'gesture',
-		'cupped',
-		'prayer',
+		"hands",
+		"gesture",
+		"cupped",
+		"prayer"
 	],
-	char: '🤲',
+	char: "🤲",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raised_hands = {
+var raised_hands = {
 	keywords: [
-		'gesture',
-		'hooray',
-		'yea',
-		'celebration',
-		'hands',
+		"gesture",
+		"hooray",
+		"yea",
+		"celebration",
+		"hands"
 	],
-	char: '🙌',
+	char: "🙌",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const clap = {
+var clap = {
 	keywords: [
-		'hands',
-		'praise',
-		'applause',
-		'congrats',
-		'yay',
+		"hands",
+		"praise",
+		"applause",
+		"congrats",
+		"yay"
 	],
-	char: '👏',
+	char: "👏",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const wave = {
+var wave = {
 	keywords: [
-		'hands',
-		'gesture',
-		'goodbye',
-		'solong',
-		'farewell',
-		'hello',
-		'hi',
-		'palm',
+		"hands",
+		"gesture",
+		"goodbye",
+		"solong",
+		"farewell",
+		"hello",
+		"hi",
+		"palm"
 	],
-	char: '👋',
+	char: "👋",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const call_me_hand = {
+var call_me_hand = {
 	keywords: [
-		'hands',
-		'gesture',
+		"hands",
+		"gesture"
 	],
-	char: '🤙',
+	char: "🤙",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const facepunch = {
+var facepunch = {
 	keywords: [
-		'angry',
-		'violence',
-		'fist',
-		'hit',
-		'attack',
-		'hand',
+		"angry",
+		"violence",
+		"fist",
+		"hit",
+		"attack",
+		"hand"
 	],
-	char: '👊',
+	char: "👊",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const fist = {
+var fist = {
 	keywords: [
-		'fingers',
-		'hand',
-		'grasp',
+		"fingers",
+		"hand",
+		"grasp"
 	],
-	char: '✊',
+	char: "✊",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const fist_left = {
+var fist_left = {
 	keywords: [
-		'hand',
-		'fistbump',
+		"hand",
+		"fistbump"
 	],
-	char: '🤛',
+	char: "🤛",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const fist_right = {
+var fist_right = {
 	keywords: [
-		'hand',
-		'fistbump',
+		"hand",
+		"fistbump"
 	],
-	char: '🤜',
+	char: "🤜",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const v = {
+var v = {
 	keywords: [
-		'fingers',
-		'ohyeah',
-		'hand',
-		'peace',
-		'victory',
-		'two',
+		"fingers",
+		"ohyeah",
+		"hand",
+		"peace",
+		"victory",
+		"two"
 	],
-	char: '✌',
+	char: "✌",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const ok_hand = {
+var ok_hand = {
 	keywords: [
-		'fingers',
-		'limbs',
-		'perfect',
-		'ok',
-		'okay',
+		"fingers",
+		"limbs",
+		"perfect",
+		"ok",
+		"okay"
 	],
-	char: '👌',
+	char: "👌",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raised_hand = {
+var raised_hand = {
 	keywords: [
-		'fingers',
-		'stop',
-		'highfive',
-		'palm',
-		'ban',
+		"fingers",
+		"stop",
+		"highfive",
+		"palm",
+		"ban"
 	],
-	char: '✋',
+	char: "✋",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raised_back_of_hand = {
+var raised_back_of_hand = {
 	keywords: [
-		'fingers',
-		'raised',
-		'backhand',
+		"fingers",
+		"raised",
+		"backhand"
 	],
-	char: '🤚',
+	char: "🤚",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const open_hands = {
+var open_hands = {
 	keywords: [
-		'fingers',
-		'butterfly',
-		'hands',
-		'open',
+		"fingers",
+		"butterfly",
+		"hands",
+		"open"
 	],
-	char: '👐',
+	char: "👐",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const muscle = {
+var muscle = {
 	keywords: [
-		'arm',
-		'flex',
-		'hand',
-		'summer',
-		'strong',
-		'biceps',
+		"arm",
+		"flex",
+		"hand",
+		"summer",
+		"strong",
+		"biceps"
 	],
-	char: '💪',
+	char: "💪",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const pray = {
+var pray = {
 	keywords: [
-		'please',
-		'hope',
-		'wish',
-		'namaste',
-		'highfive',
+		"please",
+		"hope",
+		"wish",
+		"namaste",
+		"highfive"
 	],
-	char: '🙏',
+	char: "🙏",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const foot = {
+var foot = {
 	keywords: [
-		'kick',
-		'stomp',
+		"kick",
+		"stomp"
 	],
-	char: '🦶',
+	char: "🦶",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const leg = {
+var leg = {
 	keywords: [
-		'kick',
-		'limb',
+		"kick",
+		"limb"
 	],
-	char: '🦵',
+	char: "🦵",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const handshake = {
+var handshake = {
 	keywords: [
-		'agreement',
-		'shake',
+		"agreement",
+		"shake"
 	],
-	char: '🤝',
+	char: "🤝",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const point_up = {
+var point_up = {
 	keywords: [
-		'hand',
-		'fingers',
-		'direction',
-		'up',
+		"hand",
+		"fingers",
+		"direction",
+		"up"
 	],
-	char: '☝',
+	char: "☝",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const point_up_2 = {
+var point_up_2 = {
 	keywords: [
-		'fingers',
-		'hand',
-		'direction',
-		'up',
+		"fingers",
+		"hand",
+		"direction",
+		"up"
 	],
-	char: '👆',
+	char: "👆",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const point_down = {
+var point_down = {
 	keywords: [
-		'fingers',
-		'hand',
-		'direction',
-		'down',
+		"fingers",
+		"hand",
+		"direction",
+		"down"
 	],
-	char: '👇',
+	char: "👇",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const point_left = {
+var point_left = {
 	keywords: [
-		'direction',
-		'fingers',
-		'hand',
-		'left',
+		"direction",
+		"fingers",
+		"hand",
+		"left"
 	],
-	char: '👈',
+	char: "👈",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const point_right = {
+var point_right = {
 	keywords: [
-		'fingers',
-		'hand',
-		'direction',
-		'right',
+		"fingers",
+		"hand",
+		"direction",
+		"right"
 	],
-	char: '👉',
+	char: "👉",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const fu = {
+var fu = {
 	keywords: [
-		'hand',
-		'fingers',
-		'rude',
-		'middle',
-		'flipping',
+		"hand",
+		"fingers",
+		"rude",
+		"middle",
+		"flipping"
 	],
-	char: '🖕',
+	char: "🖕",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raised_hand_with_fingers_splayed = {
+var raised_hand_with_fingers_splayed = {
 	keywords: [
-		'hand',
-		'fingers',
-		'palm',
+		"hand",
+		"fingers",
+		"palm"
 	],
-	char: '🖐',
+	char: "🖐",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const love_you = {
+var love_you = {
 	keywords: [
-		'hand',
-		'fingers',
-		'gesture',
+		"hand",
+		"fingers",
+		"gesture"
 	],
-	char: '🤟',
+	char: "🤟",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const metal = {
+var metal = {
 	keywords: [
-		'hand',
-		'fingers',
-		'evil_eye',
-		'sign_of_horns',
-		'rock_on',
+		"hand",
+		"fingers",
+		"evil_eye",
+		"sign_of_horns",
+		"rock_on"
 	],
-	char: '🤘',
+	char: "🤘",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const crossed_fingers = {
+var crossed_fingers = {
 	keywords: [
-		'good',
-		'lucky',
+		"good",
+		"lucky"
 	],
-	char: '🤞',
+	char: "🤞",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const vulcan_salute = {
+var vulcan_salute = {
 	keywords: [
-		'hand',
-		'fingers',
-		'spock',
-		'star trek',
+		"hand",
+		"fingers",
+		"spock",
+		"star trek"
 	],
-	char: '🖖',
+	char: "🖖",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const writing_hand = {
+var writing_hand = {
 	keywords: [
-		'lower_left_ballpoint_pen',
-		'stationery',
-		'write',
-		'compose',
+		"lower_left_ballpoint_pen",
+		"stationery",
+		"write",
+		"compose"
 	],
-	char: '✍',
+	char: "✍",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const selfie = {
+var selfie = {
 	keywords: [
-		'camera',
-		'phone',
+		"camera",
+		"phone"
 	],
-	char: '🤳',
+	char: "🤳",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const nail_care = {
+var nail_care = {
 	keywords: [
-		'beauty',
-		'manicure',
-		'finger',
-		'fashion',
-		'nail',
+		"beauty",
+		"manicure",
+		"finger",
+		"fashion",
+		"nail"
 	],
-	char: '💅',
+	char: "💅",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const lips = {
+var lips = {
 	keywords: [
-		'mouth',
-		'kiss',
+		"mouth",
+		"kiss"
 	],
-	char: '👄',
+	char: "👄",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const tooth = {
+var tooth = {
 	keywords: [
-		'teeth',
-		'dentist',
+		"teeth",
+		"dentist"
 	],
-	char: '🦷',
+	char: "🦷",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const tongue = {
+var tongue = {
 	keywords: [
-		'mouth',
-		'playful',
+		"mouth",
+		"playful"
 	],
-	char: '👅',
+	char: "👅",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const ear = {
+var ear = {
 	keywords: [
-		'face',
-		'hear',
-		'sound',
-		'listen',
+		"face",
+		"hear",
+		"sound",
+		"listen"
 	],
-	char: '👂',
+	char: "👂",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const nose = {
+var nose = {
 	keywords: [
-		'smell',
-		'sniff',
+		"smell",
+		"sniff"
 	],
-	char: '👃',
+	char: "👃",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const eye = {
+var eye = {
 	keywords: [
-		'face',
-		'look',
-		'see',
-		'watch',
-		'stare',
+		"face",
+		"look",
+		"see",
+		"watch",
+		"stare"
 	],
-	char: '👁',
+	char: "👁",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const eyes = {
+var eyes = {
 	keywords: [
-		'look',
-		'watch',
-		'stalk',
-		'peek',
-		'see',
+		"look",
+		"watch",
+		"stalk",
+		"peek",
+		"see"
 	],
-	char: '👀',
+	char: "👀",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const brain = {
+var brain = {
 	keywords: [
-		'smart',
-		'intelligent',
+		"smart",
+		"intelligent"
 	],
-	char: '🧠',
+	char: "🧠",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const bust_in_silhouette = {
+var bust_in_silhouette = {
 	keywords: [
-		'user',
-		'person',
-		'human',
+		"user",
+		"person",
+		"human"
 	],
-	char: '👤',
+	char: "👤",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const busts_in_silhouette = {
+var busts_in_silhouette = {
 	keywords: [
-		'user',
-		'person',
-		'human',
-		'group',
-		'team',
+		"user",
+		"person",
+		"human",
+		"group",
+		"team"
 	],
-	char: '👥',
+	char: "👥",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const speaking_head = {
+var speaking_head = {
 	keywords: [
-		'user',
-		'person',
-		'human',
-		'sing',
-		'say',
-		'talk',
+		"user",
+		"person",
+		"human",
+		"sing",
+		"say",
+		"talk"
 	],
-	char: '🗣',
+	char: "🗣",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const baby = {
+var baby = {
 	keywords: [
-		'child',
-		'boy',
-		'girl',
-		'toddler',
+		"child",
+		"boy",
+		"girl",
+		"toddler"
 	],
-	char: '👶',
+	char: "👶",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const child = {
+var child = {
 	keywords: [
-		'gender-neutral',
-		'young',
+		"gender-neutral",
+		"young"
 	],
-	char: '🧒',
+	char: "🧒",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const boy = {
+var boy = {
 	keywords: [
-		'man',
-		'male',
-		'guy',
-		'teenager',
+		"man",
+		"male",
+		"guy",
+		"teenager"
 	],
-	char: '👦',
+	char: "👦",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const girl = {
+var girl = {
 	keywords: [
-		'female',
-		'woman',
-		'teenager',
+		"female",
+		"woman",
+		"teenager"
 	],
-	char: '👧',
+	char: "👧",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const adult = {
+var adult = {
 	keywords: [
-		'gender-neutral',
-		'person',
+		"gender-neutral",
+		"person"
 	],
-	char: '🧑',
+	char: "🧑",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man = {
+var man = {
 	keywords: [
-		'mustache',
-		'father',
-		'dad',
-		'guy',
-		'classy',
-		'sir',
-		'moustache',
+		"mustache",
+		"father",
+		"dad",
+		"guy",
+		"classy",
+		"sir",
+		"moustache"
 	],
-	char: '👨',
+	char: "👨",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman = {
+var woman = {
 	keywords: [
-		'female',
-		'girls',
-		'lady',
+		"female",
+		"girls",
+		"lady"
 	],
-	char: '👩',
+	char: "👩",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const blonde_woman = {
+var blonde_woman = {
 	keywords: [
-		'woman',
-		'female',
-		'girl',
-		'blonde',
-		'person',
+		"woman",
+		"female",
+		"girl",
+		"blonde",
+		"person"
 	],
-	char: '👱‍♀️',
+	char: "👱‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const blonde_man = {
+var blonde_man = {
 	keywords: [
-		'man',
-		'male',
-		'boy',
-		'blonde',
-		'guy',
-		'person',
+		"man",
+		"male",
+		"boy",
+		"blonde",
+		"guy",
+		"person"
 	],
-	char: '👱',
+	char: "👱",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const bearded_person = {
+var bearded_person = {
 	keywords: [
-		'person',
-		'bewhiskered',
+		"person",
+		"bewhiskered"
 	],
-	char: '🧔',
+	char: "🧔",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const older_adult = {
+var older_adult = {
 	keywords: [
-		'human',
-		'elder',
-		'senior',
-		'gender-neutral',
+		"human",
+		"elder",
+		"senior",
+		"gender-neutral"
 	],
-	char: '🧓',
+	char: "🧓",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const older_man = {
+var older_man = {
 	keywords: [
-		'human',
-		'male',
-		'men',
-		'old',
-		'elder',
-		'senior',
+		"human",
+		"male",
+		"men",
+		"old",
+		"elder",
+		"senior"
 	],
-	char: '👴',
+	char: "👴",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const older_woman = {
+var older_woman = {
 	keywords: [
-		'human',
-		'female',
-		'women',
-		'lady',
-		'old',
-		'elder',
-		'senior',
+		"human",
+		"female",
+		"women",
+		"lady",
+		"old",
+		"elder",
+		"senior"
 	],
-	char: '👵',
+	char: "👵",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_with_gua_pi_mao = {
+var man_with_gua_pi_mao = {
 	keywords: [
-		'male',
-		'boy',
-		'chinese',
+		"male",
+		"boy",
+		"chinese"
 	],
-	char: '👲',
+	char: "👲",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_with_headscarf = {
+var woman_with_headscarf = {
 	keywords: [
-		'female',
-		'hijab',
-		'mantilla',
-		'tichel',
+		"female",
+		"hijab",
+		"mantilla",
+		"tichel"
 	],
-	char: '🧕',
+	char: "🧕",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_with_turban = {
+var woman_with_turban = {
 	keywords: [
-		'female',
-		'indian',
-		'hinduism',
-		'arabs',
-		'woman',
+		"female",
+		"indian",
+		"hinduism",
+		"arabs",
+		"woman"
 	],
-	char: '👳‍♀️',
+	char: "👳‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_with_turban = {
+var man_with_turban = {
 	keywords: [
-		'male',
-		'indian',
-		'hinduism',
-		'arabs',
+		"male",
+		"indian",
+		"hinduism",
+		"arabs"
 	],
-	char: '👳',
+	char: "👳",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const policewoman = {
+var policewoman = {
 	keywords: [
-		'woman',
-		'police',
-		'law',
-		'legal',
-		'enforcement',
-		'arrest',
-		'911',
-		'female',
+		"woman",
+		"police",
+		"law",
+		"legal",
+		"enforcement",
+		"arrest",
+		"911",
+		"female"
 	],
-	char: '👮‍♀️',
+	char: "👮‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const policeman = {
+var policeman = {
 	keywords: [
-		'man',
-		'police',
-		'law',
-		'legal',
-		'enforcement',
-		'arrest',
-		'911',
+		"man",
+		"police",
+		"law",
+		"legal",
+		"enforcement",
+		"arrest",
+		"911"
 	],
-	char: '👮',
+	char: "👮",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const construction_worker_woman = {
+var construction_worker_woman = {
 	keywords: [
-		'female',
-		'human',
-		'wip',
-		'build',
-		'construction',
-		'worker',
-		'labor',
-		'woman',
+		"female",
+		"human",
+		"wip",
+		"build",
+		"construction",
+		"worker",
+		"labor",
+		"woman"
 	],
-	char: '👷‍♀️',
+	char: "👷‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const construction_worker_man = {
+var construction_worker_man = {
 	keywords: [
-		'male',
-		'human',
-		'wip',
-		'guy',
-		'build',
-		'construction',
-		'worker',
-		'labor',
+		"male",
+		"human",
+		"wip",
+		"guy",
+		"build",
+		"construction",
+		"worker",
+		"labor"
 	],
-	char: '👷',
+	char: "👷",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const guardswoman = {
+var guardswoman = {
 	keywords: [
-		'uk',
-		'gb',
-		'british',
-		'female',
-		'royal',
-		'woman',
+		"uk",
+		"gb",
+		"british",
+		"female",
+		"royal",
+		"woman"
 	],
-	char: '💂‍♀️',
+	char: "💂‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const guardsman = {
+var guardsman = {
 	keywords: [
-		'uk',
-		'gb',
-		'british',
-		'male',
-		'guy',
-		'royal',
+		"uk",
+		"gb",
+		"british",
+		"male",
+		"guy",
+		"royal"
 	],
-	char: '💂',
+	char: "💂",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const female_detective = {
+var female_detective = {
 	keywords: [
-		'human',
-		'spy',
-		'detective',
-		'female',
-		'woman',
+		"human",
+		"spy",
+		"detective",
+		"female",
+		"woman"
 	],
-	char: '🕵️‍♀️',
+	char: "🕵️‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const male_detective = {
+var male_detective = {
 	keywords: [
-		'human',
-		'spy',
-		'detective',
+		"human",
+		"spy",
+		"detective"
 	],
-	char: '🕵',
+	char: "🕵",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_health_worker = {
+var woman_health_worker = {
 	keywords: [
-		'doctor',
-		'nurse',
-		'therapist',
-		'healthcare',
-		'woman',
-		'human',
+		"doctor",
+		"nurse",
+		"therapist",
+		"healthcare",
+		"woman",
+		"human"
 	],
-	char: '👩‍⚕️',
+	char: "👩‍⚕️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_health_worker = {
+var man_health_worker = {
 	keywords: [
-		'doctor',
-		'nurse',
-		'therapist',
-		'healthcare',
-		'man',
-		'human',
+		"doctor",
+		"nurse",
+		"therapist",
+		"healthcare",
+		"man",
+		"human"
 	],
-	char: '👨‍⚕️',
+	char: "👨‍⚕️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_farmer = {
+var woman_farmer = {
 	keywords: [
-		'rancher',
-		'gardener',
-		'woman',
-		'human',
+		"rancher",
+		"gardener",
+		"woman",
+		"human"
 	],
-	char: '👩‍🌾',
+	char: "👩‍🌾",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_farmer = {
+var man_farmer = {
 	keywords: [
-		'rancher',
-		'gardener',
-		'man',
-		'human',
+		"rancher",
+		"gardener",
+		"man",
+		"human"
 	],
-	char: '👨‍🌾',
+	char: "👨‍🌾",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_cook = {
+var woman_cook = {
 	keywords: [
-		'chef',
-		'woman',
-		'human',
+		"chef",
+		"woman",
+		"human"
 	],
-	char: '👩‍🍳',
+	char: "👩‍🍳",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_cook = {
+var man_cook = {
 	keywords: [
-		'chef',
-		'man',
-		'human',
+		"chef",
+		"man",
+		"human"
 	],
-	char: '👨‍🍳',
+	char: "👨‍🍳",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_student = {
+var woman_student = {
 	keywords: [
-		'graduate',
-		'woman',
-		'human',
+		"graduate",
+		"woman",
+		"human"
 	],
-	char: '👩‍🎓',
+	char: "👩‍🎓",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_student = {
+var man_student = {
 	keywords: [
-		'graduate',
-		'man',
-		'human',
+		"graduate",
+		"man",
+		"human"
 	],
-	char: '👨‍🎓',
+	char: "👨‍🎓",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_singer = {
+var woman_singer = {
 	keywords: [
-		'rockstar',
-		'entertainer',
-		'woman',
-		'human',
+		"rockstar",
+		"entertainer",
+		"woman",
+		"human"
 	],
-	char: '👩‍🎤',
+	char: "👩‍🎤",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_singer = {
+var man_singer = {
 	keywords: [
-		'rockstar',
-		'entertainer',
-		'man',
-		'human',
+		"rockstar",
+		"entertainer",
+		"man",
+		"human"
 	],
-	char: '👨‍🎤',
+	char: "👨‍🎤",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_teacher = {
+var woman_teacher = {
 	keywords: [
-		'instructor',
-		'professor',
-		'woman',
-		'human',
+		"instructor",
+		"professor",
+		"woman",
+		"human"
 	],
-	char: '👩‍🏫',
+	char: "👩‍🏫",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_teacher = {
+var man_teacher = {
 	keywords: [
-		'instructor',
-		'professor',
-		'man',
-		'human',
+		"instructor",
+		"professor",
+		"man",
+		"human"
 	],
-	char: '👨‍🏫',
+	char: "👨‍🏫",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_factory_worker = {
+var woman_factory_worker = {
 	keywords: [
-		'assembly',
-		'industrial',
-		'woman',
-		'human',
+		"assembly",
+		"industrial",
+		"woman",
+		"human"
 	],
-	char: '👩‍🏭',
+	char: "👩‍🏭",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_factory_worker = {
+var man_factory_worker = {
 	keywords: [
-		'assembly',
-		'industrial',
-		'man',
-		'human',
+		"assembly",
+		"industrial",
+		"man",
+		"human"
 	],
-	char: '👨‍🏭',
+	char: "👨‍🏭",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_technologist = {
+var woman_technologist = {
 	keywords: [
-		'coder',
-		'developer',
-		'engineer',
-		'programmer',
-		'software',
-		'woman',
-		'human',
-		'laptop',
-		'computer',
+		"coder",
+		"developer",
+		"engineer",
+		"programmer",
+		"software",
+		"woman",
+		"human",
+		"laptop",
+		"computer"
 	],
-	char: '👩‍💻',
+	char: "👩‍💻",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_technologist = {
+var man_technologist = {
 	keywords: [
-		'coder',
-		'developer',
-		'engineer',
-		'programmer',
-		'software',
-		'man',
-		'human',
-		'laptop',
-		'computer',
+		"coder",
+		"developer",
+		"engineer",
+		"programmer",
+		"software",
+		"man",
+		"human",
+		"laptop",
+		"computer"
 	],
-	char: '👨‍💻',
+	char: "👨‍💻",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_office_worker = {
+var woman_office_worker = {
 	keywords: [
-		'business',
-		'manager',
-		'woman',
-		'human',
+		"business",
+		"manager",
+		"woman",
+		"human"
 	],
-	char: '👩‍💼',
+	char: "👩‍💼",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_office_worker = {
+var man_office_worker = {
 	keywords: [
-		'business',
-		'manager',
-		'man',
-		'human',
+		"business",
+		"manager",
+		"man",
+		"human"
 	],
-	char: '👨‍💼',
+	char: "👨‍💼",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_mechanic = {
+var woman_mechanic = {
 	keywords: [
-		'plumber',
-		'woman',
-		'human',
-		'wrench',
+		"plumber",
+		"woman",
+		"human",
+		"wrench"
 	],
-	char: '👩‍🔧',
+	char: "👩‍🔧",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_mechanic = {
+var man_mechanic = {
 	keywords: [
-		'plumber',
-		'man',
-		'human',
-		'wrench',
+		"plumber",
+		"man",
+		"human",
+		"wrench"
 	],
-	char: '👨‍🔧',
+	char: "👨‍🔧",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_scientist = {
+var woman_scientist = {
 	keywords: [
-		'biologist',
-		'chemist',
-		'engineer',
-		'physicist',
-		'woman',
-		'human',
+		"biologist",
+		"chemist",
+		"engineer",
+		"physicist",
+		"woman",
+		"human"
 	],
-	char: '👩‍🔬',
+	char: "👩‍🔬",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_scientist = {
+var man_scientist = {
 	keywords: [
-		'biologist',
-		'chemist',
-		'engineer',
-		'physicist',
-		'man',
-		'human',
+		"biologist",
+		"chemist",
+		"engineer",
+		"physicist",
+		"man",
+		"human"
 	],
-	char: '👨‍🔬',
+	char: "👨‍🔬",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_artist = {
+var woman_artist = {
 	keywords: [
-		'painter',
-		'woman',
-		'human',
+		"painter",
+		"woman",
+		"human"
 	],
-	char: '👩‍🎨',
+	char: "👩‍🎨",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_artist = {
+var man_artist = {
 	keywords: [
-		'painter',
-		'man',
-		'human',
+		"painter",
+		"man",
+		"human"
 	],
-	char: '👨‍🎨',
+	char: "👨‍🎨",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_firefighter = {
+var woman_firefighter = {
 	keywords: [
-		'fireman',
-		'woman',
-		'human',
+		"fireman",
+		"woman",
+		"human"
 	],
-	char: '👩‍🚒',
+	char: "👩‍🚒",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_firefighter = {
+var man_firefighter = {
 	keywords: [
-		'fireman',
-		'man',
-		'human',
+		"fireman",
+		"man",
+		"human"
 	],
-	char: '👨‍🚒',
+	char: "👨‍🚒",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_pilot = {
+var woman_pilot = {
 	keywords: [
-		'aviator',
-		'plane',
-		'woman',
-		'human',
+		"aviator",
+		"plane",
+		"woman",
+		"human"
 	],
-	char: '👩‍✈️',
+	char: "👩‍✈️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_pilot = {
+var man_pilot = {
 	keywords: [
-		'aviator',
-		'plane',
-		'man',
-		'human',
+		"aviator",
+		"plane",
+		"man",
+		"human"
 	],
-	char: '👨‍✈️',
+	char: "👨‍✈️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_astronaut = {
+var woman_astronaut = {
 	keywords: [
-		'space',
-		'rocket',
-		'woman',
-		'human',
+		"space",
+		"rocket",
+		"woman",
+		"human"
 	],
-	char: '👩‍🚀',
+	char: "👩‍🚀",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_astronaut = {
+var man_astronaut = {
 	keywords: [
-		'space',
-		'rocket',
-		'man',
-		'human',
+		"space",
+		"rocket",
+		"man",
+		"human"
 	],
-	char: '👨‍🚀',
+	char: "👨‍🚀",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_judge = {
+var woman_judge = {
 	keywords: [
-		'justice',
-		'court',
-		'woman',
-		'human',
+		"justice",
+		"court",
+		"woman",
+		"human"
 	],
-	char: '👩‍⚖️',
+	char: "👩‍⚖️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_judge = {
+var man_judge = {
 	keywords: [
-		'justice',
-		'court',
-		'man',
-		'human',
+		"justice",
+		"court",
+		"man",
+		"human"
 	],
-	char: '👨‍⚖️',
+	char: "👨‍⚖️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_superhero = {
+var woman_superhero = {
 	keywords: [
-		'woman',
-		'female',
-		'good',
-		'heroine',
-		'superpowers',
+		"woman",
+		"female",
+		"good",
+		"heroine",
+		"superpowers"
 	],
-	char: '🦸‍♀️',
+	char: "🦸‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_superhero = {
+var man_superhero = {
 	keywords: [
-		'man',
-		'male',
-		'good',
-		'hero',
-		'superpowers',
+		"man",
+		"male",
+		"good",
+		"hero",
+		"superpowers"
 	],
-	char: '🦸‍♂️',
+	char: "🦸‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_supervillain = {
+var woman_supervillain = {
 	keywords: [
-		'woman',
-		'female',
-		'evil',
-		'bad',
-		'criminal',
-		'heroine',
-		'superpowers',
+		"woman",
+		"female",
+		"evil",
+		"bad",
+		"criminal",
+		"heroine",
+		"superpowers"
 	],
-	char: '🦹‍♀️',
+	char: "🦹‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_supervillain = {
+var man_supervillain = {
 	keywords: [
-		'man',
-		'male',
-		'evil',
-		'bad',
-		'criminal',
-		'hero',
-		'superpowers',
+		"man",
+		"male",
+		"evil",
+		"bad",
+		"criminal",
+		"hero",
+		"superpowers"
 	],
-	char: '🦹‍♂️',
+	char: "🦹‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const mrs_claus = {
+var mrs_claus = {
 	keywords: [
-		'woman',
-		'female',
-		'xmas',
-		'mother christmas',
+		"woman",
+		"female",
+		"xmas",
+		"mother christmas"
 	],
-	char: '🤶',
+	char: "🤶",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const santa = {
+var santa = {
 	keywords: [
-		'festival',
-		'man',
-		'male',
-		'xmas',
-		'father christmas',
+		"festival",
+		"man",
+		"male",
+		"xmas",
+		"father christmas"
 	],
-	char: '🎅',
+	char: "🎅",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const sorceress = {
+var sorceress = {
 	keywords: [
-		'woman',
-		'female',
-		'mage',
-		'witch',
+		"woman",
+		"female",
+		"mage",
+		"witch"
 	],
-	char: '🧙‍♀️',
+	char: "🧙‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const wizard = {
+var wizard = {
 	keywords: [
-		'man',
-		'male',
-		'mage',
-		'sorcerer',
+		"man",
+		"male",
+		"mage",
+		"sorcerer"
 	],
-	char: '🧙‍♂️',
+	char: "🧙‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_elf = {
+var woman_elf = {
 	keywords: [
-		'woman',
-		'female',
+		"woman",
+		"female"
 	],
-	char: '🧝‍♀️',
+	char: "🧝‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_elf = {
+var man_elf = {
 	keywords: [
-		'man',
-		'male',
+		"man",
+		"male"
 	],
-	char: '🧝‍♂️',
+	char: "🧝‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_vampire = {
+var woman_vampire = {
 	keywords: [
-		'woman',
-		'female',
+		"woman",
+		"female"
 	],
-	char: '🧛‍♀️',
+	char: "🧛‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_vampire = {
+var man_vampire = {
 	keywords: [
-		'man',
-		'male',
-		'dracula',
+		"man",
+		"male",
+		"dracula"
 	],
-	char: '🧛‍♂️',
+	char: "🧛‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_zombie = {
+var woman_zombie = {
 	keywords: [
-		'woman',
-		'female',
-		'undead',
-		'walking dead',
+		"woman",
+		"female",
+		"undead",
+		"walking dead"
 	],
-	char: '🧟‍♀️',
+	char: "🧟‍♀️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const man_zombie = {
+var man_zombie = {
 	keywords: [
-		'man',
-		'male',
-		'dracula',
-		'undead',
-		'walking dead',
+		"man",
+		"male",
+		"dracula",
+		"undead",
+		"walking dead"
 	],
-	char: '🧟‍♂️',
+	char: "🧟‍♂️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const woman_genie = {
+var woman_genie = {
 	keywords: [
-		'woman',
-		'female',
+		"woman",
+		"female"
 	],
-	char: '🧞‍♀️',
+	char: "🧞‍♀️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const man_genie = {
+var man_genie = {
 	keywords: [
-		'man',
-		'male',
+		"man",
+		"male"
 	],
-	char: '🧞‍♂️',
+	char: "🧞‍♂️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const mermaid = {
+var mermaid = {
 	keywords: [
-		'woman',
-		'female',
-		'merwoman',
-		'ariel',
+		"woman",
+		"female",
+		"merwoman",
+		"ariel"
 	],
-	char: '🧜‍♀️',
+	char: "🧜‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const merman = {
+var merman = {
 	keywords: [
-		'man',
-		'male',
-		'triton',
+		"man",
+		"male",
+		"triton"
 	],
-	char: '🧜‍♂️',
+	char: "🧜‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_fairy = {
+var woman_fairy = {
 	keywords: [
-		'woman',
-		'female',
+		"woman",
+		"female"
 	],
-	char: '🧚‍♀️',
+	char: "🧚‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_fairy = {
+var man_fairy = {
 	keywords: [
-		'man',
-		'male',
+		"man",
+		"male"
 	],
-	char: '🧚‍♂️',
+	char: "🧚‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const angel = {
+var angel = {
 	keywords: [
-		'heaven',
-		'wings',
-		'halo',
+		"heaven",
+		"wings",
+		"halo"
 	],
-	char: '👼',
+	char: "👼",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const pregnant_woman = {
+var pregnant_woman = {
 	keywords: [
-		'baby',
+		"baby"
 	],
-	char: '🤰',
+	char: "🤰",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const breastfeeding = {
+var breastfeeding = {
 	keywords: [
-		'nursing',
-		'baby',
+		"nursing",
+		"baby"
 	],
-	char: '🤱',
+	char: "🤱",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const princess = {
+var princess = {
 	keywords: [
-		'girl',
-		'woman',
-		'female',
-		'blond',
-		'crown',
-		'royal',
-		'queen',
+		"girl",
+		"woman",
+		"female",
+		"blond",
+		"crown",
+		"royal",
+		"queen"
 	],
-	char: '👸',
+	char: "👸",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const prince = {
+var prince = {
 	keywords: [
-		'boy',
-		'man',
-		'male',
-		'crown',
-		'royal',
-		'king',
+		"boy",
+		"man",
+		"male",
+		"crown",
+		"royal",
+		"king"
 	],
-	char: '🤴',
+	char: "🤴",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const bride_with_veil = {
+var bride_with_veil = {
 	keywords: [
-		'couple',
-		'marriage',
-		'wedding',
-		'woman',
-		'bride',
+		"couple",
+		"marriage",
+		"wedding",
+		"woman",
+		"bride"
 	],
-	char: '👰',
+	char: "👰",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_in_tuxedo = {
+var man_in_tuxedo = {
 	keywords: [
-		'couple',
-		'marriage',
-		'wedding',
-		'groom',
+		"couple",
+		"marriage",
+		"wedding",
+		"groom"
 	],
-	char: '🤵',
+	char: "🤵",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const running_woman = {
+var running_woman = {
 	keywords: [
-		'woman',
-		'walking',
-		'exercise',
-		'race',
-		'running',
-		'female',
+		"woman",
+		"walking",
+		"exercise",
+		"race",
+		"running",
+		"female"
 	],
-	char: '🏃‍♀️',
+	char: "🏃‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const running_man = {
+var running_man = {
 	keywords: [
-		'man',
-		'walking',
-		'exercise',
-		'race',
-		'running',
+		"man",
+		"walking",
+		"exercise",
+		"race",
+		"running"
 	],
-	char: '🏃',
+	char: "🏃",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const walking_woman = {
+var walking_woman = {
 	keywords: [
-		'human',
-		'feet',
-		'steps',
-		'woman',
-		'female',
+		"human",
+		"feet",
+		"steps",
+		"woman",
+		"female"
 	],
-	char: '🚶‍♀️',
+	char: "🚶‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const walking_man = {
+var walking_man = {
 	keywords: [
-		'human',
-		'feet',
-		'steps',
+		"human",
+		"feet",
+		"steps"
 	],
-	char: '🚶',
+	char: "🚶",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const dancer = {
+var dancer = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
-		'fun',
+		"female",
+		"girl",
+		"woman",
+		"fun"
 	],
-	char: '💃',
+	char: "💃",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_dancing = {
+var man_dancing = {
 	keywords: [
-		'male',
-		'boy',
-		'fun',
-		'dancer',
+		"male",
+		"boy",
+		"fun",
+		"dancer"
 	],
-	char: '🕺',
+	char: "🕺",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const dancing_women = {
+var dancing_women = {
 	keywords: [
-		'female',
-		'bunny',
-		'women',
-		'girls',
+		"female",
+		"bunny",
+		"women",
+		"girls"
 	],
-	char: '👯',
+	char: "👯",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const dancing_men = {
+var dancing_men = {
 	keywords: [
-		'male',
-		'bunny',
-		'men',
-		'boys',
+		"male",
+		"bunny",
+		"men",
+		"boys"
 	],
-	char: '👯‍♂️',
+	char: "👯‍♂️",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couple = {
+var couple = {
 	keywords: [
-		'pair',
-		'people',
-		'human',
-		'love',
-		'date',
-		'dating',
-		'like',
-		'affection',
-		'valentines',
-		'marriage',
+		"pair",
+		"people",
+		"human",
+		"love",
+		"date",
+		"dating",
+		"like",
+		"affection",
+		"valentines",
+		"marriage"
 	],
-	char: '👫',
+	char: "👫",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const two_men_holding_hands = {
+var two_men_holding_hands = {
 	keywords: [
-		'pair',
-		'couple',
-		'love',
-		'like',
-		'bromance',
-		'friendship',
-		'people',
-		'human',
+		"pair",
+		"couple",
+		"love",
+		"like",
+		"bromance",
+		"friendship",
+		"people",
+		"human"
 	],
-	char: '👬',
+	char: "👬",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const two_women_holding_hands = {
+var two_women_holding_hands = {
 	keywords: [
-		'pair',
-		'friendship',
-		'couple',
-		'love',
-		'like',
-		'female',
-		'people',
-		'human',
+		"pair",
+		"friendship",
+		"couple",
+		"love",
+		"like",
+		"female",
+		"people",
+		"human"
 	],
-	char: '👭',
+	char: "👭",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const bowing_woman = {
+var bowing_woman = {
 	keywords: [
-		'woman',
-		'female',
-		'girl',
+		"woman",
+		"female",
+		"girl"
 	],
-	char: '🙇‍♀️',
+	char: "🙇‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const bowing_man = {
+var bowing_man = {
 	keywords: [
-		'man',
-		'male',
-		'boy',
+		"man",
+		"male",
+		"boy"
 	],
-	char: '🙇',
+	char: "🙇",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_facepalming = {
+var man_facepalming = {
 	keywords: [
-		'man',
-		'male',
-		'boy',
-		'disbelief',
+		"man",
+		"male",
+		"boy",
+		"disbelief"
 	],
-	char: '🤦‍♂️',
+	char: "🤦‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_facepalming = {
+var woman_facepalming = {
 	keywords: [
-		'woman',
-		'female',
-		'girl',
-		'disbelief',
+		"woman",
+		"female",
+		"girl",
+		"disbelief"
 	],
-	char: '🤦‍♀️',
+	char: "🤦‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_shrugging = {
+var woman_shrugging = {
 	keywords: [
-		'woman',
-		'female',
-		'girl',
-		'confused',
-		'indifferent',
-		'doubt',
+		"woman",
+		"female",
+		"girl",
+		"confused",
+		"indifferent",
+		"doubt"
 	],
-	char: '🤷',
+	char: "🤷",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_shrugging = {
+var man_shrugging = {
 	keywords: [
-		'man',
-		'male',
-		'boy',
-		'confused',
-		'indifferent',
-		'doubt',
+		"man",
+		"male",
+		"boy",
+		"confused",
+		"indifferent",
+		"doubt"
 	],
-	char: '🤷‍♂️',
+	char: "🤷‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const tipping_hand_woman = {
+var tipping_hand_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
-		'human',
-		'information',
+		"female",
+		"girl",
+		"woman",
+		"human",
+		"information"
 	],
-	char: '💁',
+	char: "💁",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const tipping_hand_man = {
+var tipping_hand_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
-		'human',
-		'information',
+		"male",
+		"boy",
+		"man",
+		"human",
+		"information"
 	],
-	char: '💁‍♂️',
+	char: "💁‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const no_good_woman = {
+var no_good_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
-		'nope',
+		"female",
+		"girl",
+		"woman",
+		"nope"
 	],
-	char: '🙅',
+	char: "🙅",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const no_good_man = {
+var no_good_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
-		'nope',
+		"male",
+		"boy",
+		"man",
+		"nope"
 	],
-	char: '🙅‍♂️',
+	char: "🙅‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const ok_woman = {
+var ok_woman = {
 	keywords: [
-		'women',
-		'girl',
-		'female',
-		'pink',
-		'human',
-		'woman',
+		"women",
+		"girl",
+		"female",
+		"pink",
+		"human",
+		"woman"
 	],
-	char: '🙆',
+	char: "🙆",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const ok_man = {
+var ok_man = {
 	keywords: [
-		'men',
-		'boy',
-		'male',
-		'blue',
-		'human',
-		'man',
+		"men",
+		"boy",
+		"male",
+		"blue",
+		"human",
+		"man"
 	],
-	char: '🙆‍♂️',
+	char: "🙆‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raising_hand_woman = {
+var raising_hand_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
+		"female",
+		"girl",
+		"woman"
 	],
-	char: '🙋',
+	char: "🙋",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const raising_hand_man = {
+var raising_hand_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
+		"male",
+		"boy",
+		"man"
 	],
-	char: '🙋‍♂️',
+	char: "🙋‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const pouting_woman = {
+var pouting_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
+		"female",
+		"girl",
+		"woman"
 	],
-	char: '🙎',
+	char: "🙎",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const pouting_man = {
+var pouting_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
+		"male",
+		"boy",
+		"man"
 	],
-	char: '🙎‍♂️',
+	char: "🙎‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const frowning_woman = {
+var frowning_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
-		'sad',
-		'depressed',
-		'discouraged',
-		'unhappy',
+		"female",
+		"girl",
+		"woman",
+		"sad",
+		"depressed",
+		"discouraged",
+		"unhappy"
 	],
-	char: '🙍',
+	char: "🙍",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const frowning_man = {
+var frowning_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
-		'sad',
-		'depressed',
-		'discouraged',
-		'unhappy',
+		"male",
+		"boy",
+		"man",
+		"sad",
+		"depressed",
+		"discouraged",
+		"unhappy"
 	],
-	char: '🙍‍♂️',
+	char: "🙍‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const haircut_woman = {
+var haircut_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
+		"female",
+		"girl",
+		"woman"
 	],
-	char: '💇',
+	char: "💇",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const haircut_man = {
+var haircut_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
+		"male",
+		"boy",
+		"man"
 	],
-	char: '💇‍♂️',
+	char: "💇‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const massage_woman = {
+var massage_woman = {
 	keywords: [
-		'female',
-		'girl',
-		'woman',
-		'head',
+		"female",
+		"girl",
+		"woman",
+		"head"
 	],
-	char: '💆',
+	char: "💆",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const massage_man = {
+var massage_man = {
 	keywords: [
-		'male',
-		'boy',
-		'man',
-		'head',
+		"male",
+		"boy",
+		"man",
+		"head"
 	],
-	char: '💆‍♂️',
+	char: "💆‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const woman_in_steamy_room = {
+var woman_in_steamy_room = {
 	keywords: [
-		'female',
-		'woman',
-		'spa',
-		'steamroom',
-		'sauna',
+		"female",
+		"woman",
+		"spa",
+		"steamroom",
+		"sauna"
 	],
-	char: '🧖‍♀️',
+	char: "🧖‍♀️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const man_in_steamy_room = {
+var man_in_steamy_room = {
 	keywords: [
-		'male',
-		'man',
-		'spa',
-		'steamroom',
-		'sauna',
+		"male",
+		"man",
+		"spa",
+		"steamroom",
+		"sauna"
 	],
-	char: '🧖‍♂️',
+	char: "🧖‍♂️",
 	fitzpatrick_scale: true,
-	category: 'people',
+	category: "people"
 };
-const couple_with_heart_woman_man = {
+var couple_with_heart_woman_man = {
 	keywords: [
-		'pair',
-		'love',
-		'like',
-		'affection',
-		'human',
-		'dating',
-		'valentines',
-		'marriage',
+		"pair",
+		"love",
+		"like",
+		"affection",
+		"human",
+		"dating",
+		"valentines",
+		"marriage"
 	],
-	char: '💑',
+	char: "💑",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couple_with_heart_woman_woman = {
+var couple_with_heart_woman_woman = {
 	keywords: [
-		'pair',
-		'love',
-		'like',
-		'affection',
-		'human',
-		'dating',
-		'valentines',
-		'marriage',
+		"pair",
+		"love",
+		"like",
+		"affection",
+		"human",
+		"dating",
+		"valentines",
+		"marriage"
 	],
-	char: '👩‍❤️‍👩',
+	char: "👩‍❤️‍👩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couple_with_heart_man_man = {
+var couple_with_heart_man_man = {
 	keywords: [
-		'pair',
-		'love',
-		'like',
-		'affection',
-		'human',
-		'dating',
-		'valentines',
-		'marriage',
+		"pair",
+		"love",
+		"like",
+		"affection",
+		"human",
+		"dating",
+		"valentines",
+		"marriage"
 	],
-	char: '👨‍❤️‍👨',
+	char: "👨‍❤️‍👨",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couplekiss_man_woman = {
+var couplekiss_man_woman = {
 	keywords: [
-		'pair',
-		'valentines',
-		'love',
-		'like',
-		'dating',
-		'marriage',
+		"pair",
+		"valentines",
+		"love",
+		"like",
+		"dating",
+		"marriage"
 	],
-	char: '💏',
+	char: "💏",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couplekiss_woman_woman = {
+var couplekiss_woman_woman = {
 	keywords: [
-		'pair',
-		'valentines',
-		'love',
-		'like',
-		'dating',
-		'marriage',
+		"pair",
+		"valentines",
+		"love",
+		"like",
+		"dating",
+		"marriage"
 	],
-	char: '👩‍❤️‍💋‍👩',
+	char: "👩‍❤️‍💋‍👩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const couplekiss_man_man = {
+var couplekiss_man_man = {
 	keywords: [
-		'pair',
-		'valentines',
-		'love',
-		'like',
-		'dating',
-		'marriage',
+		"pair",
+		"valentines",
+		"love",
+		"like",
+		"dating",
+		"marriage"
 	],
-	char: '👨‍❤️‍💋‍👨',
+	char: "👨‍❤️‍💋‍👨",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_woman_boy = {
+var family_man_woman_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'child',
-		'mom',
-		'dad',
-		'father',
-		'mother',
-		'people',
-		'human',
+		"home",
+		"parents",
+		"child",
+		"mom",
+		"dad",
+		"father",
+		"mother",
+		"people",
+		"human"
 	],
-	char: '👪',
+	char: "👪",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_woman_girl = {
+var family_man_woman_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'child',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"child"
 	],
-	char: '👨‍👩‍👧',
+	char: "👨‍👩‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_woman_girl_boy = {
+var family_man_woman_girl_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👩‍👧‍👦',
+	char: "👨‍👩‍👧‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_woman_boy_boy = {
+var family_man_woman_boy_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👩‍👦‍👦',
+	char: "👨‍👩‍👦‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_woman_girl_girl = {
+var family_man_woman_girl_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👩‍👧‍👧',
+	char: "👨‍👩‍👧‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_woman_boy = {
+var family_woman_woman_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👩‍👦',
+	char: "👩‍👩‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_woman_girl = {
+var family_woman_woman_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👩‍👧',
+	char: "👩‍👩‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_woman_girl_boy = {
+var family_woman_woman_girl_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👩‍👧‍👦',
+	char: "👩‍👩‍👧‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_woman_boy_boy = {
+var family_woman_woman_boy_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👩‍👦‍👦',
+	char: "👩‍👩‍👦‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_woman_girl_girl = {
+var family_woman_woman_girl_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👩‍👧‍👧',
+	char: "👩‍👩‍👧‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_man_boy = {
+var family_man_man_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👨‍👦',
+	char: "👨‍👨‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_man_girl = {
+var family_man_man_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👨‍👧',
+	char: "👨‍👨‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_man_girl_boy = {
+var family_man_man_girl_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👨‍👧‍👦',
+	char: "👨‍👨‍👧‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_man_boy_boy = {
+var family_man_man_boy_boy = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👨‍👦‍👦',
+	char: "👨‍👨‍👦‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_man_girl_girl = {
+var family_man_man_girl_girl = {
 	keywords: [
-		'home',
-		'parents',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parents",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👨‍👧‍👧',
+	char: "👨‍👨‍👧‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_boy = {
+var family_woman_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'child',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"child"
 	],
-	char: '👩‍👦',
+	char: "👩‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_girl = {
+var family_woman_girl = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'child',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"child"
 	],
-	char: '👩‍👧',
+	char: "👩‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_girl_boy = {
+var family_woman_girl_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👧‍👦',
+	char: "👩‍👧‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_boy_boy = {
+var family_woman_boy_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👦‍👦',
+	char: "👩‍👦‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_woman_girl_girl = {
+var family_woman_girl_girl = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👩‍👧‍👧',
+	char: "👩‍👧‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_boy = {
+var family_man_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'child',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"child"
 	],
-	char: '👨‍👦',
+	char: "👨‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_girl = {
+var family_man_girl = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'child',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"child"
 	],
-	char: '👨‍👧',
+	char: "👨‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_girl_boy = {
+var family_man_girl_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👧‍👦',
+	char: "👨‍👧‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_boy_boy = {
+var family_man_boy_boy = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👦‍👦',
+	char: "👨‍👦‍👦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const family_man_girl_girl = {
+var family_man_girl_girl = {
 	keywords: [
-		'home',
-		'parent',
-		'people',
-		'human',
-		'children',
+		"home",
+		"parent",
+		"people",
+		"human",
+		"children"
 	],
-	char: '👨‍👧‍👧',
+	char: "👨‍👧‍👧",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const yarn = {
+var yarn = {
 	keywords: [
-		'ball',
-		'crochet',
-		'knit',
+		"ball",
+		"crochet",
+		"knit"
 	],
-	char: '🧶',
+	char: "🧶",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const thread = {
+var thread = {
 	keywords: [
-		'needle',
-		'sewing',
-		'spool',
-		'string',
+		"needle",
+		"sewing",
+		"spool",
+		"string"
 	],
-	char: '🧵',
+	char: "🧵",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const coat = {
+var coat = {
 	keywords: [
-		'jacket',
+		"jacket"
 	],
-	char: '🧥',
+	char: "🧥",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const labcoat = {
+var labcoat = {
 	keywords: [
-		'doctor',
-		'experiment',
-		'scientist',
-		'chemist',
+		"doctor",
+		"experiment",
+		"scientist",
+		"chemist"
 	],
-	char: '🥼',
+	char: "🥼",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const womans_clothes = {
+var womans_clothes = {
 	keywords: [
-		'fashion',
-		'shopping_bags',
-		'female',
+		"fashion",
+		"shopping_bags",
+		"female"
 	],
-	char: '👚',
+	char: "👚",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const tshirt = {
+var tshirt = {
 	keywords: [
-		'fashion',
-		'cloth',
-		'casual',
-		'shirt',
-		'tee',
+		"fashion",
+		"cloth",
+		"casual",
+		"shirt",
+		"tee"
 	],
-	char: '👕',
+	char: "👕",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const jeans = {
+var jeans = {
 	keywords: [
-		'fashion',
-		'shopping',
+		"fashion",
+		"shopping"
 	],
-	char: '👖',
+	char: "👖",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const necktie = {
+var necktie = {
 	keywords: [
-		'shirt',
-		'suitup',
-		'formal',
-		'fashion',
-		'cloth',
-		'business',
+		"shirt",
+		"suitup",
+		"formal",
+		"fashion",
+		"cloth",
+		"business"
 	],
-	char: '👔',
+	char: "👔",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const dress = {
+var dress = {
 	keywords: [
-		'clothes',
-		'fashion',
-		'shopping',
+		"clothes",
+		"fashion",
+		"shopping"
 	],
-	char: '👗',
+	char: "👗",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const bikini = {
+var bikini = {
 	keywords: [
-		'swimming',
-		'female',
-		'woman',
-		'girl',
-		'fashion',
-		'beach',
-		'summer',
+		"swimming",
+		"female",
+		"woman",
+		"girl",
+		"fashion",
+		"beach",
+		"summer"
 	],
-	char: '👙',
+	char: "👙",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kimono = {
+var kimono = {
 	keywords: [
-		'dress',
-		'fashion',
-		'women',
-		'female',
-		'japanese',
+		"dress",
+		"fashion",
+		"women",
+		"female",
+		"japanese"
 	],
-	char: '👘',
+	char: "👘",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const lipstick = {
+var lipstick = {
 	keywords: [
-		'female',
-		'girl',
-		'fashion',
-		'woman',
+		"female",
+		"girl",
+		"fashion",
+		"woman"
 	],
-	char: '💄',
+	char: "💄",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const kiss = {
+var kiss = {
 	keywords: [
-		'face',
-		'lips',
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"face",
+		"lips",
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💋',
+	char: "💋",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const footprints = {
+var footprints = {
 	keywords: [
-		'feet',
-		'tracking',
-		'walking',
-		'beach',
+		"feet",
+		"tracking",
+		"walking",
+		"beach"
 	],
-	char: '👣',
+	char: "👣",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const flat_shoe = {
+var flat_shoe = {
 	keywords: [
-		'ballet',
-		'slip-on',
-		'slipper',
+		"ballet",
+		"slip-on",
+		"slipper"
 	],
-	char: '🥿',
+	char: "🥿",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const high_heel = {
+var high_heel = {
 	keywords: [
-		'fashion',
-		'shoes',
-		'female',
-		'pumps',
-		'stiletto',
+		"fashion",
+		"shoes",
+		"female",
+		"pumps",
+		"stiletto"
 	],
-	char: '👠',
+	char: "👠",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const sandal = {
+var sandal = {
 	keywords: [
-		'shoes',
-		'fashion',
-		'flip flops',
+		"shoes",
+		"fashion",
+		"flip flops"
 	],
-	char: '👡',
+	char: "👡",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const boot = {
+var boot = {
 	keywords: [
-		'shoes',
-		'fashion',
+		"shoes",
+		"fashion"
 	],
-	char: '👢',
+	char: "👢",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const mans_shoe = {
+var mans_shoe = {
 	keywords: [
-		'fashion',
-		'male',
+		"fashion",
+		"male"
 	],
-	char: '👞',
+	char: "👞",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const athletic_shoe = {
+var athletic_shoe = {
 	keywords: [
-		'shoes',
-		'sports',
-		'sneakers',
+		"shoes",
+		"sports",
+		"sneakers"
 	],
-	char: '👟',
+	char: "👟",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const hiking_boot = {
+var hiking_boot = {
 	keywords: [
-		'backpacking',
-		'camping',
-		'hiking',
+		"backpacking",
+		"camping",
+		"hiking"
 	],
-	char: '🥾',
+	char: "🥾",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const socks = {
+var socks = {
 	keywords: [
-		'stockings',
-		'clothes',
+		"stockings",
+		"clothes"
 	],
-	char: '🧦',
+	char: "🧦",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const gloves = {
+var gloves = {
 	keywords: [
-		'hands',
-		'winter',
-		'clothes',
+		"hands",
+		"winter",
+		"clothes"
 	],
-	char: '🧤',
+	char: "🧤",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const scarf = {
+var scarf = {
 	keywords: [
-		'neck',
-		'winter',
-		'clothes',
+		"neck",
+		"winter",
+		"clothes"
 	],
-	char: '🧣',
+	char: "🧣",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const womans_hat = {
+var womans_hat = {
 	keywords: [
-		'fashion',
-		'accessories',
-		'female',
-		'lady',
-		'spring',
+		"fashion",
+		"accessories",
+		"female",
+		"lady",
+		"spring"
 	],
-	char: '👒',
+	char: "👒",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const tophat = {
+var tophat = {
 	keywords: [
-		'magic',
-		'gentleman',
-		'classy',
-		'circus',
+		"magic",
+		"gentleman",
+		"classy",
+		"circus"
 	],
-	char: '🎩',
+	char: "🎩",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const billed_hat = {
+var billed_hat = {
 	keywords: [
-		'cap',
-		'baseball',
+		"cap",
+		"baseball"
 	],
-	char: '🧢',
+	char: "🧢",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const rescue_worker_helmet = {
+var rescue_worker_helmet = {
 	keywords: [
-		'construction',
-		'build',
+		"construction",
+		"build"
 	],
-	char: '⛑',
+	char: "⛑",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const mortar_board = {
+var mortar_board = {
 	keywords: [
-		'school',
-		'college',
-		'degree',
-		'university',
-		'graduation',
-		'cap',
-		'hat',
-		'legal',
-		'learn',
-		'education',
+		"school",
+		"college",
+		"degree",
+		"university",
+		"graduation",
+		"cap",
+		"hat",
+		"legal",
+		"learn",
+		"education"
 	],
-	char: '🎓',
+	char: "🎓",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const crown = {
+var crown = {
 	keywords: [
-		'king',
-		'kod',
-		'leader',
-		'royalty',
-		'lord',
+		"king",
+		"kod",
+		"leader",
+		"royalty",
+		"lord"
 	],
-	char: '👑',
+	char: "👑",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const school_satchel = {
+var school_satchel = {
 	keywords: [
-		'student',
-		'education',
-		'bag',
-		'backpack',
+		"student",
+		"education",
+		"bag",
+		"backpack"
 	],
-	char: '🎒',
+	char: "🎒",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const luggage = {
+var luggage = {
 	keywords: [
-		'packing',
-		'travel',
+		"packing",
+		"travel"
 	],
-	char: '🧳',
+	char: "🧳",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const pouch = {
+var pouch = {
 	keywords: [
-		'bag',
-		'accessories',
-		'shopping',
+		"bag",
+		"accessories",
+		"shopping"
 	],
-	char: '👝',
+	char: "👝",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const purse = {
+var purse = {
 	keywords: [
-		'fashion',
-		'accessories',
-		'money',
-		'sales',
-		'shopping',
+		"fashion",
+		"accessories",
+		"money",
+		"sales",
+		"shopping"
 	],
-	char: '👛',
+	char: "👛",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const handbag = {
+var handbag = {
 	keywords: [
-		'fashion',
-		'accessory',
-		'accessories',
-		'shopping',
+		"fashion",
+		"accessory",
+		"accessories",
+		"shopping"
 	],
-	char: '👜',
+	char: "👜",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const briefcase = {
+var briefcase = {
 	keywords: [
-		'business',
-		'documents',
-		'work',
-		'law',
-		'legal',
-		'job',
-		'career',
+		"business",
+		"documents",
+		"work",
+		"law",
+		"legal",
+		"job",
+		"career"
 	],
-	char: '💼',
+	char: "💼",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const eyeglasses = {
+var eyeglasses = {
 	keywords: [
-		'fashion',
-		'accessories',
-		'eyesight',
-		'nerdy',
-		'dork',
-		'geek',
+		"fashion",
+		"accessories",
+		"eyesight",
+		"nerdy",
+		"dork",
+		"geek"
 	],
-	char: '👓',
+	char: "👓",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const dark_sunglasses = {
+var dark_sunglasses = {
 	keywords: [
-		'face',
-		'cool',
-		'accessories',
+		"face",
+		"cool",
+		"accessories"
 	],
-	char: '🕶',
+	char: "🕶",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const goggles = {
+var goggles = {
 	keywords: [
-		'eyes',
-		'protection',
-		'safety',
+		"eyes",
+		"protection",
+		"safety"
 	],
-	char: '🥽',
+	char: "🥽",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const ring = {
+var ring = {
 	keywords: [
-		'wedding',
-		'propose',
-		'marriage',
-		'valentines',
-		'diamond',
-		'fashion',
-		'jewelry',
-		'gem',
-		'engagement',
+		"wedding",
+		"propose",
+		"marriage",
+		"valentines",
+		"diamond",
+		"fashion",
+		"jewelry",
+		"gem",
+		"engagement"
 	],
-	char: '💍',
+	char: "💍",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const closed_umbrella = {
+var closed_umbrella = {
 	keywords: [
-		'weather',
-		'rain',
-		'drizzle',
+		"weather",
+		"rain",
+		"drizzle"
 	],
-	char: '🌂',
+	char: "🌂",
 	fitzpatrick_scale: false,
-	category: 'people',
+	category: "people"
 };
-const dog = {
+var dog = {
 	keywords: [
-		'animal',
-		'friend',
-		'nature',
-		'woof',
-		'puppy',
-		'pet',
-		'faithful',
+		"animal",
+		"friend",
+		"nature",
+		"woof",
+		"puppy",
+		"pet",
+		"faithful"
 	],
-	char: '🐶',
+	char: "🐶",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cat = {
+var cat = {
 	keywords: [
-		'animal',
-		'meow',
-		'nature',
-		'pet',
-		'kitten',
+		"animal",
+		"meow",
+		"nature",
+		"pet",
+		"kitten"
 	],
-	char: '🐱',
+	char: "🐱",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const mouse = {
+var mouse = {
 	keywords: [
-		'animal',
-		'nature',
-		'cheese_wedge',
-		'rodent',
+		"animal",
+		"nature",
+		"cheese_wedge",
+		"rodent"
 	],
-	char: '🐭',
+	char: "🐭",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hamster = {
+var hamster = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐹',
+	char: "🐹",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rabbit = {
+var rabbit = {
 	keywords: [
-		'animal',
-		'nature',
-		'pet',
-		'spring',
-		'magic',
-		'bunny',
+		"animal",
+		"nature",
+		"pet",
+		"spring",
+		"magic",
+		"bunny"
 	],
-	char: '🐰',
+	char: "🐰",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const fox_face = {
+var fox_face = {
 	keywords: [
-		'animal',
-		'nature',
-		'face',
+		"animal",
+		"nature",
+		"face"
 	],
-	char: '🦊',
+	char: "🦊",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bear = {
+var bear = {
 	keywords: [
-		'animal',
-		'nature',
-		'wild',
+		"animal",
+		"nature",
+		"wild"
 	],
-	char: '🐻',
+	char: "🐻",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const panda_face = {
+var panda_face = {
 	keywords: [
-		'animal',
-		'nature',
-		'panda',
+		"animal",
+		"nature",
+		"panda"
 	],
-	char: '🐼',
+	char: "🐼",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const koala = {
+var koala = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐨',
+	char: "🐨",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tiger = {
+var tiger = {
 	keywords: [
-		'animal',
-		'cat',
-		'danger',
-		'wild',
-		'nature',
-		'roar',
+		"animal",
+		"cat",
+		"danger",
+		"wild",
+		"nature",
+		"roar"
 	],
-	char: '🐯',
+	char: "🐯",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const lion = {
+var lion = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🦁',
+	char: "🦁",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cow = {
+var cow = {
 	keywords: [
-		'beef',
-		'ox',
-		'animal',
-		'nature',
-		'moo',
-		'milk',
+		"beef",
+		"ox",
+		"animal",
+		"nature",
+		"moo",
+		"milk"
 	],
-	char: '🐮',
+	char: "🐮",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const pig = {
+var pig = {
 	keywords: [
-		'animal',
-		'oink',
-		'nature',
+		"animal",
+		"oink",
+		"nature"
 	],
-	char: '🐷',
+	char: "🐷",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const pig_nose = {
+var pig_nose = {
 	keywords: [
-		'animal',
-		'oink',
+		"animal",
+		"oink"
 	],
-	char: '🐽',
+	char: "🐽",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const frog = {
+var frog = {
 	keywords: [
-		'animal',
-		'nature',
-		'croak',
-		'toad',
+		"animal",
+		"nature",
+		"croak",
+		"toad"
 	],
-	char: '🐸',
+	char: "🐸",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const squid = {
+var squid = {
 	keywords: [
-		'animal',
-		'nature',
-		'ocean',
-		'sea',
+		"animal",
+		"nature",
+		"ocean",
+		"sea"
 	],
-	char: '🦑',
+	char: "🦑",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const octopus = {
+var octopus = {
 	keywords: [
-		'animal',
-		'creature',
-		'ocean',
-		'sea',
-		'nature',
-		'beach',
+		"animal",
+		"creature",
+		"ocean",
+		"sea",
+		"nature",
+		"beach"
 	],
-	char: '🐙',
+	char: "🐙",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const shrimp = {
+var shrimp = {
 	keywords: [
-		'animal',
-		'ocean',
-		'nature',
-		'seafood',
+		"animal",
+		"ocean",
+		"nature",
+		"seafood"
 	],
-	char: '🦐',
+	char: "🦐",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const monkey_face = {
+var monkey_face = {
 	keywords: [
-		'animal',
-		'nature',
-		'circus',
+		"animal",
+		"nature",
+		"circus"
 	],
-	char: '🐵',
+	char: "🐵",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const gorilla = {
+var gorilla = {
 	keywords: [
-		'animal',
-		'nature',
-		'circus',
+		"animal",
+		"nature",
+		"circus"
 	],
-	char: '🦍',
+	char: "🦍",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const see_no_evil = {
+var see_no_evil = {
 	keywords: [
-		'monkey',
-		'animal',
-		'nature',
-		'haha',
+		"monkey",
+		"animal",
+		"nature",
+		"haha"
 	],
-	char: '🙈',
+	char: "🙈",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hear_no_evil = {
+var hear_no_evil = {
 	keywords: [
-		'animal',
-		'monkey',
-		'nature',
+		"animal",
+		"monkey",
+		"nature"
 	],
-	char: '🙉',
+	char: "🙉",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const speak_no_evil = {
+var speak_no_evil = {
 	keywords: [
-		'monkey',
-		'animal',
-		'nature',
-		'omg',
+		"monkey",
+		"animal",
+		"nature",
+		"omg"
 	],
-	char: '🙊',
+	char: "🙊",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const monkey = {
+var monkey = {
 	keywords: [
-		'animal',
-		'nature',
-		'banana',
-		'circus',
+		"animal",
+		"nature",
+		"banana",
+		"circus"
 	],
-	char: '🐒',
+	char: "🐒",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const chicken = {
+var chicken = {
 	keywords: [
-		'animal',
-		'cluck',
-		'nature',
-		'bird',
+		"animal",
+		"cluck",
+		"nature",
+		"bird"
 	],
-	char: '🐔',
+	char: "🐔",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const penguin = {
+var penguin = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐧',
+	char: "🐧",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bird = {
+var bird = {
 	keywords: [
-		'animal',
-		'nature',
-		'fly',
-		'tweet',
-		'spring',
+		"animal",
+		"nature",
+		"fly",
+		"tweet",
+		"spring"
 	],
-	char: '🐦',
+	char: "🐦",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const baby_chick = {
+var baby_chick = {
 	keywords: [
-		'animal',
-		'chicken',
-		'bird',
+		"animal",
+		"chicken",
+		"bird"
 	],
-	char: '🐤',
+	char: "🐤",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hatching_chick = {
+var hatching_chick = {
 	keywords: [
-		'animal',
-		'chicken',
-		'egg',
-		'born',
-		'baby',
-		'bird',
+		"animal",
+		"chicken",
+		"egg",
+		"born",
+		"baby",
+		"bird"
 	],
-	char: '🐣',
+	char: "🐣",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hatched_chick = {
+var hatched_chick = {
 	keywords: [
-		'animal',
-		'chicken',
-		'baby',
-		'bird',
+		"animal",
+		"chicken",
+		"baby",
+		"bird"
 	],
-	char: '🐥',
+	char: "🐥",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const duck = {
+var duck = {
 	keywords: [
-		'animal',
-		'nature',
-		'bird',
-		'mallard',
+		"animal",
+		"nature",
+		"bird",
+		"mallard"
 	],
-	char: '🦆',
+	char: "🦆",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const eagle = {
+var eagle = {
 	keywords: [
-		'animal',
-		'nature',
-		'bird',
+		"animal",
+		"nature",
+		"bird"
 	],
-	char: '🦅',
+	char: "🦅",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const owl = {
+var owl = {
 	keywords: [
-		'animal',
-		'nature',
-		'bird',
-		'hoot',
+		"animal",
+		"nature",
+		"bird",
+		"hoot"
 	],
-	char: '🦉',
+	char: "🦉",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bat = {
+var bat = {
 	keywords: [
-		'animal',
-		'nature',
-		'blind',
-		'vampire',
+		"animal",
+		"nature",
+		"blind",
+		"vampire"
 	],
-	char: '🦇',
+	char: "🦇",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const wolf = {
+var wolf = {
 	keywords: [
-		'animal',
-		'nature',
-		'wild',
+		"animal",
+		"nature",
+		"wild"
 	],
-	char: '🐺',
+	char: "🐺",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const boar = {
+var boar = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐗',
+	char: "🐗",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const horse = {
+var horse = {
 	keywords: [
-		'animal',
-		'brown',
-		'nature',
+		"animal",
+		"brown",
+		"nature"
 	],
-	char: '🐴',
+	char: "🐴",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const unicorn = {
+var unicorn = {
 	keywords: [
-		'animal',
-		'nature',
-		'mystical',
+		"animal",
+		"nature",
+		"mystical"
 	],
-	char: '🦄',
+	char: "🦄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const honeybee = {
+var honeybee = {
 	keywords: [
-		'animal',
-		'insect',
-		'nature',
-		'bug',
-		'spring',
-		'honey',
+		"animal",
+		"insect",
+		"nature",
+		"bug",
+		"spring",
+		"honey"
 	],
-	char: '🐝',
+	char: "🐝",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bug = {
+var bug = {
 	keywords: [
-		'animal',
-		'insect',
-		'nature',
-		'worm',
+		"animal",
+		"insect",
+		"nature",
+		"worm"
 	],
-	char: '🐛',
+	char: "🐛",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const butterfly = {
+var butterfly = {
 	keywords: [
-		'animal',
-		'insect',
-		'nature',
-		'caterpillar',
+		"animal",
+		"insect",
+		"nature",
+		"caterpillar"
 	],
-	char: '🦋',
+	char: "🦋",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const snail = {
+var snail = {
 	keywords: [
-		'slow',
-		'animal',
-		'shell',
+		"slow",
+		"animal",
+		"shell"
 	],
-	char: '🐌',
+	char: "🐌",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const beetle = {
+var beetle = {
 	keywords: [
-		'animal',
-		'insect',
-		'nature',
-		'ladybug',
+		"animal",
+		"insect",
+		"nature",
+		"ladybug"
 	],
-	char: '🐞',
+	char: "🐞",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const ant = {
+var ant = {
 	keywords: [
-		'animal',
-		'insect',
-		'nature',
-		'bug',
+		"animal",
+		"insect",
+		"nature",
+		"bug"
 	],
-	char: '🐜',
+	char: "🐜",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const grasshopper = {
+var grasshopper = {
 	keywords: [
-		'animal',
-		'cricket',
-		'chirp',
+		"animal",
+		"cricket",
+		"chirp"
 	],
-	char: '🦗',
+	char: "🦗",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const spider = {
+var spider = {
 	keywords: [
-		'animal',
-		'arachnid',
+		"animal",
+		"arachnid"
 	],
-	char: '🕷',
+	char: "🕷",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const scorpion = {
+var scorpion = {
 	keywords: [
-		'animal',
-		'arachnid',
+		"animal",
+		"arachnid"
 	],
-	char: '🦂',
+	char: "🦂",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const crab = {
+var crab = {
 	keywords: [
-		'animal',
-		'crustacean',
+		"animal",
+		"crustacean"
 	],
-	char: '🦀',
+	char: "🦀",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const snake = {
+var snake = {
 	keywords: [
-		'animal',
-		'evil',
-		'nature',
-		'hiss',
-		'python',
+		"animal",
+		"evil",
+		"nature",
+		"hiss",
+		"python"
 	],
-	char: '🐍',
+	char: "🐍",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const lizard = {
+var lizard = {
 	keywords: [
-		'animal',
-		'nature',
-		'reptile',
+		"animal",
+		"nature",
+		"reptile"
 	],
-	char: '🦎',
+	char: "🦎",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sauropod = {
+var sauropod = {
 	keywords: [
-		'animal',
-		'nature',
-		'dinosaur',
-		'brachiosaurus',
-		'brontosaurus',
-		'diplodocus',
-		'extinct',
+		"animal",
+		"nature",
+		"dinosaur",
+		"brachiosaurus",
+		"brontosaurus",
+		"diplodocus",
+		"extinct"
 	],
-	char: '🦕',
+	char: "🦕",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const turtle = {
+var turtle = {
 	keywords: [
-		'animal',
-		'slow',
-		'nature',
-		'tortoise',
+		"animal",
+		"slow",
+		"nature",
+		"tortoise"
 	],
-	char: '🐢',
+	char: "🐢",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tropical_fish = {
+var tropical_fish = {
 	keywords: [
-		'animal',
-		'swim',
-		'ocean',
-		'beach',
-		'nemo',
+		"animal",
+		"swim",
+		"ocean",
+		"beach",
+		"nemo"
 	],
-	char: '🐠',
+	char: "🐠",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const fish = {
+var fish = {
 	keywords: [
-		'animal',
-		'food',
-		'nature',
+		"animal",
+		"food",
+		"nature"
 	],
-	char: '🐟',
+	char: "🐟",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const blowfish = {
+var blowfish = {
 	keywords: [
-		'animal',
-		'nature',
-		'food',
-		'sea',
-		'ocean',
+		"animal",
+		"nature",
+		"food",
+		"sea",
+		"ocean"
 	],
-	char: '🐡',
+	char: "🐡",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dolphin = {
+var dolphin = {
 	keywords: [
-		'animal',
-		'nature',
-		'fish',
-		'sea',
-		'ocean',
-		'flipper',
-		'fins',
-		'beach',
+		"animal",
+		"nature",
+		"fish",
+		"sea",
+		"ocean",
+		"flipper",
+		"fins",
+		"beach"
 	],
-	char: '🐬',
+	char: "🐬",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const shark = {
+var shark = {
 	keywords: [
-		'animal',
-		'nature',
-		'fish',
-		'sea',
-		'ocean',
-		'jaws',
-		'fins',
-		'beach',
+		"animal",
+		"nature",
+		"fish",
+		"sea",
+		"ocean",
+		"jaws",
+		"fins",
+		"beach"
 	],
-	char: '🦈',
+	char: "🦈",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const whale = {
+var whale = {
 	keywords: [
-		'animal',
-		'nature',
-		'sea',
-		'ocean',
+		"animal",
+		"nature",
+		"sea",
+		"ocean"
 	],
-	char: '🐳',
+	char: "🐳",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const whale2 = {
+var whale2 = {
 	keywords: [
-		'animal',
-		'nature',
-		'sea',
-		'ocean',
+		"animal",
+		"nature",
+		"sea",
+		"ocean"
 	],
-	char: '🐋',
+	char: "🐋",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const crocodile = {
+var crocodile = {
 	keywords: [
-		'animal',
-		'nature',
-		'reptile',
-		'lizard',
-		'alligator',
+		"animal",
+		"nature",
+		"reptile",
+		"lizard",
+		"alligator"
 	],
-	char: '🐊',
+	char: "🐊",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const leopard = {
+var leopard = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐆',
+	char: "🐆",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const zebra = {
+var zebra = {
 	keywords: [
-		'animal',
-		'nature',
-		'stripes',
-		'safari',
+		"animal",
+		"nature",
+		"stripes",
+		"safari"
 	],
-	char: '🦓',
+	char: "🦓",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tiger2 = {
+var tiger2 = {
 	keywords: [
-		'animal',
-		'nature',
-		'roar',
+		"animal",
+		"nature",
+		"roar"
 	],
-	char: '🐅',
+	char: "🐅",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const water_buffalo = {
+var water_buffalo = {
 	keywords: [
-		'animal',
-		'nature',
-		'ox',
-		'cow',
+		"animal",
+		"nature",
+		"ox",
+		"cow"
 	],
-	char: '🐃',
+	char: "🐃",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const ox = {
+var ox = {
 	keywords: [
-		'animal',
-		'cow',
-		'beef',
+		"animal",
+		"cow",
+		"beef"
 	],
-	char: '🐂',
+	char: "🐂",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cow2 = {
+var cow2 = {
 	keywords: [
-		'beef',
-		'ox',
-		'animal',
-		'nature',
-		'moo',
-		'milk',
+		"beef",
+		"ox",
+		"animal",
+		"nature",
+		"moo",
+		"milk"
 	],
-	char: '🐄',
+	char: "🐄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const deer = {
+var deer = {
 	keywords: [
-		'animal',
-		'nature',
-		'horns',
-		'venison',
+		"animal",
+		"nature",
+		"horns",
+		"venison"
 	],
-	char: '🦌',
+	char: "🦌",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dromedary_camel = {
+var dromedary_camel = {
 	keywords: [
-		'animal',
-		'hot',
-		'desert',
-		'hump',
+		"animal",
+		"hot",
+		"desert",
+		"hump"
 	],
-	char: '🐪',
+	char: "🐪",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const camel = {
+var camel = {
 	keywords: [
-		'animal',
-		'nature',
-		'hot',
-		'desert',
-		'hump',
+		"animal",
+		"nature",
+		"hot",
+		"desert",
+		"hump"
 	],
-	char: '🐫',
+	char: "🐫",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const giraffe = {
+var giraffe = {
 	keywords: [
-		'animal',
-		'nature',
-		'spots',
-		'safari',
+		"animal",
+		"nature",
+		"spots",
+		"safari"
 	],
-	char: '🦒',
+	char: "🦒",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const elephant = {
+var elephant = {
 	keywords: [
-		'animal',
-		'nature',
-		'nose',
-		'th',
-		'circus',
+		"animal",
+		"nature",
+		"nose",
+		"th",
+		"circus"
 	],
-	char: '🐘',
+	char: "🐘",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rhinoceros = {
+var rhinoceros = {
 	keywords: [
-		'animal',
-		'nature',
-		'horn',
+		"animal",
+		"nature",
+		"horn"
 	],
-	char: '🦏',
+	char: "🦏",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const goat = {
+var goat = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐐',
+	char: "🐐",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const ram = {
+var ram = {
 	keywords: [
-		'animal',
-		'sheep',
-		'nature',
+		"animal",
+		"sheep",
+		"nature"
 	],
-	char: '🐏',
+	char: "🐏",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sheep = {
+var sheep = {
 	keywords: [
-		'animal',
-		'nature',
-		'wool',
-		'shipit',
+		"animal",
+		"nature",
+		"wool",
+		"shipit"
 	],
-	char: '🐑',
+	char: "🐑",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const racehorse = {
+var racehorse = {
 	keywords: [
-		'animal',
-		'gamble',
-		'luck',
+		"animal",
+		"gamble",
+		"luck"
 	],
-	char: '🐎',
+	char: "🐎",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const pig2 = {
+var pig2 = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🐖',
+	char: "🐖",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rat = {
+var rat = {
 	keywords: [
-		'animal',
-		'mouse',
-		'rodent',
+		"animal",
+		"mouse",
+		"rodent"
 	],
-	char: '🐀',
+	char: "🐀",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const mouse2 = {
+var mouse2 = {
 	keywords: [
-		'animal',
-		'nature',
-		'rodent',
+		"animal",
+		"nature",
+		"rodent"
 	],
-	char: '🐁',
+	char: "🐁",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rooster = {
+var rooster = {
 	keywords: [
-		'animal',
-		'nature',
-		'chicken',
+		"animal",
+		"nature",
+		"chicken"
 	],
-	char: '🐓',
+	char: "🐓",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const turkey = {
+var turkey = {
 	keywords: [
-		'animal',
-		'bird',
+		"animal",
+		"bird"
 	],
-	char: '🦃',
+	char: "🦃",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dove = {
+var dove = {
 	keywords: [
-		'animal',
-		'bird',
+		"animal",
+		"bird"
 	],
-	char: '🕊',
+	char: "🕊",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dog2 = {
+var dog2 = {
 	keywords: [
-		'animal',
-		'nature',
-		'friend',
-		'doge',
-		'pet',
-		'faithful',
+		"animal",
+		"nature",
+		"friend",
+		"doge",
+		"pet",
+		"faithful"
 	],
-	char: '🐕',
+	char: "🐕",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const poodle = {
+var poodle = {
 	keywords: [
-		'dog',
-		'animal',
-		'101',
-		'nature',
-		'pet',
+		"dog",
+		"animal",
+		"101",
+		"nature",
+		"pet"
 	],
-	char: '🐩',
+	char: "🐩",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cat2 = {
+var cat2 = {
 	keywords: [
-		'animal',
-		'meow',
-		'pet',
-		'cats',
+		"animal",
+		"meow",
+		"pet",
+		"cats"
 	],
-	char: '🐈',
+	char: "🐈",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rabbit2 = {
+var rabbit2 = {
 	keywords: [
-		'animal',
-		'nature',
-		'pet',
-		'magic',
-		'spring',
+		"animal",
+		"nature",
+		"pet",
+		"magic",
+		"spring"
 	],
-	char: '🐇',
+	char: "🐇",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const chipmunk = {
+var chipmunk = {
 	keywords: [
-		'animal',
-		'nature',
-		'rodent',
-		'squirrel',
+		"animal",
+		"nature",
+		"rodent",
+		"squirrel"
 	],
-	char: '🐿',
+	char: "🐿",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hedgehog = {
+var hedgehog = {
 	keywords: [
-		'animal',
-		'nature',
-		'spiny',
+		"animal",
+		"nature",
+		"spiny"
 	],
-	char: '🦔',
+	char: "🦔",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const raccoon = {
+var raccoon = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🦝',
+	char: "🦝",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const llama = {
+var llama = {
 	keywords: [
-		'animal',
-		'nature',
-		'alpaca',
+		"animal",
+		"nature",
+		"alpaca"
 	],
-	char: '🦙',
+	char: "🦙",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hippopotamus = {
+var hippopotamus = {
 	keywords: [
-		'animal',
-		'nature',
+		"animal",
+		"nature"
 	],
-	char: '🦛',
+	char: "🦛",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const kangaroo = {
+var kangaroo = {
 	keywords: [
-		'animal',
-		'nature',
-		'australia',
-		'joey',
-		'hop',
-		'marsupial',
+		"animal",
+		"nature",
+		"australia",
+		"joey",
+		"hop",
+		"marsupial"
 	],
-	char: '🦘',
+	char: "🦘",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const badger = {
+var badger = {
 	keywords: [
-		'animal',
-		'nature',
-		'honey',
+		"animal",
+		"nature",
+		"honey"
 	],
-	char: '🦡',
+	char: "🦡",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const swan = {
+var swan = {
 	keywords: [
-		'animal',
-		'nature',
-		'bird',
+		"animal",
+		"nature",
+		"bird"
 	],
-	char: '🦢',
+	char: "🦢",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const peacock = {
+var peacock = {
 	keywords: [
-		'animal',
-		'nature',
-		'peahen',
-		'bird',
+		"animal",
+		"nature",
+		"peahen",
+		"bird"
 	],
-	char: '🦚',
+	char: "🦚",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const parrot = {
+var parrot = {
 	keywords: [
-		'animal',
-		'nature',
-		'bird',
-		'pirate',
-		'talk',
+		"animal",
+		"nature",
+		"bird",
+		"pirate",
+		"talk"
 	],
-	char: '🦜',
+	char: "🦜",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const lobster = {
+var lobster = {
 	keywords: [
-		'animal',
-		'nature',
-		'bisque',
-		'claws',
-		'seafood',
+		"animal",
+		"nature",
+		"bisque",
+		"claws",
+		"seafood"
 	],
-	char: '🦞',
+	char: "🦞",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const mosquito = {
+var mosquito = {
 	keywords: [
-		'animal',
-		'nature',
-		'insect',
-		'malaria',
+		"animal",
+		"nature",
+		"insect",
+		"malaria"
 	],
-	char: '🦟',
+	char: "🦟",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const paw_prints = {
+var paw_prints = {
 	keywords: [
-		'animal',
-		'tracking',
-		'footprints',
-		'dog',
-		'cat',
-		'pet',
-		'feet',
+		"animal",
+		"tracking",
+		"footprints",
+		"dog",
+		"cat",
+		"pet",
+		"feet"
 	],
-	char: '🐾',
+	char: "🐾",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dragon = {
+var dragon = {
 	keywords: [
-		'animal',
-		'myth',
-		'nature',
-		'chinese',
-		'green',
+		"animal",
+		"myth",
+		"nature",
+		"chinese",
+		"green"
 	],
-	char: '🐉',
+	char: "🐉",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dragon_face = {
+var dragon_face = {
 	keywords: [
-		'animal',
-		'myth',
-		'nature',
-		'chinese',
-		'green',
+		"animal",
+		"myth",
+		"nature",
+		"chinese",
+		"green"
 	],
-	char: '🐲',
+	char: "🐲",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cactus = {
+var cactus = {
 	keywords: [
-		'vegetable',
-		'plant',
-		'nature',
+		"vegetable",
+		"plant",
+		"nature"
 	],
-	char: '🌵',
+	char: "🌵",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const christmas_tree = {
+var christmas_tree = {
 	keywords: [
-		'festival',
-		'vacation',
-		'december',
-		'xmas',
-		'celebration',
+		"festival",
+		"vacation",
+		"december",
+		"xmas",
+		"celebration"
 	],
-	char: '🎄',
+	char: "🎄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const evergreen_tree = {
+var evergreen_tree = {
 	keywords: [
-		'plant',
-		'nature',
+		"plant",
+		"nature"
 	],
-	char: '🌲',
+	char: "🌲",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const deciduous_tree = {
+var deciduous_tree = {
 	keywords: [
-		'plant',
-		'nature',
+		"plant",
+		"nature"
 	],
-	char: '🌳',
+	char: "🌳",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const palm_tree = {
+var palm_tree = {
 	keywords: [
-		'plant',
-		'vegetable',
-		'nature',
-		'summer',
-		'beach',
-		'mojito',
-		'tropical',
+		"plant",
+		"vegetable",
+		"nature",
+		"summer",
+		"beach",
+		"mojito",
+		"tropical"
 	],
-	char: '🌴',
+	char: "🌴",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const seedling = {
+var seedling = {
 	keywords: [
-		'plant',
-		'nature',
-		'grass',
-		'lawn',
-		'spring',
+		"plant",
+		"nature",
+		"grass",
+		"lawn",
+		"spring"
 	],
-	char: '🌱',
+	char: "🌱",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const herb = {
+var herb = {
 	keywords: [
-		'vegetable',
-		'plant',
-		'medicine',
-		'weed',
-		'grass',
-		'lawn',
+		"vegetable",
+		"plant",
+		"medicine",
+		"weed",
+		"grass",
+		"lawn"
 	],
-	char: '🌿',
+	char: "🌿",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const shamrock = {
+var shamrock = {
 	keywords: [
-		'vegetable',
-		'plant',
-		'nature',
-		'irish',
-		'clover',
+		"vegetable",
+		"plant",
+		"nature",
+		"irish",
+		"clover"
 	],
-	char: '☘',
+	char: "☘",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const four_leaf_clover = {
+var four_leaf_clover = {
 	keywords: [
-		'vegetable',
-		'plant',
-		'nature',
-		'lucky',
-		'irish',
+		"vegetable",
+		"plant",
+		"nature",
+		"lucky",
+		"irish"
 	],
-	char: '🍀',
+	char: "🍀",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bamboo = {
+var bamboo = {
 	keywords: [
-		'plant',
-		'nature',
-		'vegetable',
-		'panda',
-		'pine_decoration',
+		"plant",
+		"nature",
+		"vegetable",
+		"panda",
+		"pine_decoration"
 	],
-	char: '🎍',
+	char: "🎍",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tanabata_tree = {
+var tanabata_tree = {
 	keywords: [
-		'plant',
-		'nature',
-		'branch',
-		'summer',
+		"plant",
+		"nature",
+		"branch",
+		"summer"
 	],
-	char: '🎋',
+	char: "🎋",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const leaves = {
+var leaves = {
 	keywords: [
-		'nature',
-		'plant',
-		'tree',
-		'vegetable',
-		'grass',
-		'lawn',
-		'spring',
+		"nature",
+		"plant",
+		"tree",
+		"vegetable",
+		"grass",
+		"lawn",
+		"spring"
 	],
-	char: '🍃',
+	char: "🍃",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const fallen_leaf = {
+var fallen_leaf = {
 	keywords: [
-		'nature',
-		'plant',
-		'vegetable',
-		'leaves',
+		"nature",
+		"plant",
+		"vegetable",
+		"leaves"
 	],
-	char: '🍂',
+	char: "🍂",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const maple_leaf = {
+var maple_leaf = {
 	keywords: [
-		'nature',
-		'plant',
-		'vegetable',
-		'ca',
-		'fall',
+		"nature",
+		"plant",
+		"vegetable",
+		"ca",
+		"fall"
 	],
-	char: '🍁',
+	char: "🍁",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const ear_of_rice = {
+var ear_of_rice = {
 	keywords: [
-		'nature',
-		'plant',
+		"nature",
+		"plant"
 	],
-	char: '🌾',
+	char: "🌾",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const hibiscus = {
+var hibiscus = {
 	keywords: [
-		'plant',
-		'vegetable',
-		'flowers',
-		'beach',
+		"plant",
+		"vegetable",
+		"flowers",
+		"beach"
 	],
-	char: '🌺',
+	char: "🌺",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sunflower = {
+var sunflower = {
 	keywords: [
-		'nature',
-		'plant',
-		'fall',
+		"nature",
+		"plant",
+		"fall"
 	],
-	char: '🌻',
+	char: "🌻",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const rose = {
+var rose = {
 	keywords: [
-		'flowers',
-		'valentines',
-		'love',
-		'spring',
+		"flowers",
+		"valentines",
+		"love",
+		"spring"
 	],
-	char: '🌹',
+	char: "🌹",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const wilted_flower = {
+var wilted_flower = {
 	keywords: [
-		'plant',
-		'nature',
-		'flower',
+		"plant",
+		"nature",
+		"flower"
 	],
-	char: '🥀',
+	char: "🥀",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tulip = {
+var tulip = {
 	keywords: [
-		'flowers',
-		'plant',
-		'nature',
-		'summer',
-		'spring',
+		"flowers",
+		"plant",
+		"nature",
+		"summer",
+		"spring"
 	],
-	char: '🌷',
+	char: "🌷",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const blossom = {
+var blossom = {
 	keywords: [
-		'nature',
-		'flowers',
-		'yellow',
+		"nature",
+		"flowers",
+		"yellow"
 	],
-	char: '🌼',
+	char: "🌼",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cherry_blossom = {
+var cherry_blossom = {
 	keywords: [
-		'nature',
-		'plant',
-		'spring',
-		'flower',
+		"nature",
+		"plant",
+		"spring",
+		"flower"
 	],
-	char: '🌸',
+	char: "🌸",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const bouquet = {
+var bouquet = {
 	keywords: [
-		'flowers',
-		'nature',
-		'spring',
+		"flowers",
+		"nature",
+		"spring"
 	],
-	char: '💐',
+	char: "💐",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const mushroom = {
+var mushroom = {
 	keywords: [
-		'plant',
-		'vegetable',
+		"plant",
+		"vegetable"
 	],
-	char: '🍄',
+	char: "🍄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const chestnut = {
+var chestnut = {
 	keywords: [
-		'food',
-		'squirrel',
+		"food",
+		"squirrel"
 	],
-	char: '🌰',
+	char: "🌰",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const jack_o_lantern = {
+var jack_o_lantern = {
 	keywords: [
-		'halloween',
-		'light',
-		'pumpkin',
-		'creepy',
-		'fall',
+		"halloween",
+		"light",
+		"pumpkin",
+		"creepy",
+		"fall"
 	],
-	char: '🎃',
+	char: "🎃",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const shell = {
+var shell = {
 	keywords: [
-		'nature',
-		'sea',
-		'beach',
+		"nature",
+		"sea",
+		"beach"
 	],
-	char: '🐚',
+	char: "🐚",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const spider_web = {
+var spider_web = {
 	keywords: [
-		'animal',
-		'insect',
-		'arachnid',
-		'silk',
+		"animal",
+		"insect",
+		"arachnid",
+		"silk"
 	],
-	char: '🕸',
+	char: "🕸",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const earth_americas = {
+var earth_americas = {
 	keywords: [
-		'globe',
-		'world',
-		'USA',
-		'international',
+		"globe",
+		"world",
+		"USA",
+		"international"
 	],
-	char: '🌎',
+	char: "🌎",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const earth_africa = {
+var earth_africa = {
 	keywords: [
-		'globe',
-		'world',
-		'international',
+		"globe",
+		"world",
+		"international"
 	],
-	char: '🌍',
+	char: "🌍",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const earth_asia = {
+var earth_asia = {
 	keywords: [
-		'globe',
-		'world',
-		'east',
-		'international',
+		"globe",
+		"world",
+		"east",
+		"international"
 	],
-	char: '🌏',
+	char: "🌏",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const full_moon = {
+var full_moon = {
 	keywords: [
-		'nature',
-		'yellow',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"yellow",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌕',
+	char: "🌕",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const waning_gibbous_moon = {
+var waning_gibbous_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
-		'waxing_gibbous_moon',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep",
+		"waxing_gibbous_moon"
 	],
-	char: '🌖',
+	char: "🌖",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const last_quarter_moon = {
+var last_quarter_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌗',
+	char: "🌗",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const waning_crescent_moon = {
+var waning_crescent_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌘',
+	char: "🌘",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const new_moon = {
+var new_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌑',
+	char: "🌑",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const waxing_crescent_moon = {
+var waxing_crescent_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌒',
+	char: "🌒",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const first_quarter_moon = {
+var first_quarter_moon = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌓',
+	char: "🌓",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const waxing_gibbous_moon = {
+var waxing_gibbous_moon = {
 	keywords: [
-		'nature',
-		'night',
-		'sky',
-		'gray',
-		'twilight',
-		'planet',
-		'space',
-		'evening',
-		'sleep',
+		"nature",
+		"night",
+		"sky",
+		"gray",
+		"twilight",
+		"planet",
+		"space",
+		"evening",
+		"sleep"
 	],
-	char: '🌔',
+	char: "🌔",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const new_moon_with_face = {
+var new_moon_with_face = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌚',
+	char: "🌚",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const full_moon_with_face = {
+var full_moon_with_face = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌝',
+	char: "🌝",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const first_quarter_moon_with_face = {
+var first_quarter_moon_with_face = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌛',
+	char: "🌛",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const last_quarter_moon_with_face = {
+var last_quarter_moon_with_face = {
 	keywords: [
-		'nature',
-		'twilight',
-		'planet',
-		'space',
-		'night',
-		'evening',
-		'sleep',
+		"nature",
+		"twilight",
+		"planet",
+		"space",
+		"night",
+		"evening",
+		"sleep"
 	],
-	char: '🌜',
+	char: "🌜",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sun_with_face = {
+var sun_with_face = {
 	keywords: [
-		'nature',
-		'morning',
-		'sky',
+		"nature",
+		"morning",
+		"sky"
 	],
-	char: '🌞',
+	char: "🌞",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const crescent_moon = {
+var crescent_moon = {
 	keywords: [
-		'night',
-		'sleep',
-		'sky',
-		'evening',
-		'magic',
+		"night",
+		"sleep",
+		"sky",
+		"evening",
+		"magic"
 	],
-	char: '🌙',
+	char: "🌙",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const star = {
+var star = {
 	keywords: [
-		'night',
-		'yellow',
+		"night",
+		"yellow"
 	],
-	char: '⭐',
+	char: "⭐",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const star2 = {
+var star2 = {
 	keywords: [
-		'night',
-		'sparkle',
-		'awesome',
-		'good',
-		'magic',
+		"night",
+		"sparkle",
+		"awesome",
+		"good",
+		"magic"
 	],
-	char: '🌟',
+	char: "🌟",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dizzy = {
+var dizzy = {
 	keywords: [
-		'star',
-		'sparkle',
-		'shoot',
-		'magic',
+		"star",
+		"sparkle",
+		"shoot",
+		"magic"
 	],
-	char: '💫',
+	char: "💫",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sparkles = {
+var sparkles = {
 	keywords: [
-		'stars',
-		'shine',
-		'shiny',
-		'cool',
-		'awesome',
-		'good',
-		'magic',
+		"stars",
+		"shine",
+		"shiny",
+		"cool",
+		"awesome",
+		"good",
+		"magic"
 	],
-	char: '✨',
+	char: "✨",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const comet = {
+var comet = {
 	keywords: [
-		'space',
+		"space"
 	],
-	char: '☄',
+	char: "☄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sunny = {
+var sunny = {
 	keywords: [
-		'weather',
-		'nature',
-		'brightness',
-		'summer',
-		'beach',
-		'spring',
+		"weather",
+		"nature",
+		"brightness",
+		"summer",
+		"beach",
+		"spring"
 	],
-	char: '☀️',
+	char: "☀️",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sun_behind_small_cloud = {
+var sun_behind_small_cloud = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌤',
+	char: "🌤",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const partly_sunny = {
+var partly_sunny = {
 	keywords: [
-		'weather',
-		'nature',
-		'cloudy',
-		'morning',
-		'fall',
-		'spring',
+		"weather",
+		"nature",
+		"cloudy",
+		"morning",
+		"fall",
+		"spring"
 	],
-	char: '⛅',
+	char: "⛅",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sun_behind_large_cloud = {
+var sun_behind_large_cloud = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌥',
+	char: "🌥",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sun_behind_rain_cloud = {
+var sun_behind_rain_cloud = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌦',
+	char: "🌦",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cloud = {
+var cloud = {
 	keywords: [
-		'weather',
-		'sky',
+		"weather",
+		"sky"
 	],
-	char: '☁️',
+	char: "☁️",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cloud_with_rain = {
+var cloud_with_rain = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌧',
+	char: "🌧",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cloud_with_lightning_and_rain = {
+var cloud_with_lightning_and_rain = {
 	keywords: [
-		'weather',
-		'lightning',
+		"weather",
+		"lightning"
 	],
-	char: '⛈',
+	char: "⛈",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cloud_with_lightning = {
+var cloud_with_lightning = {
 	keywords: [
-		'weather',
-		'thunder',
+		"weather",
+		"thunder"
 	],
-	char: '🌩',
+	char: "🌩",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const zap = {
+var zap = {
 	keywords: [
-		'thunder',
-		'weather',
-		'lightning bolt',
-		'fast',
+		"thunder",
+		"weather",
+		"lightning bolt",
+		"fast"
 	],
-	char: '⚡',
+	char: "⚡",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const fire = {
+var fire = {
 	keywords: [
-		'hot',
-		'cook',
-		'flame',
+		"hot",
+		"cook",
+		"flame"
 	],
-	char: '🔥',
+	char: "🔥",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const boom = {
+var boom = {
 	keywords: [
-		'bomb',
-		'explode',
-		'explosion',
-		'collision',
-		'blown',
+		"bomb",
+		"explode",
+		"explosion",
+		"collision",
+		"blown"
 	],
-	char: '💥',
+	char: "💥",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const snowflake = {
+var snowflake = {
 	keywords: [
-		'winter',
-		'season',
-		'cold',
-		'weather',
-		'christmas',
-		'xmas',
+		"winter",
+		"season",
+		"cold",
+		"weather",
+		"christmas",
+		"xmas"
 	],
-	char: '❄️',
+	char: "❄️",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const cloud_with_snow = {
+var cloud_with_snow = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌨',
+	char: "🌨",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const snowman = {
+var snowman = {
 	keywords: [
-		'winter',
-		'season',
-		'cold',
-		'weather',
-		'christmas',
-		'xmas',
-		'frozen',
-		'without_snow',
+		"winter",
+		"season",
+		"cold",
+		"weather",
+		"christmas",
+		"xmas",
+		"frozen",
+		"without_snow"
 	],
-	char: '⛄',
+	char: "⛄",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const snowman_with_snow = {
+var snowman_with_snow = {
 	keywords: [
-		'winter',
-		'season',
-		'cold',
-		'weather',
-		'christmas',
-		'xmas',
-		'frozen',
+		"winter",
+		"season",
+		"cold",
+		"weather",
+		"christmas",
+		"xmas",
+		"frozen"
 	],
-	char: '☃',
+	char: "☃",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const wind_face = {
+var wind_face = {
 	keywords: [
-		'gust',
-		'air',
+		"gust",
+		"air"
 	],
-	char: '🌬',
+	char: "🌬",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const dash = {
+var dash = {
 	keywords: [
-		'wind',
-		'air',
-		'fast',
-		'shoo',
-		'fart',
-		'smoke',
-		'puff',
+		"wind",
+		"air",
+		"fast",
+		"shoo",
+		"fart",
+		"smoke",
+		"puff"
 	],
-	char: '💨',
+	char: "💨",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const tornado = {
+var tornado = {
 	keywords: [
-		'weather',
-		'cyclone',
-		'twister',
+		"weather",
+		"cyclone",
+		"twister"
 	],
-	char: '🌪',
+	char: "🌪",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const fog = {
+var fog = {
 	keywords: [
-		'weather',
+		"weather"
 	],
-	char: '🌫',
+	char: "🌫",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const open_umbrella = {
+var open_umbrella = {
 	keywords: [
-		'weather',
-		'spring',
+		"weather",
+		"spring"
 	],
-	char: '☂',
+	char: "☂",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const umbrella = {
+var umbrella = {
 	keywords: [
-		'rainy',
-		'weather',
-		'spring',
+		"rainy",
+		"weather",
+		"spring"
 	],
-	char: '☔',
+	char: "☔",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const droplet = {
+var droplet = {
 	keywords: [
-		'water',
-		'drip',
-		'faucet',
-		'spring',
+		"water",
+		"drip",
+		"faucet",
+		"spring"
 	],
-	char: '💧',
+	char: "💧",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const sweat_drops = {
+var sweat_drops = {
 	keywords: [
-		'water',
-		'drip',
-		'oops',
+		"water",
+		"drip",
+		"oops"
 	],
-	char: '💦',
+	char: "💦",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const ocean = {
+var ocean = {
 	keywords: [
-		'sea',
-		'water',
-		'wave',
-		'nature',
-		'tsunami',
-		'disaster',
+		"sea",
+		"water",
+		"wave",
+		"nature",
+		"tsunami",
+		"disaster"
 	],
-	char: '🌊',
+	char: "🌊",
 	fitzpatrick_scale: false,
-	category: 'animals_and_nature',
+	category: "animals_and_nature"
 };
-const green_apple = {
+var green_apple = {
 	keywords: [
-		'fruit',
-		'nature',
+		"fruit",
+		"nature"
 	],
-	char: '🍏',
+	char: "🍏",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const apple = {
+var apple = {
 	keywords: [
-		'fruit',
-		'mac',
-		'school',
+		"fruit",
+		"mac",
+		"school"
 	],
-	char: '🍎',
+	char: "🍎",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pear = {
+var pear = {
 	keywords: [
-		'fruit',
-		'nature',
-		'food',
+		"fruit",
+		"nature",
+		"food"
 	],
-	char: '🍐',
+	char: "🍐",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const tangerine = {
+var tangerine = {
 	keywords: [
-		'food',
-		'fruit',
-		'nature',
-		'orange',
+		"food",
+		"fruit",
+		"nature",
+		"orange"
 	],
-	char: '🍊',
+	char: "🍊",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const lemon = {
+var lemon = {
 	keywords: [
-		'fruit',
-		'nature',
+		"fruit",
+		"nature"
 	],
-	char: '🍋',
+	char: "🍋",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const banana = {
+var banana = {
 	keywords: [
-		'fruit',
-		'food',
-		'monkey',
+		"fruit",
+		"food",
+		"monkey"
 	],
-	char: '🍌',
+	char: "🍌",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const watermelon = {
+var watermelon = {
 	keywords: [
-		'fruit',
-		'food',
-		'picnic',
-		'summer',
+		"fruit",
+		"food",
+		"picnic",
+		"summer"
 	],
-	char: '🍉',
+	char: "🍉",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const grapes = {
+var grapes = {
 	keywords: [
-		'fruit',
-		'food',
-		'wine',
+		"fruit",
+		"food",
+		"wine"
 	],
-	char: '🍇',
+	char: "🍇",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const strawberry = {
+var strawberry = {
 	keywords: [
-		'fruit',
-		'food',
-		'nature',
+		"fruit",
+		"food",
+		"nature"
 	],
-	char: '🍓',
+	char: "🍓",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const melon = {
+var melon = {
 	keywords: [
-		'fruit',
-		'nature',
-		'food',
+		"fruit",
+		"nature",
+		"food"
 	],
-	char: '🍈',
+	char: "🍈",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cherries = {
+var cherries = {
 	keywords: [
-		'food',
-		'fruit',
+		"food",
+		"fruit"
 	],
-	char: '🍒',
+	char: "🍒",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const peach = {
+var peach = {
 	keywords: [
-		'fruit',
-		'nature',
-		'food',
+		"fruit",
+		"nature",
+		"food"
 	],
-	char: '🍑',
+	char: "🍑",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pineapple = {
+var pineapple = {
 	keywords: [
-		'fruit',
-		'nature',
-		'food',
+		"fruit",
+		"nature",
+		"food"
 	],
-	char: '🍍',
+	char: "🍍",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const coconut = {
+var coconut = {
 	keywords: [
-		'fruit',
-		'nature',
-		'food',
-		'palm',
+		"fruit",
+		"nature",
+		"food",
+		"palm"
 	],
-	char: '🥥',
+	char: "🥥",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const kiwi_fruit = {
+var kiwi_fruit = {
 	keywords: [
-		'fruit',
-		'food',
+		"fruit",
+		"food"
 	],
-	char: '🥝',
+	char: "🥝",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const mango = {
+var mango = {
 	keywords: [
-		'fruit',
-		'food',
-		'tropical',
+		"fruit",
+		"food",
+		"tropical"
 	],
-	char: '🥭',
+	char: "🥭",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const avocado = {
+var avocado = {
 	keywords: [
-		'fruit',
-		'food',
+		"fruit",
+		"food"
 	],
-	char: '🥑',
+	char: "🥑",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const broccoli = {
+var broccoli = {
 	keywords: [
-		'fruit',
-		'food',
-		'vegetable',
+		"fruit",
+		"food",
+		"vegetable"
 	],
-	char: '🥦',
+	char: "🥦",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const tomato = {
+var tomato = {
 	keywords: [
-		'fruit',
-		'vegetable',
-		'nature',
-		'food',
+		"fruit",
+		"vegetable",
+		"nature",
+		"food"
 	],
-	char: '🍅',
+	char: "🍅",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const eggplant = {
+var eggplant = {
 	keywords: [
-		'vegetable',
-		'nature',
-		'food',
-		'aubergine',
+		"vegetable",
+		"nature",
+		"food",
+		"aubergine"
 	],
-	char: '🍆',
+	char: "🍆",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cucumber = {
+var cucumber = {
 	keywords: [
-		'fruit',
-		'food',
-		'pickle',
+		"fruit",
+		"food",
+		"pickle"
 	],
-	char: '🥒',
+	char: "🥒",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const carrot = {
+var carrot = {
 	keywords: [
-		'vegetable',
-		'food',
-		'orange',
+		"vegetable",
+		"food",
+		"orange"
 	],
-	char: '🥕',
+	char: "🥕",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const hot_pepper = {
+var hot_pepper = {
 	keywords: [
-		'food',
-		'spicy',
-		'chilli',
-		'chili',
+		"food",
+		"spicy",
+		"chilli",
+		"chili"
 	],
-	char: '🌶',
+	char: "🌶",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const potato = {
+var potato = {
 	keywords: [
-		'food',
-		'tuber',
-		'vegatable',
-		'starch',
+		"food",
+		"tuber",
+		"vegatable",
+		"starch"
 	],
-	char: '🥔',
+	char: "🥔",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const corn = {
+var corn = {
 	keywords: [
-		'food',
-		'vegetable',
-		'plant',
+		"food",
+		"vegetable",
+		"plant"
 	],
-	char: '🌽',
+	char: "🌽",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const leafy_greens = {
+var leafy_greens = {
 	keywords: [
-		'food',
-		'vegetable',
-		'plant',
-		'bok choy',
-		'cabbage',
-		'kale',
-		'lettuce',
+		"food",
+		"vegetable",
+		"plant",
+		"bok choy",
+		"cabbage",
+		"kale",
+		"lettuce"
 	],
-	char: '🥬',
+	char: "🥬",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const sweet_potato = {
+var sweet_potato = {
 	keywords: [
-		'food',
-		'nature',
+		"food",
+		"nature"
 	],
-	char: '🍠',
+	char: "🍠",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const peanuts = {
+var peanuts = {
 	keywords: [
-		'food',
-		'nut',
+		"food",
+		"nut"
 	],
-	char: '🥜',
+	char: "🥜",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const honey_pot = {
+var honey_pot = {
 	keywords: [
-		'bees',
-		'sweet',
-		'kitchen',
+		"bees",
+		"sweet",
+		"kitchen"
 	],
-	char: '🍯',
+	char: "🍯",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const croissant = {
+var croissant = {
 	keywords: [
-		'food',
-		'bread',
-		'french',
+		"food",
+		"bread",
+		"french"
 	],
-	char: '🥐',
+	char: "🥐",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bread = {
+var bread = {
 	keywords: [
-		'food',
-		'wheat',
-		'breakfast',
-		'toast',
+		"food",
+		"wheat",
+		"breakfast",
+		"toast"
 	],
-	char: '🍞',
+	char: "🍞",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const baguette_bread = {
+var baguette_bread = {
 	keywords: [
-		'food',
-		'bread',
-		'french',
+		"food",
+		"bread",
+		"french"
 	],
-	char: '🥖',
+	char: "🥖",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bagel = {
+var bagel = {
 	keywords: [
-		'food',
-		'bread',
-		'bakery',
-		'schmear',
+		"food",
+		"bread",
+		"bakery",
+		"schmear"
 	],
-	char: '🥯',
+	char: "🥯",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pretzel = {
+var pretzel = {
 	keywords: [
-		'food',
-		'bread',
-		'twisted',
+		"food",
+		"bread",
+		"twisted"
 	],
-	char: '🥨',
+	char: "🥨",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cheese = {
+var cheese = {
 	keywords: [
-		'food',
-		'chadder',
+		"food",
+		"chadder"
 	],
-	char: '🧀',
+	char: "🧀",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const egg = {
+var egg = {
 	keywords: [
-		'food',
-		'chicken',
-		'breakfast',
+		"food",
+		"chicken",
+		"breakfast"
 	],
-	char: '🥚',
+	char: "🥚",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bacon = {
+var bacon = {
 	keywords: [
-		'food',
-		'breakfast',
-		'pork',
-		'pig',
-		'meat',
+		"food",
+		"breakfast",
+		"pork",
+		"pig",
+		"meat"
 	],
-	char: '🥓',
+	char: "🥓",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const steak = {
+var steak = {
 	keywords: [
-		'food',
-		'cow',
-		'meat',
-		'cut',
-		'chop',
-		'lambchop',
-		'porkchop',
+		"food",
+		"cow",
+		"meat",
+		"cut",
+		"chop",
+		"lambchop",
+		"porkchop"
 	],
-	char: '🥩',
+	char: "🥩",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pancakes = {
+var pancakes = {
 	keywords: [
-		'food',
-		'breakfast',
-		'flapjacks',
-		'hotcakes',
+		"food",
+		"breakfast",
+		"flapjacks",
+		"hotcakes"
 	],
-	char: '🥞',
+	char: "🥞",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const poultry_leg = {
+var poultry_leg = {
 	keywords: [
-		'food',
-		'meat',
-		'drumstick',
-		'bird',
-		'chicken',
-		'turkey',
+		"food",
+		"meat",
+		"drumstick",
+		"bird",
+		"chicken",
+		"turkey"
 	],
-	char: '🍗',
+	char: "🍗",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const meat_on_bone = {
+var meat_on_bone = {
 	keywords: [
-		'good',
-		'food',
-		'drumstick',
+		"good",
+		"food",
+		"drumstick"
 	],
-	char: '🍖',
+	char: "🍖",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bone = {
+var bone = {
 	keywords: [
-		'skeleton',
+		"skeleton"
 	],
-	char: '🦴',
+	char: "🦴",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fried_shrimp = {
+var fried_shrimp = {
 	keywords: [
-		'food',
-		'animal',
-		'appetizer',
-		'summer',
+		"food",
+		"animal",
+		"appetizer",
+		"summer"
 	],
-	char: '🍤',
+	char: "🍤",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fried_egg = {
+var fried_egg = {
 	keywords: [
-		'food',
-		'breakfast',
-		'kitchen',
-		'egg',
+		"food",
+		"breakfast",
+		"kitchen",
+		"egg"
 	],
-	char: '🍳',
+	char: "🍳",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const hamburger = {
+var hamburger = {
 	keywords: [
-		'meat',
-		'fast food',
-		'beef',
-		'cheeseburger',
-		'mcdonalds',
-		'burger king',
+		"meat",
+		"fast food",
+		"beef",
+		"cheeseburger",
+		"mcdonalds",
+		"burger king"
 	],
-	char: '🍔',
+	char: "🍔",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fries = {
+var fries = {
 	keywords: [
-		'chips',
-		'snack',
-		'fast food',
+		"chips",
+		"snack",
+		"fast food"
 	],
-	char: '🍟',
+	char: "🍟",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const stuffed_flatbread = {
+var stuffed_flatbread = {
 	keywords: [
-		'food',
-		'flatbread',
-		'stuffed',
-		'gyro',
+		"food",
+		"flatbread",
+		"stuffed",
+		"gyro"
 	],
-	char: '🥙',
+	char: "🥙",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const hotdog = {
+var hotdog = {
 	keywords: [
-		'food',
-		'frankfurter',
+		"food",
+		"frankfurter"
 	],
-	char: '🌭',
+	char: "🌭",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pizza = {
+var pizza = {
 	keywords: [
-		'food',
-		'party',
+		"food",
+		"party"
 	],
-	char: '🍕',
+	char: "🍕",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const sandwich = {
+var sandwich = {
 	keywords: [
-		'food',
-		'lunch',
-		'bread',
+		"food",
+		"lunch",
+		"bread"
 	],
-	char: '🥪',
+	char: "🥪",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const canned_food = {
+var canned_food = {
 	keywords: [
-		'food',
-		'soup',
+		"food",
+		"soup"
 	],
-	char: '🥫',
+	char: "🥫",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const spaghetti = {
+var spaghetti = {
 	keywords: [
-		'food',
-		'italian',
-		'noodle',
+		"food",
+		"italian",
+		"noodle"
 	],
-	char: '🍝',
+	char: "🍝",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const taco = {
+var taco = {
 	keywords: [
-		'food',
-		'mexican',
+		"food",
+		"mexican"
 	],
-	char: '🌮',
+	char: "🌮",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const burrito = {
+var burrito = {
 	keywords: [
-		'food',
-		'mexican',
+		"food",
+		"mexican"
 	],
-	char: '🌯',
+	char: "🌯",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const green_salad = {
+var green_salad = {
 	keywords: [
-		'food',
-		'healthy',
-		'lettuce',
+		"food",
+		"healthy",
+		"lettuce"
 	],
-	char: '🥗',
+	char: "🥗",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const shallow_pan_of_food = {
+var shallow_pan_of_food = {
 	keywords: [
-		'food',
-		'cooking',
-		'casserole',
-		'paella',
+		"food",
+		"cooking",
+		"casserole",
+		"paella"
 	],
-	char: '🥘',
+	char: "🥘",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const ramen = {
+var ramen = {
 	keywords: [
-		'food',
-		'japanese',
-		'noodle',
-		'chopsticks',
+		"food",
+		"japanese",
+		"noodle",
+		"chopsticks"
 	],
-	char: '🍜',
+	char: "🍜",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const stew = {
+var stew = {
 	keywords: [
-		'food',
-		'meat',
-		'soup',
+		"food",
+		"meat",
+		"soup"
 	],
-	char: '🍲',
+	char: "🍲",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fish_cake = {
+var fish_cake = {
 	keywords: [
-		'food',
-		'japan',
-		'sea',
-		'beach',
-		'narutomaki',
-		'pink',
-		'swirl',
-		'kamaboko',
-		'surimi',
-		'ramen',
+		"food",
+		"japan",
+		"sea",
+		"beach",
+		"narutomaki",
+		"pink",
+		"swirl",
+		"kamaboko",
+		"surimi",
+		"ramen"
 	],
-	char: '🍥',
+	char: "🍥",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fortune_cookie = {
+var fortune_cookie = {
 	keywords: [
-		'food',
-		'prophecy',
+		"food",
+		"prophecy"
 	],
-	char: '🥠',
+	char: "🥠",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const sushi = {
+var sushi = {
 	keywords: [
-		'food',
-		'fish',
-		'japanese',
-		'rice',
+		"food",
+		"fish",
+		"japanese",
+		"rice"
 	],
-	char: '🍣',
+	char: "🍣",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bento = {
+var bento = {
 	keywords: [
-		'food',
-		'japanese',
-		'box',
+		"food",
+		"japanese",
+		"box"
 	],
-	char: '🍱',
+	char: "🍱",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const curry = {
+var curry = {
 	keywords: [
-		'food',
-		'spicy',
-		'hot',
-		'indian',
+		"food",
+		"spicy",
+		"hot",
+		"indian"
 	],
-	char: '🍛',
+	char: "🍛",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const rice_ball = {
+var rice_ball = {
 	keywords: [
-		'food',
-		'japanese',
+		"food",
+		"japanese"
 	],
-	char: '🍙',
+	char: "🍙",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const rice = {
+var rice = {
 	keywords: [
-		'food',
-		'china',
-		'asian',
+		"food",
+		"china",
+		"asian"
 	],
-	char: '🍚',
+	char: "🍚",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const rice_cracker = {
+var rice_cracker = {
 	keywords: [
-		'food',
-		'japanese',
+		"food",
+		"japanese"
 	],
-	char: '🍘',
+	char: "🍘",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const oden = {
+var oden = {
 	keywords: [
-		'food',
-		'japanese',
+		"food",
+		"japanese"
 	],
-	char: '🍢',
+	char: "🍢",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const dango = {
+var dango = {
 	keywords: [
-		'food',
-		'dessert',
-		'sweet',
-		'japanese',
-		'barbecue',
-		'meat',
+		"food",
+		"dessert",
+		"sweet",
+		"japanese",
+		"barbecue",
+		"meat"
 	],
-	char: '🍡',
+	char: "🍡",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const shaved_ice = {
+var shaved_ice = {
 	keywords: [
-		'hot',
-		'dessert',
-		'summer',
+		"hot",
+		"dessert",
+		"summer"
 	],
-	char: '🍧',
+	char: "🍧",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const ice_cream = {
+var ice_cream = {
 	keywords: [
-		'food',
-		'hot',
-		'dessert',
+		"food",
+		"hot",
+		"dessert"
 	],
-	char: '🍨',
+	char: "🍨",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const icecream = {
+var icecream = {
 	keywords: [
-		'food',
-		'hot',
-		'dessert',
-		'summer',
+		"food",
+		"hot",
+		"dessert",
+		"summer"
 	],
-	char: '🍦',
+	char: "🍦",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const pie = {
+var pie = {
 	keywords: [
-		'food',
-		'dessert',
-		'pastry',
+		"food",
+		"dessert",
+		"pastry"
 	],
-	char: '🥧',
+	char: "🥧",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cake = {
+var cake = {
 	keywords: [
-		'food',
-		'dessert',
+		"food",
+		"dessert"
 	],
-	char: '🍰',
+	char: "🍰",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cupcake = {
+var cupcake = {
 	keywords: [
-		'food',
-		'dessert',
-		'bakery',
-		'sweet',
+		"food",
+		"dessert",
+		"bakery",
+		"sweet"
 	],
-	char: '🧁',
+	char: "🧁",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const moon_cake = {
+var moon_cake = {
 	keywords: [
-		'food',
-		'autumn',
+		"food",
+		"autumn"
 	],
-	char: '🥮',
+	char: "🥮",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const birthday = {
+var birthday = {
 	keywords: [
-		'food',
-		'dessert',
-		'cake',
+		"food",
+		"dessert",
+		"cake"
 	],
-	char: '🎂',
+	char: "🎂",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const custard = {
+var custard = {
 	keywords: [
-		'dessert',
-		'food',
+		"dessert",
+		"food"
 	],
-	char: '🍮',
+	char: "🍮",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const candy = {
+var candy = {
 	keywords: [
-		'snack',
-		'dessert',
-		'sweet',
-		'lolly',
+		"snack",
+		"dessert",
+		"sweet",
+		"lolly"
 	],
-	char: '🍬',
+	char: "🍬",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const lollipop = {
+var lollipop = {
 	keywords: [
-		'food',
-		'snack',
-		'candy',
-		'sweet',
+		"food",
+		"snack",
+		"candy",
+		"sweet"
 	],
-	char: '🍭',
+	char: "🍭",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const chocolate_bar = {
+var chocolate_bar = {
 	keywords: [
-		'food',
-		'snack',
-		'dessert',
-		'sweet',
+		"food",
+		"snack",
+		"dessert",
+		"sweet"
 	],
-	char: '🍫',
+	char: "🍫",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const popcorn = {
+var popcorn = {
 	keywords: [
-		'food',
-		'movie theater',
-		'films',
-		'snack',
+		"food",
+		"movie theater",
+		"films",
+		"snack"
 	],
-	char: '🍿',
+	char: "🍿",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const dumpling = {
+var dumpling = {
 	keywords: [
-		'food',
-		'empanada',
-		'pierogi',
-		'potsticker',
+		"food",
+		"empanada",
+		"pierogi",
+		"potsticker"
 	],
-	char: '🥟',
+	char: "🥟",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const doughnut = {
+var doughnut = {
 	keywords: [
-		'food',
-		'dessert',
-		'snack',
-		'sweet',
-		'donut',
+		"food",
+		"dessert",
+		"snack",
+		"sweet",
+		"donut"
 	],
-	char: '🍩',
+	char: "🍩",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cookie = {
+var cookie = {
 	keywords: [
-		'food',
-		'snack',
-		'oreo',
-		'chocolate',
-		'sweet',
-		'dessert',
+		"food",
+		"snack",
+		"oreo",
+		"chocolate",
+		"sweet",
+		"dessert"
 	],
-	char: '🍪',
+	char: "🍪",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const milk_glass = {
+var milk_glass = {
 	keywords: [
-		'beverage',
-		'drink',
-		'cow',
+		"beverage",
+		"drink",
+		"cow"
 	],
-	char: '🥛',
+	char: "🥛",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const beer = {
+var beer = {
 	keywords: [
-		'relax',
-		'beverage',
-		'drink',
-		'drunk',
-		'party',
-		'pub',
-		'summer',
-		'alcohol',
-		'booze',
+		"relax",
+		"beverage",
+		"drink",
+		"drunk",
+		"party",
+		"pub",
+		"summer",
+		"alcohol",
+		"booze"
 	],
-	char: '🍺',
+	char: "🍺",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const beers = {
+var beers = {
 	keywords: [
-		'relax',
-		'beverage',
-		'drink',
-		'drunk',
-		'party',
-		'pub',
-		'summer',
-		'alcohol',
-		'booze',
+		"relax",
+		"beverage",
+		"drink",
+		"drunk",
+		"party",
+		"pub",
+		"summer",
+		"alcohol",
+		"booze"
 	],
-	char: '🍻',
+	char: "🍻",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const clinking_glasses = {
+var clinking_glasses = {
 	keywords: [
-		'beverage',
-		'drink',
-		'party',
-		'alcohol',
-		'celebrate',
-		'cheers',
-		'wine',
-		'champagne',
-		'toast',
+		"beverage",
+		"drink",
+		"party",
+		"alcohol",
+		"celebrate",
+		"cheers",
+		"wine",
+		"champagne",
+		"toast"
 	],
-	char: '🥂',
+	char: "🥂",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const wine_glass = {
+var wine_glass = {
 	keywords: [
-		'drink',
-		'beverage',
-		'drunk',
-		'alcohol',
-		'booze',
+		"drink",
+		"beverage",
+		"drunk",
+		"alcohol",
+		"booze"
 	],
-	char: '🍷',
+	char: "🍷",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const tumbler_glass = {
+var tumbler_glass = {
 	keywords: [
-		'drink',
-		'beverage',
-		'drunk',
-		'alcohol',
-		'liquor',
-		'booze',
-		'bourbon',
-		'scotch',
-		'whisky',
-		'glass',
-		'shot',
+		"drink",
+		"beverage",
+		"drunk",
+		"alcohol",
+		"liquor",
+		"booze",
+		"bourbon",
+		"scotch",
+		"whisky",
+		"glass",
+		"shot"
 	],
-	char: '🥃',
+	char: "🥃",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cocktail = {
+var cocktail = {
 	keywords: [
-		'drink',
-		'drunk',
-		'alcohol',
-		'beverage',
-		'booze',
-		'mojito',
+		"drink",
+		"drunk",
+		"alcohol",
+		"beverage",
+		"booze",
+		"mojito"
 	],
-	char: '🍸',
+	char: "🍸",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const tropical_drink = {
+var tropical_drink = {
 	keywords: [
-		'beverage',
-		'cocktail',
-		'summer',
-		'beach',
-		'alcohol',
-		'booze',
-		'mojito',
+		"beverage",
+		"cocktail",
+		"summer",
+		"beach",
+		"alcohol",
+		"booze",
+		"mojito"
 	],
-	char: '🍹',
+	char: "🍹",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const champagne = {
+var champagne = {
 	keywords: [
-		'drink',
-		'wine',
-		'bottle',
-		'celebration',
+		"drink",
+		"wine",
+		"bottle",
+		"celebration"
 	],
-	char: '🍾',
+	char: "🍾",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const sake = {
+var sake = {
 	keywords: [
-		'wine',
-		'drink',
-		'drunk',
-		'beverage',
-		'japanese',
-		'alcohol',
-		'booze',
+		"wine",
+		"drink",
+		"drunk",
+		"beverage",
+		"japanese",
+		"alcohol",
+		"booze"
 	],
-	char: '🍶',
+	char: "🍶",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const tea = {
+var tea = {
 	keywords: [
-		'drink',
-		'bowl',
-		'breakfast',
-		'green',
-		'british',
+		"drink",
+		"bowl",
+		"breakfast",
+		"green",
+		"british"
 	],
-	char: '🍵',
+	char: "🍵",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const cup_with_straw = {
+var cup_with_straw = {
 	keywords: [
-		'drink',
-		'soda',
+		"drink",
+		"soda"
 	],
-	char: '🥤',
+	char: "🥤",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const coffee = {
+var coffee = {
 	keywords: [
-		'beverage',
-		'caffeine',
-		'latte',
-		'espresso',
+		"beverage",
+		"caffeine",
+		"latte",
+		"espresso"
 	],
-	char: '☕',
+	char: "☕",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const baby_bottle = {
+var baby_bottle = {
 	keywords: [
-		'food',
-		'container',
-		'milk',
+		"food",
+		"container",
+		"milk"
 	],
-	char: '🍼',
+	char: "🍼",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const salt = {
+var salt = {
 	keywords: [
-		'condiment',
-		'shaker',
+		"condiment",
+		"shaker"
 	],
-	char: '🧂',
+	char: "🧂",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const spoon = {
+var spoon = {
 	keywords: [
-		'cutlery',
-		'kitchen',
-		'tableware',
+		"cutlery",
+		"kitchen",
+		"tableware"
 	],
-	char: '🥄',
+	char: "🥄",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const fork_and_knife = {
+var fork_and_knife = {
 	keywords: [
-		'cutlery',
-		'kitchen',
+		"cutlery",
+		"kitchen"
 	],
-	char: '🍴',
+	char: "🍴",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const plate_with_cutlery = {
+var plate_with_cutlery = {
 	keywords: [
-		'food',
-		'eat',
-		'meal',
-		'lunch',
-		'dinner',
-		'restaurant',
+		"food",
+		"eat",
+		"meal",
+		"lunch",
+		"dinner",
+		"restaurant"
 	],
-	char: '🍽',
+	char: "🍽",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const bowl_with_spoon = {
+var bowl_with_spoon = {
 	keywords: [
-		'food',
-		'breakfast',
-		'cereal',
-		'oatmeal',
-		'porridge',
+		"food",
+		"breakfast",
+		"cereal",
+		"oatmeal",
+		"porridge"
 	],
-	char: '🥣',
+	char: "🥣",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const takeout_box = {
+var takeout_box = {
 	keywords: [
-		'food',
-		'leftovers',
+		"food",
+		"leftovers"
 	],
-	char: '🥡',
+	char: "🥡",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const chopsticks = {
+var chopsticks = {
 	keywords: [
-		'food',
+		"food"
 	],
-	char: '🥢',
+	char: "🥢",
 	fitzpatrick_scale: false,
-	category: 'food_and_drink',
+	category: "food_and_drink"
 };
-const soccer = {
+var soccer = {
 	keywords: [
-		'sports',
-		'football',
+		"sports",
+		"football"
 	],
-	char: '⚽',
+	char: "⚽",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const basketball = {
+var basketball = {
 	keywords: [
-		'sports',
-		'balls',
-		'NBA',
+		"sports",
+		"balls",
+		"NBA"
 	],
-	char: '🏀',
+	char: "🏀",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const football = {
+var football = {
 	keywords: [
-		'sports',
-		'balls',
-		'NFL',
+		"sports",
+		"balls",
+		"NFL"
 	],
-	char: '🏈',
+	char: "🏈",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const baseball = {
+var baseball = {
 	keywords: [
-		'sports',
-		'balls',
+		"sports",
+		"balls"
 	],
-	char: '⚾',
+	char: "⚾",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const softball = {
+var softball = {
 	keywords: [
-		'sports',
-		'balls',
+		"sports",
+		"balls"
 	],
-	char: '🥎',
+	char: "🥎",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const tennis = {
+var tennis = {
 	keywords: [
-		'sports',
-		'balls',
-		'green',
+		"sports",
+		"balls",
+		"green"
 	],
-	char: '🎾',
+	char: "🎾",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const volleyball = {
+var volleyball = {
 	keywords: [
-		'sports',
-		'balls',
+		"sports",
+		"balls"
 	],
-	char: '🏐',
+	char: "🏐",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const rugby_football = {
+var rugby_football = {
 	keywords: [
-		'sports',
-		'team',
+		"sports",
+		"team"
 	],
-	char: '🏉',
+	char: "🏉",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const flying_disc = {
+var flying_disc = {
 	keywords: [
-		'sports',
-		'frisbee',
-		'ultimate',
+		"sports",
+		"frisbee",
+		"ultimate"
 	],
-	char: '🥏',
+	char: "🥏",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const golf = {
+var golf = {
 	keywords: [
-		'sports',
-		'business',
-		'flag',
-		'hole',
-		'summer',
+		"sports",
+		"business",
+		"flag",
+		"hole",
+		"summer"
 	],
-	char: '⛳',
+	char: "⛳",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const golfing_woman = {
+var golfing_woman = {
 	keywords: [
-		'sports',
-		'business',
-		'woman',
-		'female',
+		"sports",
+		"business",
+		"woman",
+		"female"
 	],
-	char: '🏌️‍♀️',
+	char: "🏌️‍♀️",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const golfing_man = {
+var golfing_man = {
 	keywords: [
-		'sports',
-		'business',
+		"sports",
+		"business"
 	],
-	char: '🏌',
+	char: "🏌",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const ping_pong = {
+var ping_pong = {
 	keywords: [
-		'sports',
-		'pingpong',
+		"sports",
+		"pingpong"
 	],
-	char: '🏓',
+	char: "🏓",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const badminton = {
+var badminton = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🏸',
+	char: "🏸",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const goal_net = {
+var goal_net = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🥅',
+	char: "🥅",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const ice_hockey = {
+var ice_hockey = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🏒',
+	char: "🏒",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const field_hockey = {
+var field_hockey = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🏑',
+	char: "🏑",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const lacrosse = {
+var lacrosse = {
 	keywords: [
-		'sports',
-		'ball',
-		'stick',
+		"sports",
+		"ball",
+		"stick"
 	],
-	char: '🥍',
+	char: "🥍",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const cricket = {
+var cricket = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🏏',
+	char: "🏏",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const ski = {
+var ski = {
 	keywords: [
-		'sports',
-		'winter',
-		'cold',
-		'snow',
+		"sports",
+		"winter",
+		"cold",
+		"snow"
 	],
-	char: '🎿',
+	char: "🎿",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const skier = {
+var skier = {
 	keywords: [
-		'sports',
-		'winter',
-		'snow',
+		"sports",
+		"winter",
+		"snow"
 	],
-	char: '⛷',
+	char: "⛷",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const snowboarder = {
+var snowboarder = {
 	keywords: [
-		'sports',
-		'winter',
+		"sports",
+		"winter"
 	],
-	char: '🏂',
+	char: "🏂",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const person_fencing = {
+var person_fencing = {
 	keywords: [
-		'sports',
-		'fencing',
-		'sword',
+		"sports",
+		"fencing",
+		"sword"
 	],
-	char: '🤺',
+	char: "🤺",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const women_wrestling = {
+var women_wrestling = {
 	keywords: [
-		'sports',
-		'wrestlers',
+		"sports",
+		"wrestlers"
 	],
-	char: '🤼‍♀️',
+	char: "🤼‍♀️",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const men_wrestling = {
+var men_wrestling = {
 	keywords: [
-		'sports',
-		'wrestlers',
+		"sports",
+		"wrestlers"
 	],
-	char: '🤼‍♂️',
+	char: "🤼‍♂️",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const woman_cartwheeling = {
+var woman_cartwheeling = {
 	keywords: [
-		'gymnastics',
+		"gymnastics"
 	],
-	char: '🤸‍♀️',
+	char: "🤸‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const man_cartwheeling = {
+var man_cartwheeling = {
 	keywords: [
-		'gymnastics',
+		"gymnastics"
 	],
-	char: '🤸‍♂️',
+	char: "🤸‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const woman_playing_handball = {
+var woman_playing_handball = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🤾‍♀️',
+	char: "🤾‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const man_playing_handball = {
+var man_playing_handball = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🤾‍♂️',
+	char: "🤾‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const ice_skate = {
+var ice_skate = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '⛸',
+	char: "⛸",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const curling_stone = {
+var curling_stone = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🥌',
+	char: "🥌",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const skateboard = {
+var skateboard = {
 	keywords: [
-		'board',
+		"board"
 	],
-	char: '🛹',
+	char: "🛹",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const sled = {
+var sled = {
 	keywords: [
-		'sleigh',
-		'luge',
-		'toboggan',
+		"sleigh",
+		"luge",
+		"toboggan"
 	],
-	char: '🛷',
+	char: "🛷",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const bow_and_arrow = {
+var bow_and_arrow = {
 	keywords: [
-		'sports',
+		"sports"
 	],
-	char: '🏹',
+	char: "🏹",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const fishing_pole_and_fish = {
+var fishing_pole_and_fish = {
 	keywords: [
-		'food',
-		'hobby',
-		'summer',
+		"food",
+		"hobby",
+		"summer"
 	],
-	char: '🎣',
+	char: "🎣",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const boxing_glove = {
+var boxing_glove = {
 	keywords: [
-		'sports',
-		'fighting',
+		"sports",
+		"fighting"
 	],
-	char: '🥊',
+	char: "🥊",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const martial_arts_uniform = {
+var martial_arts_uniform = {
 	keywords: [
-		'judo',
-		'karate',
-		'taekwondo',
+		"judo",
+		"karate",
+		"taekwondo"
 	],
-	char: '🥋',
+	char: "🥋",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const rowing_woman = {
+var rowing_woman = {
 	keywords: [
-		'sports',
-		'hobby',
-		'water',
-		'ship',
-		'woman',
-		'female',
+		"sports",
+		"hobby",
+		"water",
+		"ship",
+		"woman",
+		"female"
 	],
-	char: '🚣‍♀️',
+	char: "🚣‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const rowing_man = {
+var rowing_man = {
 	keywords: [
-		'sports',
-		'hobby',
-		'water',
-		'ship',
+		"sports",
+		"hobby",
+		"water",
+		"ship"
 	],
-	char: '🚣',
+	char: "🚣",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const climbing_woman = {
+var climbing_woman = {
 	keywords: [
-		'sports',
-		'hobby',
-		'woman',
-		'female',
-		'rock',
+		"sports",
+		"hobby",
+		"woman",
+		"female",
+		"rock"
 	],
-	char: '🧗‍♀️',
+	char: "🧗‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const climbing_man = {
+var climbing_man = {
 	keywords: [
-		'sports',
-		'hobby',
-		'man',
-		'male',
-		'rock',
+		"sports",
+		"hobby",
+		"man",
+		"male",
+		"rock"
 	],
-	char: '🧗‍♂️',
+	char: "🧗‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const swimming_woman = {
+var swimming_woman = {
 	keywords: [
-		'sports',
-		'exercise',
-		'human',
-		'athlete',
-		'water',
-		'summer',
-		'woman',
-		'female',
+		"sports",
+		"exercise",
+		"human",
+		"athlete",
+		"water",
+		"summer",
+		"woman",
+		"female"
 	],
-	char: '🏊‍♀️',
+	char: "🏊‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const swimming_man = {
+var swimming_man = {
 	keywords: [
-		'sports',
-		'exercise',
-		'human',
-		'athlete',
-		'water',
-		'summer',
+		"sports",
+		"exercise",
+		"human",
+		"athlete",
+		"water",
+		"summer"
 	],
-	char: '🏊',
+	char: "🏊",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const woman_playing_water_polo = {
+var woman_playing_water_polo = {
 	keywords: [
-		'sports',
-		'pool',
+		"sports",
+		"pool"
 	],
-	char: '🤽‍♀️',
+	char: "🤽‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const man_playing_water_polo = {
+var man_playing_water_polo = {
 	keywords: [
-		'sports',
-		'pool',
+		"sports",
+		"pool"
 	],
-	char: '🤽‍♂️',
+	char: "🤽‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const woman_in_lotus_position = {
+var woman_in_lotus_position = {
 	keywords: [
-		'woman',
-		'female',
-		'meditation',
-		'yoga',
-		'serenity',
-		'zen',
-		'mindfulness',
+		"woman",
+		"female",
+		"meditation",
+		"yoga",
+		"serenity",
+		"zen",
+		"mindfulness"
 	],
-	char: '🧘‍♀️',
+	char: "🧘‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const man_in_lotus_position = {
+var man_in_lotus_position = {
 	keywords: [
-		'man',
-		'male',
-		'meditation',
-		'yoga',
-		'serenity',
-		'zen',
-		'mindfulness',
+		"man",
+		"male",
+		"meditation",
+		"yoga",
+		"serenity",
+		"zen",
+		"mindfulness"
 	],
-	char: '🧘‍♂️',
+	char: "🧘‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const surfing_woman = {
+var surfing_woman = {
 	keywords: [
-		'sports',
-		'ocean',
-		'sea',
-		'summer',
-		'beach',
-		'woman',
-		'female',
+		"sports",
+		"ocean",
+		"sea",
+		"summer",
+		"beach",
+		"woman",
+		"female"
 	],
-	char: '🏄‍♀️',
+	char: "🏄‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const surfing_man = {
+var surfing_man = {
 	keywords: [
-		'sports',
-		'ocean',
-		'sea',
-		'summer',
-		'beach',
+		"sports",
+		"ocean",
+		"sea",
+		"summer",
+		"beach"
 	],
-	char: '🏄',
+	char: "🏄",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const bath = {
+var bath = {
 	keywords: [
-		'clean',
-		'shower',
-		'bathroom',
+		"clean",
+		"shower",
+		"bathroom"
 	],
-	char: '🛀',
+	char: "🛀",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const basketball_woman = {
+var basketball_woman = {
 	keywords: [
-		'sports',
-		'human',
-		'woman',
-		'female',
+		"sports",
+		"human",
+		"woman",
+		"female"
 	],
-	char: '⛹️‍♀️',
+	char: "⛹️‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const basketball_man = {
+var basketball_man = {
 	keywords: [
-		'sports',
-		'human',
+		"sports",
+		"human"
 	],
-	char: '⛹',
+	char: "⛹",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const weight_lifting_woman = {
+var weight_lifting_woman = {
 	keywords: [
-		'sports',
-		'training',
-		'exercise',
-		'woman',
-		'female',
+		"sports",
+		"training",
+		"exercise",
+		"woman",
+		"female"
 	],
-	char: '🏋️‍♀️',
+	char: "🏋️‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const weight_lifting_man = {
+var weight_lifting_man = {
 	keywords: [
-		'sports',
-		'training',
-		'exercise',
+		"sports",
+		"training",
+		"exercise"
 	],
-	char: '🏋',
+	char: "🏋",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const biking_woman = {
+var biking_woman = {
 	keywords: [
-		'sports',
-		'bike',
-		'exercise',
-		'hipster',
-		'woman',
-		'female',
+		"sports",
+		"bike",
+		"exercise",
+		"hipster",
+		"woman",
+		"female"
 	],
-	char: '🚴‍♀️',
+	char: "🚴‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const biking_man = {
+var biking_man = {
 	keywords: [
-		'sports',
-		'bike',
-		'exercise',
-		'hipster',
+		"sports",
+		"bike",
+		"exercise",
+		"hipster"
 	],
-	char: '🚴',
+	char: "🚴",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const mountain_biking_woman = {
+var mountain_biking_woman = {
 	keywords: [
-		'transportation',
-		'sports',
-		'human',
-		'race',
-		'bike',
-		'woman',
-		'female',
+		"transportation",
+		"sports",
+		"human",
+		"race",
+		"bike",
+		"woman",
+		"female"
 	],
-	char: '🚵‍♀️',
+	char: "🚵‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const mountain_biking_man = {
+var mountain_biking_man = {
 	keywords: [
-		'transportation',
-		'sports',
-		'human',
-		'race',
-		'bike',
+		"transportation",
+		"sports",
+		"human",
+		"race",
+		"bike"
 	],
-	char: '🚵',
+	char: "🚵",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const horse_racing = {
+var horse_racing = {
 	keywords: [
-		'animal',
-		'betting',
-		'competition',
-		'gambling',
-		'luck',
+		"animal",
+		"betting",
+		"competition",
+		"gambling",
+		"luck"
 	],
-	char: '🏇',
+	char: "🏇",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const business_suit_levitating = {
+var business_suit_levitating = {
 	keywords: [
-		'suit',
-		'business',
-		'levitate',
-		'hover',
-		'jump',
+		"suit",
+		"business",
+		"levitate",
+		"hover",
+		"jump"
 	],
-	char: '🕴',
+	char: "🕴",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const trophy = {
+var trophy = {
 	keywords: [
-		'win',
-		'award',
-		'contest',
-		'place',
-		'ftw',
-		'ceremony',
+		"win",
+		"award",
+		"contest",
+		"place",
+		"ftw",
+		"ceremony"
 	],
-	char: '🏆',
+	char: "🏆",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const running_shirt_with_sash = {
+var running_shirt_with_sash = {
 	keywords: [
-		'play',
-		'pageant',
+		"play",
+		"pageant"
 	],
-	char: '🎽',
+	char: "🎽",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const medal_sports = {
+var medal_sports = {
 	keywords: [
-		'award',
-		'winning',
+		"award",
+		"winning"
 	],
-	char: '🏅',
+	char: "🏅",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const medal_military = {
+var medal_military = {
 	keywords: [
-		'award',
-		'winning',
-		'army',
+		"award",
+		"winning",
+		"army"
 	],
-	char: '🎖',
+	char: "🎖",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const reminder_ribbon = {
+var reminder_ribbon = {
 	keywords: [
-		'sports',
-		'cause',
-		'support',
-		'awareness',
+		"sports",
+		"cause",
+		"support",
+		"awareness"
 	],
-	char: '🎗',
+	char: "🎗",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const rosette = {
+var rosette = {
 	keywords: [
-		'flower',
-		'decoration',
-		'military',
+		"flower",
+		"decoration",
+		"military"
 	],
-	char: '🏵',
+	char: "🏵",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const ticket = {
+var ticket = {
 	keywords: [
-		'event',
-		'concert',
-		'pass',
+		"event",
+		"concert",
+		"pass"
 	],
-	char: '🎫',
+	char: "🎫",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const tickets = {
+var tickets = {
 	keywords: [
-		'sports',
-		'concert',
-		'entrance',
+		"sports",
+		"concert",
+		"entrance"
 	],
-	char: '🎟',
+	char: "🎟",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const performing_arts = {
+var performing_arts = {
 	keywords: [
-		'acting',
-		'theater',
-		'drama',
+		"acting",
+		"theater",
+		"drama"
 	],
-	char: '🎭',
+	char: "🎭",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const art = {
+var art = {
 	keywords: [
-		'design',
-		'paint',
-		'draw',
-		'colors',
+		"design",
+		"paint",
+		"draw",
+		"colors"
 	],
-	char: '🎨',
+	char: "🎨",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const circus_tent = {
+var circus_tent = {
 	keywords: [
-		'festival',
-		'carnival',
-		'party',
+		"festival",
+		"carnival",
+		"party"
 	],
-	char: '🎪',
+	char: "🎪",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const woman_juggling = {
+var woman_juggling = {
 	keywords: [
-		'juggle',
-		'balance',
-		'skill',
-		'multitask',
+		"juggle",
+		"balance",
+		"skill",
+		"multitask"
 	],
-	char: '🤹‍♀️',
+	char: "🤹‍♀️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const man_juggling = {
+var man_juggling = {
 	keywords: [
-		'juggle',
-		'balance',
-		'skill',
-		'multitask',
+		"juggle",
+		"balance",
+		"skill",
+		"multitask"
 	],
-	char: '🤹‍♂️',
+	char: "🤹‍♂️",
 	fitzpatrick_scale: true,
-	category: 'activity',
+	category: "activity"
 };
-const microphone = {
+var microphone = {
 	keywords: [
-		'sound',
-		'music',
-		'PA',
-		'sing',
-		'talkshow',
+		"sound",
+		"music",
+		"PA",
+		"sing",
+		"talkshow"
 	],
-	char: '🎤',
+	char: "🎤",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const headphones = {
+var headphones = {
 	keywords: [
-		'music',
-		'score',
-		'gadgets',
+		"music",
+		"score",
+		"gadgets"
 	],
-	char: '🎧',
+	char: "🎧",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const musical_score = {
+var musical_score = {
 	keywords: [
-		'treble',
-		'clef',
-		'compose',
+		"treble",
+		"clef",
+		"compose"
 	],
-	char: '🎼',
+	char: "🎼",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const musical_keyboard = {
+var musical_keyboard = {
 	keywords: [
-		'piano',
-		'instrument',
-		'compose',
+		"piano",
+		"instrument",
+		"compose"
 	],
-	char: '🎹',
+	char: "🎹",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const drum = {
+var drum = {
 	keywords: [
-		'music',
-		'instrument',
-		'drumsticks',
-		'snare',
+		"music",
+		"instrument",
+		"drumsticks",
+		"snare"
 	],
-	char: '🥁',
+	char: "🥁",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const saxophone = {
+var saxophone = {
 	keywords: [
-		'music',
-		'instrument',
-		'jazz',
-		'blues',
+		"music",
+		"instrument",
+		"jazz",
+		"blues"
 	],
-	char: '🎷',
+	char: "🎷",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const trumpet = {
+var trumpet = {
 	keywords: [
-		'music',
-		'brass',
+		"music",
+		"brass"
 	],
-	char: '🎺',
+	char: "🎺",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const guitar = {
+var guitar = {
 	keywords: [
-		'music',
-		'instrument',
+		"music",
+		"instrument"
 	],
-	char: '🎸',
+	char: "🎸",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const violin = {
+var violin = {
 	keywords: [
-		'music',
-		'instrument',
-		'orchestra',
-		'symphony',
+		"music",
+		"instrument",
+		"orchestra",
+		"symphony"
 	],
-	char: '🎻',
+	char: "🎻",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const clapper = {
+var clapper = {
 	keywords: [
-		'movie',
-		'film',
-		'record',
+		"movie",
+		"film",
+		"record"
 	],
-	char: '🎬',
+	char: "🎬",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const video_game = {
+var video_game = {
 	keywords: [
-		'play',
-		'console',
-		'PS4',
-		'controller',
+		"play",
+		"console",
+		"PS4",
+		"controller"
 	],
-	char: '🎮',
+	char: "🎮",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const space_invader = {
+var space_invader = {
 	keywords: [
-		'game',
-		'arcade',
-		'play',
+		"game",
+		"arcade",
+		"play"
 	],
-	char: '👾',
+	char: "👾",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const dart = {
+var dart = {
 	keywords: [
-		'game',
-		'play',
-		'bar',
-		'target',
-		'bullseye',
+		"game",
+		"play",
+		"bar",
+		"target",
+		"bullseye"
 	],
-	char: '🎯',
+	char: "🎯",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const game_die = {
+var game_die = {
 	keywords: [
-		'dice',
-		'random',
-		'tabletop',
-		'play',
-		'luck',
+		"dice",
+		"random",
+		"tabletop",
+		"play",
+		"luck"
 	],
-	char: '🎲',
+	char: "🎲",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const chess_pawn = {
+var chess_pawn = {
 	keywords: [
-		'expendable',
+		"expendable"
 	],
-	char: '♟',
+	char: "♟",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const slot_machine = {
+var slot_machine = {
 	keywords: [
-		'bet',
-		'gamble',
-		'vegas',
-		'fruit machine',
-		'luck',
-		'casino',
+		"bet",
+		"gamble",
+		"vegas",
+		"fruit machine",
+		"luck",
+		"casino"
 	],
-	char: '🎰',
+	char: "🎰",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const jigsaw = {
+var jigsaw = {
 	keywords: [
-		'interlocking',
-		'puzzle',
-		'piece',
+		"interlocking",
+		"puzzle",
+		"piece"
 	],
-	char: '🧩',
+	char: "🧩",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const bowling = {
+var bowling = {
 	keywords: [
-		'sports',
-		'fun',
-		'play',
+		"sports",
+		"fun",
+		"play"
 	],
-	char: '🎳',
+	char: "🎳",
 	fitzpatrick_scale: false,
-	category: 'activity',
+	category: "activity"
 };
-const red_car = {
+var red_car = {
 	keywords: [
-		'red',
-		'transportation',
-		'vehicle',
+		"red",
+		"transportation",
+		"vehicle"
 	],
-	char: '🚗',
+	char: "🚗",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const taxi = {
+var taxi = {
 	keywords: [
-		'uber',
-		'vehicle',
-		'cars',
-		'transportation',
+		"uber",
+		"vehicle",
+		"cars",
+		"transportation"
 	],
-	char: '🚕',
+	char: "🚕",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const blue_car = {
+var blue_car = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚙',
+	char: "🚙",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bus = {
+var bus = {
 	keywords: [
-		'car',
-		'vehicle',
-		'transportation',
+		"car",
+		"vehicle",
+		"transportation"
 	],
-	char: '🚌',
+	char: "🚌",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const trolleybus = {
+var trolleybus = {
 	keywords: [
-		'bart',
-		'transportation',
-		'vehicle',
+		"bart",
+		"transportation",
+		"vehicle"
 	],
-	char: '🚎',
+	char: "🚎",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const racing_car = {
+var racing_car = {
 	keywords: [
-		'sports',
-		'race',
-		'fast',
-		'formula',
-		'f1',
+		"sports",
+		"race",
+		"fast",
+		"formula",
+		"f1"
 	],
-	char: '🏎',
+	char: "🏎",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const police_car = {
+var police_car = {
 	keywords: [
-		'vehicle',
-		'cars',
-		'transportation',
-		'law',
-		'legal',
-		'enforcement',
+		"vehicle",
+		"cars",
+		"transportation",
+		"law",
+		"legal",
+		"enforcement"
 	],
-	char: '🚓',
+	char: "🚓",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const ambulance = {
+var ambulance = {
 	keywords: [
-		'health',
-		'911',
-		'hospital',
+		"health",
+		"911",
+		"hospital"
 	],
-	char: '🚑',
+	char: "🚑",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const fire_engine = {
+var fire_engine = {
 	keywords: [
-		'transportation',
-		'cars',
-		'vehicle',
+		"transportation",
+		"cars",
+		"vehicle"
 	],
-	char: '🚒',
+	char: "🚒",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const minibus = {
+var minibus = {
 	keywords: [
-		'vehicle',
-		'car',
-		'transportation',
+		"vehicle",
+		"car",
+		"transportation"
 	],
-	char: '🚐',
+	char: "🚐",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const truck = {
+var truck = {
 	keywords: [
-		'cars',
-		'transportation',
+		"cars",
+		"transportation"
 	],
-	char: '🚚',
+	char: "🚚",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const articulated_lorry = {
+var articulated_lorry = {
 	keywords: [
-		'vehicle',
-		'cars',
-		'transportation',
-		'express',
+		"vehicle",
+		"cars",
+		"transportation",
+		"express"
 	],
-	char: '🚛',
+	char: "🚛",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const tractor = {
+var tractor = {
 	keywords: [
-		'vehicle',
-		'car',
-		'farming',
-		'agriculture',
+		"vehicle",
+		"car",
+		"farming",
+		"agriculture"
 	],
-	char: '🚜',
+	char: "🚜",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const kick_scooter = {
+var kick_scooter = {
 	keywords: [
-		'vehicle',
-		'kick',
-		'razor',
+		"vehicle",
+		"kick",
+		"razor"
 	],
-	char: '🛴',
+	char: "🛴",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const motorcycle = {
+var motorcycle = {
 	keywords: [
-		'race',
-		'sports',
-		'fast',
+		"race",
+		"sports",
+		"fast"
 	],
-	char: '🏍',
+	char: "🏍",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bike = {
+var bike = {
 	keywords: [
-		'sports',
-		'bicycle',
-		'exercise',
-		'hipster',
+		"sports",
+		"bicycle",
+		"exercise",
+		"hipster"
 	],
-	char: '🚲',
+	char: "🚲",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const motor_scooter = {
+var motor_scooter = {
 	keywords: [
-		'vehicle',
-		'vespa',
-		'sasha',
+		"vehicle",
+		"vespa",
+		"sasha"
 	],
-	char: '🛵',
+	char: "🛵",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const rotating_light = {
+var rotating_light = {
 	keywords: [
-		'police',
-		'ambulance',
-		'911',
-		'emergency',
-		'alert',
-		'error',
-		'pinged',
-		'law',
-		'legal',
+		"police",
+		"ambulance",
+		"911",
+		"emergency",
+		"alert",
+		"error",
+		"pinged",
+		"law",
+		"legal"
 	],
-	char: '🚨',
+	char: "🚨",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const oncoming_police_car = {
+var oncoming_police_car = {
 	keywords: [
-		'vehicle',
-		'law',
-		'legal',
-		'enforcement',
-		'911',
+		"vehicle",
+		"law",
+		"legal",
+		"enforcement",
+		"911"
 	],
-	char: '🚔',
+	char: "🚔",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const oncoming_bus = {
+var oncoming_bus = {
 	keywords: [
-		'vehicle',
-		'transportation',
+		"vehicle",
+		"transportation"
 	],
-	char: '🚍',
+	char: "🚍",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const oncoming_automobile = {
+var oncoming_automobile = {
 	keywords: [
-		'car',
-		'vehicle',
-		'transportation',
+		"car",
+		"vehicle",
+		"transportation"
 	],
-	char: '🚘',
+	char: "🚘",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const oncoming_taxi = {
+var oncoming_taxi = {
 	keywords: [
-		'vehicle',
-		'cars',
-		'uber',
+		"vehicle",
+		"cars",
+		"uber"
 	],
-	char: '🚖',
+	char: "🚖",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const aerial_tramway = {
+var aerial_tramway = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'ski',
+		"transportation",
+		"vehicle",
+		"ski"
 	],
-	char: '🚡',
+	char: "🚡",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mountain_cableway = {
+var mountain_cableway = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'ski',
+		"transportation",
+		"vehicle",
+		"ski"
 	],
-	char: '🚠',
+	char: "🚠",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const suspension_railway = {
+var suspension_railway = {
 	keywords: [
-		'vehicle',
-		'transportation',
+		"vehicle",
+		"transportation"
 	],
-	char: '🚟',
+	char: "🚟",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const railway_car = {
+var railway_car = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚃',
+	char: "🚃",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const train = {
+var train = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'carriage',
-		'public',
-		'travel',
+		"transportation",
+		"vehicle",
+		"carriage",
+		"public",
+		"travel"
 	],
-	char: '🚋',
+	char: "🚋",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const monorail = {
+var monorail = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚝',
+	char: "🚝",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bullettrain_side = {
+var bullettrain_side = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚄',
+	char: "🚄",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bullettrain_front = {
+var bullettrain_front = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'speed',
-		'fast',
-		'public',
-		'travel',
+		"transportation",
+		"vehicle",
+		"speed",
+		"fast",
+		"public",
+		"travel"
 	],
-	char: '🚅',
+	char: "🚅",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const light_rail = {
+var light_rail = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚈',
+	char: "🚈",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mountain_railway = {
+var mountain_railway = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚞',
+	char: "🚞",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const steam_locomotive = {
+var steam_locomotive = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'train',
+		"transportation",
+		"vehicle",
+		"train"
 	],
-	char: '🚂',
+	char: "🚂",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const train2 = {
+var train2 = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚆',
+	char: "🚆",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const metro = {
+var metro = {
 	keywords: [
-		'transportation',
-		'blue-square',
-		'mrt',
-		'underground',
-		'tube',
+		"transportation",
+		"blue-square",
+		"mrt",
+		"underground",
+		"tube"
 	],
-	char: '🚇',
+	char: "🚇",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const tram = {
+var tram = {
 	keywords: [
-		'transportation',
-		'vehicle',
+		"transportation",
+		"vehicle"
 	],
-	char: '🚊',
+	char: "🚊",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const station = {
+var station = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'public',
+		"transportation",
+		"vehicle",
+		"public"
 	],
-	char: '🚉',
+	char: "🚉",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const flying_saucer = {
+var flying_saucer = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'ufo',
+		"transportation",
+		"vehicle",
+		"ufo"
 	],
-	char: '🛸',
+	char: "🛸",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const helicopter = {
+var helicopter = {
 	keywords: [
-		'transportation',
-		'vehicle',
-		'fly',
+		"transportation",
+		"vehicle",
+		"fly"
 	],
-	char: '🚁',
+	char: "🚁",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const small_airplane = {
+var small_airplane = {
 	keywords: [
-		'flight',
-		'transportation',
-		'fly',
-		'vehicle',
+		"flight",
+		"transportation",
+		"fly",
+		"vehicle"
 	],
-	char: '🛩',
+	char: "🛩",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const airplane = {
+var airplane = {
 	keywords: [
-		'vehicle',
-		'transportation',
-		'flight',
-		'fly',
+		"vehicle",
+		"transportation",
+		"flight",
+		"fly"
 	],
-	char: '✈️',
+	char: "✈️",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const flight_departure = {
+var flight_departure = {
 	keywords: [
-		'airport',
-		'flight',
-		'landing',
+		"airport",
+		"flight",
+		"landing"
 	],
-	char: '🛫',
+	char: "🛫",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const flight_arrival = {
+var flight_arrival = {
 	keywords: [
-		'airport',
-		'flight',
-		'boarding',
+		"airport",
+		"flight",
+		"boarding"
 	],
-	char: '🛬',
+	char: "🛬",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const sailboat = {
+var sailboat = {
 	keywords: [
-		'ship',
-		'summer',
-		'transportation',
-		'water',
-		'sailing',
+		"ship",
+		"summer",
+		"transportation",
+		"water",
+		"sailing"
 	],
-	char: '⛵',
+	char: "⛵",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const motor_boat = {
+var motor_boat = {
 	keywords: [
-		'ship',
+		"ship"
 	],
-	char: '🛥',
+	char: "🛥",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const speedboat = {
+var speedboat = {
 	keywords: [
-		'ship',
-		'transportation',
-		'vehicle',
-		'summer',
+		"ship",
+		"transportation",
+		"vehicle",
+		"summer"
 	],
-	char: '🚤',
+	char: "🚤",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const ferry = {
+var ferry = {
 	keywords: [
-		'boat',
-		'ship',
-		'yacht',
+		"boat",
+		"ship",
+		"yacht"
 	],
-	char: '⛴',
+	char: "⛴",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const passenger_ship = {
+var passenger_ship = {
 	keywords: [
-		'yacht',
-		'cruise',
-		'ferry',
+		"yacht",
+		"cruise",
+		"ferry"
 	],
-	char: '🛳',
+	char: "🛳",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const rocket = {
+var rocket = {
 	keywords: [
-		'launch',
-		'ship',
-		'staffmode',
-		'NASA',
-		'outer space',
-		'outer_space',
-		'fly',
+		"launch",
+		"ship",
+		"staffmode",
+		"NASA",
+		"outer space",
+		"outer_space",
+		"fly"
 	],
-	char: '🚀',
+	char: "🚀",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const artificial_satellite = {
+var artificial_satellite = {
 	keywords: [
-		'communication',
-		'gps',
-		'orbit',
-		'spaceflight',
-		'NASA',
-		'ISS',
+		"communication",
+		"gps",
+		"orbit",
+		"spaceflight",
+		"NASA",
+		"ISS"
 	],
-	char: '🛰',
+	char: "🛰",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const seat = {
+var seat = {
 	keywords: [
-		'sit',
-		'airplane',
-		'transport',
-		'bus',
-		'flight',
-		'fly',
+		"sit",
+		"airplane",
+		"transport",
+		"bus",
+		"flight",
+		"fly"
 	],
-	char: '💺',
+	char: "💺",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const canoe = {
+var canoe = {
 	keywords: [
-		'boat',
-		'paddle',
-		'water',
-		'ship',
+		"boat",
+		"paddle",
+		"water",
+		"ship"
 	],
-	char: '🛶',
+	char: "🛶",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const anchor = {
+var anchor = {
 	keywords: [
-		'ship',
-		'ferry',
-		'sea',
-		'boat',
+		"ship",
+		"ferry",
+		"sea",
+		"boat"
 	],
-	char: '⚓',
+	char: "⚓",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const construction = {
+var construction = {
 	keywords: [
-		'wip',
-		'progress',
-		'caution',
-		'warning',
+		"wip",
+		"progress",
+		"caution",
+		"warning"
 	],
-	char: '🚧',
+	char: "🚧",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const fuelpump = {
+var fuelpump = {
 	keywords: [
-		'gas station',
-		'petroleum',
+		"gas station",
+		"petroleum"
 	],
-	char: '⛽',
+	char: "⛽",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const busstop = {
+var busstop = {
 	keywords: [
-		'transportation',
-		'wait',
+		"transportation",
+		"wait"
 	],
-	char: '🚏',
+	char: "🚏",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const vertical_traffic_light = {
+var vertical_traffic_light = {
 	keywords: [
-		'transportation',
-		'driving',
+		"transportation",
+		"driving"
 	],
-	char: '🚦',
+	char: "🚦",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const traffic_light = {
+var traffic_light = {
 	keywords: [
-		'transportation',
-		'signal',
+		"transportation",
+		"signal"
 	],
-	char: '🚥',
+	char: "🚥",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const checkered_flag = {
+var checkered_flag = {
 	keywords: [
-		'contest',
-		'finishline',
-		'race',
-		'gokart',
+		"contest",
+		"finishline",
+		"race",
+		"gokart"
 	],
-	char: '🏁',
+	char: "🏁",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const ship = {
+var ship = {
 	keywords: [
-		'transportation',
-		'titanic',
-		'deploy',
+		"transportation",
+		"titanic",
+		"deploy"
 	],
-	char: '🚢',
+	char: "🚢",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const ferris_wheel = {
+var ferris_wheel = {
 	keywords: [
-		'photo',
-		'carnival',
-		'londoneye',
+		"photo",
+		"carnival",
+		"londoneye"
 	],
-	char: '🎡',
+	char: "🎡",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const roller_coaster = {
+var roller_coaster = {
 	keywords: [
-		'carnival',
-		'playground',
-		'photo',
-		'fun',
+		"carnival",
+		"playground",
+		"photo",
+		"fun"
 	],
-	char: '🎢',
+	char: "🎢",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const carousel_horse = {
+var carousel_horse = {
 	keywords: [
-		'photo',
-		'carnival',
+		"photo",
+		"carnival"
 	],
-	char: '🎠',
+	char: "🎠",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const building_construction = {
+var building_construction = {
 	keywords: [
-		'wip',
-		'working',
-		'progress',
+		"wip",
+		"working",
+		"progress"
 	],
-	char: '🏗',
+	char: "🏗",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const foggy = {
+var foggy = {
 	keywords: [
-		'photo',
-		'mountain',
+		"photo",
+		"mountain"
 	],
-	char: '🌁',
+	char: "🌁",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const tokyo_tower = {
+var tokyo_tower = {
 	keywords: [
-		'photo',
-		'japanese',
+		"photo",
+		"japanese"
 	],
-	char: '🗼',
+	char: "🗼",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const factory = {
+var factory = {
 	keywords: [
-		'building',
-		'industry',
-		'pollution',
-		'smoke',
+		"building",
+		"industry",
+		"pollution",
+		"smoke"
 	],
-	char: '🏭',
+	char: "🏭",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const fountain = {
+var fountain = {
 	keywords: [
-		'photo',
-		'summer',
-		'water',
-		'fresh',
+		"photo",
+		"summer",
+		"water",
+		"fresh"
 	],
-	char: '⛲',
+	char: "⛲",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const rice_scene = {
+var rice_scene = {
 	keywords: [
-		'photo',
-		'japan',
-		'asia',
-		'tsukimi',
+		"photo",
+		"japan",
+		"asia",
+		"tsukimi"
 	],
-	char: '🎑',
+	char: "🎑",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mountain = {
+var mountain = {
 	keywords: [
-		'photo',
-		'nature',
-		'environment',
+		"photo",
+		"nature",
+		"environment"
 	],
-	char: '⛰',
+	char: "⛰",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mountain_snow = {
+var mountain_snow = {
 	keywords: [
-		'photo',
-		'nature',
-		'environment',
-		'winter',
-		'cold',
+		"photo",
+		"nature",
+		"environment",
+		"winter",
+		"cold"
 	],
-	char: '🏔',
+	char: "🏔",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mount_fuji = {
+var mount_fuji = {
 	keywords: [
-		'photo',
-		'mountain',
-		'nature',
-		'japanese',
+		"photo",
+		"mountain",
+		"nature",
+		"japanese"
 	],
-	char: '🗻',
+	char: "🗻",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const volcano = {
+var volcano = {
 	keywords: [
-		'photo',
-		'nature',
-		'disaster',
+		"photo",
+		"nature",
+		"disaster"
 	],
-	char: '🌋',
+	char: "🌋",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const japan = {
+var japan = {
 	keywords: [
-		'nation',
-		'country',
-		'japanese',
-		'asia',
+		"nation",
+		"country",
+		"japanese",
+		"asia"
 	],
-	char: '🗾',
+	char: "🗾",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const camping = {
+var camping = {
 	keywords: [
-		'photo',
-		'outdoors',
-		'tent',
+		"photo",
+		"outdoors",
+		"tent"
 	],
-	char: '🏕',
+	char: "🏕",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const tent = {
+var tent = {
 	keywords: [
-		'photo',
-		'camping',
-		'outdoors',
+		"photo",
+		"camping",
+		"outdoors"
 	],
-	char: '⛺',
+	char: "⛺",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const national_park = {
+var national_park = {
 	keywords: [
-		'photo',
-		'environment',
-		'nature',
+		"photo",
+		"environment",
+		"nature"
 	],
-	char: '🏞',
+	char: "🏞",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const motorway = {
+var motorway = {
 	keywords: [
-		'road',
-		'cupertino',
-		'interstate',
-		'highway',
+		"road",
+		"cupertino",
+		"interstate",
+		"highway"
 	],
-	char: '🛣',
+	char: "🛣",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const railway_track = {
+var railway_track = {
 	keywords: [
-		'train',
-		'transportation',
+		"train",
+		"transportation"
 	],
-	char: '🛤',
+	char: "🛤",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const sunrise = {
+var sunrise = {
 	keywords: [
-		'morning',
-		'view',
-		'vacation',
-		'photo',
+		"morning",
+		"view",
+		"vacation",
+		"photo"
 	],
-	char: '🌅',
+	char: "🌅",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const sunrise_over_mountains = {
+var sunrise_over_mountains = {
 	keywords: [
-		'view',
-		'vacation',
-		'photo',
+		"view",
+		"vacation",
+		"photo"
 	],
-	char: '🌄',
+	char: "🌄",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const desert = {
+var desert = {
 	keywords: [
-		'photo',
-		'warm',
-		'saharah',
+		"photo",
+		"warm",
+		"saharah"
 	],
-	char: '🏜',
+	char: "🏜",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const beach_umbrella = {
+var beach_umbrella = {
 	keywords: [
-		'weather',
-		'summer',
-		'sunny',
-		'sand',
-		'mojito',
+		"weather",
+		"summer",
+		"sunny",
+		"sand",
+		"mojito"
 	],
-	char: '🏖',
+	char: "🏖",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const desert_island = {
+var desert_island = {
 	keywords: [
-		'photo',
-		'tropical',
-		'mojito',
+		"photo",
+		"tropical",
+		"mojito"
 	],
-	char: '🏝',
+	char: "🏝",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const city_sunrise = {
+var city_sunrise = {
 	keywords: [
-		'photo',
-		'good morning',
-		'dawn',
+		"photo",
+		"good morning",
+		"dawn"
 	],
-	char: '🌇',
+	char: "🌇",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const city_sunset = {
+var city_sunset = {
 	keywords: [
-		'photo',
-		'evening',
-		'sky',
-		'buildings',
+		"photo",
+		"evening",
+		"sky",
+		"buildings"
 	],
-	char: '🌆',
+	char: "🌆",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const cityscape = {
+var cityscape = {
 	keywords: [
-		'photo',
-		'night life',
-		'urban',
+		"photo",
+		"night life",
+		"urban"
 	],
-	char: '🏙',
+	char: "🏙",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const night_with_stars = {
+var night_with_stars = {
 	keywords: [
-		'evening',
-		'city',
-		'downtown',
+		"evening",
+		"city",
+		"downtown"
 	],
-	char: '🌃',
+	char: "🌃",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bridge_at_night = {
+var bridge_at_night = {
 	keywords: [
-		'photo',
-		'sanfrancisco',
+		"photo",
+		"sanfrancisco"
 	],
-	char: '🌉',
+	char: "🌉",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const milky_way = {
+var milky_way = {
 	keywords: [
-		'photo',
-		'space',
-		'stars',
+		"photo",
+		"space",
+		"stars"
 	],
-	char: '🌌',
+	char: "🌌",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const stars = {
+var stars = {
 	keywords: [
-		'night',
-		'photo',
+		"night",
+		"photo"
 	],
-	char: '🌠',
+	char: "🌠",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const sparkler = {
+var sparkler = {
 	keywords: [
-		'stars',
-		'night',
-		'shine',
+		"stars",
+		"night",
+		"shine"
 	],
-	char: '🎇',
+	char: "🎇",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const fireworks = {
+var fireworks = {
 	keywords: [
-		'photo',
-		'festival',
-		'carnival',
-		'congratulations',
+		"photo",
+		"festival",
+		"carnival",
+		"congratulations"
 	],
-	char: '🎆',
+	char: "🎆",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const rainbow = {
+var rainbow = {
 	keywords: [
-		'nature',
-		'happy',
-		'unicorn_face',
-		'photo',
-		'sky',
-		'spring',
+		"nature",
+		"happy",
+		"unicorn_face",
+		"photo",
+		"sky",
+		"spring"
 	],
-	char: '🌈',
+	char: "🌈",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const houses = {
+var houses = {
 	keywords: [
-		'buildings',
-		'photo',
+		"buildings",
+		"photo"
 	],
-	char: '🏘',
+	char: "🏘",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const european_castle = {
+var european_castle = {
 	keywords: [
-		'building',
-		'royalty',
-		'history',
+		"building",
+		"royalty",
+		"history"
 	],
-	char: '🏰',
+	char: "🏰",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const japanese_castle = {
+var japanese_castle = {
 	keywords: [
-		'photo',
-		'building',
+		"photo",
+		"building"
 	],
-	char: '🏯',
+	char: "🏯",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const stadium = {
+var stadium = {
 	keywords: [
-		'photo',
-		'place',
-		'sports',
-		'concert',
-		'venue',
+		"photo",
+		"place",
+		"sports",
+		"concert",
+		"venue"
 	],
-	char: '🏟',
+	char: "🏟",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const statue_of_liberty = {
+var statue_of_liberty = {
 	keywords: [
-		'american',
-		'newyork',
+		"american",
+		"newyork"
 	],
-	char: '🗽',
+	char: "🗽",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const house = {
+var house = {
 	keywords: [
-		'building',
-		'home',
+		"building",
+		"home"
 	],
-	char: '🏠',
+	char: "🏠",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const house_with_garden = {
+var house_with_garden = {
 	keywords: [
-		'home',
-		'plant',
-		'nature',
+		"home",
+		"plant",
+		"nature"
 	],
-	char: '🏡',
+	char: "🏡",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const derelict_house = {
+var derelict_house = {
 	keywords: [
-		'abandon',
-		'evict',
-		'broken',
-		'building',
+		"abandon",
+		"evict",
+		"broken",
+		"building"
 	],
-	char: '🏚',
+	char: "🏚",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const office = {
+var office = {
 	keywords: [
-		'building',
-		'bureau',
-		'work',
+		"building",
+		"bureau",
+		"work"
 	],
-	char: '🏢',
+	char: "🏢",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const department_store = {
+var department_store = {
 	keywords: [
-		'building',
-		'shopping',
-		'mall',
+		"building",
+		"shopping",
+		"mall"
 	],
-	char: '🏬',
+	char: "🏬",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const post_office = {
+var post_office = {
 	keywords: [
-		'building',
-		'envelope',
-		'communication',
+		"building",
+		"envelope",
+		"communication"
 	],
-	char: '🏣',
+	char: "🏣",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const european_post_office = {
+var european_post_office = {
 	keywords: [
-		'building',
-		'email',
+		"building",
+		"email"
 	],
-	char: '🏤',
+	char: "🏤",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const hospital = {
+var hospital = {
 	keywords: [
-		'building',
-		'health',
-		'surgery',
-		'doctor',
+		"building",
+		"health",
+		"surgery",
+		"doctor"
 	],
-	char: '🏥',
+	char: "🏥",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const bank = {
+var bank = {
 	keywords: [
-		'building',
-		'money',
-		'sales',
-		'cash',
-		'business',
-		'enterprise',
+		"building",
+		"money",
+		"sales",
+		"cash",
+		"business",
+		"enterprise"
 	],
-	char: '🏦',
+	char: "🏦",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const hotel = {
+var hotel = {
 	keywords: [
-		'building',
-		'accomodation',
-		'checkin',
+		"building",
+		"accomodation",
+		"checkin"
 	],
-	char: '🏨',
+	char: "🏨",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const convenience_store = {
+var convenience_store = {
 	keywords: [
-		'building',
-		'shopping',
-		'groceries',
+		"building",
+		"shopping",
+		"groceries"
 	],
-	char: '🏪',
+	char: "🏪",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const school = {
+var school = {
 	keywords: [
-		'building',
-		'student',
-		'education',
-		'learn',
-		'teach',
+		"building",
+		"student",
+		"education",
+		"learn",
+		"teach"
 	],
-	char: '🏫',
+	char: "🏫",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const love_hotel = {
+var love_hotel = {
 	keywords: [
-		'like',
-		'affection',
-		'dating',
+		"like",
+		"affection",
+		"dating"
 	],
-	char: '🏩',
+	char: "🏩",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const wedding = {
+var wedding = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'couple',
-		'marriage',
-		'bride',
-		'groom',
+		"love",
+		"like",
+		"affection",
+		"couple",
+		"marriage",
+		"bride",
+		"groom"
 	],
-	char: '💒',
+	char: "💒",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const classical_building = {
+var classical_building = {
 	keywords: [
-		'art',
-		'culture',
-		'history',
+		"art",
+		"culture",
+		"history"
 	],
-	char: '🏛',
+	char: "🏛",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const church = {
+var church = {
 	keywords: [
-		'building',
-		'religion',
-		'christ',
+		"building",
+		"religion",
+		"christ"
 	],
-	char: '⛪',
+	char: "⛪",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const mosque = {
+var mosque = {
 	keywords: [
-		'islam',
-		'worship',
-		'minaret',
+		"islam",
+		"worship",
+		"minaret"
 	],
-	char: '🕌',
+	char: "🕌",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const synagogue = {
+var synagogue = {
 	keywords: [
-		'judaism',
-		'worship',
-		'temple',
-		'jewish',
+		"judaism",
+		"worship",
+		"temple",
+		"jewish"
 	],
-	char: '🕍',
+	char: "🕍",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const kaaba = {
+var kaaba = {
 	keywords: [
-		'mecca',
-		'mosque',
-		'islam',
+		"mecca",
+		"mosque",
+		"islam"
 	],
-	char: '🕋',
+	char: "🕋",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const shinto_shrine = {
+var shinto_shrine = {
 	keywords: [
-		'temple',
-		'japan',
-		'kyoto',
+		"temple",
+		"japan",
+		"kyoto"
 	],
-	char: '⛩',
+	char: "⛩",
 	fitzpatrick_scale: false,
-	category: 'travel_and_places',
+	category: "travel_and_places"
 };
-const watch = {
+var watch = {
 	keywords: [
-		'time',
-		'accessories',
+		"time",
+		"accessories"
 	],
-	char: '⌚',
+	char: "⌚",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const iphone = {
+var iphone = {
 	keywords: [
-		'technology',
-		'apple',
-		'gadgets',
-		'dial',
+		"technology",
+		"apple",
+		"gadgets",
+		"dial"
 	],
-	char: '📱',
+	char: "📱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const calling = {
+var calling = {
 	keywords: [
-		'iphone',
-		'incoming',
+		"iphone",
+		"incoming"
 	],
-	char: '📲',
+	char: "📲",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const computer = {
+var computer = {
 	keywords: [
-		'technology',
-		'laptop',
-		'screen',
-		'display',
-		'monitor',
+		"technology",
+		"laptop",
+		"screen",
+		"display",
+		"monitor"
 	],
-	char: '💻',
+	char: "💻",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const keyboard = {
+var keyboard = {
 	keywords: [
-		'technology',
-		'computer',
-		'type',
-		'input',
-		'text',
+		"technology",
+		"computer",
+		"type",
+		"input",
+		"text"
 	],
-	char: '⌨',
+	char: "⌨",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const desktop_computer = {
+var desktop_computer = {
 	keywords: [
-		'technology',
-		'computing',
-		'screen',
+		"technology",
+		"computing",
+		"screen"
 	],
-	char: '🖥',
+	char: "🖥",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const printer = {
+var printer = {
 	keywords: [
-		'paper',
-		'ink',
+		"paper",
+		"ink"
 	],
-	char: '🖨',
+	char: "🖨",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const computer_mouse = {
+var computer_mouse = {
 	keywords: [
-		'click',
+		"click"
 	],
-	char: '🖱',
+	char: "🖱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const trackball = {
+var trackball = {
 	keywords: [
-		'technology',
-		'trackpad',
+		"technology",
+		"trackpad"
 	],
-	char: '🖲',
+	char: "🖲",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const joystick = {
+var joystick = {
 	keywords: [
-		'game',
-		'play',
+		"game",
+		"play"
 	],
-	char: '🕹',
+	char: "🕹",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const clamp = {
+var clamp = {
 	keywords: [
-		'tool',
+		"tool"
 	],
-	char: '🗜',
+	char: "🗜",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const minidisc = {
+var minidisc = {
 	keywords: [
-		'technology',
-		'record',
-		'data',
-		'disk',
-		'90s',
+		"technology",
+		"record",
+		"data",
+		"disk",
+		"90s"
 	],
-	char: '💽',
+	char: "💽",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const floppy_disk = {
+var floppy_disk = {
 	keywords: [
-		'oldschool',
-		'technology',
-		'save',
-		'90s',
-		'80s',
+		"oldschool",
+		"technology",
+		"save",
+		"90s",
+		"80s"
 	],
-	char: '💾',
+	char: "💾",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const cd = {
+var cd = {
 	keywords: [
-		'technology',
-		'dvd',
-		'disk',
-		'disc',
-		'90s',
+		"technology",
+		"dvd",
+		"disk",
+		"disc",
+		"90s"
 	],
-	char: '💿',
+	char: "💿",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const dvd = {
+var dvd = {
 	keywords: [
-		'cd',
-		'disk',
-		'disc',
+		"cd",
+		"disk",
+		"disc"
 	],
-	char: '📀',
+	char: "📀",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const vhs = {
+var vhs = {
 	keywords: [
-		'record',
-		'video',
-		'oldschool',
-		'90s',
-		'80s',
+		"record",
+		"video",
+		"oldschool",
+		"90s",
+		"80s"
 	],
-	char: '📼',
+	char: "📼",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const camera = {
+var camera = {
 	keywords: [
-		'gadgets',
-		'photography',
+		"gadgets",
+		"photography"
 	],
-	char: '📷',
+	char: "📷",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const camera_flash = {
+var camera_flash = {
 	keywords: [
-		'photography',
-		'gadgets',
+		"photography",
+		"gadgets"
 	],
-	char: '📸',
+	char: "📸",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const video_camera = {
+var video_camera = {
 	keywords: [
-		'film',
-		'record',
+		"film",
+		"record"
 	],
-	char: '📹',
+	char: "📹",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const movie_camera = {
+var movie_camera = {
 	keywords: [
-		'film',
-		'record',
+		"film",
+		"record"
 	],
-	char: '🎥',
+	char: "🎥",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const film_projector = {
+var film_projector = {
 	keywords: [
-		'video',
-		'tape',
-		'record',
-		'movie',
+		"video",
+		"tape",
+		"record",
+		"movie"
 	],
-	char: '📽',
+	char: "📽",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const film_strip = {
+var film_strip = {
 	keywords: [
-		'movie',
+		"movie"
 	],
-	char: '🎞',
+	char: "🎞",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const telephone_receiver = {
+var telephone_receiver = {
 	keywords: [
-		'technology',
-		'communication',
-		'dial',
+		"technology",
+		"communication",
+		"dial"
 	],
-	char: '📞',
+	char: "📞",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const phone = {
+var phone = {
 	keywords: [
-		'technology',
-		'communication',
-		'dial',
-		'telephone',
+		"technology",
+		"communication",
+		"dial",
+		"telephone"
 	],
-	char: '☎️',
+	char: "☎️",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pager = {
+var pager = {
 	keywords: [
-		'bbcall',
-		'oldschool',
-		'90s',
+		"bbcall",
+		"oldschool",
+		"90s"
 	],
-	char: '📟',
+	char: "📟",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const fax = {
+var fax = {
 	keywords: [
-		'communication',
-		'technology',
+		"communication",
+		"technology"
 	],
-	char: '📠',
+	char: "📠",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const tv = {
+var tv = {
 	keywords: [
-		'technology',
-		'program',
-		'oldschool',
-		'show',
-		'television',
+		"technology",
+		"program",
+		"oldschool",
+		"show",
+		"television"
 	],
-	char: '📺',
+	char: "📺",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const radio = {
+var radio = {
 	keywords: [
-		'communication',
-		'music',
-		'podcast',
-		'program',
+		"communication",
+		"music",
+		"podcast",
+		"program"
 	],
-	char: '📻',
+	char: "📻",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const studio_microphone = {
+var studio_microphone = {
 	keywords: [
-		'sing',
-		'recording',
-		'artist',
-		'talkshow',
+		"sing",
+		"recording",
+		"artist",
+		"talkshow"
 	],
-	char: '🎙',
+	char: "🎙",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const level_slider = {
+var level_slider = {
 	keywords: [
-		'scale',
+		"scale"
 	],
-	char: '🎚',
+	char: "🎚",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const control_knobs = {
+var control_knobs = {
 	keywords: [
-		'dial',
+		"dial"
 	],
-	char: '🎛',
+	char: "🎛",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const compass = {
+var compass = {
 	keywords: [
-		'magnetic',
-		'navigation',
-		'orienteering',
+		"magnetic",
+		"navigation",
+		"orienteering"
 	],
-	char: '🧭',
+	char: "🧭",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const stopwatch = {
+var stopwatch = {
 	keywords: [
-		'time',
-		'deadline',
+		"time",
+		"deadline"
 	],
-	char: '⏱',
+	char: "⏱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const timer_clock = {
+var timer_clock = {
 	keywords: [
-		'alarm',
+		"alarm"
 	],
-	char: '⏲',
+	char: "⏲",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const alarm_clock = {
+var alarm_clock = {
 	keywords: [
-		'time',
-		'wake',
+		"time",
+		"wake"
 	],
-	char: '⏰',
+	char: "⏰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mantelpiece_clock = {
+var mantelpiece_clock = {
 	keywords: [
-		'time',
+		"time"
 	],
-	char: '🕰',
+	char: "🕰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hourglass_flowing_sand = {
+var hourglass_flowing_sand = {
 	keywords: [
-		'oldschool',
-		'time',
-		'countdown',
+		"oldschool",
+		"time",
+		"countdown"
 	],
-	char: '⏳',
+	char: "⏳",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hourglass = {
+var hourglass = {
 	keywords: [
-		'time',
-		'clock',
-		'oldschool',
-		'limit',
-		'exam',
-		'quiz',
-		'test',
+		"time",
+		"clock",
+		"oldschool",
+		"limit",
+		"exam",
+		"quiz",
+		"test"
 	],
-	char: '⌛',
+	char: "⌛",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const satellite = {
+var satellite = {
 	keywords: [
-		'communication',
-		'future',
-		'radio',
-		'space',
+		"communication",
+		"future",
+		"radio",
+		"space"
 	],
-	char: '📡',
+	char: "📡",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const battery = {
+var battery = {
 	keywords: [
-		'power',
-		'energy',
-		'sustain',
+		"power",
+		"energy",
+		"sustain"
 	],
-	char: '🔋',
+	char: "🔋",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const electric_plug = {
+var electric_plug = {
 	keywords: [
-		'charger',
-		'power',
+		"charger",
+		"power"
 	],
-	char: '🔌',
+	char: "🔌",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bulb = {
+var bulb = {
 	keywords: [
-		'light',
-		'electricity',
-		'idea',
+		"light",
+		"electricity",
+		"idea"
 	],
-	char: '💡',
+	char: "💡",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const flashlight = {
+var flashlight = {
 	keywords: [
-		'dark',
-		'camping',
-		'sight',
-		'night',
+		"dark",
+		"camping",
+		"sight",
+		"night"
 	],
-	char: '🔦',
+	char: "🔦",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const candle = {
+var candle = {
 	keywords: [
-		'fire',
-		'wax',
+		"fire",
+		"wax"
 	],
-	char: '🕯',
+	char: "🕯",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const fire_extinguisher = {
+var fire_extinguisher = {
 	keywords: [
-		'quench',
+		"quench"
 	],
-	char: '🧯',
+	char: "🧯",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const wastebasket = {
+var wastebasket = {
 	keywords: [
-		'bin',
-		'trash',
-		'rubbish',
-		'garbage',
-		'toss',
+		"bin",
+		"trash",
+		"rubbish",
+		"garbage",
+		"toss"
 	],
-	char: '🗑',
+	char: "🗑",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const oil_drum = {
+var oil_drum = {
 	keywords: [
-		'barrell',
+		"barrell"
 	],
-	char: '🛢',
+	char: "🛢",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const money_with_wings = {
+var money_with_wings = {
 	keywords: [
-		'dollar',
-		'bills',
-		'payment',
-		'sale',
+		"dollar",
+		"bills",
+		"payment",
+		"sale"
 	],
-	char: '💸',
+	char: "💸",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const dollar = {
+var dollar = {
 	keywords: [
-		'money',
-		'sales',
-		'bill',
-		'currency',
+		"money",
+		"sales",
+		"bill",
+		"currency"
 	],
-	char: '💵',
+	char: "💵",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const yen = {
+var yen = {
 	keywords: [
-		'money',
-		'sales',
-		'japanese',
-		'dollar',
-		'currency',
+		"money",
+		"sales",
+		"japanese",
+		"dollar",
+		"currency"
 	],
-	char: '💴',
+	char: "💴",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const euro = {
+var euro = {
 	keywords: [
-		'money',
-		'sales',
-		'dollar',
-		'currency',
+		"money",
+		"sales",
+		"dollar",
+		"currency"
 	],
-	char: '💶',
+	char: "💶",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pound = {
+var pound = {
 	keywords: [
-		'british',
-		'sterling',
-		'money',
-		'sales',
-		'bills',
-		'uk',
-		'england',
-		'currency',
+		"british",
+		"sterling",
+		"money",
+		"sales",
+		"bills",
+		"uk",
+		"england",
+		"currency"
 	],
-	char: '💷',
+	char: "💷",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const moneybag = {
+var moneybag = {
 	keywords: [
-		'dollar',
-		'payment',
-		'coins',
-		'sale',
+		"dollar",
+		"payment",
+		"coins",
+		"sale"
 	],
-	char: '💰',
+	char: "💰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const credit_card = {
+var credit_card = {
 	keywords: [
-		'money',
-		'sales',
-		'dollar',
-		'bill',
-		'payment',
-		'shopping',
+		"money",
+		"sales",
+		"dollar",
+		"bill",
+		"payment",
+		"shopping"
 	],
-	char: '💳',
+	char: "💳",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const gem = {
+var gem = {
 	keywords: [
-		'blue',
-		'ruby',
-		'diamond',
-		'jewelry',
+		"blue",
+		"ruby",
+		"diamond",
+		"jewelry"
 	],
-	char: '💎',
+	char: "💎",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const balance_scale = {
+var balance_scale = {
 	keywords: [
-		'law',
-		'fairness',
-		'weight',
+		"law",
+		"fairness",
+		"weight"
 	],
-	char: '⚖',
+	char: "⚖",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const toolbox = {
+var toolbox = {
 	keywords: [
-		'tools',
-		'diy',
-		'fix',
-		'maintainer',
-		'mechanic',
+		"tools",
+		"diy",
+		"fix",
+		"maintainer",
+		"mechanic"
 	],
-	char: '🧰',
+	char: "🧰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const wrench = {
+var wrench = {
 	keywords: [
-		'tools',
-		'diy',
-		'ikea',
-		'fix',
-		'maintainer',
+		"tools",
+		"diy",
+		"ikea",
+		"fix",
+		"maintainer"
 	],
-	char: '🔧',
+	char: "🔧",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hammer = {
+var hammer = {
 	keywords: [
-		'tools',
-		'build',
-		'create',
+		"tools",
+		"build",
+		"create"
 	],
-	char: '🔨',
+	char: "🔨",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hammer_and_pick = {
+var hammer_and_pick = {
 	keywords: [
-		'tools',
-		'build',
-		'create',
+		"tools",
+		"build",
+		"create"
 	],
-	char: '⚒',
+	char: "⚒",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hammer_and_wrench = {
+var hammer_and_wrench = {
 	keywords: [
-		'tools',
-		'build',
-		'create',
+		"tools",
+		"build",
+		"create"
 	],
-	char: '🛠',
+	char: "🛠",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pick = {
+var pick = {
 	keywords: [
-		'tools',
-		'dig',
+		"tools",
+		"dig"
 	],
-	char: '⛏',
+	char: "⛏",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const nut_and_bolt = {
+var nut_and_bolt = {
 	keywords: [
-		'handy',
-		'tools',
-		'fix',
+		"handy",
+		"tools",
+		"fix"
 	],
-	char: '🔩',
+	char: "🔩",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const gear = {
+var gear = {
 	keywords: [
-		'cog',
+		"cog"
 	],
-	char: '⚙',
+	char: "⚙",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const brick = {
+var brick = {
 	keywords: [
-		'bricks',
+		"bricks"
 	],
-	char: '🧱',
+	char: "🧱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const chains = {
+var chains = {
 	keywords: [
-		'lock',
-		'arrest',
+		"lock",
+		"arrest"
 	],
-	char: '⛓',
+	char: "⛓",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const magnet = {
+var magnet = {
 	keywords: [
-		'attraction',
-		'magnetic',
+		"attraction",
+		"magnetic"
 	],
-	char: '🧲',
+	char: "🧲",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const gun = {
+var gun = {
 	keywords: [
-		'violence',
-		'weapon',
-		'pistol',
-		'revolver',
+		"violence",
+		"weapon",
+		"pistol",
+		"revolver"
 	],
-	char: '🔫',
+	char: "🔫",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bomb = {
+var bomb = {
 	keywords: [
-		'boom',
-		'explode',
-		'explosion',
-		'terrorism',
+		"boom",
+		"explode",
+		"explosion",
+		"terrorism"
 	],
-	char: '💣',
+	char: "💣",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const firecracker = {
+var firecracker = {
 	keywords: [
-		'dynamite',
-		'boom',
-		'explode',
-		'explosion',
-		'explosive',
+		"dynamite",
+		"boom",
+		"explode",
+		"explosion",
+		"explosive"
 	],
-	char: '🧨',
+	char: "🧨",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hocho = {
+var hocho = {
 	keywords: [
-		'knife',
-		'blade',
-		'cutlery',
-		'kitchen',
-		'weapon',
+		"knife",
+		"blade",
+		"cutlery",
+		"kitchen",
+		"weapon"
 	],
-	char: '🔪',
+	char: "🔪",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const dagger = {
+var dagger = {
 	keywords: [
-		'weapon',
+		"weapon"
 	],
-	char: '🗡',
+	char: "🗡",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const crossed_swords = {
+var crossed_swords = {
 	keywords: [
-		'weapon',
+		"weapon"
 	],
-	char: '⚔',
+	char: "⚔",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const shield = {
+var shield = {
 	keywords: [
-		'protection',
-		'security',
+		"protection",
+		"security"
 	],
-	char: '🛡',
+	char: "🛡",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const smoking = {
+var smoking = {
 	keywords: [
-		'kills',
-		'tobacco',
-		'cigarette',
-		'joint',
-		'smoke',
+		"kills",
+		"tobacco",
+		"cigarette",
+		"joint",
+		"smoke"
 	],
-	char: '🚬',
+	char: "🚬",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const skull_and_crossbones = {
+var skull_and_crossbones = {
 	keywords: [
-		'poison',
-		'danger',
-		'deadly',
-		'scary',
-		'death',
-		'pirate',
-		'evil',
+		"poison",
+		"danger",
+		"deadly",
+		"scary",
+		"death",
+		"pirate",
+		"evil"
 	],
-	char: '☠',
+	char: "☠",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const coffin = {
+var coffin = {
 	keywords: [
-		'vampire',
-		'dead',
-		'die',
-		'death',
-		'rip',
-		'graveyard',
-		'cemetery',
-		'casket',
-		'funeral',
-		'box',
+		"vampire",
+		"dead",
+		"die",
+		"death",
+		"rip",
+		"graveyard",
+		"cemetery",
+		"casket",
+		"funeral",
+		"box"
 	],
-	char: '⚰',
+	char: "⚰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const funeral_urn = {
+var funeral_urn = {
 	keywords: [
-		'dead',
-		'die',
-		'death',
-		'rip',
-		'ashes',
+		"dead",
+		"die",
+		"death",
+		"rip",
+		"ashes"
 	],
-	char: '⚱',
+	char: "⚱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const amphora = {
+var amphora = {
 	keywords: [
-		'vase',
-		'jar',
+		"vase",
+		"jar"
 	],
-	char: '🏺',
+	char: "🏺",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const crystal_ball = {
+var crystal_ball = {
 	keywords: [
-		'disco',
-		'party',
-		'magic',
-		'circus',
-		'fortune_teller',
+		"disco",
+		"party",
+		"magic",
+		"circus",
+		"fortune_teller"
 	],
-	char: '🔮',
+	char: "🔮",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const prayer_beads = {
+var prayer_beads = {
 	keywords: [
-		'dhikr',
-		'religious',
+		"dhikr",
+		"religious"
 	],
-	char: '📿',
+	char: "📿",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const nazar_amulet = {
+var nazar_amulet = {
 	keywords: [
-		'bead',
-		'charm',
+		"bead",
+		"charm"
 	],
-	char: '🧿',
+	char: "🧿",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const barber = {
+var barber = {
 	keywords: [
-		'hair',
-		'salon',
-		'style',
+		"hair",
+		"salon",
+		"style"
 	],
-	char: '💈',
+	char: "💈",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const alembic = {
+var alembic = {
 	keywords: [
-		'distilling',
-		'science',
-		'experiment',
-		'chemistry',
+		"distilling",
+		"science",
+		"experiment",
+		"chemistry"
 	],
-	char: '⚗',
+	char: "⚗",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const telescope = {
+var telescope = {
 	keywords: [
-		'stars',
-		'space',
-		'zoom',
-		'science',
-		'astronomy',
+		"stars",
+		"space",
+		"zoom",
+		"science",
+		"astronomy"
 	],
-	char: '🔭',
+	char: "🔭",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const microscope = {
+var microscope = {
 	keywords: [
-		'laboratory',
-		'experiment',
-		'zoomin',
-		'science',
-		'study',
+		"laboratory",
+		"experiment",
+		"zoomin",
+		"science",
+		"study"
 	],
-	char: '🔬',
+	char: "🔬",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const hole = {
+var hole = {
 	keywords: [
-		'embarrassing',
+		"embarrassing"
 	],
-	char: '🕳',
+	char: "🕳",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pill = {
+var pill = {
 	keywords: [
-		'health',
-		'medicine',
-		'doctor',
-		'pharmacy',
-		'drug',
+		"health",
+		"medicine",
+		"doctor",
+		"pharmacy",
+		"drug"
 	],
-	char: '💊',
+	char: "💊",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const syringe = {
+var syringe = {
 	keywords: [
-		'health',
-		'hospital',
-		'drugs',
-		'blood',
-		'medicine',
-		'needle',
-		'doctor',
-		'nurse',
+		"health",
+		"hospital",
+		"drugs",
+		"blood",
+		"medicine",
+		"needle",
+		"doctor",
+		"nurse"
 	],
-	char: '💉',
+	char: "💉",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const dna = {
+var dna = {
 	keywords: [
-		'biologist',
-		'genetics',
-		'life',
+		"biologist",
+		"genetics",
+		"life"
 	],
-	char: '🧬',
+	char: "🧬",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const microbe = {
+var microbe = {
 	keywords: [
-		'amoeba',
-		'bacteria',
-		'germs',
+		"amoeba",
+		"bacteria",
+		"germs"
 	],
-	char: '🦠',
+	char: "🦠",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const petri_dish = {
+var petri_dish = {
 	keywords: [
-		'bacteria',
-		'biology',
-		'culture',
-		'lab',
+		"bacteria",
+		"biology",
+		"culture",
+		"lab"
 	],
-	char: '🧫',
+	char: "🧫",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const test_tube = {
+var test_tube = {
 	keywords: [
-		'chemistry',
-		'experiment',
-		'lab',
-		'science',
+		"chemistry",
+		"experiment",
+		"lab",
+		"science"
 	],
-	char: '🧪',
+	char: "🧪",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const thermometer = {
+var thermometer = {
 	keywords: [
-		'weather',
-		'temperature',
-		'hot',
-		'cold',
+		"weather",
+		"temperature",
+		"hot",
+		"cold"
 	],
-	char: '🌡',
+	char: "🌡",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const broom = {
+var broom = {
 	keywords: [
-		'cleaning',
-		'sweeping',
-		'witch',
+		"cleaning",
+		"sweeping",
+		"witch"
 	],
-	char: '🧹',
+	char: "🧹",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const basket = {
+var basket = {
 	keywords: [
-		'laundry',
+		"laundry"
 	],
-	char: '🧺',
+	char: "🧺",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const toilet_paper = {
+var toilet_paper = {
 	keywords: [
-		'roll',
+		"roll"
 	],
-	char: '🧻',
+	char: "🧻",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const label = {
+var label = {
 	keywords: [
-		'sale',
-		'tag',
+		"sale",
+		"tag"
 	],
-	char: '🏷',
+	char: "🏷",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bookmark = {
+var bookmark = {
 	keywords: [
-		'favorite',
-		'label',
-		'save',
+		"favorite",
+		"label",
+		"save"
 	],
-	char: '🔖',
+	char: "🔖",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const toilet = {
+var toilet = {
 	keywords: [
-		'restroom',
-		'wc',
-		'washroom',
-		'bathroom',
-		'potty',
+		"restroom",
+		"wc",
+		"washroom",
+		"bathroom",
+		"potty"
 	],
-	char: '🚽',
+	char: "🚽",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const shower = {
+var shower = {
 	keywords: [
-		'clean',
-		'water',
-		'bathroom',
+		"clean",
+		"water",
+		"bathroom"
 	],
-	char: '🚿',
+	char: "🚿",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bathtub = {
+var bathtub = {
 	keywords: [
-		'clean',
-		'shower',
-		'bathroom',
+		"clean",
+		"shower",
+		"bathroom"
 	],
-	char: '🛁',
+	char: "🛁",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const soap = {
+var soap = {
 	keywords: [
-		'bar',
-		'bathing',
-		'cleaning',
-		'lather',
+		"bar",
+		"bathing",
+		"cleaning",
+		"lather"
 	],
-	char: '🧼',
+	char: "🧼",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const sponge = {
+var sponge = {
 	keywords: [
-		'absorbing',
-		'cleaning',
-		'porous',
+		"absorbing",
+		"cleaning",
+		"porous"
 	],
-	char: '🧽',
+	char: "🧽",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const lotion_bottle = {
+var lotion_bottle = {
 	keywords: [
-		'moisturizer',
-		'sunscreen',
+		"moisturizer",
+		"sunscreen"
 	],
-	char: '🧴',
+	char: "🧴",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const key = {
+var key = {
 	keywords: [
-		'lock',
-		'door',
-		'password',
+		"lock",
+		"door",
+		"password"
 	],
-	char: '🔑',
+	char: "🔑",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const old_key = {
+var old_key = {
 	keywords: [
-		'lock',
-		'door',
-		'password',
+		"lock",
+		"door",
+		"password"
 	],
-	char: '🗝',
+	char: "🗝",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const couch_and_lamp = {
+var couch_and_lamp = {
 	keywords: [
-		'read',
-		'chill',
+		"read",
+		"chill"
 	],
-	char: '🛋',
+	char: "🛋",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const sleeping_bed = {
+var sleeping_bed = {
 	keywords: [
-		'bed',
-		'rest',
+		"bed",
+		"rest"
 	],
-	char: '🛌',
+	char: "🛌",
 	fitzpatrick_scale: true,
-	category: 'objects',
+	category: "objects"
 };
-const bed = {
+var bed = {
 	keywords: [
-		'sleep',
-		'rest',
+		"sleep",
+		"rest"
 	],
-	char: '🛏',
+	char: "🛏",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const door = {
+var door = {
 	keywords: [
-		'house',
-		'entry',
-		'exit',
+		"house",
+		"entry",
+		"exit"
 	],
-	char: '🚪',
+	char: "🚪",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bellhop_bell = {
+var bellhop_bell = {
 	keywords: [
-		'service',
+		"service"
 	],
-	char: '🛎',
+	char: "🛎",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const teddy_bear = {
+var teddy_bear = {
 	keywords: [
-		'plush',
-		'stuffed',
+		"plush",
+		"stuffed"
 	],
-	char: '🧸',
+	char: "🧸",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const framed_picture = {
+var framed_picture = {
 	keywords: [
-		'photography',
+		"photography"
 	],
-	char: '🖼',
+	char: "🖼",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const world_map = {
+var world_map = {
 	keywords: [
-		'location',
-		'direction',
+		"location",
+		"direction"
 	],
-	char: '🗺',
+	char: "🗺",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const parasol_on_ground = {
+var parasol_on_ground = {
 	keywords: [
-		'weather',
-		'summer',
+		"weather",
+		"summer"
 	],
-	char: '⛱',
+	char: "⛱",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const moyai = {
+var moyai = {
 	keywords: [
-		'rock',
-		'easter island',
-		'moai',
+		"rock",
+		"easter island",
+		"moai"
 	],
-	char: '🗿',
+	char: "🗿",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const shopping = {
+var shopping = {
 	keywords: [
-		'mall',
-		'buy',
-		'purchase',
+		"mall",
+		"buy",
+		"purchase"
 	],
-	char: '🛍',
+	char: "🛍",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const shopping_cart = {
+var shopping_cart = {
 	keywords: [
-		'trolley',
+		"trolley"
 	],
-	char: '🛒',
+	char: "🛒",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const balloon = {
+var balloon = {
 	keywords: [
-		'party',
-		'celebration',
-		'birthday',
-		'circus',
+		"party",
+		"celebration",
+		"birthday",
+		"circus"
 	],
-	char: '🎈',
+	char: "🎈",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const flags = {
+var flags = {
 	keywords: [
-		'fish',
-		'japanese',
-		'koinobori',
-		'carp',
-		'banner',
+		"fish",
+		"japanese",
+		"koinobori",
+		"carp",
+		"banner"
 	],
-	char: '🎏',
+	char: "🎏",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const ribbon = {
+var ribbon = {
 	keywords: [
-		'decoration',
-		'pink',
-		'girl',
-		'bowtie',
+		"decoration",
+		"pink",
+		"girl",
+		"bowtie"
 	],
-	char: '🎀',
+	char: "🎀",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const gift = {
+var gift = {
 	keywords: [
-		'present',
-		'birthday',
-		'christmas',
-		'xmas',
+		"present",
+		"birthday",
+		"christmas",
+		"xmas"
 	],
-	char: '🎁',
+	char: "🎁",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const confetti_ball = {
+var confetti_ball = {
 	keywords: [
-		'festival',
-		'party',
-		'birthday',
-		'circus',
+		"festival",
+		"party",
+		"birthday",
+		"circus"
 	],
-	char: '🎊',
+	char: "🎊",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const tada = {
+var tada = {
 	keywords: [
-		'party',
-		'congratulations',
-		'birthday',
-		'magic',
-		'circus',
-		'celebration',
+		"party",
+		"congratulations",
+		"birthday",
+		"magic",
+		"circus",
+		"celebration"
 	],
-	char: '🎉',
+	char: "🎉",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const dolls = {
+var dolls = {
 	keywords: [
-		'japanese',
-		'toy',
-		'kimono',
+		"japanese",
+		"toy",
+		"kimono"
 	],
-	char: '🎎',
+	char: "🎎",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const wind_chime = {
+var wind_chime = {
 	keywords: [
-		'nature',
-		'ding',
-		'spring',
-		'bell',
+		"nature",
+		"ding",
+		"spring",
+		"bell"
 	],
-	char: '🎐',
+	char: "🎐",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const crossed_flags = {
+var crossed_flags = {
 	keywords: [
-		'japanese',
-		'nation',
-		'country',
-		'border',
+		"japanese",
+		"nation",
+		"country",
+		"border"
 	],
-	char: '🎌',
+	char: "🎌",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const izakaya_lantern = {
+var izakaya_lantern = {
 	keywords: [
-		'light',
-		'paper',
-		'halloween',
-		'spooky',
+		"light",
+		"paper",
+		"halloween",
+		"spooky"
 	],
-	char: '🏮',
+	char: "🏮",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const red_envelope = {
+var red_envelope = {
 	keywords: [
-		'gift',
+		"gift"
 	],
-	char: '🧧',
+	char: "🧧",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const email = {
+var email = {
 	keywords: [
-		'letter',
-		'postal',
-		'inbox',
-		'communication',
+		"letter",
+		"postal",
+		"inbox",
+		"communication"
 	],
-	char: '✉️',
+	char: "✉️",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const envelope_with_arrow = {
+var envelope_with_arrow = {
 	keywords: [
-		'email',
-		'communication',
+		"email",
+		"communication"
 	],
-	char: '📩',
+	char: "📩",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const incoming_envelope = {
+var incoming_envelope = {
 	keywords: [
-		'email',
-		'inbox',
+		"email",
+		"inbox"
 	],
-	char: '📨',
+	char: "📨",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const love_letter = {
+var love_letter = {
 	keywords: [
-		'email',
-		'like',
-		'affection',
-		'envelope',
-		'valentines',
+		"email",
+		"like",
+		"affection",
+		"envelope",
+		"valentines"
 	],
-	char: '💌',
+	char: "💌",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const postbox = {
+var postbox = {
 	keywords: [
-		'email',
-		'letter',
-		'envelope',
+		"email",
+		"letter",
+		"envelope"
 	],
-	char: '📮',
+	char: "📮",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mailbox_closed = {
+var mailbox_closed = {
 	keywords: [
-		'email',
-		'communication',
-		'inbox',
+		"email",
+		"communication",
+		"inbox"
 	],
-	char: '📪',
+	char: "📪",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mailbox = {
+var mailbox = {
 	keywords: [
-		'email',
-		'inbox',
-		'communication',
+		"email",
+		"inbox",
+		"communication"
 	],
-	char: '📫',
+	char: "📫",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mailbox_with_mail = {
+var mailbox_with_mail = {
 	keywords: [
-		'email',
-		'inbox',
-		'communication',
+		"email",
+		"inbox",
+		"communication"
 	],
-	char: '📬',
+	char: "📬",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mailbox_with_no_mail = {
+var mailbox_with_no_mail = {
 	keywords: [
-		'email',
-		'inbox',
+		"email",
+		"inbox"
 	],
-	char: '📭',
+	char: "📭",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const postal_horn = {
+var postal_horn = {
 	keywords: [
-		'instrument',
-		'music',
+		"instrument",
+		"music"
 	],
-	char: '📯',
+	char: "📯",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const inbox_tray = {
+var inbox_tray = {
 	keywords: [
-		'email',
-		'documents',
+		"email",
+		"documents"
 	],
-	char: '📥',
+	char: "📥",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const outbox_tray = {
+var outbox_tray = {
 	keywords: [
-		'inbox',
-		'email',
+		"inbox",
+		"email"
 	],
-	char: '📤',
+	char: "📤",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const scroll = {
+var scroll = {
 	keywords: [
-		'documents',
-		'ancient',
-		'history',
-		'paper',
+		"documents",
+		"ancient",
+		"history",
+		"paper"
 	],
-	char: '📜',
+	char: "📜",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const page_with_curl = {
+var page_with_curl = {
 	keywords: [
-		'documents',
-		'office',
-		'paper',
+		"documents",
+		"office",
+		"paper"
 	],
-	char: '📃',
+	char: "📃",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bookmark_tabs = {
+var bookmark_tabs = {
 	keywords: [
-		'favorite',
-		'save',
-		'order',
-		'tidy',
+		"favorite",
+		"save",
+		"order",
+		"tidy"
 	],
-	char: '📑',
+	char: "📑",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const receipt = {
+var receipt = {
 	keywords: [
-		'accounting',
-		'expenses',
+		"accounting",
+		"expenses"
 	],
-	char: '🧾',
+	char: "🧾",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const bar_chart = {
+var bar_chart = {
 	keywords: [
-		'graph',
-		'presentation',
-		'stats',
+		"graph",
+		"presentation",
+		"stats"
 	],
-	char: '📊',
+	char: "📊",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const chart_with_upwards_trend = {
+var chart_with_upwards_trend = {
 	keywords: [
-		'graph',
-		'presentation',
-		'stats',
-		'recovery',
-		'business',
-		'economics',
-		'money',
-		'sales',
-		'good',
-		'success',
+		"graph",
+		"presentation",
+		"stats",
+		"recovery",
+		"business",
+		"economics",
+		"money",
+		"sales",
+		"good",
+		"success"
 	],
-	char: '📈',
+	char: "📈",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const chart_with_downwards_trend = {
+var chart_with_downwards_trend = {
 	keywords: [
-		'graph',
-		'presentation',
-		'stats',
-		'recession',
-		'business',
-		'economics',
-		'money',
-		'sales',
-		'bad',
-		'failure',
+		"graph",
+		"presentation",
+		"stats",
+		"recession",
+		"business",
+		"economics",
+		"money",
+		"sales",
+		"bad",
+		"failure"
 	],
-	char: '📉',
+	char: "📉",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const page_facing_up = {
+var page_facing_up = {
 	keywords: [
-		'documents',
-		'office',
-		'paper',
-		'information',
+		"documents",
+		"office",
+		"paper",
+		"information"
 	],
-	char: '📄',
+	char: "📄",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const date = {
+var date = {
 	keywords: [
-		'calendar',
-		'schedule',
+		"calendar",
+		"schedule"
 	],
-	char: '📅',
+	char: "📅",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const calendar = {
+var calendar = {
 	keywords: [
-		'schedule',
-		'date',
-		'planning',
+		"schedule",
+		"date",
+		"planning"
 	],
-	char: '📆',
+	char: "📆",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const spiral_calendar = {
+var spiral_calendar = {
 	keywords: [
-		'date',
-		'schedule',
-		'planning',
+		"date",
+		"schedule",
+		"planning"
 	],
-	char: '🗓',
+	char: "🗓",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const card_index = {
+var card_index = {
 	keywords: [
-		'business',
-		'stationery',
+		"business",
+		"stationery"
 	],
-	char: '📇',
+	char: "📇",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const card_file_box = {
+var card_file_box = {
 	keywords: [
-		'business',
-		'stationery',
+		"business",
+		"stationery"
 	],
-	char: '🗃',
+	char: "🗃",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const ballot_box = {
+var ballot_box = {
 	keywords: [
-		'election',
-		'vote',
+		"election",
+		"vote"
 	],
-	char: '🗳',
+	char: "🗳",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const file_cabinet = {
+var file_cabinet = {
 	keywords: [
-		'filing',
-		'organizing',
+		"filing",
+		"organizing"
 	],
-	char: '🗄',
+	char: "🗄",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const clipboard = {
+var clipboard = {
 	keywords: [
-		'stationery',
-		'documents',
+		"stationery",
+		"documents"
 	],
-	char: '📋',
+	char: "📋",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const spiral_notepad = {
+var spiral_notepad = {
 	keywords: [
-		'memo',
-		'stationery',
+		"memo",
+		"stationery"
 	],
-	char: '🗒',
+	char: "🗒",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const file_folder = {
+var file_folder = {
 	keywords: [
-		'documents',
-		'business',
-		'office',
+		"documents",
+		"business",
+		"office"
 	],
-	char: '📁',
+	char: "📁",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const open_file_folder = {
+var open_file_folder = {
 	keywords: [
-		'documents',
-		'load',
+		"documents",
+		"load"
 	],
-	char: '📂',
+	char: "📂",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const card_index_dividers = {
+var card_index_dividers = {
 	keywords: [
-		'organizing',
-		'business',
-		'stationery',
+		"organizing",
+		"business",
+		"stationery"
 	],
-	char: '🗂',
+	char: "🗂",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const newspaper_roll = {
+var newspaper_roll = {
 	keywords: [
-		'press',
-		'headline',
+		"press",
+		"headline"
 	],
-	char: '🗞',
+	char: "🗞",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const newspaper = {
+var newspaper = {
 	keywords: [
-		'press',
-		'headline',
+		"press",
+		"headline"
 	],
-	char: '📰',
+	char: "📰",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const notebook = {
+var notebook = {
 	keywords: [
-		'stationery',
-		'record',
-		'notes',
-		'paper',
-		'study',
+		"stationery",
+		"record",
+		"notes",
+		"paper",
+		"study"
 	],
-	char: '📓',
+	char: "📓",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const closed_book = {
+var closed_book = {
 	keywords: [
-		'read',
-		'library',
-		'knowledge',
-		'textbook',
-		'learn',
+		"read",
+		"library",
+		"knowledge",
+		"textbook",
+		"learn"
 	],
-	char: '📕',
+	char: "📕",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const green_book = {
+var green_book = {
 	keywords: [
-		'read',
-		'library',
-		'knowledge',
-		'study',
+		"read",
+		"library",
+		"knowledge",
+		"study"
 	],
-	char: '📗',
+	char: "📗",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const blue_book = {
+var blue_book = {
 	keywords: [
-		'read',
-		'library',
-		'knowledge',
-		'learn',
-		'study',
+		"read",
+		"library",
+		"knowledge",
+		"learn",
+		"study"
 	],
-	char: '📘',
+	char: "📘",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const orange_book = {
+var orange_book = {
 	keywords: [
-		'read',
-		'library',
-		'knowledge',
-		'textbook',
-		'study',
+		"read",
+		"library",
+		"knowledge",
+		"textbook",
+		"study"
 	],
-	char: '📙',
+	char: "📙",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const notebook_with_decorative_cover = {
+var notebook_with_decorative_cover = {
 	keywords: [
-		'classroom',
-		'notes',
-		'record',
-		'paper',
-		'study',
+		"classroom",
+		"notes",
+		"record",
+		"paper",
+		"study"
 	],
-	char: '📔',
+	char: "📔",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const ledger = {
+var ledger = {
 	keywords: [
-		'notes',
-		'paper',
+		"notes",
+		"paper"
 	],
-	char: '📒',
+	char: "📒",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const books = {
+var books = {
 	keywords: [
-		'literature',
-		'library',
-		'study',
+		"literature",
+		"library",
+		"study"
 	],
-	char: '📚',
+	char: "📚",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const open_book = {
+var open_book = {
 	keywords: [
-		'book',
-		'read',
-		'library',
-		'knowledge',
-		'literature',
-		'learn',
-		'study',
+		"book",
+		"read",
+		"library",
+		"knowledge",
+		"literature",
+		"learn",
+		"study"
 	],
-	char: '📖',
+	char: "📖",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const safety_pin = {
+var safety_pin = {
 	keywords: [
-		'diaper',
+		"diaper"
 	],
-	char: '🧷',
+	char: "🧷",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const link = {
+var link = {
 	keywords: [
-		'rings',
-		'url',
+		"rings",
+		"url"
 	],
-	char: '🔗',
+	char: "🔗",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const paperclip = {
+var paperclip = {
 	keywords: [
-		'documents',
-		'stationery',
+		"documents",
+		"stationery"
 	],
-	char: '📎',
+	char: "📎",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const paperclips = {
+var paperclips = {
 	keywords: [
-		'documents',
-		'stationery',
+		"documents",
+		"stationery"
 	],
-	char: '🖇',
+	char: "🖇",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const scissors = {
+var scissors = {
 	keywords: [
-		'stationery',
-		'cut',
+		"stationery",
+		"cut"
 	],
-	char: '✂️',
+	char: "✂️",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const triangular_ruler = {
+var triangular_ruler = {
 	keywords: [
-		'stationery',
-		'math',
-		'architect',
-		'sketch',
+		"stationery",
+		"math",
+		"architect",
+		"sketch"
 	],
-	char: '📐',
+	char: "📐",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const straight_ruler = {
+var straight_ruler = {
 	keywords: [
-		'stationery',
-		'calculate',
-		'length',
-		'math',
-		'school',
-		'drawing',
-		'architect',
-		'sketch',
+		"stationery",
+		"calculate",
+		"length",
+		"math",
+		"school",
+		"drawing",
+		"architect",
+		"sketch"
 	],
-	char: '📏',
+	char: "📏",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const abacus = {
+var abacus = {
 	keywords: [
-		'calculation',
+		"calculation"
 	],
-	char: '🧮',
+	char: "🧮",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pushpin = {
+var pushpin = {
 	keywords: [
-		'stationery',
-		'mark',
-		'here',
+		"stationery",
+		"mark",
+		"here"
 	],
-	char: '📌',
+	char: "📌",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const round_pushpin = {
+var round_pushpin = {
 	keywords: [
-		'stationery',
-		'location',
-		'map',
-		'here',
+		"stationery",
+		"location",
+		"map",
+		"here"
 	],
-	char: '📍',
+	char: "📍",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const triangular_flag_on_post = {
+var triangular_flag_on_post = {
 	keywords: [
-		'mark',
-		'milestone',
-		'place',
+		"mark",
+		"milestone",
+		"place"
 	],
-	char: '🚩',
+	char: "🚩",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const white_flag = {
+var white_flag = {
 	keywords: [
-		'losing',
-		'loser',
-		'lost',
-		'surrender',
-		'give up',
-		'fail',
+		"losing",
+		"loser",
+		"lost",
+		"surrender",
+		"give up",
+		"fail"
 	],
-	char: '🏳',
+	char: "🏳",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const black_flag = {
+var black_flag = {
 	keywords: [
-		'pirate',
+		"pirate"
 	],
-	char: '🏴',
+	char: "🏴",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const rainbow_flag = {
+var rainbow_flag = {
 	keywords: [
-		'flag',
-		'rainbow',
-		'pride',
-		'gay',
-		'lgbt',
-		'glbt',
-		'queer',
-		'homosexual',
-		'lesbian',
-		'bisexual',
-		'transgender',
+		"flag",
+		"rainbow",
+		"pride",
+		"gay",
+		"lgbt",
+		"glbt",
+		"queer",
+		"homosexual",
+		"lesbian",
+		"bisexual",
+		"transgender"
 	],
-	char: '🏳️‍🌈',
+	char: "🏳️‍🌈",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const closed_lock_with_key = {
+var closed_lock_with_key = {
 	keywords: [
-		'security',
-		'privacy',
+		"security",
+		"privacy"
 	],
-	char: '🔐',
+	char: "🔐",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const lock = {
+var lock = {
 	keywords: [
-		'security',
-		'password',
-		'padlock',
+		"security",
+		"password",
+		"padlock"
 	],
-	char: '🔒',
+	char: "🔒",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const unlock = {
+var unlock = {
 	keywords: [
-		'privacy',
-		'security',
+		"privacy",
+		"security"
 	],
-	char: '🔓',
+	char: "🔓",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const lock_with_ink_pen = {
+var lock_with_ink_pen = {
 	keywords: [
-		'security',
-		'secret',
+		"security",
+		"secret"
 	],
-	char: '🔏',
+	char: "🔏",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pen = {
+var pen = {
 	keywords: [
-		'stationery',
-		'writing',
-		'write',
+		"stationery",
+		"writing",
+		"write"
 	],
-	char: '🖊',
+	char: "🖊",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const fountain_pen = {
+var fountain_pen = {
 	keywords: [
-		'stationery',
-		'writing',
-		'write',
+		"stationery",
+		"writing",
+		"write"
 	],
-	char: '🖋',
+	char: "🖋",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const black_nib = {
+var black_nib = {
 	keywords: [
-		'pen',
-		'stationery',
-		'writing',
-		'write',
+		"pen",
+		"stationery",
+		"writing",
+		"write"
 	],
-	char: '✒️',
+	char: "✒️",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const memo = {
+var memo = {
 	keywords: [
-		'write',
-		'documents',
-		'stationery',
-		'pencil',
-		'paper',
-		'writing',
-		'legal',
-		'exam',
-		'quiz',
-		'test',
-		'study',
-		'compose',
+		"write",
+		"documents",
+		"stationery",
+		"pencil",
+		"paper",
+		"writing",
+		"legal",
+		"exam",
+		"quiz",
+		"test",
+		"study",
+		"compose"
 	],
-	char: '📝',
+	char: "📝",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const pencil2 = {
+var pencil2 = {
 	keywords: [
-		'stationery',
-		'write',
-		'paper',
-		'writing',
-		'school',
-		'study',
+		"stationery",
+		"write",
+		"paper",
+		"writing",
+		"school",
+		"study"
 	],
-	char: '✏️',
+	char: "✏️",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const crayon = {
+var crayon = {
 	keywords: [
-		'drawing',
-		'creativity',
+		"drawing",
+		"creativity"
 	],
-	char: '🖍',
+	char: "🖍",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const paintbrush = {
+var paintbrush = {
 	keywords: [
-		'drawing',
-		'creativity',
-		'art',
+		"drawing",
+		"creativity",
+		"art"
 	],
-	char: '🖌',
+	char: "🖌",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mag = {
+var mag = {
 	keywords: [
-		'search',
-		'zoom',
-		'find',
-		'detective',
+		"search",
+		"zoom",
+		"find",
+		"detective"
 	],
-	char: '🔍',
+	char: "🔍",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const mag_right = {
+var mag_right = {
 	keywords: [
-		'search',
-		'zoom',
-		'find',
-		'detective',
+		"search",
+		"zoom",
+		"find",
+		"detective"
 	],
-	char: '🔎',
+	char: "🔎",
 	fitzpatrick_scale: false,
-	category: 'objects',
+	category: "objects"
 };
-const heart = {
+var heart = {
 	keywords: [
-		'love',
-		'like',
-		'valentines',
+		"love",
+		"like",
+		"valentines"
 	],
-	char: '❤️',
+	char: "❤️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const orange_heart = {
+var orange_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '🧡',
+	char: "🧡",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const yellow_heart = {
+var yellow_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💛',
+	char: "💛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const green_heart = {
+var green_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💚',
+	char: "💚",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const blue_heart = {
+var blue_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💙',
+	char: "💙",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const purple_heart = {
+var purple_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💜',
+	char: "💜",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_heart = {
+var black_heart = {
 	keywords: [
-		'evil',
+		"evil"
 	],
-	char: '🖤',
+	char: "🖤",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const broken_heart = {
+var broken_heart = {
 	keywords: [
-		'sad',
-		'sorry',
-		'break',
-		'heart',
-		'heartbreak',
+		"sad",
+		"sorry",
+		"break",
+		"heart",
+		"heartbreak"
 	],
-	char: '💔',
+	char: "💔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_heart_exclamation = {
+var heavy_heart_exclamation = {
 	keywords: [
-		'decoration',
-		'love',
+		"decoration",
+		"love"
 	],
-	char: '❣',
+	char: "❣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const two_hearts = {
+var two_hearts = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'heart',
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"heart"
 	],
-	char: '💕',
+	char: "💕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const revolving_hearts = {
+var revolving_hearts = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💞',
+	char: "💞",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heartbeat = {
+var heartbeat = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
-		'pink',
-		'heart',
+		"love",
+		"like",
+		"affection",
+		"valentines",
+		"pink",
+		"heart"
 	],
-	char: '💓',
+	char: "💓",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heartpulse = {
+var heartpulse = {
 	keywords: [
-		'like',
-		'love',
-		'affection',
-		'valentines',
-		'pink',
+		"like",
+		"love",
+		"affection",
+		"valentines",
+		"pink"
 	],
-	char: '💗',
+	char: "💗",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sparkling_heart = {
+var sparkling_heart = {
 	keywords: [
-		'love',
-		'like',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"affection",
+		"valentines"
 	],
-	char: '💖',
+	char: "💖",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cupid = {
+var cupid = {
 	keywords: [
-		'love',
-		'like',
-		'heart',
-		'affection',
-		'valentines',
+		"love",
+		"like",
+		"heart",
+		"affection",
+		"valentines"
 	],
-	char: '💘',
+	char: "💘",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const gift_heart = {
+var gift_heart = {
 	keywords: [
-		'love',
-		'valentines',
+		"love",
+		"valentines"
 	],
-	char: '💝',
+	char: "💝",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heart_decoration = {
+var heart_decoration = {
 	keywords: [
-		'purple-square',
-		'love',
-		'like',
+		"purple-square",
+		"love",
+		"like"
 	],
-	char: '💟',
+	char: "💟",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const peace_symbol = {
+var peace_symbol = {
 	keywords: [
-		'hippie',
+		"hippie"
 	],
-	char: '☮',
+	char: "☮",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const latin_cross = {
+var latin_cross = {
 	keywords: [
-		'christianity',
+		"christianity"
 	],
-	char: '✝',
+	char: "✝",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const star_and_crescent = {
+var star_and_crescent = {
 	keywords: [
-		'islam',
+		"islam"
 	],
-	char: '☪',
+	char: "☪",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const om = {
+var om = {
 	keywords: [
-		'hinduism',
-		'buddhism',
-		'sikhism',
-		'jainism',
+		"hinduism",
+		"buddhism",
+		"sikhism",
+		"jainism"
 	],
-	char: '🕉',
+	char: "🕉",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const wheel_of_dharma = {
+var wheel_of_dharma = {
 	keywords: [
-		'hinduism',
-		'buddhism',
-		'sikhism',
-		'jainism',
+		"hinduism",
+		"buddhism",
+		"sikhism",
+		"jainism"
 	],
-	char: '☸',
+	char: "☸",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const star_of_david = {
+var star_of_david = {
 	keywords: [
-		'judaism',
+		"judaism"
 	],
-	char: '✡',
+	char: "✡",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const six_pointed_star = {
+var six_pointed_star = {
 	keywords: [
-		'purple-square',
-		'religion',
-		'jewish',
-		'hexagram',
+		"purple-square",
+		"religion",
+		"jewish",
+		"hexagram"
 	],
-	char: '🔯',
+	char: "🔯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const menorah = {
+var menorah = {
 	keywords: [
-		'hanukkah',
-		'candles',
-		'jewish',
+		"hanukkah",
+		"candles",
+		"jewish"
 	],
-	char: '🕎',
+	char: "🕎",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const yin_yang = {
+var yin_yang = {
 	keywords: [
-		'balance',
+		"balance"
 	],
-	char: '☯',
+	char: "☯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const orthodox_cross = {
+var orthodox_cross = {
 	keywords: [
-		'suppedaneum',
-		'religion',
+		"suppedaneum",
+		"religion"
 	],
-	char: '☦',
+	char: "☦",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const place_of_worship = {
+var place_of_worship = {
 	keywords: [
-		'religion',
-		'church',
-		'temple',
-		'prayer',
+		"religion",
+		"church",
+		"temple",
+		"prayer"
 	],
-	char: '🛐',
+	char: "🛐",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ophiuchus = {
+var ophiuchus = {
 	keywords: [
-		'sign',
-		'purple-square',
-		'constellation',
-		'astrology',
+		"sign",
+		"purple-square",
+		"constellation",
+		"astrology"
 	],
-	char: '⛎',
+	char: "⛎",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const aries = {
+var aries = {
 	keywords: [
-		'sign',
-		'purple-square',
-		'zodiac',
-		'astrology',
+		"sign",
+		"purple-square",
+		"zodiac",
+		"astrology"
 	],
-	char: '♈',
+	char: "♈",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const taurus = {
+var taurus = {
 	keywords: [
-		'purple-square',
-		'sign',
-		'zodiac',
-		'astrology',
+		"purple-square",
+		"sign",
+		"zodiac",
+		"astrology"
 	],
-	char: '♉',
+	char: "♉",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const gemini = {
+var gemini = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology"
 	],
-	char: '♊',
+	char: "♊",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cancer = {
+var cancer = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology"
 	],
-	char: '♋',
+	char: "♋",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const leo = {
+var leo = {
 	keywords: [
-		'sign',
-		'purple-square',
-		'zodiac',
-		'astrology',
+		"sign",
+		"purple-square",
+		"zodiac",
+		"astrology"
 	],
-	char: '♌',
+	char: "♌",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const virgo = {
+var virgo = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology"
 	],
-	char: '♍',
+	char: "♍",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const libra = {
+var libra = {
 	keywords: [
-		'sign',
-		'purple-square',
-		'zodiac',
-		'astrology',
+		"sign",
+		"purple-square",
+		"zodiac",
+		"astrology"
 	],
-	char: '♎',
+	char: "♎",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const scorpius = {
+var scorpius = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
-		'scorpio',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology",
+		"scorpio"
 	],
-	char: '♏',
+	char: "♏",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sagittarius = {
+var sagittarius = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology"
 	],
-	char: '♐',
+	char: "♐",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const capricorn = {
+var capricorn = {
 	keywords: [
-		'sign',
-		'zodiac',
-		'purple-square',
-		'astrology',
+		"sign",
+		"zodiac",
+		"purple-square",
+		"astrology"
 	],
-	char: '♑',
+	char: "♑",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const aquarius = {
+var aquarius = {
 	keywords: [
-		'sign',
-		'purple-square',
-		'zodiac',
-		'astrology',
+		"sign",
+		"purple-square",
+		"zodiac",
+		"astrology"
 	],
-	char: '♒',
+	char: "♒",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const pisces = {
+var pisces = {
 	keywords: [
-		'purple-square',
-		'sign',
-		'zodiac',
-		'astrology',
+		"purple-square",
+		"sign",
+		"zodiac",
+		"astrology"
 	],
-	char: '♓',
+	char: "♓",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const id = {
+var id = {
 	keywords: [
-		'purple-square',
-		'words',
+		"purple-square",
+		"words"
 	],
-	char: '🆔',
+	char: "🆔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const atom_symbol = {
+var atom_symbol = {
 	keywords: [
-		'science',
-		'physics',
-		'chemistry',
+		"science",
+		"physics",
+		"chemistry"
 	],
-	char: '⚛',
+	char: "⚛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u7a7a = {
+var u7a7a = {
 	keywords: [
-		'kanji',
-		'japanese',
-		'chinese',
-		'empty',
-		'sky',
-		'blue-square',
+		"kanji",
+		"japanese",
+		"chinese",
+		"empty",
+		"sky",
+		"blue-square"
 	],
-	char: '🈳',
+	char: "🈳",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u5272 = {
+var u5272 = {
 	keywords: [
-		'cut',
-		'divide',
-		'chinese',
-		'kanji',
-		'pink-square',
+		"cut",
+		"divide",
+		"chinese",
+		"kanji",
+		"pink-square"
 	],
-	char: '🈹',
+	char: "🈹",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const radioactive = {
+var radioactive = {
 	keywords: [
-		'nuclear',
-		'danger',
+		"nuclear",
+		"danger"
 	],
-	char: '☢',
+	char: "☢",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const biohazard = {
+var biohazard = {
 	keywords: [
-		'danger',
+		"danger"
 	],
-	char: '☣',
+	char: "☣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const mobile_phone_off = {
+var mobile_phone_off = {
 	keywords: [
-		'mute',
-		'orange-square',
-		'silence',
-		'quiet',
+		"mute",
+		"orange-square",
+		"silence",
+		"quiet"
 	],
-	char: '📴',
+	char: "📴",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const vibration_mode = {
+var vibration_mode = {
 	keywords: [
-		'orange-square',
-		'phone',
+		"orange-square",
+		"phone"
 	],
-	char: '📳',
+	char: "📳",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u6709 = {
+var u6709 = {
 	keywords: [
-		'orange-square',
-		'chinese',
-		'have',
-		'kanji',
+		"orange-square",
+		"chinese",
+		"have",
+		"kanji"
 	],
-	char: '🈶',
+	char: "🈶",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u7121 = {
+var u7121 = {
 	keywords: [
-		'nothing',
-		'chinese',
-		'kanji',
-		'japanese',
-		'orange-square',
+		"nothing",
+		"chinese",
+		"kanji",
+		"japanese",
+		"orange-square"
 	],
-	char: '🈚',
+	char: "🈚",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u7533 = {
+var u7533 = {
 	keywords: [
-		'chinese',
-		'japanese',
-		'kanji',
-		'orange-square',
+		"chinese",
+		"japanese",
+		"kanji",
+		"orange-square"
 	],
-	char: '🈸',
+	char: "🈸",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u55b6 = {
+var u55b6 = {
 	keywords: [
-		'japanese',
-		'opening hours',
-		'orange-square',
+		"japanese",
+		"opening hours",
+		"orange-square"
 	],
-	char: '🈺',
+	char: "🈺",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u6708 = {
+var u6708 = {
 	keywords: [
-		'chinese',
-		'month',
-		'moon',
-		'japanese',
-		'orange-square',
-		'kanji',
+		"chinese",
+		"month",
+		"moon",
+		"japanese",
+		"orange-square",
+		"kanji"
 	],
-	char: '🈷️',
+	char: "🈷️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const eight_pointed_black_star = {
+var eight_pointed_black_star = {
 	keywords: [
-		'orange-square',
-		'shape',
-		'polygon',
+		"orange-square",
+		"shape",
+		"polygon"
 	],
-	char: '✴️',
+	char: "✴️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const vs = {
+var vs = {
 	keywords: [
-		'words',
-		'orange-square',
+		"words",
+		"orange-square"
 	],
-	char: '🆚',
+	char: "🆚",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const accept = {
+var accept = {
 	keywords: [
-		'ok',
-		'good',
-		'chinese',
-		'kanji',
-		'agree',
-		'yes',
-		'orange-circle',
+		"ok",
+		"good",
+		"chinese",
+		"kanji",
+		"agree",
+		"yes",
+		"orange-circle"
 	],
-	char: '🉑',
+	char: "🉑",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_flower = {
+var white_flower = {
 	keywords: [
-		'japanese',
-		'spring',
+		"japanese",
+		"spring"
 	],
-	char: '💮',
+	char: "💮",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ideograph_advantage = {
+var ideograph_advantage = {
 	keywords: [
-		'chinese',
-		'kanji',
-		'obtain',
-		'get',
-		'circle',
+		"chinese",
+		"kanji",
+		"obtain",
+		"get",
+		"circle"
 	],
-	char: '🉐',
+	char: "🉐",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const secret = {
+var secret = {
 	keywords: [
-		'privacy',
-		'chinese',
-		'sshh',
-		'kanji',
-		'red-circle',
+		"privacy",
+		"chinese",
+		"sshh",
+		"kanji",
+		"red-circle"
 	],
-	char: '㊙️',
+	char: "㊙️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const congratulations = {
+var congratulations = {
 	keywords: [
-		'chinese',
-		'kanji',
-		'japanese',
-		'red-circle',
+		"chinese",
+		"kanji",
+		"japanese",
+		"red-circle"
 	],
-	char: '㊗️',
+	char: "㊗️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u5408 = {
+var u5408 = {
 	keywords: [
-		'japanese',
-		'chinese',
-		'join',
-		'kanji',
-		'red-square',
+		"japanese",
+		"chinese",
+		"join",
+		"kanji",
+		"red-square"
 	],
-	char: '🈴',
+	char: "🈴",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u6e80 = {
+var u6e80 = {
 	keywords: [
-		'full',
-		'chinese',
-		'japanese',
-		'red-square',
-		'kanji',
+		"full",
+		"chinese",
+		"japanese",
+		"red-square",
+		"kanji"
 	],
-	char: '🈵',
+	char: "🈵",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u7981 = {
+var u7981 = {
 	keywords: [
-		'kanji',
-		'japanese',
-		'chinese',
-		'forbidden',
-		'limit',
-		'restricted',
-		'red-square',
+		"kanji",
+		"japanese",
+		"chinese",
+		"forbidden",
+		"limit",
+		"restricted",
+		"red-square"
 	],
-	char: '🈲',
+	char: "🈲",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const a = {
+var a = {
 	keywords: [
-		'red-square',
-		'alphabet',
-		'letter',
+		"red-square",
+		"alphabet",
+		"letter"
 	],
-	char: '🅰️',
+	char: "🅰️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const b = {
+var b = {
 	keywords: [
-		'red-square',
-		'alphabet',
-		'letter',
+		"red-square",
+		"alphabet",
+		"letter"
 	],
-	char: '🅱️',
+	char: "🅱️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ab = {
+var ab = {
 	keywords: [
-		'red-square',
-		'alphabet',
+		"red-square",
+		"alphabet"
 	],
-	char: '🆎',
+	char: "🆎",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cl = {
+var cl = {
 	keywords: [
-		'alphabet',
-		'words',
-		'red-square',
+		"alphabet",
+		"words",
+		"red-square"
 	],
-	char: '🆑',
+	char: "🆑",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const o2 = {
+var o2 = {
 	keywords: [
-		'alphabet',
-		'red-square',
-		'letter',
+		"alphabet",
+		"red-square",
+		"letter"
 	],
-	char: '🅾️',
+	char: "🅾️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sos = {
+var sos = {
 	keywords: [
-		'help',
-		'red-square',
-		'words',
-		'emergency',
-		'911',
+		"help",
+		"red-square",
+		"words",
+		"emergency",
+		"911"
 	],
-	char: '🆘',
+	char: "🆘",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_entry = {
+var no_entry = {
 	keywords: [
-		'limit',
-		'security',
-		'privacy',
-		'bad',
-		'denied',
-		'stop',
-		'circle',
+		"limit",
+		"security",
+		"privacy",
+		"bad",
+		"denied",
+		"stop",
+		"circle"
 	],
-	char: '⛔',
+	char: "⛔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const name_badge = {
+var name_badge = {
 	keywords: [
-		'fire',
-		'forbid',
+		"fire",
+		"forbid"
 	],
-	char: '📛',
+	char: "📛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_entry_sign = {
+var no_entry_sign = {
 	keywords: [
-		'forbid',
-		'stop',
-		'limit',
-		'denied',
-		'disallow',
-		'circle',
+		"forbid",
+		"stop",
+		"limit",
+		"denied",
+		"disallow",
+		"circle"
 	],
-	char: '🚫',
+	char: "🚫",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const x = {
+var x = {
 	keywords: [
-		'no',
-		'delete',
-		'remove',
-		'cancel',
-		'red',
+		"no",
+		"delete",
+		"remove",
+		"cancel",
+		"red"
 	],
-	char: '❌',
+	char: "❌",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const o = {
+var o = {
 	keywords: [
-		'circle',
-		'round',
+		"circle",
+		"round"
 	],
-	char: '⭕',
+	char: "⭕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const stop_sign = {
+var stop_sign = {
 	keywords: [
-		'stop',
+		"stop"
 	],
-	char: '🛑',
+	char: "🛑",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const anger = {
+var anger = {
 	keywords: [
-		'angry',
-		'mad',
+		"angry",
+		"mad"
 	],
-	char: '💢',
+	char: "💢",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const hotsprings = {
+var hotsprings = {
 	keywords: [
-		'bath',
-		'warm',
-		'relax',
+		"bath",
+		"warm",
+		"relax"
 	],
-	char: '♨️',
+	char: "♨️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_pedestrians = {
+var no_pedestrians = {
 	keywords: [
-		'rules',
-		'crossing',
-		'walking',
-		'circle',
+		"rules",
+		"crossing",
+		"walking",
+		"circle"
 	],
-	char: '🚷',
+	char: "🚷",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const do_not_litter = {
+var do_not_litter = {
 	keywords: [
-		'trash',
-		'bin',
-		'garbage',
-		'circle',
+		"trash",
+		"bin",
+		"garbage",
+		"circle"
 	],
-	char: '🚯',
+	char: "🚯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_bicycles = {
+var no_bicycles = {
 	keywords: [
-		'cyclist',
-		'prohibited',
-		'circle',
+		"cyclist",
+		"prohibited",
+		"circle"
 	],
-	char: '🚳',
+	char: "🚳",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const underage = {
+var underage = {
 	keywords: [
-		'18',
-		'drink',
-		'pub',
-		'night',
-		'minor',
-		'circle',
+		"18",
+		"drink",
+		"pub",
+		"night",
+		"minor",
+		"circle"
 	],
-	char: '🔞',
+	char: "🔞",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_mobile_phones = {
+var no_mobile_phones = {
 	keywords: [
-		'iphone',
-		'mute',
-		'circle',
+		"iphone",
+		"mute",
+		"circle"
 	],
-	char: '📵',
+	char: "📵",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const exclamation = {
+var exclamation = {
 	keywords: [
-		'heavy_exclamation_mark',
-		'danger',
-		'surprise',
-		'punctuation',
-		'wow',
-		'warning',
+		"heavy_exclamation_mark",
+		"danger",
+		"surprise",
+		"punctuation",
+		"wow",
+		"warning"
 	],
-	char: '❗',
+	char: "❗",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const grey_exclamation = {
+var grey_exclamation = {
 	keywords: [
-		'surprise',
-		'punctuation',
-		'gray',
-		'wow',
-		'warning',
+		"surprise",
+		"punctuation",
+		"gray",
+		"wow",
+		"warning"
 	],
-	char: '❕',
+	char: "❕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const question = {
+var question = {
 	keywords: [
-		'doubt',
-		'confused',
+		"doubt",
+		"confused"
 	],
-	char: '❓',
+	char: "❓",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const grey_question = {
+var grey_question = {
 	keywords: [
-		'doubts',
-		'gray',
-		'huh',
-		'confused',
+		"doubts",
+		"gray",
+		"huh",
+		"confused"
 	],
-	char: '❔',
+	char: "❔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const bangbang = {
+var bangbang = {
 	keywords: [
-		'exclamation',
-		'surprise',
+		"exclamation",
+		"surprise"
 	],
-	char: '‼️',
+	char: "‼️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const interrobang = {
+var interrobang = {
 	keywords: [
-		'wat',
-		'punctuation',
-		'surprise',
+		"wat",
+		"punctuation",
+		"surprise"
 	],
-	char: '⁉️',
+	char: "⁉️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const low_brightness = {
+var low_brightness = {
 	keywords: [
-		'sun',
-		'afternoon',
-		'warm',
-		'summer',
+		"sun",
+		"afternoon",
+		"warm",
+		"summer"
 	],
-	char: '🔅',
+	char: "🔅",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const high_brightness = {
+var high_brightness = {
 	keywords: [
-		'sun',
-		'light',
+		"sun",
+		"light"
 	],
-	char: '🔆',
+	char: "🔆",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const trident = {
+var trident = {
 	keywords: [
-		'weapon',
-		'spear',
+		"weapon",
+		"spear"
 	],
-	char: '🔱',
+	char: "🔱",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const fleur_de_lis = {
+var fleur_de_lis = {
 	keywords: [
-		'decorative',
-		'scout',
+		"decorative",
+		"scout"
 	],
-	char: '⚜',
+	char: "⚜",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const part_alternation_mark = {
+var part_alternation_mark = {
 	keywords: [
-		'graph',
-		'presentation',
-		'stats',
-		'business',
-		'economics',
-		'bad',
+		"graph",
+		"presentation",
+		"stats",
+		"business",
+		"economics",
+		"bad"
 	],
-	char: '〽️',
+	char: "〽️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const warning = {
+var warning = {
 	keywords: [
-		'exclamation',
-		'wip',
-		'alert',
-		'error',
-		'problem',
-		'issue',
+		"exclamation",
+		"wip",
+		"alert",
+		"error",
+		"problem",
+		"issue"
 	],
-	char: '⚠️',
+	char: "⚠️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const children_crossing = {
+var children_crossing = {
 	keywords: [
-		'school',
-		'warning',
-		'danger',
-		'sign',
-		'driving',
-		'yellow-diamond',
+		"school",
+		"warning",
+		"danger",
+		"sign",
+		"driving",
+		"yellow-diamond"
 	],
-	char: '🚸',
+	char: "🚸",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const beginner = {
+var beginner = {
 	keywords: [
-		'badge',
-		'shield',
+		"badge",
+		"shield"
 	],
-	char: '🔰',
+	char: "🔰",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const recycle = {
+var recycle = {
 	keywords: [
-		'arrow',
-		'environment',
-		'garbage',
-		'trash',
+		"arrow",
+		"environment",
+		"garbage",
+		"trash"
 	],
-	char: '♻️',
+	char: "♻️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const u6307 = {
+var u6307 = {
 	keywords: [
-		'chinese',
-		'point',
-		'green-square',
-		'kanji',
+		"chinese",
+		"point",
+		"green-square",
+		"kanji"
 	],
-	char: '🈯',
+	char: "🈯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const chart = {
+var chart = {
 	keywords: [
-		'green-square',
-		'graph',
-		'presentation',
-		'stats',
+		"green-square",
+		"graph",
+		"presentation",
+		"stats"
 	],
-	char: '💹',
+	char: "💹",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sparkle = {
+var sparkle = {
 	keywords: [
-		'stars',
-		'green-square',
-		'awesome',
-		'good',
-		'fireworks',
+		"stars",
+		"green-square",
+		"awesome",
+		"good",
+		"fireworks"
 	],
-	char: '❇️',
+	char: "❇️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const eight_spoked_asterisk = {
+var eight_spoked_asterisk = {
 	keywords: [
-		'star',
-		'sparkle',
-		'green-square',
+		"star",
+		"sparkle",
+		"green-square"
 	],
-	char: '✳️',
+	char: "✳️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const negative_squared_cross_mark = {
+var negative_squared_cross_mark = {
 	keywords: [
-		'x',
-		'green-square',
-		'no',
-		'deny',
+		"x",
+		"green-square",
+		"no",
+		"deny"
 	],
-	char: '❎',
+	char: "❎",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_check_mark = {
+var white_check_mark = {
 	keywords: [
-		'green-square',
-		'ok',
-		'agree',
-		'vote',
-		'election',
-		'answer',
-		'tick',
+		"green-square",
+		"ok",
+		"agree",
+		"vote",
+		"election",
+		"answer",
+		"tick"
 	],
-	char: '✅',
+	char: "✅",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const diamond_shape_with_a_dot_inside = {
+var diamond_shape_with_a_dot_inside = {
 	keywords: [
-		'jewel',
-		'blue',
-		'gem',
-		'crystal',
-		'fancy',
+		"jewel",
+		"blue",
+		"gem",
+		"crystal",
+		"fancy"
 	],
-	char: '💠',
+	char: "💠",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cyclone = {
+var cyclone = {
 	keywords: [
-		'weather',
-		'swirl',
-		'blue',
-		'cloud',
-		'vortex',
-		'spiral',
-		'whirlpool',
-		'spin',
-		'tornado',
-		'hurricane',
-		'typhoon',
+		"weather",
+		"swirl",
+		"blue",
+		"cloud",
+		"vortex",
+		"spiral",
+		"whirlpool",
+		"spin",
+		"tornado",
+		"hurricane",
+		"typhoon"
 	],
-	char: '🌀',
+	char: "🌀",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const loop = {
+var loop = {
 	keywords: [
-		'tape',
-		'cassette',
+		"tape",
+		"cassette"
 	],
-	char: '➿',
+	char: "➿",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const globe_with_meridians = {
+var globe_with_meridians = {
 	keywords: [
-		'earth',
-		'international',
-		'world',
-		'internet',
-		'interweb',
-		'i18n',
+		"earth",
+		"international",
+		"world",
+		"internet",
+		"interweb",
+		"i18n"
 	],
-	char: '🌐',
+	char: "🌐",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const m = {
+var m = {
 	keywords: [
-		'alphabet',
-		'blue-circle',
-		'letter',
+		"alphabet",
+		"blue-circle",
+		"letter"
 	],
-	char: 'Ⓜ️',
+	char: "Ⓜ️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const atm = {
+var atm = {
 	keywords: [
-		'money',
-		'sales',
-		'cash',
-		'blue-square',
-		'payment',
-		'bank',
+		"money",
+		"sales",
+		"cash",
+		"blue-square",
+		"payment",
+		"bank"
 	],
-	char: '🏧',
+	char: "🏧",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sa = {
+var sa = {
 	keywords: [
-		'japanese',
-		'blue-square',
-		'katakana',
+		"japanese",
+		"blue-square",
+		"katakana"
 	],
-	char: '🈂️',
+	char: "🈂️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const passport_control = {
+var passport_control = {
 	keywords: [
-		'custom',
-		'blue-square',
+		"custom",
+		"blue-square"
 	],
-	char: '🛂',
+	char: "🛂",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const customs = {
+var customs = {
 	keywords: [
-		'passport',
-		'border',
-		'blue-square',
+		"passport",
+		"border",
+		"blue-square"
 	],
-	char: '🛃',
+	char: "🛃",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const baggage_claim = {
+var baggage_claim = {
 	keywords: [
-		'blue-square',
-		'airport',
-		'transport',
+		"blue-square",
+		"airport",
+		"transport"
 	],
-	char: '🛄',
+	char: "🛄",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const left_luggage = {
+var left_luggage = {
 	keywords: [
-		'blue-square',
-		'travel',
+		"blue-square",
+		"travel"
 	],
-	char: '🛅',
+	char: "🛅",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const wheelchair = {
+var wheelchair = {
 	keywords: [
-		'blue-square',
-		'disabled',
-		'a11y',
-		'accessibility',
+		"blue-square",
+		"disabled",
+		"a11y",
+		"accessibility"
 	],
-	char: '♿',
+	char: "♿",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_smoking = {
+var no_smoking = {
 	keywords: [
-		'cigarette',
-		'blue-square',
-		'smell',
-		'smoke',
+		"cigarette",
+		"blue-square",
+		"smell",
+		"smoke"
 	],
-	char: '🚭',
+	char: "🚭",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const wc = {
+var wc = {
 	keywords: [
-		'toilet',
-		'restroom',
-		'blue-square',
+		"toilet",
+		"restroom",
+		"blue-square"
 	],
-	char: '🚾',
+	char: "🚾",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const parking = {
+var parking = {
 	keywords: [
-		'cars',
-		'blue-square',
-		'alphabet',
-		'letter',
+		"cars",
+		"blue-square",
+		"alphabet",
+		"letter"
 	],
-	char: '🅿️',
+	char: "🅿️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const potable_water = {
+var potable_water = {
 	keywords: [
-		'blue-square',
-		'liquid',
-		'restroom',
-		'cleaning',
-		'faucet',
+		"blue-square",
+		"liquid",
+		"restroom",
+		"cleaning",
+		"faucet"
 	],
-	char: '🚰',
+	char: "🚰",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const mens = {
+var mens = {
 	keywords: [
-		'toilet',
-		'restroom',
-		'wc',
-		'blue-square',
-		'gender',
-		'male',
+		"toilet",
+		"restroom",
+		"wc",
+		"blue-square",
+		"gender",
+		"male"
 	],
-	char: '🚹',
+	char: "🚹",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const womens = {
+var womens = {
 	keywords: [
-		'purple-square',
-		'woman',
-		'female',
-		'toilet',
-		'loo',
-		'restroom',
-		'gender',
+		"purple-square",
+		"woman",
+		"female",
+		"toilet",
+		"loo",
+		"restroom",
+		"gender"
 	],
-	char: '🚺',
+	char: "🚺",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const baby_symbol = {
+var baby_symbol = {
 	keywords: [
-		'orange-square',
-		'child',
+		"orange-square",
+		"child"
 	],
-	char: '🚼',
+	char: "🚼",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const restroom = {
+var restroom = {
 	keywords: [
-		'blue-square',
-		'toilet',
-		'refresh',
-		'wc',
-		'gender',
+		"blue-square",
+		"toilet",
+		"refresh",
+		"wc",
+		"gender"
 	],
-	char: '🚻',
+	char: "🚻",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const put_litter_in_its_place = {
+var put_litter_in_its_place = {
 	keywords: [
-		'blue-square',
-		'sign',
-		'human',
-		'info',
+		"blue-square",
+		"sign",
+		"human",
+		"info"
 	],
-	char: '🚮',
+	char: "🚮",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cinema = {
+var cinema = {
 	keywords: [
-		'blue-square',
-		'record',
-		'film',
-		'movie',
-		'curtain',
-		'stage',
-		'theater',
+		"blue-square",
+		"record",
+		"film",
+		"movie",
+		"curtain",
+		"stage",
+		"theater"
 	],
-	char: '🎦',
+	char: "🎦",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const signal_strength = {
+var signal_strength = {
 	keywords: [
-		'blue-square',
-		'reception',
-		'phone',
-		'internet',
-		'connection',
-		'wifi',
-		'bluetooth',
-		'bars',
+		"blue-square",
+		"reception",
+		"phone",
+		"internet",
+		"connection",
+		"wifi",
+		"bluetooth",
+		"bars"
 	],
-	char: '📶',
+	char: "📶",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const koko = {
+var koko = {
 	keywords: [
-		'blue-square',
-		'here',
-		'katakana',
-		'japanese',
-		'destination',
+		"blue-square",
+		"here",
+		"katakana",
+		"japanese",
+		"destination"
 	],
-	char: '🈁',
+	char: "🈁",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ng = {
+var ng = {
 	keywords: [
-		'blue-square',
-		'words',
-		'shape',
-		'icon',
+		"blue-square",
+		"words",
+		"shape",
+		"icon"
 	],
-	char: '🆖',
+	char: "🆖",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ok = {
+var ok = {
 	keywords: [
-		'good',
-		'agree',
-		'yes',
-		'blue-square',
+		"good",
+		"agree",
+		"yes",
+		"blue-square"
 	],
-	char: '🆗',
+	char: "🆗",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const up = {
+var up = {
 	keywords: [
-		'blue-square',
-		'above',
-		'high',
+		"blue-square",
+		"above",
+		"high"
 	],
-	char: '🆙',
+	char: "🆙",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const cool = {
+var cool = {
 	keywords: [
-		'words',
-		'blue-square',
+		"words",
+		"blue-square"
 	],
-	char: '🆒',
+	char: "🆒",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const free = {
+var free = {
 	keywords: [
-		'blue-square',
-		'words',
+		"blue-square",
+		"words"
 	],
-	char: '🆓',
+	char: "🆓",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const zero = {
+var zero = {
 	keywords: [
-		'0',
-		'numbers',
-		'blue-square',
-		'null',
+		"0",
+		"numbers",
+		"blue-square",
+		"null"
 	],
-	char: '0️⃣',
+	char: "0️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const one = {
+var one = {
 	keywords: [
-		'blue-square',
-		'numbers',
-		'1',
+		"blue-square",
+		"numbers",
+		"1"
 	],
-	char: '1️⃣',
+	char: "1️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const two = {
+var two = {
 	keywords: [
-		'numbers',
-		'2',
-		'prime',
-		'blue-square',
+		"numbers",
+		"2",
+		"prime",
+		"blue-square"
 	],
-	char: '2️⃣',
+	char: "2️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const three = {
+var three = {
 	keywords: [
-		'3',
-		'numbers',
-		'prime',
-		'blue-square',
+		"3",
+		"numbers",
+		"prime",
+		"blue-square"
 	],
-	char: '3️⃣',
+	char: "3️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const four = {
+var four = {
 	keywords: [
-		'4',
-		'numbers',
-		'blue-square',
+		"4",
+		"numbers",
+		"blue-square"
 	],
-	char: '4️⃣',
+	char: "4️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const five = {
+var five = {
 	keywords: [
-		'5',
-		'numbers',
-		'blue-square',
-		'prime',
+		"5",
+		"numbers",
+		"blue-square",
+		"prime"
 	],
-	char: '5️⃣',
+	char: "5️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const six = {
+var six = {
 	keywords: [
-		'6',
-		'numbers',
-		'blue-square',
+		"6",
+		"numbers",
+		"blue-square"
 	],
-	char: '6️⃣',
+	char: "6️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const seven = {
+var seven = {
 	keywords: [
-		'7',
-		'numbers',
-		'blue-square',
-		'prime',
+		"7",
+		"numbers",
+		"blue-square",
+		"prime"
 	],
-	char: '7️⃣',
+	char: "7️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const eight = {
+var eight = {
 	keywords: [
-		'8',
-		'blue-square',
-		'numbers',
+		"8",
+		"blue-square",
+		"numbers"
 	],
-	char: '8️⃣',
+	char: "8️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const nine = {
+var nine = {
 	keywords: [
-		'blue-square',
-		'numbers',
-		'9',
+		"blue-square",
+		"numbers",
+		"9"
 	],
-	char: '9️⃣',
+	char: "9️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const keycap_ten = {
+var keycap_ten = {
 	keywords: [
-		'numbers',
-		'10',
-		'blue-square',
+		"numbers",
+		"10",
+		"blue-square"
 	],
-	char: '🔟',
+	char: "🔟",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const asterisk = {
+var asterisk = {
 	keywords: [
-		'star',
-		'keycap',
+		"star",
+		"keycap"
 	],
-	char: '*⃣',
+	char: "*⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const eject_button = {
+var eject_button = {
 	keywords: [
-		'blue-square',
+		"blue-square"
 	],
-	char: '⏏️',
+	char: "⏏️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_forward = {
+var arrow_forward = {
 	keywords: [
-		'blue-square',
-		'right',
-		'direction',
-		'play',
+		"blue-square",
+		"right",
+		"direction",
+		"play"
 	],
-	char: '▶️',
+	char: "▶️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const pause_button = {
+var pause_button = {
 	keywords: [
-		'pause',
-		'blue-square',
+		"pause",
+		"blue-square"
 	],
-	char: '⏸',
+	char: "⏸",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const next_track_button = {
+var next_track_button = {
 	keywords: [
-		'forward',
-		'next',
-		'blue-square',
+		"forward",
+		"next",
+		"blue-square"
 	],
-	char: '⏭',
+	char: "⏭",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const stop_button = {
+var stop_button = {
 	keywords: [
-		'blue-square',
+		"blue-square"
 	],
-	char: '⏹',
+	char: "⏹",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const record_button = {
+var record_button = {
 	keywords: [
-		'blue-square',
+		"blue-square"
 	],
-	char: '⏺',
+	char: "⏺",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const play_or_pause_button = {
+var play_or_pause_button = {
 	keywords: [
-		'blue-square',
-		'play',
-		'pause',
+		"blue-square",
+		"play",
+		"pause"
 	],
-	char: '⏯',
+	char: "⏯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const previous_track_button = {
+var previous_track_button = {
 	keywords: [
-		'backward',
+		"backward"
 	],
-	char: '⏮',
+	char: "⏮",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const fast_forward = {
+var fast_forward = {
 	keywords: [
-		'blue-square',
-		'play',
-		'speed',
-		'continue',
+		"blue-square",
+		"play",
+		"speed",
+		"continue"
 	],
-	char: '⏩',
+	char: "⏩",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const rewind = {
+var rewind = {
 	keywords: [
-		'play',
-		'blue-square',
+		"play",
+		"blue-square"
 	],
-	char: '⏪',
+	char: "⏪",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const twisted_rightwards_arrows = {
+var twisted_rightwards_arrows = {
 	keywords: [
-		'blue-square',
-		'shuffle',
-		'music',
-		'random',
+		"blue-square",
+		"shuffle",
+		"music",
+		"random"
 	],
-	char: '🔀',
+	char: "🔀",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const repeat = {
+var repeat = {
 	keywords: [
-		'loop',
-		'record',
+		"loop",
+		"record"
 	],
-	char: '🔁',
+	char: "🔁",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const repeat_one = {
+var repeat_one = {
 	keywords: [
-		'blue-square',
-		'loop',
+		"blue-square",
+		"loop"
 	],
-	char: '🔂',
+	char: "🔂",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_backward = {
+var arrow_backward = {
 	keywords: [
-		'blue-square',
-		'left',
-		'direction',
+		"blue-square",
+		"left",
+		"direction"
 	],
-	char: '◀️',
+	char: "◀️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_up_small = {
+var arrow_up_small = {
 	keywords: [
-		'blue-square',
-		'triangle',
-		'direction',
-		'point',
-		'forward',
-		'top',
+		"blue-square",
+		"triangle",
+		"direction",
+		"point",
+		"forward",
+		"top"
 	],
-	char: '🔼',
+	char: "🔼",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_down_small = {
+var arrow_down_small = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'bottom',
+		"blue-square",
+		"direction",
+		"bottom"
 	],
-	char: '🔽',
+	char: "🔽",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_double_up = {
+var arrow_double_up = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'top',
+		"blue-square",
+		"direction",
+		"top"
 	],
-	char: '⏫',
+	char: "⏫",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_double_down = {
+var arrow_double_down = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'bottom',
+		"blue-square",
+		"direction",
+		"bottom"
 	],
-	char: '⏬',
+	char: "⏬",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_right = {
+var arrow_right = {
 	keywords: [
-		'blue-square',
-		'next',
+		"blue-square",
+		"next"
 	],
-	char: '➡️',
+	char: "➡️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_left = {
+var arrow_left = {
 	keywords: [
-		'blue-square',
-		'previous',
-		'back',
+		"blue-square",
+		"previous",
+		"back"
 	],
-	char: '⬅️',
+	char: "⬅️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_up = {
+var arrow_up = {
 	keywords: [
-		'blue-square',
-		'continue',
-		'top',
-		'direction',
+		"blue-square",
+		"continue",
+		"top",
+		"direction"
 	],
-	char: '⬆️',
+	char: "⬆️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_down = {
+var arrow_down = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'bottom',
+		"blue-square",
+		"direction",
+		"bottom"
 	],
-	char: '⬇️',
+	char: "⬇️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_upper_right = {
+var arrow_upper_right = {
 	keywords: [
-		'blue-square',
-		'point',
-		'direction',
-		'diagonal',
-		'northeast',
+		"blue-square",
+		"point",
+		"direction",
+		"diagonal",
+		"northeast"
 	],
-	char: '↗️',
+	char: "↗️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_lower_right = {
+var arrow_lower_right = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'diagonal',
-		'southeast',
+		"blue-square",
+		"direction",
+		"diagonal",
+		"southeast"
 	],
-	char: '↘️',
+	char: "↘️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_lower_left = {
+var arrow_lower_left = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'diagonal',
-		'southwest',
+		"blue-square",
+		"direction",
+		"diagonal",
+		"southwest"
 	],
-	char: '↙️',
+	char: "↙️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_upper_left = {
+var arrow_upper_left = {
 	keywords: [
-		'blue-square',
-		'point',
-		'direction',
-		'diagonal',
-		'northwest',
+		"blue-square",
+		"point",
+		"direction",
+		"diagonal",
+		"northwest"
 	],
-	char: '↖️',
+	char: "↖️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_up_down = {
+var arrow_up_down = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'way',
-		'vertical',
+		"blue-square",
+		"direction",
+		"way",
+		"vertical"
 	],
-	char: '↕️',
+	char: "↕️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const left_right_arrow = {
+var left_right_arrow = {
 	keywords: [
-		'shape',
-		'direction',
-		'horizontal',
-		'sideways',
+		"shape",
+		"direction",
+		"horizontal",
+		"sideways"
 	],
-	char: '↔️',
+	char: "↔️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrows_counterclockwise = {
+var arrows_counterclockwise = {
 	keywords: [
-		'blue-square',
-		'sync',
-		'cycle',
+		"blue-square",
+		"sync",
+		"cycle"
 	],
-	char: '🔄',
+	char: "🔄",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_right_hook = {
+var arrow_right_hook = {
 	keywords: [
-		'blue-square',
-		'return',
-		'rotate',
-		'direction',
+		"blue-square",
+		"return",
+		"rotate",
+		"direction"
 	],
-	char: '↪️',
+	char: "↪️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const leftwards_arrow_with_hook = {
+var leftwards_arrow_with_hook = {
 	keywords: [
-		'back',
-		'return',
-		'blue-square',
-		'undo',
-		'enter',
+		"back",
+		"return",
+		"blue-square",
+		"undo",
+		"enter"
 	],
-	char: '↩️',
+	char: "↩️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_heading_up = {
+var arrow_heading_up = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'top',
+		"blue-square",
+		"direction",
+		"top"
 	],
-	char: '⤴️',
+	char: "⤴️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrow_heading_down = {
+var arrow_heading_down = {
 	keywords: [
-		'blue-square',
-		'direction',
-		'bottom',
+		"blue-square",
+		"direction",
+		"bottom"
 	],
-	char: '⤵️',
+	char: "⤵️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const hash = {
+var hash = {
 	keywords: [
-		'symbol',
-		'blue-square',
-		'twitter',
+		"symbol",
+		"blue-square",
+		"twitter"
 	],
-	char: '#️⃣',
+	char: "#️⃣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const information_source = {
+var information_source = {
 	keywords: [
-		'blue-square',
-		'alphabet',
-		'letter',
+		"blue-square",
+		"alphabet",
+		"letter"
 	],
-	char: 'ℹ️',
+	char: "ℹ️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const abc = {
+var abc = {
 	keywords: [
-		'blue-square',
-		'alphabet',
+		"blue-square",
+		"alphabet"
 	],
-	char: '🔤',
+	char: "🔤",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const abcd = {
+var abcd = {
 	keywords: [
-		'blue-square',
-		'alphabet',
+		"blue-square",
+		"alphabet"
 	],
-	char: '🔡',
+	char: "🔡",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const capital_abcd = {
+var capital_abcd = {
 	keywords: [
-		'alphabet',
-		'words',
-		'blue-square',
+		"alphabet",
+		"words",
+		"blue-square"
 	],
-	char: '🔠',
+	char: "🔠",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const symbols = {
+var symbols = {
 	keywords: [
-		'blue-square',
-		'music',
-		'note',
-		'ampersand',
-		'percent',
-		'glyphs',
-		'characters',
+		"blue-square",
+		"music",
+		"note",
+		"ampersand",
+		"percent",
+		"glyphs",
+		"characters"
 	],
-	char: '🔣',
+	char: "🔣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const musical_note = {
+var musical_note = {
 	keywords: [
-		'score',
-		'tone',
-		'sound',
+		"score",
+		"tone",
+		"sound"
 	],
-	char: '🎵',
+	char: "🎵",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const notes = {
+var notes = {
 	keywords: [
-		'music',
-		'score',
+		"music",
+		"score"
 	],
-	char: '🎶',
+	char: "🎶",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const wavy_dash = {
+var wavy_dash = {
 	keywords: [
-		'draw',
-		'line',
-		'moustache',
-		'mustache',
-		'squiggle',
-		'scribble',
+		"draw",
+		"line",
+		"moustache",
+		"mustache",
+		"squiggle",
+		"scribble"
 	],
-	char: '〰️',
+	char: "〰️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const curly_loop = {
+var curly_loop = {
 	keywords: [
-		'scribble',
-		'draw',
-		'shape',
-		'squiggle',
+		"scribble",
+		"draw",
+		"shape",
+		"squiggle"
 	],
-	char: '➰',
+	char: "➰",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_check_mark = {
+var heavy_check_mark = {
 	keywords: [
-		'ok',
-		'nike',
-		'answer',
-		'yes',
-		'tick',
+		"ok",
+		"nike",
+		"answer",
+		"yes",
+		"tick"
 	],
-	char: '✔️',
+	char: "✔️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const arrows_clockwise = {
+var arrows_clockwise = {
 	keywords: [
-		'sync',
-		'cycle',
-		'round',
-		'repeat',
+		"sync",
+		"cycle",
+		"round",
+		"repeat"
 	],
-	char: '🔃',
+	char: "🔃",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_plus_sign = {
+var heavy_plus_sign = {
 	keywords: [
-		'math',
-		'calculation',
-		'addition',
-		'more',
-		'increase',
+		"math",
+		"calculation",
+		"addition",
+		"more",
+		"increase"
 	],
-	char: '➕',
+	char: "➕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_minus_sign = {
+var heavy_minus_sign = {
 	keywords: [
-		'math',
-		'calculation',
-		'subtract',
-		'less',
+		"math",
+		"calculation",
+		"subtract",
+		"less"
 	],
-	char: '➖',
+	char: "➖",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_division_sign = {
+var heavy_division_sign = {
 	keywords: [
-		'divide',
-		'math',
-		'calculation',
+		"divide",
+		"math",
+		"calculation"
 	],
-	char: '➗',
+	char: "➗",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_multiplication_x = {
+var heavy_multiplication_x = {
 	keywords: [
-		'math',
-		'calculation',
+		"math",
+		"calculation"
 	],
-	char: '✖️',
+	char: "✖️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const infinity = {
+var infinity = {
 	keywords: [
-		'forever',
+		"forever"
 	],
-	char: '♾',
+	char: "♾",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const heavy_dollar_sign = {
+var heavy_dollar_sign = {
 	keywords: [
-		'money',
-		'sales',
-		'payment',
-		'currency',
-		'buck',
+		"money",
+		"sales",
+		"payment",
+		"currency",
+		"buck"
 	],
-	char: '💲',
+	char: "💲",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const currency_exchange = {
+var currency_exchange = {
 	keywords: [
-		'money',
-		'sales',
-		'dollar',
-		'travel',
+		"money",
+		"sales",
+		"dollar",
+		"travel"
 	],
-	char: '💱',
+	char: "💱",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const copyright = {
+var copyright = {
 	keywords: [
-		'ip',
-		'license',
-		'circle',
-		'law',
-		'legal',
+		"ip",
+		"license",
+		"circle",
+		"law",
+		"legal"
 	],
-	char: '©️',
+	char: "©️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const registered = {
+var registered = {
 	keywords: [
-		'alphabet',
-		'circle',
+		"alphabet",
+		"circle"
 	],
-	char: '®️',
+	char: "®️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const tm = {
+var tm = {
 	keywords: [
-		'trademark',
-		'brand',
-		'law',
-		'legal',
+		"trademark",
+		"brand",
+		"law",
+		"legal"
 	],
-	char: '™️',
+	char: "™️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const end = {
+var end = {
 	keywords: [
-		'words',
-		'arrow',
+		"words",
+		"arrow"
 	],
-	char: '🔚',
+	char: "🔚",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const back = {
+var back = {
 	keywords: [
-		'arrow',
-		'words',
-		'return',
+		"arrow",
+		"words",
+		"return"
 	],
-	char: '🔙',
+	char: "🔙",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const on = {
+var on = {
 	keywords: [
-		'arrow',
-		'words',
+		"arrow",
+		"words"
 	],
-	char: '🔛',
+	char: "🔛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const top = {
+var top = {
 	keywords: [
-		'words',
-		'blue-square',
+		"words",
+		"blue-square"
 	],
-	char: '🔝',
+	char: "🔝",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const soon = {
+var soon = {
 	keywords: [
-		'arrow',
-		'words',
+		"arrow",
+		"words"
 	],
-	char: '🔜',
+	char: "🔜",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const ballot_box_with_check = {
+var ballot_box_with_check = {
 	keywords: [
-		'ok',
-		'agree',
-		'confirm',
-		'black-square',
-		'vote',
-		'election',
-		'yes',
-		'tick',
+		"ok",
+		"agree",
+		"confirm",
+		"black-square",
+		"vote",
+		"election",
+		"yes",
+		"tick"
 	],
-	char: '☑️',
+	char: "☑️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const radio_button = {
+var radio_button = {
 	keywords: [
-		'input',
-		'old',
-		'music',
-		'circle',
+		"input",
+		"old",
+		"music",
+		"circle"
 	],
-	char: '🔘',
+	char: "🔘",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_circle = {
+var white_circle = {
 	keywords: [
-		'shape',
-		'round',
+		"shape",
+		"round"
 	],
-	char: '⚪',
+	char: "⚪",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_circle = {
+var black_circle = {
 	keywords: [
-		'shape',
-		'button',
-		'round',
+		"shape",
+		"button",
+		"round"
 	],
-	char: '⚫',
+	char: "⚫",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const red_circle = {
+var red_circle = {
 	keywords: [
-		'shape',
-		'error',
-		'danger',
+		"shape",
+		"error",
+		"danger"
 	],
-	char: '🔴',
+	char: "🔴",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const large_blue_circle = {
+var large_blue_circle = {
 	keywords: [
-		'shape',
-		'icon',
-		'button',
+		"shape",
+		"icon",
+		"button"
 	],
-	char: '🔵',
+	char: "🔵",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const small_orange_diamond = {
+var small_orange_diamond = {
 	keywords: [
-		'shape',
-		'jewel',
-		'gem',
+		"shape",
+		"jewel",
+		"gem"
 	],
-	char: '🔸',
+	char: "🔸",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const small_blue_diamond = {
+var small_blue_diamond = {
 	keywords: [
-		'shape',
-		'jewel',
-		'gem',
+		"shape",
+		"jewel",
+		"gem"
 	],
-	char: '🔹',
+	char: "🔹",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const large_orange_diamond = {
+var large_orange_diamond = {
 	keywords: [
-		'shape',
-		'jewel',
-		'gem',
+		"shape",
+		"jewel",
+		"gem"
 	],
-	char: '🔶',
+	char: "🔶",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const large_blue_diamond = {
+var large_blue_diamond = {
 	keywords: [
-		'shape',
-		'jewel',
-		'gem',
+		"shape",
+		"jewel",
+		"gem"
 	],
-	char: '🔷',
+	char: "🔷",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const small_red_triangle = {
+var small_red_triangle = {
 	keywords: [
-		'shape',
-		'direction',
-		'up',
-		'top',
+		"shape",
+		"direction",
+		"up",
+		"top"
 	],
-	char: '🔺',
+	char: "🔺",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_small_square = {
+var black_small_square = {
 	keywords: [
-		'shape',
-		'icon',
+		"shape",
+		"icon"
 	],
-	char: '▪️',
+	char: "▪️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_small_square = {
+var white_small_square = {
 	keywords: [
-		'shape',
-		'icon',
+		"shape",
+		"icon"
 	],
-	char: '▫️',
+	char: "▫️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_large_square = {
+var black_large_square = {
 	keywords: [
-		'shape',
-		'icon',
-		'button',
+		"shape",
+		"icon",
+		"button"
 	],
-	char: '⬛',
+	char: "⬛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_large_square = {
+var white_large_square = {
 	keywords: [
-		'shape',
-		'icon',
-		'stone',
-		'button',
+		"shape",
+		"icon",
+		"stone",
+		"button"
 	],
-	char: '⬜',
+	char: "⬜",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const small_red_triangle_down = {
+var small_red_triangle_down = {
 	keywords: [
-		'shape',
-		'direction',
-		'bottom',
+		"shape",
+		"direction",
+		"bottom"
 	],
-	char: '🔻',
+	char: "🔻",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_medium_square = {
+var black_medium_square = {
 	keywords: [
-		'shape',
-		'button',
-		'icon',
+		"shape",
+		"button",
+		"icon"
 	],
-	char: '◼️',
+	char: "◼️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_medium_square = {
+var white_medium_square = {
 	keywords: [
-		'shape',
-		'stone',
-		'icon',
+		"shape",
+		"stone",
+		"icon"
 	],
-	char: '◻️',
+	char: "◻️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_medium_small_square = {
+var black_medium_small_square = {
 	keywords: [
-		'icon',
-		'shape',
-		'button',
+		"icon",
+		"shape",
+		"button"
 	],
-	char: '◾',
+	char: "◾",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_medium_small_square = {
+var white_medium_small_square = {
 	keywords: [
-		'shape',
-		'stone',
-		'icon',
-		'button',
+		"shape",
+		"stone",
+		"icon",
+		"button"
 	],
-	char: '◽',
+	char: "◽",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_square_button = {
+var black_square_button = {
 	keywords: [
-		'shape',
-		'input',
-		'frame',
+		"shape",
+		"input",
+		"frame"
 	],
-	char: '🔲',
+	char: "🔲",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const white_square_button = {
+var white_square_button = {
 	keywords: [
-		'shape',
-		'input',
+		"shape",
+		"input"
 	],
-	char: '🔳',
+	char: "🔳",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const speaker = {
+var speaker = {
 	keywords: [
-		'sound',
-		'volume',
-		'silence',
-		'broadcast',
+		"sound",
+		"volume",
+		"silence",
+		"broadcast"
 	],
-	char: '🔈',
+	char: "🔈",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const sound = {
+var sound = {
 	keywords: [
-		'volume',
-		'speaker',
-		'broadcast',
+		"volume",
+		"speaker",
+		"broadcast"
 	],
-	char: '🔉',
+	char: "🔉",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const loud_sound = {
+var loud_sound = {
 	keywords: [
-		'volume',
-		'noise',
-		'noisy',
-		'speaker',
-		'broadcast',
+		"volume",
+		"noise",
+		"noisy",
+		"speaker",
+		"broadcast"
 	],
-	char: '🔊',
+	char: "🔊",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const mute = {
+var mute = {
 	keywords: [
-		'sound',
-		'volume',
-		'silence',
-		'quiet',
+		"sound",
+		"volume",
+		"silence",
+		"quiet"
 	],
-	char: '🔇',
+	char: "🔇",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const mega = {
+var mega = {
 	keywords: [
-		'sound',
-		'speaker',
-		'volume',
+		"sound",
+		"speaker",
+		"volume"
 	],
-	char: '📣',
+	char: "📣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const loudspeaker = {
+var loudspeaker = {
 	keywords: [
-		'volume',
-		'sound',
+		"volume",
+		"sound"
 	],
-	char: '📢',
+	char: "📢",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const bell = {
+var bell = {
 	keywords: [
-		'sound',
-		'notification',
-		'christmas',
-		'xmas',
-		'chime',
+		"sound",
+		"notification",
+		"christmas",
+		"xmas",
+		"chime"
 	],
-	char: '🔔',
+	char: "🔔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const no_bell = {
+var no_bell = {
 	keywords: [
-		'sound',
-		'volume',
-		'mute',
-		'quiet',
-		'silent',
+		"sound",
+		"volume",
+		"mute",
+		"quiet",
+		"silent"
 	],
-	char: '🔕',
+	char: "🔕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const black_joker = {
+var black_joker = {
 	keywords: [
-		'poker',
-		'cards',
-		'game',
-		'play',
-		'magic',
+		"poker",
+		"cards",
+		"game",
+		"play",
+		"magic"
 	],
-	char: '🃏',
+	char: "🃏",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const mahjong = {
+var mahjong = {
 	keywords: [
-		'game',
-		'play',
-		'chinese',
-		'kanji',
+		"game",
+		"play",
+		"chinese",
+		"kanji"
 	],
-	char: '🀄',
+	char: "🀄",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const spades = {
+var spades = {
 	keywords: [
-		'poker',
-		'cards',
-		'suits',
-		'magic',
+		"poker",
+		"cards",
+		"suits",
+		"magic"
 	],
-	char: '♠️',
+	char: "♠️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clubs = {
+var clubs = {
 	keywords: [
-		'poker',
-		'cards',
-		'magic',
-		'suits',
+		"poker",
+		"cards",
+		"magic",
+		"suits"
 	],
-	char: '♣️',
+	char: "♣️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const hearts = {
+var hearts = {
 	keywords: [
-		'poker',
-		'cards',
-		'magic',
-		'suits',
+		"poker",
+		"cards",
+		"magic",
+		"suits"
 	],
-	char: '♥️',
+	char: "♥️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const diamonds = {
+var diamonds = {
 	keywords: [
-		'poker',
-		'cards',
-		'magic',
-		'suits',
+		"poker",
+		"cards",
+		"magic",
+		"suits"
 	],
-	char: '♦️',
+	char: "♦️",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const flower_playing_cards = {
+var flower_playing_cards = {
 	keywords: [
-		'game',
-		'sunset',
-		'red',
+		"game",
+		"sunset",
+		"red"
 	],
-	char: '🎴',
+	char: "🎴",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const thought_balloon = {
+var thought_balloon = {
 	keywords: [
-		'bubble',
-		'cloud',
-		'speech',
-		'thinking',
-		'dream',
+		"bubble",
+		"cloud",
+		"speech",
+		"thinking",
+		"dream"
 	],
-	char: '💭',
+	char: "💭",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const right_anger_bubble = {
+var right_anger_bubble = {
 	keywords: [
-		'caption',
-		'speech',
-		'thinking',
-		'mad',
+		"caption",
+		"speech",
+		"thinking",
+		"mad"
 	],
-	char: '🗯',
+	char: "🗯",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const speech_balloon = {
+var speech_balloon = {
 	keywords: [
-		'bubble',
-		'words',
-		'message',
-		'talk',
-		'chatting',
+		"bubble",
+		"words",
+		"message",
+		"talk",
+		"chatting"
 	],
-	char: '💬',
+	char: "💬",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const left_speech_bubble = {
+var left_speech_bubble = {
 	keywords: [
-		'words',
-		'message',
-		'talk',
-		'chatting',
+		"words",
+		"message",
+		"talk",
+		"chatting"
 	],
-	char: '🗨',
+	char: "🗨",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock1 = {
+var clock1 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕐',
+	char: "🕐",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock2 = {
+var clock2 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕑',
+	char: "🕑",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock3 = {
+var clock3 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕒',
+	char: "🕒",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock4 = {
+var clock4 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕓',
+	char: "🕓",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock5 = {
+var clock5 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕔',
+	char: "🕔",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock6 = {
+var clock6 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
-		'dawn',
-		'dusk',
+		"time",
+		"late",
+		"early",
+		"schedule",
+		"dawn",
+		"dusk"
 	],
-	char: '🕕',
+	char: "🕕",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock7 = {
+var clock7 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕖',
+	char: "🕖",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock8 = {
+var clock8 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕗',
+	char: "🕗",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock9 = {
+var clock9 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕘',
+	char: "🕘",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock10 = {
+var clock10 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕙',
+	char: "🕙",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock11 = {
+var clock11 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕚',
+	char: "🕚",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock12 = {
+var clock12 = {
 	keywords: [
-		'time',
-		'noon',
-		'midnight',
-		'midday',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"noon",
+		"midnight",
+		"midday",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕛',
+	char: "🕛",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock130 = {
+var clock130 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕜',
+	char: "🕜",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock230 = {
+var clock230 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕝',
+	char: "🕝",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock330 = {
+var clock330 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕞',
+	char: "🕞",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock430 = {
+var clock430 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕟',
+	char: "🕟",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock530 = {
+var clock530 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕠',
+	char: "🕠",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock630 = {
+var clock630 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕡',
+	char: "🕡",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock730 = {
+var clock730 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕢',
+	char: "🕢",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock830 = {
+var clock830 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕣',
+	char: "🕣",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock930 = {
+var clock930 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕤',
+	char: "🕤",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock1030 = {
+var clock1030 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕥',
+	char: "🕥",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock1130 = {
+var clock1130 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕦',
+	char: "🕦",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const clock1230 = {
+var clock1230 = {
 	keywords: [
-		'time',
-		'late',
-		'early',
-		'schedule',
+		"time",
+		"late",
+		"early",
+		"schedule"
 	],
-	char: '🕧',
+	char: "🕧",
 	fitzpatrick_scale: false,
-	category: 'symbols',
+	category: "symbols"
 };
-const afghanistan = {
+var afghanistan = {
 	keywords: [
-		'af',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"af",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇫',
+	char: "🇦🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const aland_islands = {
+var aland_islands = {
 	keywords: [
-		'Åland',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"Åland",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇽',
+	char: "🇦🇽",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const albania = {
+var albania = {
 	keywords: [
-		'al',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"al",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇱',
+	char: "🇦🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const algeria = {
+var algeria = {
 	keywords: [
-		'dz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"dz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇩🇿',
+	char: "🇩🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const american_samoa = {
+var american_samoa = {
 	keywords: [
-		'american',
-		'ws',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"american",
+		"ws",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇸',
+	char: "🇦🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const andorra = {
+var andorra = {
 	keywords: [
-		'ad',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ad",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇩',
+	char: "🇦🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const angola = {
+var angola = {
 	keywords: [
-		'ao',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ao",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇴',
+	char: "🇦🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const anguilla = {
+var anguilla = {
 	keywords: [
-		'ai',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ai",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇮',
+	char: "🇦🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const antarctica = {
+var antarctica = {
 	keywords: [
-		'aq',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"aq",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇶',
+	char: "🇦🇶",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const antigua_barbuda = {
+var antigua_barbuda = {
 	keywords: [
-		'antigua',
-		'barbuda',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"antigua",
+		"barbuda",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇬',
+	char: "🇦🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const argentina = {
+var argentina = {
 	keywords: [
-		'ar',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ar",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇷',
+	char: "🇦🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const armenia = {
+var armenia = {
 	keywords: [
-		'am',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"am",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇲',
+	char: "🇦🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const aruba = {
+var aruba = {
 	keywords: [
-		'aw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"aw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇼',
+	char: "🇦🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const australia = {
+var australia = {
 	keywords: [
-		'au',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"au",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇺',
+	char: "🇦🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const austria = {
+var austria = {
 	keywords: [
-		'at',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"at",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇹',
+	char: "🇦🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const azerbaijan = {
+var azerbaijan = {
 	keywords: [
-		'az',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"az",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇿',
+	char: "🇦🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bahamas = {
+var bahamas = {
 	keywords: [
-		'bs',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bs",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇸',
+	char: "🇧🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bahrain = {
+var bahrain = {
 	keywords: [
-		'bh',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bh",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇭',
+	char: "🇧🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bangladesh = {
+var bangladesh = {
 	keywords: [
-		'bd',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bd",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇩',
+	char: "🇧🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const barbados = {
+var barbados = {
 	keywords: [
-		'bb',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bb",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇧',
+	char: "🇧🇧",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const belarus = {
+var belarus = {
 	keywords: [
-		'by',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"by",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇾',
+	char: "🇧🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const belgium = {
+var belgium = {
 	keywords: [
-		'be',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"be",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇪',
+	char: "🇧🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const belize = {
+var belize = {
 	keywords: [
-		'bz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇿',
+	char: "🇧🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const benin = {
+var benin = {
 	keywords: [
-		'bj',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bj",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇯',
+	char: "🇧🇯",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bermuda = {
+var bermuda = {
 	keywords: [
-		'bm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇲',
+	char: "🇧🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bhutan = {
+var bhutan = {
 	keywords: [
-		'bt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇹',
+	char: "🇧🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bolivia = {
+var bolivia = {
 	keywords: [
-		'bo',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bo",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇴',
+	char: "🇧🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const caribbean_netherlands = {
+var caribbean_netherlands = {
 	keywords: [
-		'bonaire',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bonaire",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇶',
+	char: "🇧🇶",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bosnia_herzegovina = {
+var bosnia_herzegovina = {
 	keywords: [
-		'bosnia',
-		'herzegovina',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bosnia",
+		"herzegovina",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇦',
+	char: "🇧🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const botswana = {
+var botswana = {
 	keywords: [
-		'bw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇼',
+	char: "🇧🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const brazil = {
+var brazil = {
 	keywords: [
-		'br',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"br",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇷',
+	char: "🇧🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const british_indian_ocean_territory = {
+var british_indian_ocean_territory = {
 	keywords: [
-		'british',
-		'indian',
-		'ocean',
-		'territory',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"british",
+		"indian",
+		"ocean",
+		"territory",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇴',
+	char: "🇮🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const british_virgin_islands = {
+var british_virgin_islands = {
 	keywords: [
-		'british',
-		'virgin',
-		'islands',
-		'bvi',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"british",
+		"virgin",
+		"islands",
+		"bvi",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇬',
+	char: "🇻🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const brunei = {
+var brunei = {
 	keywords: [
-		'bn',
-		'darussalam',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bn",
+		"darussalam",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇳',
+	char: "🇧🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const bulgaria = {
+var bulgaria = {
 	keywords: [
-		'bg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇬',
+	char: "🇧🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const burkina_faso = {
+var burkina_faso = {
 	keywords: [
-		'burkina',
-		'faso',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"burkina",
+		"faso",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇫',
+	char: "🇧🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const burundi = {
+var burundi = {
 	keywords: [
-		'bi',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"bi",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇮',
+	char: "🇧🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cape_verde = {
+var cape_verde = {
 	keywords: [
-		'cabo',
-		'verde',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cabo",
+		"verde",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇻',
+	char: "🇨🇻",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cambodia = {
+var cambodia = {
 	keywords: [
-		'kh',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"kh",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇭',
+	char: "🇰🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cameroon = {
+var cameroon = {
 	keywords: [
-		'cm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇲',
+	char: "🇨🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const canada = {
+var canada = {
 	keywords: [
-		'ca',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ca",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇦',
+	char: "🇨🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const canary_islands = {
+var canary_islands = {
 	keywords: [
-		'canary',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"canary",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇨',
+	char: "🇮🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cayman_islands = {
+var cayman_islands = {
 	keywords: [
-		'cayman',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cayman",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇾',
+	char: "🇰🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const central_african_republic = {
+var central_african_republic = {
 	keywords: [
-		'central',
-		'african',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"central",
+		"african",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇫',
+	char: "🇨🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const chad = {
+var chad = {
 	keywords: [
-		'td',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"td",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇩',
+	char: "🇹🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const chile = {
+var chile = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇱',
+	char: "🇨🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cn = {
+var cn = {
 	keywords: [
-		'china',
-		'chinese',
-		'prc',
-		'flag',
-		'country',
-		'nation',
-		'banner',
+		"china",
+		"chinese",
+		"prc",
+		"flag",
+		"country",
+		"nation",
+		"banner"
 	],
-	char: '🇨🇳',
+	char: "🇨🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const christmas_island = {
+var christmas_island = {
 	keywords: [
-		'christmas',
-		'island',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"christmas",
+		"island",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇽',
+	char: "🇨🇽",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cocos_islands = {
+var cocos_islands = {
 	keywords: [
-		'cocos',
-		'keeling',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cocos",
+		"keeling",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇨',
+	char: "🇨🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const colombia = {
+var colombia = {
 	keywords: [
-		'co',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"co",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇴',
+	char: "🇨🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const comoros = {
+var comoros = {
 	keywords: [
-		'km',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"km",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇲',
+	char: "🇰🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const congo_brazzaville = {
+var congo_brazzaville = {
 	keywords: [
-		'congo',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"congo",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇬',
+	char: "🇨🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const congo_kinshasa = {
+var congo_kinshasa = {
 	keywords: [
-		'congo',
-		'democratic',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"congo",
+		"democratic",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇩',
+	char: "🇨🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cook_islands = {
+var cook_islands = {
 	keywords: [
-		'cook',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cook",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇰',
+	char: "🇨🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const costa_rica = {
+var costa_rica = {
 	keywords: [
-		'costa',
-		'rica',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"costa",
+		"rica",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇷',
+	char: "🇨🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const croatia = {
+var croatia = {
 	keywords: [
-		'hr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"hr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇭🇷',
+	char: "🇭🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cuba = {
+var cuba = {
 	keywords: [
-		'cu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇺',
+	char: "🇨🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const curacao = {
+var curacao = {
 	keywords: [
-		'curaçao',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"curaçao",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇼',
+	char: "🇨🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cyprus = {
+var cyprus = {
 	keywords: [
-		'cy',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cy",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇾',
+	char: "🇨🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const czech_republic = {
+var czech_republic = {
 	keywords: [
-		'cz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"cz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇿',
+	char: "🇨🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const denmark = {
+var denmark = {
 	keywords: [
-		'dk',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"dk",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇩🇰',
+	char: "🇩🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const djibouti = {
+var djibouti = {
 	keywords: [
-		'dj',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"dj",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇩🇯',
+	char: "🇩🇯",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const dominica = {
+var dominica = {
 	keywords: [
-		'dm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"dm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇩🇲',
+	char: "🇩🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const dominican_republic = {
+var dominican_republic = {
 	keywords: [
-		'dominican',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"dominican",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇩🇴',
+	char: "🇩🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ecuador = {
+var ecuador = {
 	keywords: [
-		'ec',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ec",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇨',
+	char: "🇪🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const egypt = {
+var egypt = {
 	keywords: [
-		'eg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"eg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇬',
+	char: "🇪🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const el_salvador = {
+var el_salvador = {
 	keywords: [
-		'el',
-		'salvador',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"el",
+		"salvador",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇻',
+	char: "🇸🇻",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const equatorial_guinea = {
+var equatorial_guinea = {
 	keywords: [
-		'equatorial',
-		'gn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"equatorial",
+		"gn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇶',
+	char: "🇬🇶",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const eritrea = {
+var eritrea = {
 	keywords: [
-		'er',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"er",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇷',
+	char: "🇪🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const estonia = {
+var estonia = {
 	keywords: [
-		'ee',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ee",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇪',
+	char: "🇪🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ethiopia = {
+var ethiopia = {
 	keywords: [
-		'et',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"et",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇹',
+	char: "🇪🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const eu = {
+var eu = {
 	keywords: [
-		'european',
-		'union',
-		'flag',
-		'banner',
+		"european",
+		"union",
+		"flag",
+		"banner"
 	],
-	char: '🇪🇺',
+	char: "🇪🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const falkland_islands = {
+var falkland_islands = {
 	keywords: [
-		'falkland',
-		'islands',
-		'malvinas',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"falkland",
+		"islands",
+		"malvinas",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇫🇰',
+	char: "🇫🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const faroe_islands = {
+var faroe_islands = {
 	keywords: [
-		'faroe',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"faroe",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇫🇴',
+	char: "🇫🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const fiji = {
+var fiji = {
 	keywords: [
-		'fj',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"fj",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇫🇯',
+	char: "🇫🇯",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const finland = {
+var finland = {
 	keywords: [
-		'fi',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"fi",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇫🇮',
+	char: "🇫🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const fr = {
+var fr = {
 	keywords: [
-		'banner',
-		'flag',
-		'nation',
-		'france',
-		'french',
-		'country',
+		"banner",
+		"flag",
+		"nation",
+		"france",
+		"french",
+		"country"
 	],
-	char: '🇫🇷',
+	char: "🇫🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const french_guiana = {
+var french_guiana = {
 	keywords: [
-		'french',
-		'guiana',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"french",
+		"guiana",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇫',
+	char: "🇬🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const french_polynesia = {
+var french_polynesia = {
 	keywords: [
-		'french',
-		'polynesia',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"french",
+		"polynesia",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇫',
+	char: "🇵🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const french_southern_territories = {
+var french_southern_territories = {
 	keywords: [
-		'french',
-		'southern',
-		'territories',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"french",
+		"southern",
+		"territories",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇫',
+	char: "🇹🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const gabon = {
+var gabon = {
 	keywords: [
-		'ga',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ga",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇦',
+	char: "🇬🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const gambia = {
+var gambia = {
 	keywords: [
-		'gm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇲',
+	char: "🇬🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const georgia = {
+var georgia = {
 	keywords: [
-		'ge',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ge",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇪',
+	char: "🇬🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const de = {
+var de = {
 	keywords: [
-		'german',
-		'nation',
-		'flag',
-		'country',
-		'banner',
+		"german",
+		"nation",
+		"flag",
+		"country",
+		"banner"
 	],
-	char: '🇩🇪',
+	char: "🇩🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ghana = {
+var ghana = {
 	keywords: [
-		'gh',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gh",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇭',
+	char: "🇬🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const gibraltar = {
+var gibraltar = {
 	keywords: [
-		'gi',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gi",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇮',
+	char: "🇬🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const greece = {
+var greece = {
 	keywords: [
-		'gr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇷',
+	char: "🇬🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const greenland = {
+var greenland = {
 	keywords: [
-		'gl',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gl",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇱',
+	char: "🇬🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const grenada = {
+var grenada = {
 	keywords: [
-		'gd',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gd",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇩',
+	char: "🇬🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guadeloupe = {
+var guadeloupe = {
 	keywords: [
-		'gp',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gp",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇵',
+	char: "🇬🇵",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guam = {
+var guam = {
 	keywords: [
-		'gu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇺',
+	char: "🇬🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guatemala = {
+var guatemala = {
 	keywords: [
-		'gt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇹',
+	char: "🇬🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guernsey = {
+var guernsey = {
 	keywords: [
-		'gg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇬',
+	char: "🇬🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guinea = {
+var guinea = {
 	keywords: [
-		'gn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇳',
+	char: "🇬🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guinea_bissau = {
+var guinea_bissau = {
 	keywords: [
-		'gw',
-		'bissau',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gw",
+		"bissau",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇼',
+	char: "🇬🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const guyana = {
+var guyana = {
 	keywords: [
-		'gy',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"gy",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇾',
+	char: "🇬🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const haiti = {
+var haiti = {
 	keywords: [
-		'ht',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ht",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇭🇹',
+	char: "🇭🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const honduras = {
+var honduras = {
 	keywords: [
-		'hn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"hn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇭🇳',
+	char: "🇭🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const hong_kong = {
+var hong_kong = {
 	keywords: [
-		'hong',
-		'kong',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"hong",
+		"kong",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇭🇰',
+	char: "🇭🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const hungary = {
+var hungary = {
 	keywords: [
-		'hu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"hu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇭🇺',
+	char: "🇭🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const iceland = {
+var iceland = {
 	keywords: [
-		'is',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"is",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇸',
+	char: "🇮🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const india = {
+var india = {
 	keywords: [
-		'in',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"in",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇳',
+	char: "🇮🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const indonesia = {
+var indonesia = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇩',
+	char: "🇮🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const iran = {
+var iran = {
 	keywords: [
-		'iran,',
-		'islamic',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"iran,",
+		"islamic",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇷',
+	char: "🇮🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const iraq = {
+var iraq = {
 	keywords: [
-		'iq',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"iq",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇶',
+	char: "🇮🇶",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ireland = {
+var ireland = {
 	keywords: [
-		'ie',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ie",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇪',
+	char: "🇮🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const isle_of_man = {
+var isle_of_man = {
 	keywords: [
-		'isle',
-		'man',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"isle",
+		"man",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇲',
+	char: "🇮🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const israel = {
+var israel = {
 	keywords: [
-		'il',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"il",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇱',
+	char: "🇮🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const it = {
+var it = {
 	keywords: [
-		'italy',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"italy",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇮🇹',
+	char: "🇮🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const cote_divoire = {
+var cote_divoire = {
 	keywords: [
-		'ivory',
-		'coast',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ivory",
+		"coast",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇮',
+	char: "🇨🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const jamaica = {
+var jamaica = {
 	keywords: [
-		'jm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"jm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇯🇲',
+	char: "🇯🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const jp = {
+var jp = {
 	keywords: [
-		'japanese',
-		'nation',
-		'flag',
-		'country',
-		'banner',
+		"japanese",
+		"nation",
+		"flag",
+		"country",
+		"banner"
 	],
-	char: '🇯🇵',
+	char: "🇯🇵",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const jersey = {
+var jersey = {
 	keywords: [
-		'je',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"je",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇯🇪',
+	char: "🇯🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const jordan = {
+var jordan = {
 	keywords: [
-		'jo',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"jo",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇯🇴',
+	char: "🇯🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kazakhstan = {
+var kazakhstan = {
 	keywords: [
-		'kz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"kz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇿',
+	char: "🇰🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kenya = {
+var kenya = {
 	keywords: [
-		'ke',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ke",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇪',
+	char: "🇰🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kiribati = {
+var kiribati = {
 	keywords: [
-		'ki',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ki",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇮',
+	char: "🇰🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kosovo = {
+var kosovo = {
 	keywords: [
-		'xk',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"xk",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇽🇰',
+	char: "🇽🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kuwait = {
+var kuwait = {
 	keywords: [
-		'kw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"kw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇼',
+	char: "🇰🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kyrgyzstan = {
+var kyrgyzstan = {
 	keywords: [
-		'kg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"kg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇬',
+	char: "🇰🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const laos = {
+var laos = {
 	keywords: [
-		'lao',
-		'democratic',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lao",
+		"democratic",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇦',
+	char: "🇱🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const latvia = {
+var latvia = {
 	keywords: [
-		'lv',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lv",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇻',
+	char: "🇱🇻",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const lebanon = {
+var lebanon = {
 	keywords: [
-		'lb',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lb",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇧',
+	char: "🇱🇧",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const lesotho = {
+var lesotho = {
 	keywords: [
-		'ls',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ls",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇸',
+	char: "🇱🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const liberia = {
+var liberia = {
 	keywords: [
-		'lr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇷',
+	char: "🇱🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const libya = {
+var libya = {
 	keywords: [
-		'ly',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ly",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇾',
+	char: "🇱🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const liechtenstein = {
+var liechtenstein = {
 	keywords: [
-		'li',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"li",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇮',
+	char: "🇱🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const lithuania = {
+var lithuania = {
 	keywords: [
-		'lt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇹',
+	char: "🇱🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const luxembourg = {
+var luxembourg = {
 	keywords: [
-		'lu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"lu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇺',
+	char: "🇱🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const macau = {
+var macau = {
 	keywords: [
-		'macao',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"macao",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇴',
+	char: "🇲🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const macedonia = {
+var macedonia = {
 	keywords: [
-		'macedonia,',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"macedonia,",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇰',
+	char: "🇲🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const madagascar = {
+var madagascar = {
 	keywords: [
-		'mg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇬',
+	char: "🇲🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const malawi = {
+var malawi = {
 	keywords: [
-		'mw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇼',
+	char: "🇲🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const malaysia = {
+var malaysia = {
 	keywords: [
-		'my',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"my",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇾',
+	char: "🇲🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const maldives = {
+var maldives = {
 	keywords: [
-		'mv',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mv",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇻',
+	char: "🇲🇻",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mali = {
+var mali = {
 	keywords: [
-		'ml',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ml",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇱',
+	char: "🇲🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const malta = {
+var malta = {
 	keywords: [
-		'mt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇹',
+	char: "🇲🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const marshall_islands = {
+var marshall_islands = {
 	keywords: [
-		'marshall',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"marshall",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇭',
+	char: "🇲🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const martinique = {
+var martinique = {
 	keywords: [
-		'mq',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mq",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇶',
+	char: "🇲🇶",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mauritania = {
+var mauritania = {
 	keywords: [
-		'mr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇷',
+	char: "🇲🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mauritius = {
+var mauritius = {
 	keywords: [
-		'mu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇺',
+	char: "🇲🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mayotte = {
+var mayotte = {
 	keywords: [
-		'yt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"yt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇾🇹',
+	char: "🇾🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mexico = {
+var mexico = {
 	keywords: [
-		'mx',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mx",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇽',
+	char: "🇲🇽",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const micronesia = {
+var micronesia = {
 	keywords: [
-		'micronesia,',
-		'federated',
-		'states',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"micronesia,",
+		"federated",
+		"states",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇫🇲',
+	char: "🇫🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const moldova = {
+var moldova = {
 	keywords: [
-		'moldova,',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"moldova,",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇩',
+	char: "🇲🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const monaco = {
+var monaco = {
 	keywords: [
-		'mc',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mc",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇨',
+	char: "🇲🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mongolia = {
+var mongolia = {
 	keywords: [
-		'mn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇳',
+	char: "🇲🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const montenegro = {
+var montenegro = {
 	keywords: [
-		'me',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"me",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇪',
+	char: "🇲🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const montserrat = {
+var montserrat = {
 	keywords: [
-		'ms',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ms",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇸',
+	char: "🇲🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const morocco = {
+var morocco = {
 	keywords: [
-		'ma',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ma",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇦',
+	char: "🇲🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const mozambique = {
+var mozambique = {
 	keywords: [
-		'mz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇿',
+	char: "🇲🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const myanmar = {
+var myanmar = {
 	keywords: [
-		'mm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"mm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇲',
+	char: "🇲🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const namibia = {
+var namibia = {
 	keywords: [
-		'na',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"na",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇦',
+	char: "🇳🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const nauru = {
+var nauru = {
 	keywords: [
-		'nr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"nr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇷',
+	char: "🇳🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const nepal = {
+var nepal = {
 	keywords: [
-		'np',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"np",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇵',
+	char: "🇳🇵",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const netherlands = {
+var netherlands = {
 	keywords: [
-		'nl',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"nl",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇱',
+	char: "🇳🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const new_caledonia = {
+var new_caledonia = {
 	keywords: [
-		'new',
-		'caledonia',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"new",
+		"caledonia",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇨',
+	char: "🇳🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const new_zealand = {
+var new_zealand = {
 	keywords: [
-		'new',
-		'zealand',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"new",
+		"zealand",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇿',
+	char: "🇳🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const nicaragua = {
+var nicaragua = {
 	keywords: [
-		'ni',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ni",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇮',
+	char: "🇳🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const niger = {
+var niger = {
 	keywords: [
-		'ne',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ne",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇪',
+	char: "🇳🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const nigeria = {
+var nigeria = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇬',
+	char: "🇳🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const niue = {
+var niue = {
 	keywords: [
-		'nu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"nu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇺',
+	char: "🇳🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const norfolk_island = {
+var norfolk_island = {
 	keywords: [
-		'norfolk',
-		'island',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"norfolk",
+		"island",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇫',
+	char: "🇳🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const northern_mariana_islands = {
+var northern_mariana_islands = {
 	keywords: [
-		'northern',
-		'mariana',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"northern",
+		"mariana",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇲🇵',
+	char: "🇲🇵",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const north_korea = {
+var north_korea = {
 	keywords: [
-		'north',
-		'korea',
-		'nation',
-		'flag',
-		'country',
-		'banner',
+		"north",
+		"korea",
+		"nation",
+		"flag",
+		"country",
+		"banner"
 	],
-	char: '🇰🇵',
+	char: "🇰🇵",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const norway = {
+var norway = {
 	keywords: [
-		'no',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"no",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇳🇴',
+	char: "🇳🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const oman = {
+var oman = {
 	keywords: [
-		'om_symbol',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"om_symbol",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇴🇲',
+	char: "🇴🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const pakistan = {
+var pakistan = {
 	keywords: [
-		'pk',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pk",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇰',
+	char: "🇵🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const palau = {
+var palau = {
 	keywords: [
-		'pw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇼',
+	char: "🇵🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const palestinian_territories = {
+var palestinian_territories = {
 	keywords: [
-		'palestine',
-		'palestinian',
-		'territories',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"palestine",
+		"palestinian",
+		"territories",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇸',
+	char: "🇵🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const panama = {
+var panama = {
 	keywords: [
-		'pa',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pa",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇦',
+	char: "🇵🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const papua_new_guinea = {
+var papua_new_guinea = {
 	keywords: [
-		'papua',
-		'new',
-		'guinea',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"papua",
+		"new",
+		"guinea",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇬',
+	char: "🇵🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const paraguay = {
+var paraguay = {
 	keywords: [
-		'py',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"py",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇾',
+	char: "🇵🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const peru = {
+var peru = {
 	keywords: [
-		'pe',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pe",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇪',
+	char: "🇵🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const philippines = {
+var philippines = {
 	keywords: [
-		'ph',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ph",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇭',
+	char: "🇵🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const pitcairn_islands = {
+var pitcairn_islands = {
 	keywords: [
-		'pitcairn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pitcairn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇳',
+	char: "🇵🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const poland = {
+var poland = {
 	keywords: [
-		'pl',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pl",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇱',
+	char: "🇵🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const portugal = {
+var portugal = {
 	keywords: [
-		'pt',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"pt",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇹',
+	char: "🇵🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const puerto_rico = {
+var puerto_rico = {
 	keywords: [
-		'puerto',
-		'rico',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"puerto",
+		"rico",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇷',
+	char: "🇵🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const qatar = {
+var qatar = {
 	keywords: [
-		'qa',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"qa",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇶🇦',
+	char: "🇶🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const reunion = {
+var reunion = {
 	keywords: [
-		'réunion',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"réunion",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇷🇪',
+	char: "🇷🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const romania = {
+var romania = {
 	keywords: [
-		'ro',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ro",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇷🇴',
+	char: "🇷🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ru = {
+var ru = {
 	keywords: [
-		'russian',
-		'federation',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"russian",
+		"federation",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇷🇺',
+	char: "🇷🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const rwanda = {
+var rwanda = {
 	keywords: [
-		'rw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"rw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇷🇼',
+	char: "🇷🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_barthelemy = {
+var st_barthelemy = {
 	keywords: [
-		'saint',
-		'barthélemy',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"barthélemy",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇧🇱',
+	char: "🇧🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_helena = {
+var st_helena = {
 	keywords: [
-		'saint',
-		'helena',
-		'ascension',
-		'tristan',
-		'cunha',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"helena",
+		"ascension",
+		"tristan",
+		"cunha",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇭',
+	char: "🇸🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_kitts_nevis = {
+var st_kitts_nevis = {
 	keywords: [
-		'saint',
-		'kitts',
-		'nevis',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"kitts",
+		"nevis",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇰🇳',
+	char: "🇰🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_lucia = {
+var st_lucia = {
 	keywords: [
-		'saint',
-		'lucia',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"lucia",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇨',
+	char: "🇱🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_pierre_miquelon = {
+var st_pierre_miquelon = {
 	keywords: [
-		'saint',
-		'pierre',
-		'miquelon',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"pierre",
+		"miquelon",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇵🇲',
+	char: "🇵🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const st_vincent_grenadines = {
+var st_vincent_grenadines = {
 	keywords: [
-		'saint',
-		'vincent',
-		'grenadines',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"saint",
+		"vincent",
+		"grenadines",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇨',
+	char: "🇻🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const samoa = {
+var samoa = {
 	keywords: [
-		'ws',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ws",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇼🇸',
+	char: "🇼🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const san_marino = {
+var san_marino = {
 	keywords: [
-		'san',
-		'marino',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"san",
+		"marino",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇲',
+	char: "🇸🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sao_tome_principe = {
+var sao_tome_principe = {
 	keywords: [
-		'sao',
-		'tome',
-		'principe',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sao",
+		"tome",
+		"principe",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇹',
+	char: "🇸🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const saudi_arabia = {
+var saudi_arabia = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇦',
+	char: "🇸🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const senegal = {
+var senegal = {
 	keywords: [
-		'sn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇳',
+	char: "🇸🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const serbia = {
+var serbia = {
 	keywords: [
-		'rs',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"rs",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇷🇸',
+	char: "🇷🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const seychelles = {
+var seychelles = {
 	keywords: [
-		'sc',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sc",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇨',
+	char: "🇸🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sierra_leone = {
+var sierra_leone = {
 	keywords: [
-		'sierra',
-		'leone',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sierra",
+		"leone",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇱',
+	char: "🇸🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const singapore = {
+var singapore = {
 	keywords: [
-		'sg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇬',
+	char: "🇸🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sint_maarten = {
+var sint_maarten = {
 	keywords: [
-		'sint',
-		'maarten',
-		'dutch',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sint",
+		"maarten",
+		"dutch",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇽',
+	char: "🇸🇽",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const slovakia = {
+var slovakia = {
 	keywords: [
-		'sk',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sk",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇰',
+	char: "🇸🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const slovenia = {
+var slovenia = {
 	keywords: [
-		'si',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"si",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇮',
+	char: "🇸🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const solomon_islands = {
+var solomon_islands = {
 	keywords: [
-		'solomon',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"solomon",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇧',
+	char: "🇸🇧",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const somalia = {
+var somalia = {
 	keywords: [
-		'so',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"so",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇴',
+	char: "🇸🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const south_africa = {
+var south_africa = {
 	keywords: [
-		'south',
-		'africa',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"south",
+		"africa",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇿🇦',
+	char: "🇿🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const south_georgia_south_sandwich_islands = {
+var south_georgia_south_sandwich_islands = {
 	keywords: [
-		'south',
-		'georgia',
-		'sandwich',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"south",
+		"georgia",
+		"sandwich",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇬🇸',
+	char: "🇬🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const kr = {
+var kr = {
 	keywords: [
-		'south',
-		'korea',
-		'nation',
-		'flag',
-		'country',
-		'banner',
+		"south",
+		"korea",
+		"nation",
+		"flag",
+		"country",
+		"banner"
 	],
-	char: '🇰🇷',
+	char: "🇰🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const south_sudan = {
+var south_sudan = {
 	keywords: [
-		'south',
-		'sd',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"south",
+		"sd",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇸',
+	char: "🇸🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const es = {
+var es = {
 	keywords: [
-		'spain',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"spain",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇸',
+	char: "🇪🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sri_lanka = {
+var sri_lanka = {
 	keywords: [
-		'sri',
-		'lanka',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sri",
+		"lanka",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇱🇰',
+	char: "🇱🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sudan = {
+var sudan = {
 	keywords: [
-		'sd',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sd",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇩',
+	char: "🇸🇩",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const suriname = {
+var suriname = {
 	keywords: [
-		'sr',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sr",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇷',
+	char: "🇸🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const swaziland = {
+var swaziland = {
 	keywords: [
-		'sz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"sz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇿',
+	char: "🇸🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const sweden = {
+var sweden = {
 	keywords: [
-		'se',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"se",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇪',
+	char: "🇸🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const switzerland = {
+var switzerland = {
 	keywords: [
-		'ch',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ch",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇨🇭',
+	char: "🇨🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const syria = {
+var syria = {
 	keywords: [
-		'syrian',
-		'arab',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"syrian",
+		"arab",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇸🇾',
+	char: "🇸🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const taiwan = {
+var taiwan = {
 	keywords: [
-		'tw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇼',
+	char: "🇹🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tajikistan = {
+var tajikistan = {
 	keywords: [
-		'tj',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tj",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇯',
+	char: "🇹🇯",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tanzania = {
+var tanzania = {
 	keywords: [
-		'tanzania,',
-		'united',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tanzania,",
+		"united",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇿',
+	char: "🇹🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const thailand = {
+var thailand = {
 	keywords: [
-		'th',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"th",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇭',
+	char: "🇹🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const timor_leste = {
+var timor_leste = {
 	keywords: [
-		'timor',
-		'leste',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"timor",
+		"leste",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇱',
+	char: "🇹🇱",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const togo = {
+var togo = {
 	keywords: [
-		'tg',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tg",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇬',
+	char: "🇹🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tokelau = {
+var tokelau = {
 	keywords: [
-		'tk',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tk",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇰',
+	char: "🇹🇰",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tonga = {
+var tonga = {
 	keywords: [
-		'to',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"to",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇴',
+	char: "🇹🇴",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const trinidad_tobago = {
+var trinidad_tobago = {
 	keywords: [
-		'trinidad',
-		'tobago',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"trinidad",
+		"tobago",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇹',
+	char: "🇹🇹",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tunisia = {
+var tunisia = {
 	keywords: [
-		'tn',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"tn",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇳',
+	char: "🇹🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tr = {
+var tr = {
 	keywords: [
-		'turkey',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"turkey",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇷',
+	char: "🇹🇷",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const turkmenistan = {
+var turkmenistan = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇲',
+	char: "🇹🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const turks_caicos_islands = {
+var turks_caicos_islands = {
 	keywords: [
-		'turks',
-		'caicos',
-		'islands',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"turks",
+		"caicos",
+		"islands",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇨',
+	char: "🇹🇨",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const tuvalu = {
+var tuvalu = {
 	keywords: [
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇹🇻',
+	char: "🇹🇻",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const uganda = {
+var uganda = {
 	keywords: [
-		'ug',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ug",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇺🇬',
+	char: "🇺🇬",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const ukraine = {
+var ukraine = {
 	keywords: [
-		'ua',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ua",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇺🇦',
+	char: "🇺🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const united_arab_emirates = {
+var united_arab_emirates = {
 	keywords: [
-		'united',
-		'arab',
-		'emirates',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"united",
+		"arab",
+		"emirates",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇦🇪',
+	char: "🇦🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const uk = {
+var uk = {
 	keywords: [
-		'united',
-		'kingdom',
-		'great',
-		'britain',
-		'northern',
-		'ireland',
-		'flag',
-		'nation',
-		'country',
-		'banner',
-		'british',
-		'UK',
-		'english',
-		'england',
-		'union jack',
+		"united",
+		"kingdom",
+		"great",
+		"britain",
+		"northern",
+		"ireland",
+		"flag",
+		"nation",
+		"country",
+		"banner",
+		"british",
+		"UK",
+		"english",
+		"england",
+		"union jack"
 	],
-	char: '🇬🇧',
+	char: "🇬🇧",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const england = {
+var england = {
 	keywords: [
-		'flag',
-		'english',
+		"flag",
+		"english"
 	],
-	char: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+	char: "🏴󠁧󠁢󠁥󠁮󠁧󠁿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const scotland = {
+var scotland = {
 	keywords: [
-		'flag',
-		'scottish',
+		"flag",
+		"scottish"
 	],
-	char: '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+	char: "🏴󠁧󠁢󠁳󠁣󠁴󠁿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const wales = {
+var wales = {
 	keywords: [
-		'flag',
-		'welsh',
+		"flag",
+		"welsh"
 	],
-	char: '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+	char: "🏴󠁧󠁢󠁷󠁬󠁳󠁿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const us = {
+var us = {
 	keywords: [
-		'united',
-		'states',
-		'america',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"united",
+		"states",
+		"america",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇺🇸',
+	char: "🇺🇸",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const us_virgin_islands = {
+var us_virgin_islands = {
 	keywords: [
-		'virgin',
-		'islands',
-		'us',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"virgin",
+		"islands",
+		"us",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇮',
+	char: "🇻🇮",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const uruguay = {
+var uruguay = {
 	keywords: [
-		'uy',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"uy",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇺🇾',
+	char: "🇺🇾",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const uzbekistan = {
+var uzbekistan = {
 	keywords: [
-		'uz',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"uz",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇺🇿',
+	char: "🇺🇿",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const vanuatu = {
+var vanuatu = {
 	keywords: [
-		'vu',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"vu",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇺',
+	char: "🇻🇺",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const vatican_city = {
+var vatican_city = {
 	keywords: [
-		'vatican',
-		'city',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"vatican",
+		"city",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇦',
+	char: "🇻🇦",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const venezuela = {
+var venezuela = {
 	keywords: [
-		've',
-		'bolivarian',
-		'republic',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ve",
+		"bolivarian",
+		"republic",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇪',
+	char: "🇻🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const vietnam = {
+var vietnam = {
 	keywords: [
-		'viet',
-		'nam',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"viet",
+		"nam",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇻🇳',
+	char: "🇻🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const wallis_futuna = {
+var wallis_futuna = {
 	keywords: [
-		'wallis',
-		'futuna',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"wallis",
+		"futuna",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇼🇫',
+	char: "🇼🇫",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const western_sahara = {
+var western_sahara = {
 	keywords: [
-		'western',
-		'sahara',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"western",
+		"sahara",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇪🇭',
+	char: "🇪🇭",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const yemen = {
+var yemen = {
 	keywords: [
-		'ye',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"ye",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇾🇪',
+	char: "🇾🇪",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const zambia = {
+var zambia = {
 	keywords: [
-		'zm',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"zm",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇿🇲',
+	char: "🇿🇲",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const zimbabwe = {
+var zimbabwe = {
 	keywords: [
-		'zw',
-		'flag',
-		'nation',
-		'country',
-		'banner',
+		"zw",
+		"flag",
+		"nation",
+		"country",
+		"banner"
 	],
-	char: '🇿🇼',
+	char: "🇿🇼",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const united_nations = {
+var united_nations = {
 	keywords: [
-		'un',
-		'flag',
-		'banner',
+		"un",
+		"flag",
+		"banner"
 	],
-	char: '🇺🇳',
+	char: "🇺🇳",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const pirate_flag = {
+var pirate_flag = {
 	keywords: [
-		'skull',
-		'crossbones',
-		'flag',
-		'banner',
+		"skull",
+		"crossbones",
+		"flag",
+		"banner"
 	],
-	char: '🏴‍☠️',
+	char: "🏴‍☠️",
 	fitzpatrick_scale: false,
-	category: 'flags',
+	category: "flags"
 };
-const require$$0 = {
-	'100': {
-		keywords: [
-			'score',
-			'perfect',
-			'numbers',
-			'century',
-			'exam',
-			'quiz',
-			'test',
-			'pass',
-			'hundred',
-		],
-		char: '💯',
-		fitzpatrick_scale: false,
-		category: 'symbols',
-	},
-	'1234': {
-		keywords: [
-			'numbers',
-			'blue-square',
-		],
-		char: '🔢',
-		fitzpatrick_scale: false,
-		category: 'symbols',
-	},
+var require$$0 = {
+	"100": {
+	keywords: [
+		"score",
+		"perfect",
+		"numbers",
+		"century",
+		"exam",
+		"quiz",
+		"test",
+		"pass",
+		"hundred"
+	],
+	char: "💯",
+	fitzpatrick_scale: false,
+	category: "symbols"
+},
+	"1234": {
+	keywords: [
+		"numbers",
+		"blue-square"
+	],
+	char: "🔢",
+	fitzpatrick_scale: false,
+	category: "symbols"
+},
 	grinning: grinning,
 	grimacing: grimacing,
 	grin: grin,
@@ -17509,33 +17505,33 @@ const require$$0 = {
 	clap: clap,
 	wave: wave,
 	call_me_hand: call_me_hand,
-	'+1': {
-		keywords: [
-			'thumbsup',
-			'yes',
-			'awesome',
-			'good',
-			'agree',
-			'accept',
-			'cool',
-			'hand',
-			'like',
-		],
-		char: '👍',
-		fitzpatrick_scale: true,
-		category: 'people',
-	},
-	'-1': {
-		keywords: [
-			'thumbsdown',
-			'no',
-			'dislike',
-			'hand',
-		],
-		char: '👎',
-		fitzpatrick_scale: true,
-		category: 'people',
-	},
+	"+1": {
+	keywords: [
+		"thumbsup",
+		"yes",
+		"awesome",
+		"good",
+		"agree",
+		"accept",
+		"cool",
+		"hand",
+		"like"
+	],
+	char: "👍",
+	fitzpatrick_scale: true,
+	category: "people"
+},
+	"-1": {
+	keywords: [
+		"thumbsdown",
+		"no",
+		"dislike",
+		"hand"
+	],
+	char: "👎",
+	fitzpatrick_scale: true,
+	category: "people"
+},
 	facepunch: facepunch,
 	fist: fist,
 	fist_left: fist_left,
@@ -17816,18 +17812,18 @@ const require$$0 = {
 	crab: crab,
 	snake: snake,
 	lizard: lizard,
-	't-rex': {
-		keywords: [
-			'animal',
-			'nature',
-			'dinosaur',
-			'tyrannosaurus',
-			'extinct',
-		],
-		char: '🦖',
-		fitzpatrick_scale: false,
-		category: 'animals_and_nature',
-	},
+	"t-rex": {
+	keywords: [
+		"animal",
+		"nature",
+		"dinosaur",
+		"tyrannosaurus",
+		"extinct"
+	],
+	char: "🦖",
+	fitzpatrick_scale: false,
+	category: "animals_and_nature"
+},
 	sauropod: sauropod,
 	turtle: turtle,
 	tropical_fish: tropical_fish,
@@ -18068,18 +18064,18 @@ const require$$0 = {
 	volleyball: volleyball,
 	rugby_football: rugby_football,
 	flying_disc: flying_disc,
-	'8ball': {
-		keywords: [
-			'pool',
-			'hobby',
-			'game',
-			'luck',
-			'magic',
-		],
-		char: '🎱',
-		fitzpatrick_scale: false,
-		category: 'activity',
-	},
+	"8ball": {
+	keywords: [
+		"pool",
+		"hobby",
+		"game",
+		"luck",
+		"magic"
+	],
+	char: "🎱",
+	fitzpatrick_scale: false,
+	category: "activity"
+},
 	golf: golf,
 	golfing_woman: golfing_woman,
 	golfing_man: golfing_man,
@@ -18135,34 +18131,34 @@ const require$$0 = {
 	running_shirt_with_sash: running_shirt_with_sash,
 	medal_sports: medal_sports,
 	medal_military: medal_military,
-	'1st_place_medal': {
-		keywords: [
-			'award',
-			'winning',
-			'first',
-		],
-		char: '🥇',
-		fitzpatrick_scale: false,
-		category: 'activity',
-	},
-	'2nd_place_medal': {
-		keywords: [
-			'award',
-			'second',
-		],
-		char: '🥈',
-		fitzpatrick_scale: false,
-		category: 'activity',
-	},
-	'3rd_place_medal': {
-		keywords: [
-			'award',
-			'third',
-		],
-		char: '🥉',
-		fitzpatrick_scale: false,
-		category: 'activity',
-	},
+	"1st_place_medal": {
+	keywords: [
+		"award",
+		"winning",
+		"first"
+	],
+	char: "🥇",
+	fitzpatrick_scale: false,
+	category: "activity"
+},
+	"2nd_place_medal": {
+	keywords: [
+		"award",
+		"second"
+	],
+	char: "🥈",
+	fitzpatrick_scale: false,
+	category: "activity"
+},
+	"3rd_place_medal": {
+	keywords: [
+		"award",
+		"third"
+	],
+	char: "🥉",
+	fitzpatrick_scale: false,
+	category: "activity"
+},
 	reminder_ribbon: reminder_ribbon,
 	rosette: rosette,
 	ticket: ticket,
@@ -18442,33 +18438,33 @@ const require$$0 = {
 	email: email,
 	envelope_with_arrow: envelope_with_arrow,
 	incoming_envelope: incoming_envelope,
-	'e-mail': {
-		keywords: [
-			'communication',
-			'inbox',
-		],
-		char: '📧',
-		fitzpatrick_scale: false,
-		category: 'objects',
-	},
+	"e-mail": {
+	keywords: [
+		"communication",
+		"inbox"
+	],
+	char: "📧",
+	fitzpatrick_scale: false,
+	category: "objects"
+},
 	love_letter: love_letter,
 	postbox: postbox,
 	mailbox_closed: mailbox_closed,
 	mailbox: mailbox,
 	mailbox_with_mail: mailbox_with_mail,
 	mailbox_with_no_mail: mailbox_with_no_mail,
-	'package': {
-		keywords: [
-			'mail',
-			'gift',
-			'cardboard',
-			'box',
-			'moving',
-		],
-		char: '📦',
-		fitzpatrick_scale: false,
-		category: 'objects',
-	},
+	"package": {
+	keywords: [
+		"mail",
+		"gift",
+		"cardboard",
+		"box",
+		"moving"
+	],
+	char: "📦",
+	fitzpatrick_scale: false,
+	category: "objects"
+},
 	postal_horn: postal_horn,
 	inbox_tray: inbox_tray,
 	outbox_tray: outbox_tray,
@@ -18611,17 +18607,17 @@ const require$$0 = {
 	no_pedestrians: no_pedestrians,
 	do_not_litter: do_not_litter,
 	no_bicycles: no_bicycles,
-	'non-potable_water': {
-		keywords: [
-			'drink',
-			'faucet',
-			'tap',
-			'circle',
-		],
-		char: '🚱',
-		fitzpatrick_scale: false,
-		category: 'symbols',
-	},
+	"non-potable_water": {
+	keywords: [
+		"drink",
+		"faucet",
+		"tap",
+		"circle"
+	],
+	char: "🚱",
+	fitzpatrick_scale: false,
+	category: "symbols"
+},
 	underage: underage,
 	no_mobile_phones: no_mobile_phones,
 	exclamation: exclamation,
@@ -18673,16 +18669,16 @@ const require$$0 = {
 	ok: ok,
 	up: up,
 	cool: cool,
-	'new': {
-		keywords: [
-			'blue-square',
-			'words',
-			'start',
-		],
-		char: '🆕',
-		fitzpatrick_scale: false,
-		category: 'symbols',
-	},
+	"new": {
+	keywords: [
+		"blue-square",
+		"words",
+		"start"
+	],
+	char: "🆕",
+	fitzpatrick_scale: false,
+	category: "symbols"
+},
 	free: free,
 	zero: zero,
 	one: one,
@@ -19072,1584 +19068,1584 @@ const require$$0 = {
 	zambia: zambia,
 	zimbabwe: zimbabwe,
 	united_nations: united_nations,
-	pirate_flag: pirate_flag,
+	pirate_flag: pirate_flag
 };
 
-const require$$1 = [
-	'grinning',
-	'smiley',
-	'smile',
-	'grin',
-	'laughing',
-	'sweat_smile',
-	'joy',
-	'rofl',
-	'relaxed',
-	'blush',
-	'innocent',
-	'slightly_smiling_face',
-	'upside_down_face',
-	'wink',
-	'relieved',
-	'heart_eyes',
-	'smiling_face_with_three_hearts',
-	'kissing_heart',
-	'kissing',
-	'kissing_smiling_eyes',
-	'kissing_closed_eyes',
-	'yum',
-	'stuck_out_tongue',
-	'stuck_out_tongue_closed_eyes',
-	'stuck_out_tongue_winking_eye',
-	'zany',
-	'raised_eyebrow',
-	'monocle',
-	'nerd_face',
-	'sunglasses',
-	'star_struck',
-	'partying',
-	'smirk',
-	'unamused',
-	'disappointed',
-	'pensive',
-	'worried',
-	'confused',
-	'slightly_frowning_face',
-	'frowning_face',
-	'persevere',
-	'confounded',
-	'tired_face',
-	'weary',
-	'pleading',
-	'cry',
-	'sob',
-	'triumph',
-	'angry',
-	'rage',
-	'symbols_over_mouth',
-	'exploding_head',
-	'flushed',
-	'hot',
-	'cold',
-	'scream',
-	'fearful',
-	'cold_sweat',
-	'disappointed_relieved',
-	'sweat',
-	'hugs',
-	'thinking',
-	'hand_over_mouth',
-	'shushing',
-	'lying_face',
-	'no_mouth',
-	'neutral_face',
-	'expressionless',
-	'grimacing',
-	'roll_eyes',
-	'hushed',
-	'frowning',
-	'anguished',
-	'open_mouth',
-	'astonished',
-	'sleeping',
-	'drooling_face',
-	'sleepy',
-	'dizzy_face',
-	'zipper_mouth_face',
-	'woozy',
-	'nauseated_face',
-	'vomiting',
-	'sneezing_face',
-	'mask',
-	'face_with_thermometer',
-	'face_with_head_bandage',
-	'money_mouth_face',
-	'cowboy_hat_face',
-	'smiling_imp',
-	'imp',
-	'japanese_ogre',
-	'japanese_goblin',
-	'clown_face',
-	'poop',
-	'ghost',
-	'skull',
-	'skull_and_crossbones',
-	'alien',
-	'space_invader',
-	'robot',
-	'jack_o_lantern',
-	'smiley_cat',
-	'smile_cat',
-	'joy_cat',
-	'heart_eyes_cat',
-	'smirk_cat',
-	'kissing_cat',
-	'scream_cat',
-	'crying_cat_face',
-	'pouting_cat',
-	'palms_up',
-	'open_hands',
-	'raised_hands',
-	'clap',
-	'handshake',
-	'+1',
-	'-1',
-	'facepunch',
-	'fist',
-	'fist_left',
-	'fist_right',
-	'crossed_fingers',
-	'v',
-	'love_you',
-	'metal',
-	'ok_hand',
-	'point_left',
-	'point_right',
-	'point_up',
-	'point_down',
-	'point_up_2',
-	'raised_hand',
-	'raised_back_of_hand',
-	'raised_hand_with_fingers_splayed',
-	'vulcan_salute',
-	'wave',
-	'call_me_hand',
-	'muscle',
-	'fu',
-	'writing_hand',
-	'pray',
-	'foot',
-	'leg',
-	'ring',
-	'lipstick',
-	'kiss',
-	'lips',
-	'tooth',
-	'tongue',
-	'ear',
-	'nose',
-	'footprints',
-	'eye',
-	'eyes',
-	'brain',
-	'speaking_head',
-	'bust_in_silhouette',
-	'busts_in_silhouette',
-	'baby',
-	'girl',
-	'child',
-	'boy',
-	'woman',
-	'adult',
-	'man',
-	'blonde_woman',
-	'blonde_man',
-	'bearded_person',
-	'older_woman',
-	'older_adult',
-	'older_man',
-	'man_with_gua_pi_mao',
-	'woman_with_headscarf',
-	'woman_with_turban',
-	'man_with_turban',
-	'policewoman',
-	'policeman',
-	'construction_worker_woman',
-	'construction_worker_man',
-	'guardswoman',
-	'guardsman',
-	'female_detective',
-	'male_detective',
-	'woman_health_worker',
-	'man_health_worker',
-	'woman_farmer',
-	'man_farmer',
-	'woman_cook',
-	'man_cook',
-	'woman_student',
-	'man_student',
-	'woman_singer',
-	'man_singer',
-	'woman_teacher',
-	'man_teacher',
-	'woman_factory_worker',
-	'man_factory_worker',
-	'woman_technologist',
-	'man_technologist',
-	'woman_office_worker',
-	'man_office_worker',
-	'woman_mechanic',
-	'man_mechanic',
-	'woman_scientist',
-	'man_scientist',
-	'woman_artist',
-	'man_artist',
-	'woman_firefighter',
-	'man_firefighter',
-	'woman_pilot',
-	'man_pilot',
-	'woman_astronaut',
-	'man_astronaut',
-	'woman_judge',
-	'man_judge',
-	'bride_with_veil',
-	'man_in_tuxedo',
-	'princess',
-	'prince',
-	'woman_superhero',
-	'man_superhero',
-	'woman_supervillain',
-	'man_supervillain',
-	'mrs_claus',
-	'santa',
-	'sorceress',
-	'wizard',
-	'woman_elf',
-	'man_elf',
-	'woman_vampire',
-	'man_vampire',
-	'woman_zombie',
-	'man_zombie',
-	'woman_genie',
-	'man_genie',
-	'mermaid',
-	'merman',
-	'woman_fairy',
-	'man_fairy',
-	'angel',
-	'pregnant_woman',
-	'breastfeeding',
-	'bowing_woman',
-	'bowing_man',
-	'tipping_hand_woman',
-	'tipping_hand_man',
-	'no_good_woman',
-	'no_good_man',
-	'ok_woman',
-	'ok_man',
-	'raising_hand_woman',
-	'raising_hand_man',
-	'woman_facepalming',
-	'man_facepalming',
-	'woman_shrugging',
-	'man_shrugging',
-	'pouting_woman',
-	'pouting_man',
-	'frowning_woman',
-	'frowning_man',
-	'haircut_woman',
-	'haircut_man',
-	'massage_woman',
-	'massage_man',
-	'woman_in_steamy_room',
-	'man_in_steamy_room',
-	'nail_care',
-	'selfie',
-	'dancer',
-	'man_dancing',
-	'dancing_women',
-	'dancing_men',
-	'business_suit_levitating',
-	'walking_woman',
-	'walking_man',
-	'running_woman',
-	'running_man',
-	'couple',
-	'two_women_holding_hands',
-	'two_men_holding_hands',
-	'couple_with_heart_woman_man',
-	'couple_with_heart_woman_woman',
-	'couple_with_heart_man_man',
-	'couplekiss_man_woman',
-	'couplekiss_woman_woman',
-	'couplekiss_man_man',
-	'family_man_woman_boy',
-	'family_man_woman_girl',
-	'family_man_woman_girl_boy',
-	'family_man_woman_boy_boy',
-	'family_man_woman_girl_girl',
-	'family_woman_woman_boy',
-	'family_woman_woman_girl',
-	'family_woman_woman_girl_boy',
-	'family_woman_woman_boy_boy',
-	'family_woman_woman_girl_girl',
-	'family_man_man_boy',
-	'family_man_man_girl',
-	'family_man_man_girl_boy',
-	'family_man_man_boy_boy',
-	'family_man_man_girl_girl',
-	'family_woman_boy',
-	'family_woman_girl',
-	'family_woman_girl_boy',
-	'family_woman_boy_boy',
-	'family_woman_girl_girl',
-	'family_man_boy',
-	'family_man_girl',
-	'family_man_girl_boy',
-	'family_man_boy_boy',
-	'family_man_girl_girl',
-	'yarn',
-	'thread',
-	'coat',
-	'labcoat',
-	'womans_clothes',
-	'tshirt',
-	'jeans',
-	'necktie',
-	'dress',
-	'bikini',
-	'kimono',
-	'flat_shoe',
-	'high_heel',
-	'sandal',
-	'boot',
-	'mans_shoe',
-	'athletic_shoe',
-	'hiking_boot',
-	'socks',
-	'gloves',
-	'scarf',
-	'tophat',
-	'billed_hat',
-	'womans_hat',
-	'mortar_board',
-	'rescue_worker_helmet',
-	'crown',
-	'pouch',
-	'purse',
-	'handbag',
-	'briefcase',
-	'school_satchel',
-	'luggage',
-	'eyeglasses',
-	'dark_sunglasses',
-	'goggles',
-	'closed_umbrella',
-	'dog',
-	'cat',
-	'mouse',
-	'hamster',
-	'rabbit',
-	'fox_face',
-	'bear',
-	'panda_face',
-	'koala',
-	'tiger',
-	'lion',
-	'cow',
-	'pig',
-	'pig_nose',
-	'frog',
-	'monkey_face',
-	'see_no_evil',
-	'hear_no_evil',
-	'speak_no_evil',
-	'monkey',
-	'chicken',
-	'penguin',
-	'bird',
-	'baby_chick',
-	'hatching_chick',
-	'hatched_chick',
-	'duck',
-	'eagle',
-	'owl',
-	'bat',
-	'wolf',
-	'boar',
-	'horse',
-	'unicorn',
-	'honeybee',
-	'bug',
-	'butterfly',
-	'snail',
-	'shell',
-	'beetle',
-	'ant',
-	'mosquito',
-	'grasshopper',
-	'spider',
-	'spider_web',
-	'scorpion',
-	'turtle',
-	'snake',
-	'lizard',
-	't-rex',
-	'sauropod',
-	'octopus',
-	'squid',
-	'shrimp',
-	'lobster',
-	'crab',
-	'blowfish',
-	'tropical_fish',
-	'fish',
-	'dolphin',
-	'whale',
-	'whale2',
-	'shark',
-	'crocodile',
-	'tiger2',
-	'leopard',
-	'zebra',
-	'gorilla',
-	'elephant',
-	'hippopotamus',
-	'rhinoceros',
-	'dromedary_camel',
-	'giraffe',
-	'kangaroo',
-	'camel',
-	'water_buffalo',
-	'ox',
-	'cow2',
-	'racehorse',
-	'pig2',
-	'ram',
-	'sheep',
-	'llama',
-	'goat',
-	'deer',
-	'dog2',
-	'poodle',
-	'cat2',
-	'rooster',
-	'turkey',
-	'peacock',
-	'parrot',
-	'swan',
-	'dove',
-	'rabbit2',
-	'raccoon',
-	'badger',
-	'rat',
-	'mouse2',
-	'chipmunk',
-	'hedgehog',
-	'paw_prints',
-	'dragon',
-	'dragon_face',
-	'cactus',
-	'christmas_tree',
-	'evergreen_tree',
-	'deciduous_tree',
-	'palm_tree',
-	'seedling',
-	'herb',
-	'shamrock',
-	'four_leaf_clover',
-	'bamboo',
-	'tanabata_tree',
-	'leaves',
-	'fallen_leaf',
-	'maple_leaf',
-	'ear_of_rice',
-	'hibiscus',
-	'sunflower',
-	'rose',
-	'wilted_flower',
-	'tulip',
-	'blossom',
-	'cherry_blossom',
-	'bouquet',
-	'mushroom',
-	'earth_americas',
-	'earth_africa',
-	'earth_asia',
-	'full_moon',
-	'waning_gibbous_moon',
-	'last_quarter_moon',
-	'waning_crescent_moon',
-	'new_moon',
-	'waxing_crescent_moon',
-	'first_quarter_moon',
-	'waxing_gibbous_moon',
-	'new_moon_with_face',
-	'full_moon_with_face',
-	'first_quarter_moon_with_face',
-	'last_quarter_moon_with_face',
-	'sun_with_face',
-	'crescent_moon',
-	'star',
-	'star2',
-	'dizzy',
-	'sparkles',
-	'comet',
-	'sunny',
-	'sun_behind_small_cloud',
-	'partly_sunny',
-	'sun_behind_large_cloud',
-	'sun_behind_rain_cloud',
-	'cloud',
-	'cloud_with_rain',
-	'cloud_with_lightning_and_rain',
-	'cloud_with_lightning',
-	'zap',
-	'fire',
-	'boom',
-	'snowflake',
-	'cloud_with_snow',
-	'snowman',
-	'snowman_with_snow',
-	'wind_face',
-	'dash',
-	'tornado',
-	'fog',
-	'open_umbrella',
-	'umbrella',
-	'droplet',
-	'sweat_drops',
-	'ocean',
-	'green_apple',
-	'apple',
-	'pear',
-	'tangerine',
-	'lemon',
-	'banana',
-	'watermelon',
-	'grapes',
-	'strawberry',
-	'melon',
-	'cherries',
-	'peach',
-	'mango',
-	'pineapple',
-	'coconut',
-	'kiwi_fruit',
-	'tomato',
-	'eggplant',
-	'avocado',
-	'broccoli',
-	'leafy_greens',
-	'cucumber',
-	'hot_pepper',
-	'corn',
-	'carrot',
-	'potato',
-	'sweet_potato',
-	'croissant',
-	'bagel',
-	'bread',
-	'baguette_bread',
-	'pretzel',
-	'cheese',
-	'egg',
-	'fried_egg',
-	'pancakes',
-	'bacon',
-	'steak',
-	'poultry_leg',
-	'meat_on_bone',
-	'bone',
-	'hotdog',
-	'hamburger',
-	'fries',
-	'pizza',
-	'sandwich',
-	'stuffed_flatbread',
-	'taco',
-	'burrito',
-	'green_salad',
-	'shallow_pan_of_food',
-	'canned_food',
-	'spaghetti',
-	'ramen',
-	'stew',
-	'curry',
-	'sushi',
-	'bento',
-	'fried_shrimp',
-	'rice_ball',
-	'rice',
-	'rice_cracker',
-	'fish_cake',
-	'fortune_cookie',
-	'moon_cake',
-	'oden',
-	'dango',
-	'shaved_ice',
-	'ice_cream',
-	'icecream',
-	'pie',
-	'cupcake',
-	'cake',
-	'birthday',
-	'custard',
-	'lollipop',
-	'candy',
-	'chocolate_bar',
-	'popcorn',
-	'doughnut',
-	'dumpling',
-	'cookie',
-	'chestnut',
-	'peanuts',
-	'honey_pot',
-	'milk_glass',
-	'baby_bottle',
-	'coffee',
-	'tea',
-	'cup_with_straw',
-	'sake',
-	'beer',
-	'beers',
-	'clinking_glasses',
-	'wine_glass',
-	'tumbler_glass',
-	'cocktail',
-	'tropical_drink',
-	'champagne',
-	'spoon',
-	'fork_and_knife',
-	'plate_with_cutlery',
-	'bowl_with_spoon',
-	'takeout_box',
-	'chopsticks',
-	'salt',
-	'soccer',
-	'basketball',
-	'football',
-	'baseball',
-	'softball',
-	'tennis',
-	'volleyball',
-	'rugby_football',
-	'flying_disc',
-	'8ball',
-	'golf',
-	'golfing_woman',
-	'golfing_man',
-	'ping_pong',
-	'badminton',
-	'goal_net',
-	'ice_hockey',
-	'field_hockey',
-	'lacrosse',
-	'cricket',
-	'ski',
-	'skier',
-	'snowboarder',
-	'person_fencing',
-	'women_wrestling',
-	'men_wrestling',
-	'woman_cartwheeling',
-	'man_cartwheeling',
-	'woman_playing_handball',
-	'man_playing_handball',
-	'ice_skate',
-	'curling_stone',
-	'skateboard',
-	'sled',
-	'bow_and_arrow',
-	'fishing_pole_and_fish',
-	'boxing_glove',
-	'martial_arts_uniform',
-	'rowing_woman',
-	'rowing_man',
-	'climbing_woman',
-	'climbing_man',
-	'swimming_woman',
-	'swimming_man',
-	'woman_playing_water_polo',
-	'man_playing_water_polo',
-	'woman_in_lotus_position',
-	'man_in_lotus_position',
-	'surfing_woman',
-	'surfing_man',
-	'basketball_woman',
-	'basketball_man',
-	'weight_lifting_woman',
-	'weight_lifting_man',
-	'biking_woman',
-	'biking_man',
-	'mountain_biking_woman',
-	'mountain_biking_man',
-	'horse_racing',
-	'trophy',
-	'running_shirt_with_sash',
-	'medal_sports',
-	'medal_military',
-	'1st_place_medal',
-	'2nd_place_medal',
-	'3rd_place_medal',
-	'reminder_ribbon',
-	'rosette',
-	'ticket',
-	'tickets',
-	'performing_arts',
-	'art',
-	'circus_tent',
-	'woman_juggling',
-	'man_juggling',
-	'microphone',
-	'headphones',
-	'musical_score',
-	'musical_keyboard',
-	'drum',
-	'saxophone',
-	'trumpet',
-	'guitar',
-	'violin',
-	'clapper',
-	'video_game',
-	'dart',
-	'game_die',
-	'chess_pawn',
-	'slot_machine',
-	'jigsaw',
-	'bowling',
-	'red_car',
-	'taxi',
-	'blue_car',
-	'bus',
-	'trolleybus',
-	'racing_car',
-	'police_car',
-	'ambulance',
-	'fire_engine',
-	'minibus',
-	'truck',
-	'articulated_lorry',
-	'tractor',
-	'kick_scooter',
-	'motorcycle',
-	'bike',
-	'motor_scooter',
-	'rotating_light',
-	'oncoming_police_car',
-	'oncoming_bus',
-	'oncoming_automobile',
-	'oncoming_taxi',
-	'aerial_tramway',
-	'mountain_cableway',
-	'suspension_railway',
-	'railway_car',
-	'train',
-	'monorail',
-	'bullettrain_side',
-	'bullettrain_front',
-	'light_rail',
-	'mountain_railway',
-	'steam_locomotive',
-	'train2',
-	'metro',
-	'tram',
-	'station',
-	'flying_saucer',
-	'helicopter',
-	'small_airplane',
-	'airplane',
-	'flight_departure',
-	'flight_arrival',
-	'sailboat',
-	'motor_boat',
-	'speedboat',
-	'ferry',
-	'passenger_ship',
-	'rocket',
-	'artificial_satellite',
-	'seat',
-	'canoe',
-	'anchor',
-	'construction',
-	'fuelpump',
-	'busstop',
-	'vertical_traffic_light',
-	'traffic_light',
-	'ship',
-	'ferris_wheel',
-	'roller_coaster',
-	'carousel_horse',
-	'building_construction',
-	'foggy',
-	'tokyo_tower',
-	'factory',
-	'fountain',
-	'rice_scene',
-	'mountain',
-	'mountain_snow',
-	'mount_fuji',
-	'volcano',
-	'japan',
-	'camping',
-	'tent',
-	'national_park',
-	'motorway',
-	'railway_track',
-	'sunrise',
-	'sunrise_over_mountains',
-	'desert',
-	'beach_umbrella',
-	'desert_island',
-	'city_sunrise',
-	'city_sunset',
-	'cityscape',
-	'night_with_stars',
-	'bridge_at_night',
-	'milky_way',
-	'stars',
-	'sparkler',
-	'fireworks',
-	'rainbow',
-	'houses',
-	'european_castle',
-	'japanese_castle',
-	'stadium',
-	'statue_of_liberty',
-	'house',
-	'house_with_garden',
-	'derelict_house',
-	'office',
-	'department_store',
-	'post_office',
-	'european_post_office',
-	'hospital',
-	'bank',
-	'hotel',
-	'convenience_store',
-	'school',
-	'love_hotel',
-	'wedding',
-	'classical_building',
-	'church',
-	'mosque',
-	'synagogue',
-	'kaaba',
-	'shinto_shrine',
-	'watch',
-	'iphone',
-	'calling',
-	'computer',
-	'keyboard',
-	'desktop_computer',
-	'printer',
-	'computer_mouse',
-	'trackball',
-	'joystick',
-	'clamp',
-	'minidisc',
-	'floppy_disk',
-	'cd',
-	'dvd',
-	'vhs',
-	'camera',
-	'camera_flash',
-	'video_camera',
-	'movie_camera',
-	'film_projector',
-	'film_strip',
-	'telephone_receiver',
-	'phone',
-	'pager',
-	'fax',
-	'tv',
-	'radio',
-	'studio_microphone',
-	'level_slider',
-	'control_knobs',
-	'compass',
-	'stopwatch',
-	'timer_clock',
-	'alarm_clock',
-	'mantelpiece_clock',
-	'hourglass_flowing_sand',
-	'hourglass',
-	'satellite',
-	'battery',
-	'electric_plug',
-	'bulb',
-	'flashlight',
-	'candle',
-	'fire_extinguisher',
-	'wastebasket',
-	'oil_drum',
-	'money_with_wings',
-	'dollar',
-	'yen',
-	'euro',
-	'pound',
-	'moneybag',
-	'credit_card',
-	'gem',
-	'balance_scale',
-	'toolbox',
-	'wrench',
-	'hammer',
-	'hammer_and_pick',
-	'hammer_and_wrench',
-	'pick',
-	'nut_and_bolt',
-	'gear',
-	'brick',
-	'chains',
-	'magnet',
-	'gun',
-	'bomb',
-	'firecracker',
-	'hocho',
-	'dagger',
-	'crossed_swords',
-	'shield',
-	'smoking',
-	'coffin',
-	'funeral_urn',
-	'amphora',
-	'crystal_ball',
-	'prayer_beads',
-	'nazar_amulet',
-	'barber',
-	'alembic',
-	'telescope',
-	'microscope',
-	'hole',
-	'pill',
-	'syringe',
-	'dna',
-	'microbe',
-	'petri_dish',
-	'test_tube',
-	'thermometer',
-	'broom',
-	'basket',
-	'toilet_paper',
-	'label',
-	'bookmark',
-	'toilet',
-	'shower',
-	'bathtub',
-	'bath',
-	'soap',
-	'sponge',
-	'lotion_bottle',
-	'key',
-	'old_key',
-	'couch_and_lamp',
-	'sleeping_bed',
-	'bed',
-	'door',
-	'bellhop_bell',
-	'teddy_bear',
-	'framed_picture',
-	'world_map',
-	'parasol_on_ground',
-	'moyai',
-	'shopping',
-	'shopping_cart',
-	'balloon',
-	'flags',
-	'ribbon',
-	'gift',
-	'confetti_ball',
-	'tada',
-	'dolls',
-	'wind_chime',
-	'crossed_flags',
-	'izakaya_lantern',
-	'red_envelope',
-	'email',
-	'envelope_with_arrow',
-	'incoming_envelope',
-	'e-mail',
-	'love_letter',
-	'postbox',
-	'mailbox_closed',
-	'mailbox',
-	'mailbox_with_mail',
-	'mailbox_with_no_mail',
-	'package',
-	'postal_horn',
-	'inbox_tray',
-	'outbox_tray',
-	'scroll',
-	'page_with_curl',
-	'bookmark_tabs',
-	'receipt',
-	'bar_chart',
-	'chart_with_upwards_trend',
-	'chart_with_downwards_trend',
-	'page_facing_up',
-	'date',
-	'calendar',
-	'spiral_calendar',
-	'card_index',
-	'card_file_box',
-	'ballot_box',
-	'file_cabinet',
-	'clipboard',
-	'spiral_notepad',
-	'file_folder',
-	'open_file_folder',
-	'card_index_dividers',
-	'newspaper_roll',
-	'newspaper',
-	'notebook',
-	'closed_book',
-	'green_book',
-	'blue_book',
-	'orange_book',
-	'notebook_with_decorative_cover',
-	'ledger',
-	'books',
-	'open_book',
-	'safety_pin',
-	'link',
-	'paperclip',
-	'paperclips',
-	'scissors',
-	'triangular_ruler',
-	'straight_ruler',
-	'abacus',
-	'pushpin',
-	'round_pushpin',
-	'closed_lock_with_key',
-	'lock',
-	'unlock',
-	'lock_with_ink_pen',
-	'pen',
-	'fountain_pen',
-	'black_nib',
-	'memo',
-	'pencil2',
-	'crayon',
-	'paintbrush',
-	'mag',
-	'mag_right',
-	'heart',
-	'orange_heart',
-	'yellow_heart',
-	'green_heart',
-	'blue_heart',
-	'purple_heart',
-	'black_heart',
-	'broken_heart',
-	'heavy_heart_exclamation',
-	'two_hearts',
-	'revolving_hearts',
-	'heartbeat',
-	'heartpulse',
-	'sparkling_heart',
-	'cupid',
-	'gift_heart',
-	'heart_decoration',
-	'peace_symbol',
-	'latin_cross',
-	'star_and_crescent',
-	'om',
-	'wheel_of_dharma',
-	'star_of_david',
-	'six_pointed_star',
-	'menorah',
-	'yin_yang',
-	'orthodox_cross',
-	'place_of_worship',
-	'ophiuchus',
-	'aries',
-	'taurus',
-	'gemini',
-	'cancer',
-	'leo',
-	'virgo',
-	'libra',
-	'scorpius',
-	'sagittarius',
-	'capricorn',
-	'aquarius',
-	'pisces',
-	'id',
-	'atom_symbol',
-	'u7a7a',
-	'u5272',
-	'radioactive',
-	'biohazard',
-	'mobile_phone_off',
-	'vibration_mode',
-	'u6709',
-	'u7121',
-	'u7533',
-	'u55b6',
-	'u6708',
-	'eight_pointed_black_star',
-	'vs',
-	'accept',
-	'white_flower',
-	'ideograph_advantage',
-	'secret',
-	'congratulations',
-	'u5408',
-	'u6e80',
-	'u7981',
-	'a',
-	'b',
-	'ab',
-	'cl',
-	'o2',
-	'sos',
-	'no_entry',
-	'name_badge',
-	'no_entry_sign',
-	'x',
-	'o',
-	'stop_sign',
-	'anger',
-	'hotsprings',
-	'no_pedestrians',
-	'do_not_litter',
-	'no_bicycles',
-	'non-potable_water',
-	'underage',
-	'no_mobile_phones',
-	'exclamation',
-	'grey_exclamation',
-	'question',
-	'grey_question',
-	'bangbang',
-	'interrobang',
-	'100',
-	'low_brightness',
-	'high_brightness',
-	'trident',
-	'fleur_de_lis',
-	'part_alternation_mark',
-	'warning',
-	'children_crossing',
-	'beginner',
-	'recycle',
-	'u6307',
-	'chart',
-	'sparkle',
-	'eight_spoked_asterisk',
-	'negative_squared_cross_mark',
-	'white_check_mark',
-	'diamond_shape_with_a_dot_inside',
-	'cyclone',
-	'loop',
-	'globe_with_meridians',
-	'm',
-	'atm',
-	'zzz',
-	'sa',
-	'passport_control',
-	'customs',
-	'baggage_claim',
-	'left_luggage',
-	'wheelchair',
-	'no_smoking',
-	'wc',
-	'parking',
-	'potable_water',
-	'mens',
-	'womens',
-	'baby_symbol',
-	'restroom',
-	'put_litter_in_its_place',
-	'cinema',
-	'signal_strength',
-	'koko',
-	'ng',
-	'ok',
-	'up',
-	'cool',
-	'new',
-	'free',
-	'zero',
-	'one',
-	'two',
-	'three',
-	'four',
-	'five',
-	'six',
-	'seven',
-	'eight',
-	'nine',
-	'keycap_ten',
-	'asterisk',
-	'1234',
-	'eject_button',
-	'arrow_forward',
-	'pause_button',
-	'next_track_button',
-	'stop_button',
-	'record_button',
-	'play_or_pause_button',
-	'previous_track_button',
-	'fast_forward',
-	'rewind',
-	'twisted_rightwards_arrows',
-	'repeat',
-	'repeat_one',
-	'arrow_backward',
-	'arrow_up_small',
-	'arrow_down_small',
-	'arrow_double_up',
-	'arrow_double_down',
-	'arrow_right',
-	'arrow_left',
-	'arrow_up',
-	'arrow_down',
-	'arrow_upper_right',
-	'arrow_lower_right',
-	'arrow_lower_left',
-	'arrow_upper_left',
-	'arrow_up_down',
-	'left_right_arrow',
-	'arrows_counterclockwise',
-	'arrow_right_hook',
-	'leftwards_arrow_with_hook',
-	'arrow_heading_up',
-	'arrow_heading_down',
-	'hash',
-	'information_source',
-	'abc',
-	'abcd',
-	'capital_abcd',
-	'symbols',
-	'musical_note',
-	'notes',
-	'wavy_dash',
-	'curly_loop',
-	'heavy_check_mark',
-	'arrows_clockwise',
-	'heavy_plus_sign',
-	'heavy_minus_sign',
-	'heavy_division_sign',
-	'heavy_multiplication_x',
-	'infinity',
-	'heavy_dollar_sign',
-	'currency_exchange',
-	'copyright',
-	'registered',
-	'tm',
-	'end',
-	'back',
-	'on',
-	'top',
-	'soon',
-	'ballot_box_with_check',
-	'radio_button',
-	'white_circle',
-	'black_circle',
-	'red_circle',
-	'large_blue_circle',
-	'small_orange_diamond',
-	'small_blue_diamond',
-	'large_orange_diamond',
-	'large_blue_diamond',
-	'small_red_triangle',
-	'black_small_square',
-	'white_small_square',
-	'black_large_square',
-	'white_large_square',
-	'small_red_triangle_down',
-	'black_medium_square',
-	'white_medium_square',
-	'black_medium_small_square',
-	'white_medium_small_square',
-	'black_square_button',
-	'white_square_button',
-	'speaker',
-	'sound',
-	'loud_sound',
-	'mute',
-	'mega',
-	'loudspeaker',
-	'bell',
-	'no_bell',
-	'black_joker',
-	'mahjong',
-	'spades',
-	'clubs',
-	'hearts',
-	'diamonds',
-	'flower_playing_cards',
-	'thought_balloon',
-	'right_anger_bubble',
-	'speech_balloon',
-	'left_speech_bubble',
-	'clock1',
-	'clock2',
-	'clock3',
-	'clock4',
-	'clock5',
-	'clock6',
-	'clock7',
-	'clock8',
-	'clock9',
-	'clock10',
-	'clock11',
-	'clock12',
-	'clock130',
-	'clock230',
-	'clock330',
-	'clock430',
-	'clock530',
-	'clock630',
-	'clock730',
-	'clock830',
-	'clock930',
-	'clock1030',
-	'clock1130',
-	'clock1230',
-	'white_flag',
-	'black_flag',
-	'pirate_flag',
-	'checkered_flag',
-	'triangular_flag_on_post',
-	'rainbow_flag',
-	'united_nations',
-	'afghanistan',
-	'aland_islands',
-	'albania',
-	'algeria',
-	'american_samoa',
-	'andorra',
-	'angola',
-	'anguilla',
-	'antarctica',
-	'antigua_barbuda',
-	'argentina',
-	'armenia',
-	'aruba',
-	'australia',
-	'austria',
-	'azerbaijan',
-	'bahamas',
-	'bahrain',
-	'bangladesh',
-	'barbados',
-	'belarus',
-	'belgium',
-	'belize',
-	'benin',
-	'bermuda',
-	'bhutan',
-	'bolivia',
-	'caribbean_netherlands',
-	'bosnia_herzegovina',
-	'botswana',
-	'brazil',
-	'british_indian_ocean_territory',
-	'british_virgin_islands',
-	'brunei',
-	'bulgaria',
-	'burkina_faso',
-	'burundi',
-	'cape_verde',
-	'cambodia',
-	'cameroon',
-	'canada',
-	'canary_islands',
-	'cayman_islands',
-	'central_african_republic',
-	'chad',
-	'chile',
-	'cn',
-	'christmas_island',
-	'cocos_islands',
-	'colombia',
-	'comoros',
-	'congo_brazzaville',
-	'congo_kinshasa',
-	'cook_islands',
-	'costa_rica',
-	'croatia',
-	'cuba',
-	'curacao',
-	'cyprus',
-	'czech_republic',
-	'denmark',
-	'djibouti',
-	'dominica',
-	'dominican_republic',
-	'ecuador',
-	'egypt',
-	'el_salvador',
-	'equatorial_guinea',
-	'eritrea',
-	'estonia',
-	'ethiopia',
-	'eu',
-	'falkland_islands',
-	'faroe_islands',
-	'fiji',
-	'finland',
-	'fr',
-	'french_guiana',
-	'french_polynesia',
-	'french_southern_territories',
-	'gabon',
-	'gambia',
-	'georgia',
-	'de',
-	'ghana',
-	'gibraltar',
-	'greece',
-	'greenland',
-	'grenada',
-	'guadeloupe',
-	'guam',
-	'guatemala',
-	'guernsey',
-	'guinea',
-	'guinea_bissau',
-	'guyana',
-	'haiti',
-	'honduras',
-	'hong_kong',
-	'hungary',
-	'iceland',
-	'india',
-	'indonesia',
-	'iran',
-	'iraq',
-	'ireland',
-	'isle_of_man',
-	'israel',
-	'it',
-	'cote_divoire',
-	'jamaica',
-	'jp',
-	'jersey',
-	'jordan',
-	'kazakhstan',
-	'kenya',
-	'kiribati',
-	'kosovo',
-	'kuwait',
-	'kyrgyzstan',
-	'laos',
-	'latvia',
-	'lebanon',
-	'lesotho',
-	'liberia',
-	'libya',
-	'liechtenstein',
-	'lithuania',
-	'luxembourg',
-	'macau',
-	'macedonia',
-	'madagascar',
-	'malawi',
-	'malaysia',
-	'maldives',
-	'mali',
-	'malta',
-	'marshall_islands',
-	'martinique',
-	'mauritania',
-	'mauritius',
-	'mayotte',
-	'mexico',
-	'micronesia',
-	'moldova',
-	'monaco',
-	'mongolia',
-	'montenegro',
-	'montserrat',
-	'morocco',
-	'mozambique',
-	'myanmar',
-	'namibia',
-	'nauru',
-	'nepal',
-	'netherlands',
-	'new_caledonia',
-	'new_zealand',
-	'nicaragua',
-	'niger',
-	'nigeria',
-	'niue',
-	'norfolk_island',
-	'northern_mariana_islands',
-	'north_korea',
-	'norway',
-	'oman',
-	'pakistan',
-	'palau',
-	'palestinian_territories',
-	'panama',
-	'papua_new_guinea',
-	'paraguay',
-	'peru',
-	'philippines',
-	'pitcairn_islands',
-	'poland',
-	'portugal',
-	'puerto_rico',
-	'qatar',
-	'reunion',
-	'romania',
-	'ru',
-	'rwanda',
-	'st_barthelemy',
-	'st_helena',
-	'st_kitts_nevis',
-	'st_lucia',
-	'st_pierre_miquelon',
-	'st_vincent_grenadines',
-	'samoa',
-	'san_marino',
-	'sao_tome_principe',
-	'saudi_arabia',
-	'senegal',
-	'serbia',
-	'seychelles',
-	'sierra_leone',
-	'singapore',
-	'sint_maarten',
-	'slovakia',
-	'slovenia',
-	'solomon_islands',
-	'somalia',
-	'south_africa',
-	'south_georgia_south_sandwich_islands',
-	'kr',
-	'south_sudan',
-	'es',
-	'sri_lanka',
-	'sudan',
-	'suriname',
-	'swaziland',
-	'sweden',
-	'switzerland',
-	'syria',
-	'taiwan',
-	'tajikistan',
-	'tanzania',
-	'thailand',
-	'timor_leste',
-	'togo',
-	'tokelau',
-	'tonga',
-	'trinidad_tobago',
-	'tunisia',
-	'tr',
-	'turkmenistan',
-	'turks_caicos_islands',
-	'tuvalu',
-	'uganda',
-	'ukraine',
-	'united_arab_emirates',
-	'uk',
-	'england',
-	'scotland',
-	'wales',
-	'us',
-	'us_virgin_islands',
-	'uruguay',
-	'uzbekistan',
-	'vanuatu',
-	'vatican_city',
-	'venezuela',
-	'vietnam',
-	'wallis_futuna',
-	'western_sahara',
-	'yemen',
-	'zambia',
-	'zimbabwe',
+var require$$1 = [
+	"grinning",
+	"smiley",
+	"smile",
+	"grin",
+	"laughing",
+	"sweat_smile",
+	"joy",
+	"rofl",
+	"relaxed",
+	"blush",
+	"innocent",
+	"slightly_smiling_face",
+	"upside_down_face",
+	"wink",
+	"relieved",
+	"heart_eyes",
+	"smiling_face_with_three_hearts",
+	"kissing_heart",
+	"kissing",
+	"kissing_smiling_eyes",
+	"kissing_closed_eyes",
+	"yum",
+	"stuck_out_tongue",
+	"stuck_out_tongue_closed_eyes",
+	"stuck_out_tongue_winking_eye",
+	"zany",
+	"raised_eyebrow",
+	"monocle",
+	"nerd_face",
+	"sunglasses",
+	"star_struck",
+	"partying",
+	"smirk",
+	"unamused",
+	"disappointed",
+	"pensive",
+	"worried",
+	"confused",
+	"slightly_frowning_face",
+	"frowning_face",
+	"persevere",
+	"confounded",
+	"tired_face",
+	"weary",
+	"pleading",
+	"cry",
+	"sob",
+	"triumph",
+	"angry",
+	"rage",
+	"symbols_over_mouth",
+	"exploding_head",
+	"flushed",
+	"hot",
+	"cold",
+	"scream",
+	"fearful",
+	"cold_sweat",
+	"disappointed_relieved",
+	"sweat",
+	"hugs",
+	"thinking",
+	"hand_over_mouth",
+	"shushing",
+	"lying_face",
+	"no_mouth",
+	"neutral_face",
+	"expressionless",
+	"grimacing",
+	"roll_eyes",
+	"hushed",
+	"frowning",
+	"anguished",
+	"open_mouth",
+	"astonished",
+	"sleeping",
+	"drooling_face",
+	"sleepy",
+	"dizzy_face",
+	"zipper_mouth_face",
+	"woozy",
+	"nauseated_face",
+	"vomiting",
+	"sneezing_face",
+	"mask",
+	"face_with_thermometer",
+	"face_with_head_bandage",
+	"money_mouth_face",
+	"cowboy_hat_face",
+	"smiling_imp",
+	"imp",
+	"japanese_ogre",
+	"japanese_goblin",
+	"clown_face",
+	"poop",
+	"ghost",
+	"skull",
+	"skull_and_crossbones",
+	"alien",
+	"space_invader",
+	"robot",
+	"jack_o_lantern",
+	"smiley_cat",
+	"smile_cat",
+	"joy_cat",
+	"heart_eyes_cat",
+	"smirk_cat",
+	"kissing_cat",
+	"scream_cat",
+	"crying_cat_face",
+	"pouting_cat",
+	"palms_up",
+	"open_hands",
+	"raised_hands",
+	"clap",
+	"handshake",
+	"+1",
+	"-1",
+	"facepunch",
+	"fist",
+	"fist_left",
+	"fist_right",
+	"crossed_fingers",
+	"v",
+	"love_you",
+	"metal",
+	"ok_hand",
+	"point_left",
+	"point_right",
+	"point_up",
+	"point_down",
+	"point_up_2",
+	"raised_hand",
+	"raised_back_of_hand",
+	"raised_hand_with_fingers_splayed",
+	"vulcan_salute",
+	"wave",
+	"call_me_hand",
+	"muscle",
+	"fu",
+	"writing_hand",
+	"pray",
+	"foot",
+	"leg",
+	"ring",
+	"lipstick",
+	"kiss",
+	"lips",
+	"tooth",
+	"tongue",
+	"ear",
+	"nose",
+	"footprints",
+	"eye",
+	"eyes",
+	"brain",
+	"speaking_head",
+	"bust_in_silhouette",
+	"busts_in_silhouette",
+	"baby",
+	"girl",
+	"child",
+	"boy",
+	"woman",
+	"adult",
+	"man",
+	"blonde_woman",
+	"blonde_man",
+	"bearded_person",
+	"older_woman",
+	"older_adult",
+	"older_man",
+	"man_with_gua_pi_mao",
+	"woman_with_headscarf",
+	"woman_with_turban",
+	"man_with_turban",
+	"policewoman",
+	"policeman",
+	"construction_worker_woman",
+	"construction_worker_man",
+	"guardswoman",
+	"guardsman",
+	"female_detective",
+	"male_detective",
+	"woman_health_worker",
+	"man_health_worker",
+	"woman_farmer",
+	"man_farmer",
+	"woman_cook",
+	"man_cook",
+	"woman_student",
+	"man_student",
+	"woman_singer",
+	"man_singer",
+	"woman_teacher",
+	"man_teacher",
+	"woman_factory_worker",
+	"man_factory_worker",
+	"woman_technologist",
+	"man_technologist",
+	"woman_office_worker",
+	"man_office_worker",
+	"woman_mechanic",
+	"man_mechanic",
+	"woman_scientist",
+	"man_scientist",
+	"woman_artist",
+	"man_artist",
+	"woman_firefighter",
+	"man_firefighter",
+	"woman_pilot",
+	"man_pilot",
+	"woman_astronaut",
+	"man_astronaut",
+	"woman_judge",
+	"man_judge",
+	"bride_with_veil",
+	"man_in_tuxedo",
+	"princess",
+	"prince",
+	"woman_superhero",
+	"man_superhero",
+	"woman_supervillain",
+	"man_supervillain",
+	"mrs_claus",
+	"santa",
+	"sorceress",
+	"wizard",
+	"woman_elf",
+	"man_elf",
+	"woman_vampire",
+	"man_vampire",
+	"woman_zombie",
+	"man_zombie",
+	"woman_genie",
+	"man_genie",
+	"mermaid",
+	"merman",
+	"woman_fairy",
+	"man_fairy",
+	"angel",
+	"pregnant_woman",
+	"breastfeeding",
+	"bowing_woman",
+	"bowing_man",
+	"tipping_hand_woman",
+	"tipping_hand_man",
+	"no_good_woman",
+	"no_good_man",
+	"ok_woman",
+	"ok_man",
+	"raising_hand_woman",
+	"raising_hand_man",
+	"woman_facepalming",
+	"man_facepalming",
+	"woman_shrugging",
+	"man_shrugging",
+	"pouting_woman",
+	"pouting_man",
+	"frowning_woman",
+	"frowning_man",
+	"haircut_woman",
+	"haircut_man",
+	"massage_woman",
+	"massage_man",
+	"woman_in_steamy_room",
+	"man_in_steamy_room",
+	"nail_care",
+	"selfie",
+	"dancer",
+	"man_dancing",
+	"dancing_women",
+	"dancing_men",
+	"business_suit_levitating",
+	"walking_woman",
+	"walking_man",
+	"running_woman",
+	"running_man",
+	"couple",
+	"two_women_holding_hands",
+	"two_men_holding_hands",
+	"couple_with_heart_woman_man",
+	"couple_with_heart_woman_woman",
+	"couple_with_heart_man_man",
+	"couplekiss_man_woman",
+	"couplekiss_woman_woman",
+	"couplekiss_man_man",
+	"family_man_woman_boy",
+	"family_man_woman_girl",
+	"family_man_woman_girl_boy",
+	"family_man_woman_boy_boy",
+	"family_man_woman_girl_girl",
+	"family_woman_woman_boy",
+	"family_woman_woman_girl",
+	"family_woman_woman_girl_boy",
+	"family_woman_woman_boy_boy",
+	"family_woman_woman_girl_girl",
+	"family_man_man_boy",
+	"family_man_man_girl",
+	"family_man_man_girl_boy",
+	"family_man_man_boy_boy",
+	"family_man_man_girl_girl",
+	"family_woman_boy",
+	"family_woman_girl",
+	"family_woman_girl_boy",
+	"family_woman_boy_boy",
+	"family_woman_girl_girl",
+	"family_man_boy",
+	"family_man_girl",
+	"family_man_girl_boy",
+	"family_man_boy_boy",
+	"family_man_girl_girl",
+	"yarn",
+	"thread",
+	"coat",
+	"labcoat",
+	"womans_clothes",
+	"tshirt",
+	"jeans",
+	"necktie",
+	"dress",
+	"bikini",
+	"kimono",
+	"flat_shoe",
+	"high_heel",
+	"sandal",
+	"boot",
+	"mans_shoe",
+	"athletic_shoe",
+	"hiking_boot",
+	"socks",
+	"gloves",
+	"scarf",
+	"tophat",
+	"billed_hat",
+	"womans_hat",
+	"mortar_board",
+	"rescue_worker_helmet",
+	"crown",
+	"pouch",
+	"purse",
+	"handbag",
+	"briefcase",
+	"school_satchel",
+	"luggage",
+	"eyeglasses",
+	"dark_sunglasses",
+	"goggles",
+	"closed_umbrella",
+	"dog",
+	"cat",
+	"mouse",
+	"hamster",
+	"rabbit",
+	"fox_face",
+	"bear",
+	"panda_face",
+	"koala",
+	"tiger",
+	"lion",
+	"cow",
+	"pig",
+	"pig_nose",
+	"frog",
+	"monkey_face",
+	"see_no_evil",
+	"hear_no_evil",
+	"speak_no_evil",
+	"monkey",
+	"chicken",
+	"penguin",
+	"bird",
+	"baby_chick",
+	"hatching_chick",
+	"hatched_chick",
+	"duck",
+	"eagle",
+	"owl",
+	"bat",
+	"wolf",
+	"boar",
+	"horse",
+	"unicorn",
+	"honeybee",
+	"bug",
+	"butterfly",
+	"snail",
+	"shell",
+	"beetle",
+	"ant",
+	"mosquito",
+	"grasshopper",
+	"spider",
+	"spider_web",
+	"scorpion",
+	"turtle",
+	"snake",
+	"lizard",
+	"t-rex",
+	"sauropod",
+	"octopus",
+	"squid",
+	"shrimp",
+	"lobster",
+	"crab",
+	"blowfish",
+	"tropical_fish",
+	"fish",
+	"dolphin",
+	"whale",
+	"whale2",
+	"shark",
+	"crocodile",
+	"tiger2",
+	"leopard",
+	"zebra",
+	"gorilla",
+	"elephant",
+	"hippopotamus",
+	"rhinoceros",
+	"dromedary_camel",
+	"giraffe",
+	"kangaroo",
+	"camel",
+	"water_buffalo",
+	"ox",
+	"cow2",
+	"racehorse",
+	"pig2",
+	"ram",
+	"sheep",
+	"llama",
+	"goat",
+	"deer",
+	"dog2",
+	"poodle",
+	"cat2",
+	"rooster",
+	"turkey",
+	"peacock",
+	"parrot",
+	"swan",
+	"dove",
+	"rabbit2",
+	"raccoon",
+	"badger",
+	"rat",
+	"mouse2",
+	"chipmunk",
+	"hedgehog",
+	"paw_prints",
+	"dragon",
+	"dragon_face",
+	"cactus",
+	"christmas_tree",
+	"evergreen_tree",
+	"deciduous_tree",
+	"palm_tree",
+	"seedling",
+	"herb",
+	"shamrock",
+	"four_leaf_clover",
+	"bamboo",
+	"tanabata_tree",
+	"leaves",
+	"fallen_leaf",
+	"maple_leaf",
+	"ear_of_rice",
+	"hibiscus",
+	"sunflower",
+	"rose",
+	"wilted_flower",
+	"tulip",
+	"blossom",
+	"cherry_blossom",
+	"bouquet",
+	"mushroom",
+	"earth_americas",
+	"earth_africa",
+	"earth_asia",
+	"full_moon",
+	"waning_gibbous_moon",
+	"last_quarter_moon",
+	"waning_crescent_moon",
+	"new_moon",
+	"waxing_crescent_moon",
+	"first_quarter_moon",
+	"waxing_gibbous_moon",
+	"new_moon_with_face",
+	"full_moon_with_face",
+	"first_quarter_moon_with_face",
+	"last_quarter_moon_with_face",
+	"sun_with_face",
+	"crescent_moon",
+	"star",
+	"star2",
+	"dizzy",
+	"sparkles",
+	"comet",
+	"sunny",
+	"sun_behind_small_cloud",
+	"partly_sunny",
+	"sun_behind_large_cloud",
+	"sun_behind_rain_cloud",
+	"cloud",
+	"cloud_with_rain",
+	"cloud_with_lightning_and_rain",
+	"cloud_with_lightning",
+	"zap",
+	"fire",
+	"boom",
+	"snowflake",
+	"cloud_with_snow",
+	"snowman",
+	"snowman_with_snow",
+	"wind_face",
+	"dash",
+	"tornado",
+	"fog",
+	"open_umbrella",
+	"umbrella",
+	"droplet",
+	"sweat_drops",
+	"ocean",
+	"green_apple",
+	"apple",
+	"pear",
+	"tangerine",
+	"lemon",
+	"banana",
+	"watermelon",
+	"grapes",
+	"strawberry",
+	"melon",
+	"cherries",
+	"peach",
+	"mango",
+	"pineapple",
+	"coconut",
+	"kiwi_fruit",
+	"tomato",
+	"eggplant",
+	"avocado",
+	"broccoli",
+	"leafy_greens",
+	"cucumber",
+	"hot_pepper",
+	"corn",
+	"carrot",
+	"potato",
+	"sweet_potato",
+	"croissant",
+	"bagel",
+	"bread",
+	"baguette_bread",
+	"pretzel",
+	"cheese",
+	"egg",
+	"fried_egg",
+	"pancakes",
+	"bacon",
+	"steak",
+	"poultry_leg",
+	"meat_on_bone",
+	"bone",
+	"hotdog",
+	"hamburger",
+	"fries",
+	"pizza",
+	"sandwich",
+	"stuffed_flatbread",
+	"taco",
+	"burrito",
+	"green_salad",
+	"shallow_pan_of_food",
+	"canned_food",
+	"spaghetti",
+	"ramen",
+	"stew",
+	"curry",
+	"sushi",
+	"bento",
+	"fried_shrimp",
+	"rice_ball",
+	"rice",
+	"rice_cracker",
+	"fish_cake",
+	"fortune_cookie",
+	"moon_cake",
+	"oden",
+	"dango",
+	"shaved_ice",
+	"ice_cream",
+	"icecream",
+	"pie",
+	"cupcake",
+	"cake",
+	"birthday",
+	"custard",
+	"lollipop",
+	"candy",
+	"chocolate_bar",
+	"popcorn",
+	"doughnut",
+	"dumpling",
+	"cookie",
+	"chestnut",
+	"peanuts",
+	"honey_pot",
+	"milk_glass",
+	"baby_bottle",
+	"coffee",
+	"tea",
+	"cup_with_straw",
+	"sake",
+	"beer",
+	"beers",
+	"clinking_glasses",
+	"wine_glass",
+	"tumbler_glass",
+	"cocktail",
+	"tropical_drink",
+	"champagne",
+	"spoon",
+	"fork_and_knife",
+	"plate_with_cutlery",
+	"bowl_with_spoon",
+	"takeout_box",
+	"chopsticks",
+	"salt",
+	"soccer",
+	"basketball",
+	"football",
+	"baseball",
+	"softball",
+	"tennis",
+	"volleyball",
+	"rugby_football",
+	"flying_disc",
+	"8ball",
+	"golf",
+	"golfing_woman",
+	"golfing_man",
+	"ping_pong",
+	"badminton",
+	"goal_net",
+	"ice_hockey",
+	"field_hockey",
+	"lacrosse",
+	"cricket",
+	"ski",
+	"skier",
+	"snowboarder",
+	"person_fencing",
+	"women_wrestling",
+	"men_wrestling",
+	"woman_cartwheeling",
+	"man_cartwheeling",
+	"woman_playing_handball",
+	"man_playing_handball",
+	"ice_skate",
+	"curling_stone",
+	"skateboard",
+	"sled",
+	"bow_and_arrow",
+	"fishing_pole_and_fish",
+	"boxing_glove",
+	"martial_arts_uniform",
+	"rowing_woman",
+	"rowing_man",
+	"climbing_woman",
+	"climbing_man",
+	"swimming_woman",
+	"swimming_man",
+	"woman_playing_water_polo",
+	"man_playing_water_polo",
+	"woman_in_lotus_position",
+	"man_in_lotus_position",
+	"surfing_woman",
+	"surfing_man",
+	"basketball_woman",
+	"basketball_man",
+	"weight_lifting_woman",
+	"weight_lifting_man",
+	"biking_woman",
+	"biking_man",
+	"mountain_biking_woman",
+	"mountain_biking_man",
+	"horse_racing",
+	"trophy",
+	"running_shirt_with_sash",
+	"medal_sports",
+	"medal_military",
+	"1st_place_medal",
+	"2nd_place_medal",
+	"3rd_place_medal",
+	"reminder_ribbon",
+	"rosette",
+	"ticket",
+	"tickets",
+	"performing_arts",
+	"art",
+	"circus_tent",
+	"woman_juggling",
+	"man_juggling",
+	"microphone",
+	"headphones",
+	"musical_score",
+	"musical_keyboard",
+	"drum",
+	"saxophone",
+	"trumpet",
+	"guitar",
+	"violin",
+	"clapper",
+	"video_game",
+	"dart",
+	"game_die",
+	"chess_pawn",
+	"slot_machine",
+	"jigsaw",
+	"bowling",
+	"red_car",
+	"taxi",
+	"blue_car",
+	"bus",
+	"trolleybus",
+	"racing_car",
+	"police_car",
+	"ambulance",
+	"fire_engine",
+	"minibus",
+	"truck",
+	"articulated_lorry",
+	"tractor",
+	"kick_scooter",
+	"motorcycle",
+	"bike",
+	"motor_scooter",
+	"rotating_light",
+	"oncoming_police_car",
+	"oncoming_bus",
+	"oncoming_automobile",
+	"oncoming_taxi",
+	"aerial_tramway",
+	"mountain_cableway",
+	"suspension_railway",
+	"railway_car",
+	"train",
+	"monorail",
+	"bullettrain_side",
+	"bullettrain_front",
+	"light_rail",
+	"mountain_railway",
+	"steam_locomotive",
+	"train2",
+	"metro",
+	"tram",
+	"station",
+	"flying_saucer",
+	"helicopter",
+	"small_airplane",
+	"airplane",
+	"flight_departure",
+	"flight_arrival",
+	"sailboat",
+	"motor_boat",
+	"speedboat",
+	"ferry",
+	"passenger_ship",
+	"rocket",
+	"artificial_satellite",
+	"seat",
+	"canoe",
+	"anchor",
+	"construction",
+	"fuelpump",
+	"busstop",
+	"vertical_traffic_light",
+	"traffic_light",
+	"ship",
+	"ferris_wheel",
+	"roller_coaster",
+	"carousel_horse",
+	"building_construction",
+	"foggy",
+	"tokyo_tower",
+	"factory",
+	"fountain",
+	"rice_scene",
+	"mountain",
+	"mountain_snow",
+	"mount_fuji",
+	"volcano",
+	"japan",
+	"camping",
+	"tent",
+	"national_park",
+	"motorway",
+	"railway_track",
+	"sunrise",
+	"sunrise_over_mountains",
+	"desert",
+	"beach_umbrella",
+	"desert_island",
+	"city_sunrise",
+	"city_sunset",
+	"cityscape",
+	"night_with_stars",
+	"bridge_at_night",
+	"milky_way",
+	"stars",
+	"sparkler",
+	"fireworks",
+	"rainbow",
+	"houses",
+	"european_castle",
+	"japanese_castle",
+	"stadium",
+	"statue_of_liberty",
+	"house",
+	"house_with_garden",
+	"derelict_house",
+	"office",
+	"department_store",
+	"post_office",
+	"european_post_office",
+	"hospital",
+	"bank",
+	"hotel",
+	"convenience_store",
+	"school",
+	"love_hotel",
+	"wedding",
+	"classical_building",
+	"church",
+	"mosque",
+	"synagogue",
+	"kaaba",
+	"shinto_shrine",
+	"watch",
+	"iphone",
+	"calling",
+	"computer",
+	"keyboard",
+	"desktop_computer",
+	"printer",
+	"computer_mouse",
+	"trackball",
+	"joystick",
+	"clamp",
+	"minidisc",
+	"floppy_disk",
+	"cd",
+	"dvd",
+	"vhs",
+	"camera",
+	"camera_flash",
+	"video_camera",
+	"movie_camera",
+	"film_projector",
+	"film_strip",
+	"telephone_receiver",
+	"phone",
+	"pager",
+	"fax",
+	"tv",
+	"radio",
+	"studio_microphone",
+	"level_slider",
+	"control_knobs",
+	"compass",
+	"stopwatch",
+	"timer_clock",
+	"alarm_clock",
+	"mantelpiece_clock",
+	"hourglass_flowing_sand",
+	"hourglass",
+	"satellite",
+	"battery",
+	"electric_plug",
+	"bulb",
+	"flashlight",
+	"candle",
+	"fire_extinguisher",
+	"wastebasket",
+	"oil_drum",
+	"money_with_wings",
+	"dollar",
+	"yen",
+	"euro",
+	"pound",
+	"moneybag",
+	"credit_card",
+	"gem",
+	"balance_scale",
+	"toolbox",
+	"wrench",
+	"hammer",
+	"hammer_and_pick",
+	"hammer_and_wrench",
+	"pick",
+	"nut_and_bolt",
+	"gear",
+	"brick",
+	"chains",
+	"magnet",
+	"gun",
+	"bomb",
+	"firecracker",
+	"hocho",
+	"dagger",
+	"crossed_swords",
+	"shield",
+	"smoking",
+	"coffin",
+	"funeral_urn",
+	"amphora",
+	"crystal_ball",
+	"prayer_beads",
+	"nazar_amulet",
+	"barber",
+	"alembic",
+	"telescope",
+	"microscope",
+	"hole",
+	"pill",
+	"syringe",
+	"dna",
+	"microbe",
+	"petri_dish",
+	"test_tube",
+	"thermometer",
+	"broom",
+	"basket",
+	"toilet_paper",
+	"label",
+	"bookmark",
+	"toilet",
+	"shower",
+	"bathtub",
+	"bath",
+	"soap",
+	"sponge",
+	"lotion_bottle",
+	"key",
+	"old_key",
+	"couch_and_lamp",
+	"sleeping_bed",
+	"bed",
+	"door",
+	"bellhop_bell",
+	"teddy_bear",
+	"framed_picture",
+	"world_map",
+	"parasol_on_ground",
+	"moyai",
+	"shopping",
+	"shopping_cart",
+	"balloon",
+	"flags",
+	"ribbon",
+	"gift",
+	"confetti_ball",
+	"tada",
+	"dolls",
+	"wind_chime",
+	"crossed_flags",
+	"izakaya_lantern",
+	"red_envelope",
+	"email",
+	"envelope_with_arrow",
+	"incoming_envelope",
+	"e-mail",
+	"love_letter",
+	"postbox",
+	"mailbox_closed",
+	"mailbox",
+	"mailbox_with_mail",
+	"mailbox_with_no_mail",
+	"package",
+	"postal_horn",
+	"inbox_tray",
+	"outbox_tray",
+	"scroll",
+	"page_with_curl",
+	"bookmark_tabs",
+	"receipt",
+	"bar_chart",
+	"chart_with_upwards_trend",
+	"chart_with_downwards_trend",
+	"page_facing_up",
+	"date",
+	"calendar",
+	"spiral_calendar",
+	"card_index",
+	"card_file_box",
+	"ballot_box",
+	"file_cabinet",
+	"clipboard",
+	"spiral_notepad",
+	"file_folder",
+	"open_file_folder",
+	"card_index_dividers",
+	"newspaper_roll",
+	"newspaper",
+	"notebook",
+	"closed_book",
+	"green_book",
+	"blue_book",
+	"orange_book",
+	"notebook_with_decorative_cover",
+	"ledger",
+	"books",
+	"open_book",
+	"safety_pin",
+	"link",
+	"paperclip",
+	"paperclips",
+	"scissors",
+	"triangular_ruler",
+	"straight_ruler",
+	"abacus",
+	"pushpin",
+	"round_pushpin",
+	"closed_lock_with_key",
+	"lock",
+	"unlock",
+	"lock_with_ink_pen",
+	"pen",
+	"fountain_pen",
+	"black_nib",
+	"memo",
+	"pencil2",
+	"crayon",
+	"paintbrush",
+	"mag",
+	"mag_right",
+	"heart",
+	"orange_heart",
+	"yellow_heart",
+	"green_heart",
+	"blue_heart",
+	"purple_heart",
+	"black_heart",
+	"broken_heart",
+	"heavy_heart_exclamation",
+	"two_hearts",
+	"revolving_hearts",
+	"heartbeat",
+	"heartpulse",
+	"sparkling_heart",
+	"cupid",
+	"gift_heart",
+	"heart_decoration",
+	"peace_symbol",
+	"latin_cross",
+	"star_and_crescent",
+	"om",
+	"wheel_of_dharma",
+	"star_of_david",
+	"six_pointed_star",
+	"menorah",
+	"yin_yang",
+	"orthodox_cross",
+	"place_of_worship",
+	"ophiuchus",
+	"aries",
+	"taurus",
+	"gemini",
+	"cancer",
+	"leo",
+	"virgo",
+	"libra",
+	"scorpius",
+	"sagittarius",
+	"capricorn",
+	"aquarius",
+	"pisces",
+	"id",
+	"atom_symbol",
+	"u7a7a",
+	"u5272",
+	"radioactive",
+	"biohazard",
+	"mobile_phone_off",
+	"vibration_mode",
+	"u6709",
+	"u7121",
+	"u7533",
+	"u55b6",
+	"u6708",
+	"eight_pointed_black_star",
+	"vs",
+	"accept",
+	"white_flower",
+	"ideograph_advantage",
+	"secret",
+	"congratulations",
+	"u5408",
+	"u6e80",
+	"u7981",
+	"a",
+	"b",
+	"ab",
+	"cl",
+	"o2",
+	"sos",
+	"no_entry",
+	"name_badge",
+	"no_entry_sign",
+	"x",
+	"o",
+	"stop_sign",
+	"anger",
+	"hotsprings",
+	"no_pedestrians",
+	"do_not_litter",
+	"no_bicycles",
+	"non-potable_water",
+	"underage",
+	"no_mobile_phones",
+	"exclamation",
+	"grey_exclamation",
+	"question",
+	"grey_question",
+	"bangbang",
+	"interrobang",
+	"100",
+	"low_brightness",
+	"high_brightness",
+	"trident",
+	"fleur_de_lis",
+	"part_alternation_mark",
+	"warning",
+	"children_crossing",
+	"beginner",
+	"recycle",
+	"u6307",
+	"chart",
+	"sparkle",
+	"eight_spoked_asterisk",
+	"negative_squared_cross_mark",
+	"white_check_mark",
+	"diamond_shape_with_a_dot_inside",
+	"cyclone",
+	"loop",
+	"globe_with_meridians",
+	"m",
+	"atm",
+	"zzz",
+	"sa",
+	"passport_control",
+	"customs",
+	"baggage_claim",
+	"left_luggage",
+	"wheelchair",
+	"no_smoking",
+	"wc",
+	"parking",
+	"potable_water",
+	"mens",
+	"womens",
+	"baby_symbol",
+	"restroom",
+	"put_litter_in_its_place",
+	"cinema",
+	"signal_strength",
+	"koko",
+	"ng",
+	"ok",
+	"up",
+	"cool",
+	"new",
+	"free",
+	"zero",
+	"one",
+	"two",
+	"three",
+	"four",
+	"five",
+	"six",
+	"seven",
+	"eight",
+	"nine",
+	"keycap_ten",
+	"asterisk",
+	"1234",
+	"eject_button",
+	"arrow_forward",
+	"pause_button",
+	"next_track_button",
+	"stop_button",
+	"record_button",
+	"play_or_pause_button",
+	"previous_track_button",
+	"fast_forward",
+	"rewind",
+	"twisted_rightwards_arrows",
+	"repeat",
+	"repeat_one",
+	"arrow_backward",
+	"arrow_up_small",
+	"arrow_down_small",
+	"arrow_double_up",
+	"arrow_double_down",
+	"arrow_right",
+	"arrow_left",
+	"arrow_up",
+	"arrow_down",
+	"arrow_upper_right",
+	"arrow_lower_right",
+	"arrow_lower_left",
+	"arrow_upper_left",
+	"arrow_up_down",
+	"left_right_arrow",
+	"arrows_counterclockwise",
+	"arrow_right_hook",
+	"leftwards_arrow_with_hook",
+	"arrow_heading_up",
+	"arrow_heading_down",
+	"hash",
+	"information_source",
+	"abc",
+	"abcd",
+	"capital_abcd",
+	"symbols",
+	"musical_note",
+	"notes",
+	"wavy_dash",
+	"curly_loop",
+	"heavy_check_mark",
+	"arrows_clockwise",
+	"heavy_plus_sign",
+	"heavy_minus_sign",
+	"heavy_division_sign",
+	"heavy_multiplication_x",
+	"infinity",
+	"heavy_dollar_sign",
+	"currency_exchange",
+	"copyright",
+	"registered",
+	"tm",
+	"end",
+	"back",
+	"on",
+	"top",
+	"soon",
+	"ballot_box_with_check",
+	"radio_button",
+	"white_circle",
+	"black_circle",
+	"red_circle",
+	"large_blue_circle",
+	"small_orange_diamond",
+	"small_blue_diamond",
+	"large_orange_diamond",
+	"large_blue_diamond",
+	"small_red_triangle",
+	"black_small_square",
+	"white_small_square",
+	"black_large_square",
+	"white_large_square",
+	"small_red_triangle_down",
+	"black_medium_square",
+	"white_medium_square",
+	"black_medium_small_square",
+	"white_medium_small_square",
+	"black_square_button",
+	"white_square_button",
+	"speaker",
+	"sound",
+	"loud_sound",
+	"mute",
+	"mega",
+	"loudspeaker",
+	"bell",
+	"no_bell",
+	"black_joker",
+	"mahjong",
+	"spades",
+	"clubs",
+	"hearts",
+	"diamonds",
+	"flower_playing_cards",
+	"thought_balloon",
+	"right_anger_bubble",
+	"speech_balloon",
+	"left_speech_bubble",
+	"clock1",
+	"clock2",
+	"clock3",
+	"clock4",
+	"clock5",
+	"clock6",
+	"clock7",
+	"clock8",
+	"clock9",
+	"clock10",
+	"clock11",
+	"clock12",
+	"clock130",
+	"clock230",
+	"clock330",
+	"clock430",
+	"clock530",
+	"clock630",
+	"clock730",
+	"clock830",
+	"clock930",
+	"clock1030",
+	"clock1130",
+	"clock1230",
+	"white_flag",
+	"black_flag",
+	"pirate_flag",
+	"checkered_flag",
+	"triangular_flag_on_post",
+	"rainbow_flag",
+	"united_nations",
+	"afghanistan",
+	"aland_islands",
+	"albania",
+	"algeria",
+	"american_samoa",
+	"andorra",
+	"angola",
+	"anguilla",
+	"antarctica",
+	"antigua_barbuda",
+	"argentina",
+	"armenia",
+	"aruba",
+	"australia",
+	"austria",
+	"azerbaijan",
+	"bahamas",
+	"bahrain",
+	"bangladesh",
+	"barbados",
+	"belarus",
+	"belgium",
+	"belize",
+	"benin",
+	"bermuda",
+	"bhutan",
+	"bolivia",
+	"caribbean_netherlands",
+	"bosnia_herzegovina",
+	"botswana",
+	"brazil",
+	"british_indian_ocean_territory",
+	"british_virgin_islands",
+	"brunei",
+	"bulgaria",
+	"burkina_faso",
+	"burundi",
+	"cape_verde",
+	"cambodia",
+	"cameroon",
+	"canada",
+	"canary_islands",
+	"cayman_islands",
+	"central_african_republic",
+	"chad",
+	"chile",
+	"cn",
+	"christmas_island",
+	"cocos_islands",
+	"colombia",
+	"comoros",
+	"congo_brazzaville",
+	"congo_kinshasa",
+	"cook_islands",
+	"costa_rica",
+	"croatia",
+	"cuba",
+	"curacao",
+	"cyprus",
+	"czech_republic",
+	"denmark",
+	"djibouti",
+	"dominica",
+	"dominican_republic",
+	"ecuador",
+	"egypt",
+	"el_salvador",
+	"equatorial_guinea",
+	"eritrea",
+	"estonia",
+	"ethiopia",
+	"eu",
+	"falkland_islands",
+	"faroe_islands",
+	"fiji",
+	"finland",
+	"fr",
+	"french_guiana",
+	"french_polynesia",
+	"french_southern_territories",
+	"gabon",
+	"gambia",
+	"georgia",
+	"de",
+	"ghana",
+	"gibraltar",
+	"greece",
+	"greenland",
+	"grenada",
+	"guadeloupe",
+	"guam",
+	"guatemala",
+	"guernsey",
+	"guinea",
+	"guinea_bissau",
+	"guyana",
+	"haiti",
+	"honduras",
+	"hong_kong",
+	"hungary",
+	"iceland",
+	"india",
+	"indonesia",
+	"iran",
+	"iraq",
+	"ireland",
+	"isle_of_man",
+	"israel",
+	"it",
+	"cote_divoire",
+	"jamaica",
+	"jp",
+	"jersey",
+	"jordan",
+	"kazakhstan",
+	"kenya",
+	"kiribati",
+	"kosovo",
+	"kuwait",
+	"kyrgyzstan",
+	"laos",
+	"latvia",
+	"lebanon",
+	"lesotho",
+	"liberia",
+	"libya",
+	"liechtenstein",
+	"lithuania",
+	"luxembourg",
+	"macau",
+	"macedonia",
+	"madagascar",
+	"malawi",
+	"malaysia",
+	"maldives",
+	"mali",
+	"malta",
+	"marshall_islands",
+	"martinique",
+	"mauritania",
+	"mauritius",
+	"mayotte",
+	"mexico",
+	"micronesia",
+	"moldova",
+	"monaco",
+	"mongolia",
+	"montenegro",
+	"montserrat",
+	"morocco",
+	"mozambique",
+	"myanmar",
+	"namibia",
+	"nauru",
+	"nepal",
+	"netherlands",
+	"new_caledonia",
+	"new_zealand",
+	"nicaragua",
+	"niger",
+	"nigeria",
+	"niue",
+	"norfolk_island",
+	"northern_mariana_islands",
+	"north_korea",
+	"norway",
+	"oman",
+	"pakistan",
+	"palau",
+	"palestinian_territories",
+	"panama",
+	"papua_new_guinea",
+	"paraguay",
+	"peru",
+	"philippines",
+	"pitcairn_islands",
+	"poland",
+	"portugal",
+	"puerto_rico",
+	"qatar",
+	"reunion",
+	"romania",
+	"ru",
+	"rwanda",
+	"st_barthelemy",
+	"st_helena",
+	"st_kitts_nevis",
+	"st_lucia",
+	"st_pierre_miquelon",
+	"st_vincent_grenadines",
+	"samoa",
+	"san_marino",
+	"sao_tome_principe",
+	"saudi_arabia",
+	"senegal",
+	"serbia",
+	"seychelles",
+	"sierra_leone",
+	"singapore",
+	"sint_maarten",
+	"slovakia",
+	"slovenia",
+	"solomon_islands",
+	"somalia",
+	"south_africa",
+	"south_georgia_south_sandwich_islands",
+	"kr",
+	"south_sudan",
+	"es",
+	"sri_lanka",
+	"sudan",
+	"suriname",
+	"swaziland",
+	"sweden",
+	"switzerland",
+	"syria",
+	"taiwan",
+	"tajikistan",
+	"tanzania",
+	"thailand",
+	"timor_leste",
+	"togo",
+	"tokelau",
+	"tonga",
+	"trinidad_tobago",
+	"tunisia",
+	"tr",
+	"turkmenistan",
+	"turks_caicos_islands",
+	"tuvalu",
+	"uganda",
+	"ukraine",
+	"united_arab_emirates",
+	"uk",
+	"england",
+	"scotland",
+	"wales",
+	"us",
+	"us_virgin_islands",
+	"uruguay",
+	"uzbekistan",
+	"vanuatu",
+	"vatican_city",
+	"venezuela",
+	"vietnam",
+	"wallis_futuna",
+	"western_sahara",
+	"yemen",
+	"zambia",
+	"zimbabwe"
 ];
 
-let emojilib;
-let hasRequiredEmojilib;
+var emojilib;
+var hasRequiredEmojilib;
 
 function requireEmojilib () {
 	if (hasRequiredEmojilib) return emojilib;
@@ -20657,25 +20653,29 @@ function requireEmojilib () {
 	emojilib = {
 	  lib: require$$0,
 	  ordered: require$$1,
-	  fitzpatrick_scale_modifiers: ['🏻', '🏼', '🏽', '🏾', '🏿'],
+	  fitzpatrick_scale_modifiers: ["🏻", "🏼", "🏽", "🏾", "🏿"]
 	};
 	return emojilib;
 }
 
-let hasRequiredLib;
+var hasRequiredLib;
 
 function requireLib () {
 	if (hasRequiredLib) return lib$2.exports;
 	hasRequiredLib = 1;
 
-	const mapO = requireLib$1(),
+	var mapO = requireLib$1(),
 	    iterateObject = requireLib$2();
 
-	let emoji = requireEmojilib();
+	var emoji = requireEmojilib();
 
-	const nameMap = lib$2.exports = {};
-	nameMap.emoji = mapO(emoji.lib, value => value.char, true);
-	iterateObject(nameMap.emoji, (value, name, obj) => !value && delete obj[name] || true);
+	var nameMap = lib$2.exports = {};
+	nameMap.emoji = mapO(emoji.lib, function (value) {
+	    return value.char;
+	}, true);
+	iterateObject(nameMap.emoji, function (value, name, obj) {
+	    return !value && delete obj[name] || true;
+	});
 
 	/**
 	 * get
@@ -20687,7 +20687,7 @@ function requireLib () {
 	 * @return {String} The emoji character (unicode).
 	 */
 	nameMap.get = function (name) {
-	    if (name.charAt(0) === ':') {
+	    if (name.charAt(0) === ":") {
 	        name = name.slice(1, -1);
 	    }
 	    return this.emoji[name];
@@ -20697,8 +20697,8 @@ function requireLib () {
 	return lib$2.exports;
 }
 
-const libExports = requireLib();
-const emoji = /* @__PURE__*/getDefaultExportFromCjs(libExports);
+var libExports = requireLib();
+var emoji = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
 export { emoji as e };
-// # sourceMappingURL=index-U7-39QVn.js.map
+//# sourceMappingURL=index-U7-39QVn.js.map

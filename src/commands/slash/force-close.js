@@ -299,13 +299,18 @@ module.exports = class ForceCloseSlashCommand extends SlashCommand {
 			// linger as a Running workflow after the force close.
 			await temporal.cancelCloseRequestTimeout(ticket.id).catch(() => {});
 
-			setTimeout(async () => {
-				await client.tickets.finallyClose(ticket.id, {
-					closedBy: interaction.user.id,
-					lock: interaction.options.getBoolean('lock', false) ?? false,
-					reason: interaction.options.getString('reason', false),
-				});
-			}, ms('3s'));
+			// Routed through Temporal like the `ticket:` and `time:` branches. This
+			// one was left on a fire-and-forget setTimeout: it wasn't durable (a
+			// restart within the 3s window lost the close, while the user had
+			// already been told the ticket was closed), and the async callback had
+			// no try/catch, so any failure inside finallyClose surfaced as an
+			// unhandled rejection three seconds later with no user feedback.
+			await temporal.startCloseTicket({
+				closedBy: interaction.user.id,
+				lock: interaction.options.getBoolean('lock', false) ?? false,
+				reason: interaction.options.getString('reason', false),
+				ticketId: ticket.id,
+			});
 		}
 	}
 };

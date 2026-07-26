@@ -131,8 +131,23 @@ module.exports.post = fastify => ({
 			delete categoryData.totalLimit;
 		}
 
-		// Handle backupCategory relation
+		// Handle backupCategory relation.
+		//
+		// The id is client-supplied and `Category.backupCategoryId` is a bare FK
+		// with no guild constraint, so this must verify ownership. Without it, an
+		// admin of one guild could point a category's overflow at another guild's
+		// category and have tickets created in that guild's Discord category,
+		// with its staff roles.
 		if (categoryData.backupCategoryId) {
+			const backup = await client.prisma.category.findUnique({
+				select: { guildId: true },
+				where: { id: categoryData.backupCategoryId },
+			});
+			if (backup?.guildId !== guild.id) {
+				const error = new Error('backupCategoryId must reference a category in this guild');
+				error.statusCode = 400;
+				throw error;
+			}
 			categoryData.backupCategory = { connect: { id: categoryData.backupCategoryId } };
 		}
 		delete categoryData.backupCategoryId;

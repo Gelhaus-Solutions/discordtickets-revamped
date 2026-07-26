@@ -1,13 +1,13 @@
-const cookie = {};
+var cookie = {};
 
-/* !
+/*!
  * cookie
  * Copyright(c) 2012-2014 Roman Shtylman
  * Copyright(c) 2015 Douglas Christopher Wilson
  * MIT Licensed
  */
 
-let hasRequiredCookie;
+var hasRequiredCookie;
 
 function requireCookie () {
 	if (hasRequiredCookie) return cookie;
@@ -26,7 +26,7 @@ function requireCookie () {
 	 * @private
 	 */
 
-	const __toString = Object.prototype.toString;
+	var __toString = Object.prototype.toString;
 
 	/**
 	 * RegExp to match field-content in RFC 7230 sec 3.2
@@ -36,7 +36,7 @@ function requireCookie () {
 	 * obs-text      = %x80-FF
 	 */
 
-	const fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
+	var fieldContentRegExp = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/;
 
 	/**
 	 * Parse a cookie header.
@@ -55,34 +55,34 @@ function requireCookie () {
 	    throw new TypeError('argument str must be a string');
 	  }
 
-	  const obj = {};
-	  const opt = options || {};
-	  const dec = opt.decode || decode;
+	  var obj = {};
+	  var opt = options || {};
+	  var dec = opt.decode || decode;
 
-	  let index = 0;
+	  var index = 0;
 	  while (index < str.length) {
-	    const eqIdx = str.indexOf('=', index);
+	    var eqIdx = str.indexOf('=', index);
 
 	    // no more cookie pairs
 	    if (eqIdx === -1) {
-	      break;
+	      break
 	    }
 
-	    let endIdx = str.indexOf(';', index);
+	    var endIdx = str.indexOf(';', index);
 
 	    if (endIdx === -1) {
 	      endIdx = str.length;
 	    } else if (endIdx < eqIdx) {
 	      // backtrack on prior semicolon
 	      index = str.lastIndexOf(';', eqIdx - 1) + 1;
-	      continue;
+	      continue
 	    }
 
-	    const key = str.slice(index, eqIdx).trim();
+	    var key = str.slice(index, eqIdx).trim();
 
 	    // only assign once
 	    if (undefined === obj[key]) {
-	      let val = str.slice(eqIdx + 1, endIdx).trim();
+	      var val = str.slice(eqIdx + 1, endIdx).trim();
 
 	      // quoted values
 	      if (val.charCodeAt(0) === 0x22) {
@@ -115,8 +115,8 @@ function requireCookie () {
 	 */
 
 	function serialize(name, val, options) {
-	  const opt = options || {};
-	  const enc = opt.encode || encode;
+	  var opt = options || {};
+	  var enc = opt.encode || encode;
 
 	  if (typeof enc !== 'function') {
 	    throw new TypeError('option encode is invalid');
@@ -126,19 +126,19 @@ function requireCookie () {
 	    throw new TypeError('argument name is invalid');
 	  }
 
-	  const value = enc(val);
+	  var value = enc(val);
 
 	  if (value && !fieldContentRegExp.test(value)) {
 	    throw new TypeError('argument val is invalid');
 	  }
 
-	  let str = name + '=' + value;
+	  var str = name + '=' + value;
 
 	  if (null != opt.maxAge) {
-	    const maxAge = opt.maxAge - 0;
+	    var maxAge = opt.maxAge - 0;
 
 	    if (isNaN(maxAge) || !isFinite(maxAge)) {
-	      throw new TypeError('option maxAge is invalid');
+	      throw new TypeError('option maxAge is invalid')
 	    }
 
 	    str += '; Max-Age=' + Math.floor(maxAge);
@@ -161,7 +161,7 @@ function requireCookie () {
 	  }
 
 	  if (opt.expires) {
-	    const expires = opt.expires;
+	    var expires = opt.expires;
 
 	    if (!isDate(expires) || isNaN(expires.valueOf())) {
 	      throw new TypeError('option expires is invalid');
@@ -179,27 +179,27 @@ function requireCookie () {
 	  }
 
 	  if (opt.priority) {
-	    const priority = typeof opt.priority === 'string'
+	    var priority = typeof opt.priority === 'string'
 	      ? opt.priority.toLowerCase()
 	      : opt.priority;
 
 	    switch (priority) {
 	      case 'low':
 	        str += '; Priority=Low';
-	        break;
+	        break
 	      case 'medium':
 	        str += '; Priority=Medium';
-	        break;
+	        break
 	      case 'high':
 	        str += '; Priority=High';
-	        break;
+	        break
 	      default:
-	        throw new TypeError('option priority is invalid');
+	        throw new TypeError('option priority is invalid')
 	    }
 	  }
 
 	  if (opt.sameSite) {
-	    const sameSite = typeof opt.sameSite === 'string'
+	    var sameSite = typeof opt.sameSite === 'string'
 	      ? opt.sameSite.toLowerCase() : opt.sameSite;
 
 	    switch (sameSite) {
@@ -233,7 +233,7 @@ function requireCookie () {
 	function decode (str) {
 	  return str.indexOf('%') !== -1
 	    ? decodeURIComponent(str)
-	    : str;
+	    : str
 	}
 
 	/**
@@ -244,7 +244,7 @@ function requireCookie () {
 	 */
 
 	function encode (val) {
-	  return encodeURIComponent(val);
+	  return encodeURIComponent(val)
 	}
 
 	/**
@@ -256,7 +256,7 @@ function requireCookie () {
 
 	function isDate (val) {
 	  return __toString.call(val) === '[object Date]' ||
-	    val instanceof Date;
+	    val instanceof Date
 	}
 
 	/**
@@ -277,7 +277,7 @@ function requireCookie () {
 	return cookie;
 }
 
-const cookieExports = requireCookie();
+var cookieExports = requireCookie();
 
 export { cookieExports as c };
-// # sourceMappingURL=index-CZvAxaSW.js.map
+//# sourceMappingURL=index-CZvAxaSW.js.map

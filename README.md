@@ -40,18 +40,23 @@ Image tags:
 | `:main` | [docker.yml](.github/workflows/docker.yml) on every push to `main` | Development builds |
 
 ### Old Instance
-This is a bit more complicated, due to many DB and schema changes.
+**Read [MIGRATING.md](MIGRATING.md) — it has the full procedure, including the SQLite path and how to recover a half-applied MySQL migration.**
 
-1. Take a backup of your bot volume **and** your database before touching anything.
+The short version, for an existing MySQL or PostgreSQL install:
+
+1. Take a backup of your bot volume **and** your database before touching anything. Note your existing `ENCRYPTION_KEY`.
 2. Change your bot image in your `docker-compose.yml` to `ghcr.io/gelhaus-solutions/discordtickets-revamped:latest` (or `:main` for development builds).
 3. **Add a Temporal cluster to your stack.** Copy the `temporal`, `temporal-postgresql` and `temporal-ui` services and the `temporal-postgresql` volume out of our [docker-compose.yml](docker-compose.yml) into yours, and add the `TEMPORAL_*` environment variables to your `bot` service (see the table below). Without these, the bot will refuse to start.
-4. Run `docker compose down` and `docker compose up -d`.
-5. Go into your bot container with `docker exec -it YOUR_CONTAINER_NAME /bin/sh` and enter `cd /app`.
-6. Now run `node scripts/fix-revamp.js` and then `exit`.
-7. Restart your stack one more time: `docker compose down && docker compose up -d`.
-8. Finally, go into your dashboard to check that everything went right. If not, restore your backup and try again.
+4. Set `ENCRYPTION_KEY` and `DB_PROVIDER` explicitly on the `bot` service.
+5. Run `docker compose up -d`, then watch `docker compose logs -f bot` for the `[postinstall]` migration output and `Listening at …`.
+6. Go into your dashboard to check that everything went right. If not, restore your backup and try again.
 
-> Database migrations run automatically at startup (`scripts/postinstall.js` runs `prisma migrate deploy`), for both MySQL and PostgreSQL.
+There is no script to run by hand — your database is migrated in place on startup.
+
+> [!IMPORTANT]
+> Set `ENCRYPTION_KEY` yourself. Ticket topics, close reasons, feedback comments and archived messages are encrypted with it, and it is not recoverable. The bot now refuses to start in a container when it is unset, rather than generating a throwaway key that would be different after every recreate.
+
+> Database migrations run automatically at startup (`scripts/postinstall.js` runs `prisma migrate deploy`), for both MySQL and PostgreSQL. A failed migration now stops the boot instead of letting the bot run against a half-migrated schema.
 
 ## Environment variables
 
@@ -72,7 +77,7 @@ The bot-specific variables are documented upstream at <https://discordtickets.ap
 | `TEMPORAL_TLS_SERVER_NAME` | no | — | SNI override. |
 | `TEMPORAL_WORKER_BUILD_ID` | no | injected git SHA | Identifies the worker build; set automatically by the Docker build. |
 | `TEMPORAL_SET_CURRENT_ON_START` | no | `true` | Promote this build to the deployment's Current Version on startup. |
-| `JWT_SECRET` | no | derived | If unset, the JWT signing key is derived from `ENCRYPTION_KEY` via HKDF and the bot logs a warning. |
+| `JWT_SECRET` | no | derived | If unset, the JWT signing key is derived from `ENCRYPTION_KEY` via HKDF and the bot logs a warning. **Upgrading from upstream invalidates existing dashboard sessions and service API keys**, because upstream signed with the raw `ENCRYPTION_KEY`. To keep them valid, set `JWT_SECRET` to your `ENCRYPTION_KEY` value. Otherwise users simply log in again and service keys must be reissued. |
 | `SENTRY_DSN` | no | — | Enables Sentry. `SENTRY_LOGGING`, `SENTRY_SAMPLE_RATE` and `SENTRY_PROFILING_RATE` tune it. |
 | `STATS_URL` | no | — | Houston-compatible endpoint for anonymous usage stats. Unlike upstream, **nothing is reported unless you set this** — it is not sent to `stats.discordtickets.app`. |
 

@@ -8,6 +8,7 @@ const {
 	sendToHouston,
 } = require('../../lib/stats');
 const { saveHtmlTranscript } = require('../../lib/tickets/transcript-html');
+const { reconcileCustomization } = require('../../lib/customization');
 const temporal = require('../../lib/temporal');
 
 module.exports = class extends Listener {
@@ -32,26 +33,44 @@ module.exports = class extends Listener {
 
 		// Connect to Temporal, start the embedded worker, and ensure schedules.
 		// All durable/async/scheduled work runs through Temporal from here on.
-		await temporal.initTemporalClient();
-		await temporal.startWorker({
-			checkForUpdates,
-			client,
-			saveHtmlTranscript,
-			sendToHouston,
-		});
-		await temporal.ensureSchedules({
-			stats: !!client.config.stats,
-			updates: !!client.config.updates,
-		});
-		// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
-		// before sync() starts workflows, so those starts are tagged. Non-fatal:
-		// when registration fails, starts simply omit the attributes.
-		const saOk = await temporal.ensureSearchAttributes();
-		if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged');
-		client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
+		//
+		// This is deliberately non-fatal. It used to run unguarded, so an
+		// unreachable Temporal aborted the whole handler *before* sync() — leaving
+		// the bot logged in and answering interactions with empty ticket-number,
+		// open-count and cooldown caches, with no commands published.
+		let temporalReady = false;
+		try {
+			await temporal.initTemporalClient();
+			await temporal.startWorker({
+				checkForUpdates,
+				client,
+				saveHtmlTranscript,
+				sendToHouston,
+			});
+			await temporal.ensureSchedules({
+				stats: !!client.config.stats,
+				updates: !!client.config.updates,
+			});
+			// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
+			// before sync() starts workflows, so those starts are tagged. Non-fatal:
+			// when registration fails, starts simply omit the attributes.
+			const saOk = await temporal.ensureSearchAttributes();
+			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged');
+			client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
+			temporalReady = true;
+		} catch (error) {
+			client.log.error('Temporal is unavailable — durable work (stale tickets, scheduled closes, exports) is disabled until it recovers');
+			client.log.error(error);
+		}
 
 		// fill cache (also re-establishes stale workflows for open tickets)
 		await sync(client);
+
+		// Push stored per-guild bot profiles back to Discord. Without this they
+		// only ever applied at the instant an admin clicked Save, so a kick and
+		// re-add, a moderator resetting the nickname, or a database restore
+		// silently dropped them.
+		await reconcileCustomization(client);
 
 		if (process.env.PUBLISH_COMMANDS === 'true') {
 			client.log.info('Automatically publishing commands...');
@@ -131,8 +150,10 @@ module.exports = class extends Listener {
 		if (process.env.PUBLIC_BOT === 'true') {
 			client.log.notice('Inactivity warnings and auto-close features are disabled');
 			client.log.warn('Unset PUBLIC_BOT to re-enable stale ticket handling');
-		} else {
+		} else if (temporalReady) {
 			client.log.info('Stale ticket handling runs via per-ticket Temporal workflows');
+		} else {
+			client.log.warn('Stale ticket handling is unavailable until Temporal is reachable; restart the bot once it is back');
 		}
 	}
 };

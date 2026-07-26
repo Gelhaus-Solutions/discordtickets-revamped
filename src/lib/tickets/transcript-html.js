@@ -53,12 +53,15 @@ function discordMarkdownToHtml(text) {
 	html = html.replace(/__(.+?)__/g, '<u>$1</u>');
 	// Strikethrough
 	html = html.replace(/~~(.+?)~~/g, '<s>$1</s>');
-	// Spoilers
-	html = html.replace(/\|\|(.+?)\|\|/g, '<span class="spoiler" onclick="this.classList.toggle(\'revealed\')">$1</span>');
-	// Mentions
-	html = html.replace(/<@!?(\d+)>/g, '<span class="mention">@$1</span>');
-	html = html.replace(/<@&(\d+)>/g, '<span class="mention role-mention">@$1</span>');
-	html = html.replace(/<#(\d+)>/g, '<span class="mention">#$1</span>');
+	// Spoilers. Revealed with CSS (:hover/:focus) rather than an inline onclick
+	// handler, which the transcript's Content-Security-Policy blocks.
+	html = html.replace(/\|\|(.+?)\|\|/g, '<span class="spoiler" tabindex="0">$1</span>');
+	// Mentions. These run against already-escaped text, so they must match the
+	// escaped delimiters — `<@123>` is `&lt;@123&gt;` by this point, and matching
+	// the raw form meant no mention ever rendered.
+	html = html.replace(/&lt;@!?(\d+)&gt;/g, '<span class="mention">@$1</span>');
+	html = html.replace(/&lt;@&amp;(\d+)&gt;/g, '<span class="mention role-mention">@$1</span>');
+	html = html.replace(/&lt;#(\d+)&gt;/g, '<span class="mention">#$1</span>');
 	// Line breaks
 	html = html.replace(/\n/g, '<br>');
 	// URLs
@@ -365,7 +368,7 @@ function getStyles() {
 	.mention:hover { background: var(--brand); color: white; }
 	/* Spoiler */
 	.spoiler { background: var(--spoiler-bg); color: transparent; border-radius: 3px; padding: 0 2px; cursor: pointer; user-select: none; }
-	.spoiler.revealed { color: var(--text-primary); background: var(--bg-accent); }
+	.spoiler:hover, .spoiler:focus { color: var(--text-primary); background: var(--bg-accent); user-select: text; outline: none; }
 	/* Attachments */
 	.attachment { margin: 4px 0; }
 	.image-attachment img { max-width: min(400px, 100%); max-height: 300px; border-radius: var(--radius); object-fit: cover; display: block; }

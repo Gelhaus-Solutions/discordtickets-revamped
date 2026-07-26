@@ -13,9 +13,16 @@ module.exports.get = () => ({
 		}
 
 		const shardsReady = client.ws.status === 0;
+
+		// The status code reflects *this process* only. Dockerfile's HEALTHCHECK
+		// hits this endpoint, so gating it on Temporal turned a Temporal outage
+		// into a bot restart loop — restarting the bot cannot fix Temporal, and
+		// the bot still serves tickets without it. Temporal state is reported in
+		// the body via `degraded` instead.
 		res
-			.code(shardsReady && temporalHealthy ? 200 : 503)
+			.code(shardsReady ? 200 : 503)
 			.send({
+				degraded: !temporalHealthy,
 				ping: client.ws.ping,
 				shards: client.ws.shards.map(shard => ({
 					id: shard.id,

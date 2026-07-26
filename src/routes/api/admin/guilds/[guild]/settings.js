@@ -2,6 +2,11 @@ const { logAdminEvent } = require('../../../../../lib/logging.js');
 const { Colors } = require('discord.js');
 const temporal = require('../../../../../lib/temporal');
 
+// The bot profile fields live behind the customization endpoint. botAvatar and
+// botBanner are base64 data URIs of up to 8 MiB each, so returning them here
+// would ship several megabytes on every settings page load.
+const CUSTOMIZATION_FIELDS = ['botAvatar', 'botBanner', 'botBio', 'botUsername'];
+
 module.exports.get = fastify => ({
 	handler: async req => {
 		/** @type {import('client')} */
@@ -9,6 +14,8 @@ module.exports.get = fastify => ({
 		const id = req.params.guild;
 		const settings = await client.prisma.guild.findUnique({ where: { id } }) ??
 			await client.prisma.guild.create({ data: { id } });
+
+		for (const field of CUSTOMIZATION_FIELDS) delete settings[field];
 
 		return settings;
 	},

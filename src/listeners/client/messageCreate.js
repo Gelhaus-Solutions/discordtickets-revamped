@@ -215,8 +215,14 @@ module.exports = class extends Listener {
 					const data = { lastMessageAt: new Date() };
 					const isStaffMember = await isStaff(message.guild, message.author.id);
 					if (ticket.firstResponseAt === null && isStaffMember) data.firstResponseAt = new Date();
+					// The `include` must be repeated here: `update()` returns scalars
+					// only, so reassigning `ticket` from it dropped the `category`
+					// relation loaded above — leaving the autoAssign guard below
+					// permanently false, and the whole feature (column, migration,
+					// dashboard toggle and TicketManager#autoClaim) dead.
 					ticket = await client.prisma.ticket.update({
 						data,
+						include: { category: { select: { autoAssign: true } } },
 						where: { id: ticket.id },
 					});
 

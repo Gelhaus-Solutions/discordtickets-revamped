@@ -190,25 +190,52 @@ export async function queryReopenState(ticketId: string): Promise<ReopenState | 
 export async function startCloseRequestTimeout(
 	ticketId: string,
 	delayMs: number,
-	input: { closedBy?: string | null; reason?: string | null },
+	input: {
+		closedBy?: string | null;
+		reason?: string | null;
+		guildId?: string | null;
+		/** Grace window to honour once the timeout fires; 0 disables it. */
+		reopenWindowMs?: number | null;
+	},
 ): Promise<void> {
 	const client = getTemporalClient();
+	const reopenWindowMs = Number(input.reopenWindowMs ?? 0);
+
+	// A ticket closed by *accepting* the request goes through the reopen grace
+	// window (see acceptClose), so one closed by *ignoring* it must too —
+	// otherwise the identical ticket was deleted outright with no Reopen button.
+	// `guildId` is threaded through for the GuildId search attribute, which these
+	// workflows previously started without.
+	const useReopenWindow = reopenWindowMs > 0 && !!input.guildId;
+
 	try {
-		await client.workflow.start(WorkflowType.closeTicket, {
-			args: [{
-				closedBy: input.closedBy ?? null,
-				reason: input.reason ?? null,
-				ticketId,
-			}],
-			searchAttributes: buildSearchAttributes({
-				kind: WorkflowKind.close,
-				ticketId,
-				userId: input.closedBy ?? undefined,
-			}),
-			startDelay: Math.ceil(delayMs),
-			taskQueue: taskQueue(),
-			workflowId: `close-request-${ticketId}`,
-		});
+		await client.workflow.start(
+			useReopenWindow ? WorkflowType.reopenWindow : WorkflowType.closeTicket,
+			{
+				args: [useReopenWindow
+					? {
+						closedBy: input.closedBy ?? null,
+						guildId: input.guildId as string,
+						reason: input.reason ?? null,
+						ticketId,
+						windowMs: reopenWindowMs,
+					}
+					: {
+						closedBy: input.closedBy ?? null,
+						reason: input.reason ?? null,
+						ticketId,
+					}],
+				searchAttributes: buildSearchAttributes({
+					guildId: input.guildId ?? undefined,
+					kind: useReopenWindow ? WorkflowKind.reopen : WorkflowKind.close,
+					ticketId,
+					userId: input.closedBy ?? undefined,
+				}),
+				startDelay: Math.ceil(delayMs),
+				taskQueue: taskQueue(),
+				workflowId: `close-request-${ticketId}`,
+			},
+		);
 	} catch (err) {
 		if (!isAlreadyStarted(err)) throw err;
 	}
