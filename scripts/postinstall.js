@@ -4,7 +4,10 @@ const fs = require('fs-extra');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const { short } = require('leeks.js');
-const { resolve } = require('path');
+const {
+	join,
+	resolve,
+} = require('path');
 
 const fallback = { prisma: './node_modules/prisma/build/index.js' };
 
@@ -72,12 +75,142 @@ if (fs.existsSync(pathify('./prisma'))) {
 fs.mkdirSync(pathify('./prisma'), { recursive: true });
 fs.copySync(pathify(`./db/${provider}`), pathify('./prisma')); // copy schema & migrations
 
+// Databases created before upstream adopted migrations (its postinstall used
+// `prisma db push`), or restored from a dump that excluded `_prisma_migrations`,
+// have the tables but no migration history. `migrate deploy` then refuses with
+// P3005 ("the database schema is not empty") and the bot never boots. The fix
+// is to baseline: record the migrations the schema already satisfies as applied
+// so deploy only runs the genuinely pending ones.
+//
+// Each entry lists the schema objects its migration introduces, keyed by the
+// migration name minus its timestamp — the mysql and postgresql baselines are
+// the same migration under different timestamps. Every listed object must be
+// present before a migration counts as applied, so a migration that died
+// half-way through is re-run rather than skipped.
+const MIGRATION_PROBES = {
+	'4_0_0': {
+		tables: [
+			'archivedChannels',
+			'archivedMessages',
+			'archivedRoles',
+			'archivedUsers',
+			'categories',
+			'feedback',
+			'guilds',
+			'questionAnswers',
+			'questions',
+			'tags',
+			'tickets',
+			'users',
+		],
+	},
+	bot_customization: {
+		columns: [
+			['guilds', 'botAvatar'],
+			['guilds', 'botBio'],
+			['guilds', 'botUsername'],
+			['guilds', 'closeReasonButton'],
+		],
+	},
+	features: { columns: [['categories', 'autoAssign']] },
+	// This one drops guilds.botBanner and restore_bot_banner adds it back, so
+	// column presence cannot distinguish "before the drop" from "after the
+	// restore". Treat it as applied whenever bot_customization is: re-running it
+	// on a fully upgraded database would drop a column holding real data.
+	remove_bot_banner: { columns: [['guilds', 'botAvatar']] },
+	reopen_window: {
+		columns: [
+			['guilds', 'reopenWindow'],
+			['tickets', 'pendingCloseAt'],
+		],
+	},
+	restore_bot_banner: { columns: [['guilds', 'botBanner']] },
+	revamp: {
+		columns: [
+			['categories', 'backupCategoryId'],
+			['categories', 'channelMode'],
+			['categories', 'threadChannelId'],
+			['tickets', 'htmlTranscript'],
+		],
+	},
+};
+
+function isP3005(error) {
+	return `${error?.stdout || ''}${error?.stderr || ''}${error?.message || ''}`.includes('P3005');
+}
+
+/**
+ * Every column in the connected database, as a set of lowercased
+ * `table.column` keys. Identifier case differs between the providers (and
+ * between MySQL versions), so nothing here compares case-sensitively.
+ */
+async function readSchema() {
+	const { PrismaClient } = require('@prisma/client');
+	const prisma = new PrismaClient();
+	try {
+		const rows = await prisma.$queryRawUnsafe(
+			provider === 'mysql'
+				? 'SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()'
+				: 'SELECT table_name AS t, column_name AS c FROM information_schema.columns WHERE table_schema = current_schema()',
+		);
+		return new Set(rows.map(({
+			c,
+			t,
+		}) => `${t}.${c}`.toLowerCase()));
+	} finally {
+		await prisma.$disconnect();
+	}
+}
+
+function satisfies(probe, columns) {
+	const tables = new Set([...columns].map(key => key.slice(0, key.indexOf('.'))));
+	return (probe.tables ?? []).every(table => tables.has(table.toLowerCase())) &&
+		(probe.columns ?? []).every(([table, column]) => columns.has(`${table}.${column}`.toLowerCase()));
+}
+
+/** @returns {Promise<boolean>} whether anything was marked as applied. */
+async function baseline() {
+	const dir = pathify('./prisma/migrations');
+	const names = fs.readdirSync(dir)
+		.filter(name => fs.existsSync(join(dir, name, 'migration.sql')))
+		.sort();
+	const columns = await readSchema();
+	const applied = [];
+	// Longest satisfied prefix only: once a migration is missing from the
+	// database, everything after it is pending by definition.
+	for (const name of names) {
+		const probe = MIGRATION_PROBES[name.replace(/^\d+_/, '')];
+		if (!probe) {
+			log(`no baseline probe for ${name}, treating it and everything after as pending`);
+			break;
+		}
+		if (!satisfies(probe, columns)) break;
+		applied.push(name);
+	}
+	if (applied.length === 0) return false;
+	log(`baselining ${applied.length} migration(s) already present in the database`);
+	for (const name of applied) await npx(`prisma migrate resolve --applied ${name}`);
+	return true;
+}
+
 // A failed generate or migration must stop the boot. Previously this IIFE had
 // no rejection handler, and scripts/start.sh ignored the exit code, so the bot
 // started against a half-migrated schema and sprayed P2022 errors instead.
 (async () => {
 	await npx('prisma generate');
-	await npx('prisma migrate deploy');
+	try {
+		await npx('prisma migrate deploy');
+	} catch (error) {
+		if (!isP3005(error)) throw error;
+		log('database has tables but no migration history — baselining it');
+		if (!await baseline()) {
+			console.error(short('&cThe database is not empty and does not look like a Discord Tickets database.&r'));
+			console.error('Point DB_CONNECTION_URL at an empty database, or baseline it by hand:');
+			console.error('  https://pris.ly/d/migrate-baseline');
+			throw error;
+		}
+		await npx('prisma migrate deploy');
+	}
 })().catch(error => {
 	console.error(short('&cDatabase preparation failed — refusing to start.&r'));
 	console.error(error?.stderr || error?.message || error);

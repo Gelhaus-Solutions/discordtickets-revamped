@@ -71,6 +71,16 @@ Your existing database is migrated in place. No dump/restore is needed.
 
 That is the whole procedure. There is no script to run by hand.
 
+> **Databases with no migration history are baselined automatically.** Very old
+> upstream installs created their schema with `prisma db push`, which records
+> nothing in `_prisma_migrations`; a database restored from a dump that excluded
+> that table looks the same. `prisma migrate deploy` refuses those with
+> `Error: P3005 — The database schema is not empty`. On that error postinstall
+> inspects the schema, marks the migrations it already satisfies as applied, and
+> deploys the rest, so the boot recovers by itself. Nothing is dropped or
+> rewritten. If the database is not empty but is not a Discord Tickets database
+> either, postinstall says so and stops rather than guessing.
+
 > Earlier revisions of this document told you to `docker exec` into the
 > container and run `scripts/fix-revamp.js`. That script issued SQL against
 > table names that do not exist (the models are `Category`/`Ticket`, but the
