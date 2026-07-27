@@ -113,6 +113,12 @@ const MIGRATION_PROBES = {
 		],
 	},
 	features: { columns: [['categories', 'autoAssign']] },
+	// Both objects must be listed: a run that created `panels` but died before
+	// adding categories.messageLayout has to be re-run, not skipped.
+	panels: {
+		columns: [['categories', 'messageLayout']],
+		tables: ['panels'],
+	},
 	// This one drops guilds.botBanner and restore_bot_banner adds it back, so
 	// column presence cannot distinguish "before the drop" from "after the
 	// restore". Treat it as applied whenever bot_customization is: re-running it

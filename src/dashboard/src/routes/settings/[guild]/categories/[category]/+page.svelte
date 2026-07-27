@@ -11,6 +11,9 @@
 	import { getContext, onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import ErrorBox from '$components/ErrorBox.svelte';
+	import BlockEditor from '$components/BlockEditor/BlockEditor.svelte';
+	import Preview from '$components/BlockEditor/Preview.svelte';
+	import { defaultOpeningLayout } from '$components/BlockEditor/blocks.js';
 	/**
 	 * @typedef {Object} Props
 	 * @property {import('./$types').PageData} data
@@ -20,6 +23,12 @@
 	let { data } = $props();
 
 	let modified = $state(false);
+
+	// `messageLayout` is nullable: a category that has never been opened in the
+	// block editor keeps using its plain `openingMessage` text, and the bot
+	// derives the equivalent layout at send time. Only once someone opts in does
+	// the column get a value.
+	let useBlockEditor = $state(Boolean(data.category?.messageLayout));
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -451,13 +460,42 @@
 					</label>
 				</div>
 				<div>
-					<label class="font-medium">
+					<div class="font-medium">
 						Opening message
 						<Required />
 						<i
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Content to be sent in the opening message of each ticket."
+							title="The message sent when a ticket in this category is opened."
 						></i>
+					</div>
+
+					{#if useBlockEditor}
+						<p class="mb-2 mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Drag blocks to reorder them. Mentions, answers and the ticket controls are filled in
+							for each ticket.
+						</p>
+						<BlockEditor
+							bind:blocks={category.messageLayout.blocks}
+							categories={[]}
+							context="opening"
+						/>
+						<button
+							type="button"
+							class="mt-2 text-sm text-gray-500 underline dark:text-slate-400"
+							onclick={() => {
+								if (
+									confirm(
+										'Discard this layout and go back to the simple text editor? The blocks you have added will be lost.'
+									)
+								) {
+									category.messageLayout = null;
+									useBlockEditor = false;
+								}
+							}}
+						>
+							Switch back to the simple editor
+						</button>
+					{:else}
 						<textarea
 							class="input form-input"
 							required
@@ -465,10 +503,35 @@
 							maxlength="1000"
 							bind:value={category.openingMessage}
 						></textarea>
-					</label>
+						<button
+							type="button"
+							class="mt-2 text-sm text-blurple underline"
+							onclick={() => {
+								category.messageLayout = defaultOpeningLayout(category.openingMessage, {
+									image: category.image
+								});
+								useBlockEditor = true;
+							}}
+						>
+							<i class="fa-solid fa-table-cells-large"></i>
+							Use the block editor for full control
+						</button>
+					{/if}
+					{#if useBlockEditor}
+						<div class="mt-3">
+							<Preview
+								layout={category.messageLayout}
+								categories={[]}
+								context="opening"
+								primaryColour={data.settings.primaryColour}
+								footer={data.settings.footer ?? ''}
+							/>
+						</div>
+					{/if}
+
 					{#key category.pingRoles}
 						{#key category.requireTopic}
-							{#if category.openingMessage}
+							{#if category.openingMessage && !useBlockEditor}
 								<p class="mb-1 mt-2 text-sm font-semibold">Preview</p>
 								<discord-messages
 									no-background={true}

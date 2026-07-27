@@ -1,9 +1,8 @@
 const { Modal } = require('@eartharoid/dbf');
-const {
-	EmbedBuilder, MessageFlags,
-} = require('discord.js');
+const { MessageFlags } = require('discord.js');
 const ExtendedEmbedBuilder = require('../lib/embed');
 const { logTicketEvent } = require('../lib/logging');
+const { rerenderOpeningMessage } = require('../lib/tickets/opening-message');
 const { pools } = require('../lib/threads');
 
 const { crypto } = pools;
@@ -49,16 +48,12 @@ module.exports = class TopicModal extends Modal {
 
 			if (topic) interaction.channel.setTopic(`<@${ticket.createdById}> | ${topic}`);
 
-			const opening = await interaction.channel.messages.fetch(ticket.openingMessageId);
-			if (opening && opening.embeds.length >= 2) {
-				const embeds = [...opening.embeds];
-				embeds[1] = new EmbedBuilder(embeds[1].data)
-					.setFields({
-						name: getMessage('ticket.opening_message.fields.topic'),
-						value: topic,
-					});
-				await opening.edit({ embeds });
-			}
+			// Re-render from the category's layout. The previous version patched
+			// `embeds[1]` and was gated on `opening.embeds.length >= 2`, which a
+			// Components v2 message never satisfies — the edit would have been
+			// saved to the database but never shown.
+			await rerenderOpeningMessage(client, interaction.channel, { topic })
+				.catch(error => client.log.warn('Failed to update opening message after topic edit: %s', error.message));
 
 			await interaction.editReply({
 				embeds: [

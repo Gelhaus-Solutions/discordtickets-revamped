@@ -22,9 +22,13 @@ const prisma = new PrismaClient();
 
 spinner.succeed('Connected');
 
+// Order matters: restore.mjs replays these as createMany in list order, so a
+// model must come after anything it has a foreign key to. `panel` follows
+// `guild` for that reason.
 const models = [
 	'user',
 	'guild',
+	'panel',
 	'tag',
 	'category',
 	'question',

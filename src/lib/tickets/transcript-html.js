@@ -130,18 +130,220 @@ function renderAttachment(attachment) {
 }
 
 /**
- * Render a Discord embed
- * @param {object} embed
+ * Component type numbers, as they appear in archived message JSON.
+ * @see https://discord.com/developers/docs/components/reference
+ */
+const COMPONENT = {
+	ACTION_ROW: 1,
+	BUTTON: 2,
+	CONTAINER: 17,
+	FILE: 13,
+	MEDIA_GALLERY: 12,
+	SECTION: 9,
+	SELECT: 3,
+	SEPARATOR: 14,
+	TEXT_DISPLAY: 10,
+	THUMBNAIL: 11,
+};
+
+/**
+ * A colour that is safe to interpolate into a `style` attribute.
+ *
+ * The value reaches us from an archived message, and archives can also be
+ * written by a database restore, so it is validated at the render boundary
+ * rather than trusted from the point it was stored.
+ *
+ * @param {*} value an integer colour, as Discord sends it
+ * @returns {string} `#rrggbb`
+ */
+function safeColour(value) {
+	if (!Number.isInteger(value) || value < 0 || value > 0xffffff) return '#5865F2';
+	return `#${value.toString(16).padStart(6, '0')}`;
+}
+
+/**
+ * Only ever emit `src` values that are real http(s) URLs — `data:` URIs are
+ * still live in `src`, and the transcript is served from the dashboard's origin.
+ */
+function safeMediaUrl(url) {
+	if (typeof url !== 'string') return null;
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Render Components v2 message components.
+ *
+ * Ticket opening messages and panels are Components v2, which means they carry
+ * no `content` and no `embeds` at all — everything they say lives in components.
+ * The archiver has always stored them, but the transcript never read them, so
+ * without this the entire opening message renders as a blank gap.
+ *
+ * Unknown component types are skipped rather than throwing: an archive written
+ * by a newer bot must still produce a readable transcript.
+ *
+ * @param {object[]} components
  * @returns {string}
  */
-function renderEmbed(embed) {
+function renderComponents(components) {
+	if (!Array.isArray(components) || components.length === 0) return '';
+
+	const renderOne = component => {
+		if (!component || typeof component !== 'object') return '';
+
+		switch (component.type) {
+		case COMPONENT.TEXT_DISPLAY:
+			return component.content
+				? `<div class="v2-text">${discordMarkdownToHtml(component.content)}</div>`
+				: '';
+
+		case COMPONENT.SEPARATOR:
+			return component.divider === false
+				? '<div class="v2-spacer"></div>'
+				: '<hr class="v2-separator">';
+
+		case COMPONENT.SECTION: {
+			const text = (component.components || []).map(renderOne).join('');
+			let accessory = '';
+			const a = component.accessory;
+			if (a?.type === COMPONENT.THUMBNAIL) {
+				const url = safeMediaUrl(a.media?.url);
+				if (url) {
+					accessory = `<div class="v2-section-accessory"><img src="${escapeHtml(url)}" alt="${escapeHtml(a.description || '')}" loading="lazy"></div>`;
+				}
+			} else if (a?.type === COMPONENT.BUTTON) {
+				accessory = `<div class="v2-section-accessory">${renderOne(a)}</div>`;
+			}
+			return `<div class="v2-section"><div class="v2-section-text">${text}</div>${accessory}</div>`;
+		}
+
+		case COMPONENT.MEDIA_GALLERY: {
+			const items = (component.items || [])
+				.map(item => {
+					const url = safeMediaUrl(item?.media?.url);
+					if (!url) return '';
+					return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">
+						<img src="${escapeHtml(url)}" alt="${escapeHtml(item.description || 'image')}" loading="lazy">
+					</a>`;
+				})
+				.join('');
+			return items ? `<div class="v2-gallery">${items}</div>` : '';
+		}
+
+		case COMPONENT.BUTTON: {
+			// Buttons are inert in a transcript; they are rendered so the reader
+			// can see what the message offered at the time.
+			const label = escapeHtml(component.label || '');
+			const emoji = component.emoji?.name ? escapeHtml(component.emoji.name) + ' ' : '';
+			return `<span class="v2-button v2-button-style-${Number(component.style) || 2}">${emoji}${label}</span>`;
+		}
+
+		case COMPONENT.SELECT:
+			return `<span class="v2-select">${escapeHtml(component.placeholder || 'Select an option')}</span>`;
+
+		case COMPONENT.ACTION_ROW:
+			return `<div class="v2-actions">${(component.components || []).map(renderOne).join('')}</div>`;
+
+		case COMPONENT.FILE: {
+			const url = safeMediaUrl(component.file?.url);
+			return url
+				? `<div class="v2-file"><a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">📎 ${escapeHtml(component.name || 'file')}</a></div>`
+				: '';
+		}
+
+		case COMPONENT.CONTAINER: {
+			const inner = (component.components || []).map(renderOne).join('');
+			const colour = safeColour(component.accent_color);
+			return `<div class="v2-container" style="border-left: 4px solid ${escapeHtml(colour)}">${inner}</div>`;
+		}
+
+		default:
+			return '';
+		}
+	};
+
+	const html = components.map(renderOne).join('');
+	return html ? `<div class="v2-components">${html}</div>` : '';
+}
+
+/**
+ * Normalise an archived embed into the shape `renderEmbed` expects.
+ *
+ * Archives contain three different shapes, all of which must render:
+ *
+ *  1. `{ data: { … } }` — what `{ ...embed }` produced before the archiver was
+ *     fixed. discord.js keeps an embed's fields in a private `data` object and
+ *     exposes them through prototype getters, which a spread does not copy, so
+ *     every embed archived this way rendered as an empty box. Every transcript
+ *     written before that fix contains this shape.
+ *  2. Flat API JSON (`icon_url`, `color`, …) — what `embed.toJSON()` produces,
+ *     which is what is archived now.
+ *  3. Flat camelCase (`iconURL`) — hand-built objects.
+ *
+ * @param {object} raw
+ * @returns {?object}
+ */
+function normaliseEmbed(raw) {
+	if (!raw || typeof raw !== 'object') return null;
+	// Unwrap the legacy `{ data: … }` shape.
+	const e = raw.data && typeof raw.data === 'object' ? raw.data : raw;
+
+	const media = value => {
+		if (!value) return null;
+		const url = typeof value === 'string' ? value : value.url;
+		return url ? { url } : null;
+	};
+
+	return {
+		author: e.author
+			? {
+				iconURL: e.author.iconURL ?? e.author.icon_url ?? null,
+				name: e.author.name,
+				url: e.author.url ?? null,
+			}
+			: null,
+		color: typeof e.color === 'number' ? e.color : null,
+		description: e.description ?? null,
+		fields: Array.isArray(e.fields) ? e.fields : [],
+		footer: e.footer
+			? {
+				iconURL: e.footer.iconURL ?? e.footer.icon_url ?? null,
+				text: e.footer.text,
+			}
+			: null,
+		image: media(e.image),
+		thumbnail: media(e.thumbnail),
+		timestamp: e.timestamp ?? null,
+		title: e.title ?? null,
+		url: e.url ?? null,
+	};
+}
+
+/**
+ * Render a Discord embed
+ * @param {object} raw
+ * @returns {string}
+ */
+function renderEmbed(raw) {
+	const embed = normaliseEmbed(raw);
 	if (!embed) return '';
-	const color = embed.color ? `#${embed.color.toString(16).padStart(6, '0')}` : '#5865F2';
+
+	// An embed with nothing in it would otherwise emit an empty coloured box.
+	const hasContent = embed.author?.name || embed.title || embed.description ||
+		embed.fields.length || embed.image || embed.thumbnail || embed.footer?.text;
+	if (!hasContent) return '';
+
+	const color = embed.color !== null ? `#${(embed.color & 0xffffff).toString(16).padStart(6, '0')}` : '#5865F2';
 	let html = `<div class="embed" style="border-left: 4px solid ${escapeHtml(color)}">`;
 
 	if (embed.author?.name) {
 		html += '<div class="embed-author">';
-		if (embed.author.iconURL) html += `<img class="embed-author-icon" src="${escapeHtml(embed.author.iconURL)}" loading="lazy">`;
+		const authorIcon = safeMediaUrl(embed.author.iconURL);
+		if (authorIcon) html += `<img class="embed-author-icon" src="${escapeHtml(authorIcon)}" loading="lazy">`;
 		html += `<span>${escapeHtml(embed.author.name)}</span></div>`;
 	}
 
@@ -168,17 +370,20 @@ function renderEmbed(embed) {
 		html += '</div>';
 	}
 
-	if (embed.image?.url) {
-		html += `<div class="embed-image"><img src="${escapeHtml(embed.image.url)}" alt="embed image" loading="lazy"></div>`;
+	const imageUrl = safeMediaUrl(embed.image?.url);
+	if (imageUrl) {
+		html += `<div class="embed-image"><img src="${escapeHtml(imageUrl)}" alt="embed image" loading="lazy"></div>`;
 	}
 
-	if (embed.thumbnail?.url) {
-		html += `<div class="embed-thumbnail"><img src="${escapeHtml(embed.thumbnail.url)}" alt="thumbnail" loading="lazy"></div>`;
+	const thumbnailUrl = safeMediaUrl(embed.thumbnail?.url);
+	if (thumbnailUrl) {
+		html += `<div class="embed-thumbnail"><img src="${escapeHtml(thumbnailUrl)}" alt="thumbnail" loading="lazy"></div>`;
 	}
 
-	if (embed.footer) {
+	if (embed.footer?.text) {
 		html += '<div class="embed-footer">';
-		if (embed.footer.iconURL) html += `<img class="embed-footer-icon" src="${escapeHtml(embed.footer.iconURL)}" loading="lazy">`;
+		const footerIcon = safeMediaUrl(embed.footer.iconURL);
+		if (footerIcon) html += `<img class="embed-footer-icon" src="${escapeHtml(footerIcon)}" loading="lazy">`;
 		html += `<span>${escapeHtml(embed.footer.text)}</span>`;
 		if (embed.timestamp) html += ` &bull; <span>${formatDate(embed.timestamp)}</span>`;
 		html += '</div>';
@@ -398,6 +603,44 @@ function getStyles() {
 	.embed-thumbnail img { width: 80px; height: 80px; border-radius: var(--radius); object-fit: cover; }
 	.embed-footer { display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: var(--text-muted); margin-top: 8px; }
 	.embed-footer-icon { width: 20px; height: 20px; border-radius: 50%; }
+	/* Components v2 */
+	.v2-components { max-width: 520px; margin: 4px 0; font-size: 0.9375rem; }
+	.v2-container {
+		background: var(--bg-secondary);
+		border-radius: 0 var(--radius) var(--radius) 0;
+		padding: 12px 16px;
+		margin: 4px 0;
+	}
+	.v2-text { white-space: pre-wrap; margin: 4px 0; }
+	.v2-separator { border: none; border-top: 1px solid var(--bg-accent); margin: 8px 0; }
+	.v2-spacer { height: 8px; }
+	.v2-section { display: flex; gap: 12px; align-items: flex-start; margin: 4px 0; }
+	.v2-section-text { flex: 1; min-width: 0; }
+	.v2-section-accessory { flex: 0 0 auto; }
+	.v2-section-accessory img { width: 80px; height: 80px; border-radius: var(--radius); object-fit: cover; }
+	.v2-gallery { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+	.v2-gallery img { max-width: 100%; max-height: 240px; border-radius: var(--radius); }
+	.v2-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+	.v2-button {
+		display: inline-block;
+		padding: 6px 12px;
+		border-radius: 4px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: #fff;
+		background: #4e5058;
+		cursor: default;
+	}
+	.v2-button-style-1 { background: #5865f2; }
+	.v2-button-style-3 { background: #248046; }
+	.v2-button-style-4 { background: #da373c; }
+	.v2-button-style-5 { background: #4e5058; }
+	.v2-select {
+		display: inline-block; padding: 6px 12px; border-radius: 4px;
+		font-size: 0.875rem; color: var(--text-muted);
+		background: var(--bg-accent); cursor: default;
+	}
+	.v2-file a { color: var(--link); }
 	/* Answers section */
 	.answers-panel {
 		background: var(--bg-secondary);
@@ -433,6 +676,9 @@ function getStyles() {
 		.meta-panel { grid-template-columns: 1fr 1fr; }
 		.ticket-header .container { flex-direction: column; align-items: flex-start; }
 		.embed { max-width: 100%; }
+		.v2-components { max-width: 100%; }
+		.v2-section { flex-direction: column; }
+		.v2-section-accessory img { width: 100%; height: auto; max-height: 200px; }
 	}
 	`;
 }
@@ -628,7 +874,7 @@ function buildHtml({
 			}
 
 			const {
-				content, embeds = [], attachments = [], reference,
+				content, embeds = [], attachments = [], components = [], reference,
 			} = parsedContent;
 			const isDeleted = msg.deleted;
 			const isEdited = msg.edited;
@@ -679,6 +925,11 @@ function buildHtml({
 			// Embeds
 			const embedsHtml = (embeds || []).map(renderEmbed).join('');
 
+			// Components v2. A v2 message has no content and no embeds, so this is
+			// the only thing that renders it — the field was archived all along but
+			// never read here.
+			const componentsHtml = renderComponents(components);
+
 			// Attachments
 			const attachmentsHtml = (attachments || []).map(renderAttachment).join('');
 
@@ -689,6 +940,7 @@ function buildHtml({
 					${replyHtml}
 					${contentHtml}
 					${embedsHtml}
+					${componentsHtml}
 					${attachmentsHtml}
 				</div>
 			</div>`);
@@ -852,5 +1104,8 @@ async function saveHtmlTranscript(client, ticketId) {
 module.exports = {
 	buildHtml,
 	generateHtmlTranscript,
+	// Exported for `scripts/check-transcript-v2.js`.
+	renderComponents,
+	renderEmbed,
 	saveHtmlTranscript,
 };

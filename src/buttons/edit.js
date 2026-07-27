@@ -7,7 +7,7 @@ const {
 	TextInputBuilder,
 	TextInputStyle,
 } = require('discord.js');
-const emoji = require('node-emoji');
+const { resolveEmoji } = require('../lib/emoji');
 const { pools } = require('../lib/threads');
 
 const { crypto } = pools;
@@ -98,9 +98,8 @@ module.exports = class EditButton extends Button {
 																.setLabel(o.label);
 															if (o.description) builder.setDescription(o.description);
 															if (o.emoji) {
-																builder.setEmoji(emoji.hasEmoji(o.emoji)
-																	? emoji.get(o.emoji)
-																	: { id: o.emoji });
+																const optionEmoji = resolveEmoji(o.emoji);
+																if (optionEmoji) builder.setEmoji(optionEmoji);
 															}
 															return builder;
 														}),

@@ -43,9 +43,12 @@ module.exports.get = fastify => ({
 				if (!member || await getPrivilegeLevel(member) < 2) return notFound();
 			}
 
-			// Redirect to the API endpoint
+			// Redirect to the API endpoint.
+			// Fastify 5 takes (url, code); the v4 (code, url) order made this
+			// `.code('/api/…')`, which threw and was caught below as a 500
+			// "Failed to fetch transcript." — so View Online never worked.
 			const url = `/api/admin/guilds/${ticket.guildId}/tickets/${ticketId}/transcript`;
-			return res.redirect(302, url);
+			return res.redirect(url, 302);
 		} catch (err) {
 			client.log.error('Failed to fetch ticket for transcript:', err);
 			return res.code(500).send({

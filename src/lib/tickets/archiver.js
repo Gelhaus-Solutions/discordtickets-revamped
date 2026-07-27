@@ -124,7 +124,13 @@ module.exports = class TicketArchiver {
 						attachments: [...message.attachments.values()],
 						components: [...message.components.values()],
 						content: message.content,
-						embeds: message.embeds.map(embed => ({ ...embed })),
+						// `{ ...embed }` produced `{ data: { … } }`: discord.js keeps an
+						// embed's fields in a private `data` object and exposes them
+						// through prototype getters, which a spread does not copy. Every
+						// embed archived that way rendered as an empty box in the HTML
+						// transcript — so a bot message with no text of its own vanished
+						// completely. `toJSON()` gives the flat API shape.
+						embeds: message.embeds.map(embed => (typeof embed?.toJSON === 'function' ? embed.toJSON() : embed)),
 						reference: message.reference?.messageId ?? null,
 					}),
 				)),

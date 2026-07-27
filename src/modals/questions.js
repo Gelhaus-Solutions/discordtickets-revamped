@@ -4,6 +4,7 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../lib/embed');
 const { logTicketEvent } = require('../lib/logging');
+const { rerenderOpeningMessage } = require('../lib/tickets/opening-message');
 const { pools } = require('../lib/threads');
 const { cleanCodeBlockContent } = require('discord.js');
 
@@ -89,19 +90,17 @@ module.exports = class QuestionsModal extends Modal {
 
 			if (topic) await interaction.channel.setTopic(`<@${ticket.createdById}> | ${topic}`);
 
-			const opening = await interaction.channel.messages.fetch(ticket.openingMessageId);
-			if (opening && opening.embeds.length >= 2) {
-				const embeds = [...opening.embeds];
-				embeds[1] = new EmbedBuilder(embeds[1].data)
-					.setFields(
-						plainTextAnswers
-							.map(a => ({
-								name: a.question.label,
-								value: a.after || getMessage('ticket.answers.no_value'),
-							})),
-					);
-				await opening.edit({ embeds });
-			}
+			// Re-render from the category's layout, passing the freshly submitted
+			// answers. The previous version patched `embeds[1]` behind an
+			// `embeds.length >= 2` check that a Components v2 message never
+			// satisfies, so edits were saved but never displayed.
+			await rerenderOpeningMessage(client, interaction.channel, {
+				answers: plainTextAnswers.map(a => ({
+					label: a.question.label,
+					value: a.after || getMessage('ticket.answers.no_value'),
+				})),
+				topic,
+			}).catch(error => client.log.warn('Failed to update opening message after answer edit: %s', error.message));
 
 			await interaction.editReply({
 				embeds: [

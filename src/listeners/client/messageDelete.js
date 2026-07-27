@@ -25,6 +25,17 @@ module.exports = class extends Listener {
 
 		if (!message.guild) return;
 
+		// If a panel's message was deleted in Discord, forget the message id so
+		// the dashboard shows it as unposted and can offer to re-send it. This
+		// runs before the ticket lookup below, which returns early for any
+		// channel that is not a ticket — and a panel never is one.
+		if (message.author?.id === client.user.id) {
+			await client.prisma.panel.updateMany({
+				data: { messageId: null },
+				where: { messageId: message.id },
+			}).catch(() => null);
+		}
+
 		const ticket = await client.prisma.ticket.findUnique({
 			include: { guild: true },
 			where: { id: message.channel.id },

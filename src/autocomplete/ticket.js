@@ -1,6 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 const { Autocompleter } = require('@eartharoid/dbf');
-const emoji = require('node-emoji');
+const { displayEmoji } = require('../lib/emoji');
 const Keyv = require('keyv');
 const ms = require('ms');
 const { isStaff } = require('../lib/users');
@@ -52,7 +52,8 @@ module.exports = class TicketCompleter extends Autocompleter {
 						const getTopic = async () => (await crypto.queue(w => w.decrypt(ticket.topic))).replace(/\n/g, ' ').substring(0, 50);
 						const date = new Date(ticket.createdAt).toLocaleString([locale, 'en-GB'], { dateStyle: 'short' });
 						const topic = ticket.topic ? '- ' + (await getTopic()) : '';
-						const category = emoji.hasEmoji(ticket.category.emoji) ? emoji.get(ticket.category.emoji) + ' ' + ticket.category.name : ticket.category.name;
+						const categoryEmoji = displayEmoji(ticket.category.emoji);
+						const category = categoryEmoji ? categoryEmoji + ' ' + ticket.category.name : ticket.category.name;
 						ticket._name = `${category} #${ticket.number} (${date}) ${topic}`;
 						return ticket;
 					}),

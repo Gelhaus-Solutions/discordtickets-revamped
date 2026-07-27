@@ -87,6 +87,10 @@ model Category {
     id               Int         @id @default(autoincrement())
     image            String?
     memberLimit      Int         @default(1)
+    // Components v2 block layout for the ticket opening message. NULL means
+    // "derive it from openingMessage", so a guild that never opens the block
+    // editor keeps exactly the message it had before.
+    messageLayout    Json?
     name             String
     openingMessage   String      @db.Text
     pingRoles        Json        @default("[]")
@@ -137,6 +141,7 @@ model Guild {
     id                 String     @id @db.VarChar(19)
     locale             String     @default("en-GB")
     logChannel         String?    @db.VarChar(19)
+    panels             Panel[]
     primaryColour      String     @default("#009999")
     reopenWindow       Int        @default(0)
     staleAfter         Int?
@@ -146,6 +151,32 @@ model Guild {
     workingHours       Json       @default("[\"UTC\", [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"]]")
 
     @@map("guilds")
+}
+
+model Panel {
+    // Category ids referenced by `layout`, derived server-side on every write so
+    // the client cannot make it drift. Matches the Json-array convention already
+    // used by pingRoles/staffRoles/blocklist; the trade-off is no FK cascade, so
+    // a deleted category leaves a dangling id that the renderer skips.
+    categories  Json     @default("[]")
+    channelId   String   @db.VarChar(19)
+    createdAt   DateTime @default(now())
+    // Not a User relation: User rows only exist for ticket participants, and an
+    // FK here would force connectOrCreate on every write.
+    createdById String?  @db.VarChar(19)
+    guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId     String   @db.VarChar(19)
+    id          Int      @id @default(autoincrement())
+    layout      Json
+    // NULL until the panel has been posted, and again if its message is deleted
+    // in Discord — the listeners null it so the dashboard can offer a re-send.
+    messageId   String?  @db.VarChar(19)
+    name        String   @db.VarChar(100)
+    updatedAt   DateTime @updatedAt
+
+    @@unique([messageId])
+    @@index([guildId])
+    @@map("panels")
 }
 
 model Question {

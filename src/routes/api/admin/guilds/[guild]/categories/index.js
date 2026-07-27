@@ -1,6 +1,6 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../lib/users');
-const emoji = require('node-emoji');
+const { displayEmoji } = require('../../../../../../lib/emoji');
 const {
 	ApplicationCommandPermissionType,
 	ChannelType: { GuildCategory },
@@ -86,7 +86,8 @@ module.exports.post = fastify => ({
 
 		if (!data.discordCategory) {
 			let name = data.name;
-			if (emoji.hasEmoji(data.emoji)) name = `${emoji.get(data.emoji)} ${name}`;
+			const categoryEmoji = displayEmoji(data.emoji);
+			if (categoryEmoji) name = `${categoryEmoji} ${name}`;
 			const channel = await guild.channels.create({
 				name,
 				permissionOverwrites: [

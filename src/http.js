@@ -74,6 +74,39 @@ module.exports = async client => {
 	}
 
 	// auth
+
+	/**
+	 * Is this a top-level browser navigation rather than a fetch/XHR?
+	 *
+	 * Authenticated routes that a user can navigate to directly — `/transcript/:id`
+	 * is opened in a new tab straight from the dashboard — used to answer an
+	 * unauthenticated visitor with a raw JSON 401, which the browser rendered as
+	 * text. Those callers get sent to the login flow instead. Everything else
+	 * (the dashboard's own `fetch`es) must keep receiving JSON, because their
+	 * error handling reads `body.elevate` and friends.
+	 */
+	const isBrowserNavigation = req => {
+		if (req.headers['x-requested-with'] === 'XMLHttpRequest') return false;
+		// Sent by every browser that supports Fetch Metadata; `fetch()` reports
+		// `cors`/`same-origin` here, only address-bar/link navigations say `navigate`.
+		const mode = req.headers['sec-fetch-mode'];
+		if (mode) return mode === 'navigate';
+		// Fallback for clients without Fetch Metadata: `fetch()` defaults to
+		// `Accept: */*`, whereas a navigation asks for HTML explicitly.
+		return (req.headers.accept ?? '').includes('text/html');
+	};
+
+	/**
+	 * Send the caller through the OAuth flow and back to where they were going.
+	 * `/auth/login` stores `r` in the state cookie and `/auth/callback` only
+	 * honours it if it is a safe relative path.
+	 */
+	const redirectToLogin = (req, res, role) => {
+		const params = new URLSearchParams({ r: req.url });
+		if (role) params.set('role', role);
+		return res.redirect(`/auth/login?${params}`, 302);
+	};
+
 	fastify.decorate('authenticate', async (req, res) => {
 		try {
 			const data = await req.jwtVerify();
@@ -86,6 +119,7 @@ module.exports = async client => {
 				if (Number.isFinite(cutoff) && data.createdAt < cutoff) throw 'expired';
 			}
 		} catch (error) {
+			if (isBrowserNavigation(req)) return redirectToLogin(req, res);
 			return res.code(401).send({
 				error: 'Unauthorised',
 				message: error === 'expired' ? 'Your token has expired; please re-authenticate.' : 'You are not authenticated.',
@@ -142,6 +176,10 @@ module.exports = async client => {
 				});
 			}
 			if (!req.user.service && !req.user.scopes?.includes('applications.commands.permissions.update')) {
+				// The dashboard reads `elevate` and re-authenticates itself; a
+				// browser navigation has no such handler, so send it round the
+				// admin login flow directly.
+				if (isBrowserNavigation(req)) return redirectToLogin(req, res, 'admin');
 				return res.code(401).send({
 					elevate: 'admin',
 					error: 'Unauthorised',

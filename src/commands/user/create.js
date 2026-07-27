@@ -11,7 +11,7 @@ const {
 	StringSelectMenuOptionBuilder,
 	MessageFlags,
 } = require('discord.js');
-const emoji = require('node-emoji');
+const { resolveEmoji } = require('../../lib/emoji');
 
 module.exports = class CreateUserCommand extends UserCommand {
 	constructor(client, options) {
@@ -131,13 +131,15 @@ module.exports = class CreateUserCommand extends UserCommand {
 								}))
 								.setPlaceholder(getMessage('menus.category.placeholder'))
 								.setOptions(
-									settings.categories.map(category =>
-										new StringSelectMenuOptionBuilder()
+									settings.categories.map(category => {
+										const option = new StringSelectMenuOptionBuilder()
 											.setValue(String(category.id))
 											.setLabel(category.name)
-											.setDescription(category.description)
-											.setEmoji(emoji.hasEmoji(category.emoji) ? emoji.get(category.emoji) : { id: category.emoji }),
-									),
+											.setDescription(category.description);
+										const categoryEmoji = resolveEmoji(category.emoji);
+										if (categoryEmoji) option.setEmoji(categoryEmoji);
+										return option;
+									}),
 								),
 						),
 				],

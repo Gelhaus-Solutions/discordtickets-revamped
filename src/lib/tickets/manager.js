@@ -1,4 +1,4 @@
-/* eslint-disable no-underscore-dangle */
+
 /* eslint-disable max-lines */
 const TicketArchiver = require('./archiver');
 const { saveHtmlTranscript } = require('./transcript-html');
@@ -22,7 +22,12 @@ const {
 	TextInputStyle,
 	MessageFlags,
 } = require('discord.js');
-const emoji = require('node-emoji');
+const { resolveEmoji } = require('../emoji');
+const {
+	buildOpeningMessage,
+	categoryNeedsStats,
+	rerenderOpeningMessage,
+} = require('./opening-message');
 const ms = require('ms');
 const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
@@ -251,7 +256,19 @@ module.exports = class TicketManager {
 			return await sendError('blocked');
 		}
 
-		if (category.requiredRoles.length !== 0) {
+		// Staff bypass the three *per-user* gates below: the roles a member needs to
+		// use a category, the cap on how many tickets one member may have open in
+		// it, and the per-member cooldown. Staff routinely open tickets to test a
+		// category or to handle one on a member's behalf, and being turned away by
+		// the limits they administer is never the intent.
+		//
+		// Deliberately NOT bypassed: the blocklist and timeout checks above (a
+		// timed-out user cannot write in the ticket anyway), the 5-second anti-spam
+		// ratelimit, and the category capacity checks below — those protect the
+		// server and Discord's own 50-channels-per-category limit, not the user.
+		const staff = await isStaff(guild, interaction.user.id);
+
+		if (!staff && category.requiredRoles.length !== 0) {
 			const missing = category.requiredRoles.some(r => !member.roles.cache.has(r));
 			if (missing) return await sendError('missing_roles');
 		}
@@ -293,8 +310,8 @@ module.exports = class TicketManager {
 			return await sendError('category_full');
 		}
 
-		const memberCount = await this.getMemberCount(category.id, interaction.user.id);
-		if (memberCount >= category.memberLimit) {
+		const memberCount = staff ? 0 : await this.getMemberCount(category.id, interaction.user.id);
+		if (!staff && memberCount >= category.memberLimit) {
 			return await interaction.reply({
 				embeds: [
 					new ExtendedEmbedBuilder({
@@ -309,7 +326,7 @@ module.exports = class TicketManager {
 			});
 		}
 
-		const cooldown = await this.getCooldown(category.id, interaction.user.id);
+		const cooldown = staff ? null : await this.getCooldown(category.id, interaction.user.id);
 		if (cooldown) {
 			return await interaction.reply({
 				embeds: [
@@ -364,7 +381,10 @@ module.exports = class TicketManager {
 															.setValue(String(i))
 															.setLabel(o.label);
 														if (o.description) builder.setDescription(o.description);
-														if (o.emoji) builder.setEmoji(emoji.hasEmoji(o.emoji) ? emoji.get(o.emoji) : { id: o.emoji });
+														if (o.emoji) {
+															const optionEmoji = resolveEmoji(o.emoji);
+															if (optionEmoji) builder.setEmoji(optionEmoji);
+														}
 														return builder;
 													}),
 												),
@@ -548,7 +568,10 @@ module.exports = class TicketManager {
 			});
 		}
 
-		const needsStats = /{+\s?(avgResponseTime|avgResolutionTime|avgRating)\s?}+/i.test(category.openingMessage);
+		// Scans the whole layout, not just `openingMessage` — once the text lives
+		// in blocks, testing the raw column alone would leave {avgResponseTime}
+		// rendering as `undefined`.
+		const needsStats = categoryNeedsStats(category);
 		const statsCacheKey = `cache/category-stats/${categoryId}`;
 		let stats = await this.client.keyv.get(statsCacheKey);
 		if (needsStats && !stats) {
@@ -578,111 +601,26 @@ module.exports = class TicketManager {
 			this.client.keyv.set(statsCacheKey, stats, ms('1h'));
 		}
 
-		const embeds = [
-			new ExtendedEmbedBuilder()
-				.setColor(category.guild.primaryColour)
-				.setAuthor({
-					iconURL: creator.displayAvatarURL(),
-					name: creator.displayName,
-				})
-				.setDescription(
-					category.openingMessage
-						.replace(/{+\s?(user)?name\s?}+/gi, creator.user.toString())
-						.replace(/{+\s?num(ber)?\s?}+/gi, number)
-						.replace(/{+\s?avgResponseTime\s?}+/gi, stats?.avgResponseTime)
-						.replace(/{+\s?avgResolutionTime\s?}+/gi, stats?.avgResolutionTime)
-						.replace(/{+\s?avgRating\s?}+/gi, stats?.avgRating),
-				),
-		];
-
-		if (category.image) embeds[0].setImage(category.image);
-
-		if (answers) {
-			embeds.push(
-				new ExtendedEmbedBuilder()
-					.setColor(category.guild.primaryColour)
-					.setFields(
-						category.questions
-							.map(q => ({
-								name: q.label,
-								value: interaction.fields.getTextInputValue(q.id) || getMessage('ticket.answers.no_value'),
-							})),
-					),
-			);
-		} else if (topic) {
-			embeds.push(
-				new ExtendedEmbedBuilder()
-					.setColor(category.guild.primaryColour)
-					.setFields({
-						name: getMessage('ticket.opening_message.fields.topic'),
-						value: topic,
-					}),
-			);
-		}
-
-		if (category.guild.footer) {
-			embeds[embeds.length - 1].setFooter({
-				iconURL: guild.iconURL(),
-				text: category.guild.footer,
-			});
-		}
-
-		const components = new ActionRowBuilder();
-
-		if (topic || answers) {
-			components.addComponents(
-				new ButtonBuilder()
-					.setCustomId(JSON.stringify({ action: 'edit' }))
-					.setStyle(ButtonStyle.Secondary)
-					.setEmoji(getMessage('buttons.edit.emoji'))
-					.setLabel(getMessage('buttons.edit.text')),
-			);
-		}
-
-		// Must match the condition used when the row is rebuilt in claim() and
-		// release(), both of which test `guild.claimButton && category.claiming`.
-		// Dropping the claimButton half here meant that with claiming enabled but
-		// the button disabled, users saw a Claim button whose rebuilt row then
-		// contained no Unclaim button — leaving /release as the only way out.
-		if (category.guild.claimButton && category.claiming) {
-			components.addComponents(
-				new ButtonBuilder()
-					.setCustomId(JSON.stringify({ action: 'claim' }))
-					.setStyle(ButtonStyle.Secondary)
-					.setEmoji(getMessage('buttons.claim.emoji'))
-					.setLabel(getMessage('buttons.claim.text')),
-			);
-		}
-
-		if (category.guild.closeButton) {
-			components.addComponents(
-				new ButtonBuilder()
-					.setCustomId(JSON.stringify({ action: 'close' }))
-					.setStyle(ButtonStyle.Danger)
-					.setEmoji(getMessage('buttons.close.emoji'))
-					.setLabel(getMessage('buttons.close.text')),
-			);
-		}
-
-		if (category.guild.closeReasonButton) {
-			components.addComponents(
-				new ButtonBuilder()
-					.setCustomId(JSON.stringify({ action: 'close-reason' }))
-					.setStyle(ButtonStyle.Secondary)
-					.setEmoji('📝')
-					.setLabel('Close with Reason'),
-			);
-		}
-
-		const pings = category.pingRoles.map(r => `<@&${r}>`).join(' ');
-		const openingMessageData = {
-			components: components.components.length >= 1 ? [components] : [],
-			content: getMessage('ticket.opening_message.content', {
-				creator: interaction.user.toString(),
-				staff: pings ? pings + ',' : '',
-			}),
-			embeds,
-		};
+		// The whole message — ping line, body, answers, controls — comes from the
+		// category's block layout. A Components v2 message cannot carry `content`
+		// or `embeds` at all, so the role pings that used to live in `content` are
+		// a text component now, and `allowedMentions` has to be explicit or they
+		// would not notify anyone.
+		const openingMessageData = buildOpeningMessage(this.client, {
+			answers: answers
+				? category.questions.map(q => ({
+					label: q.label,
+					value: interaction.fields.getTextInputValue(q.id) || getMessage('ticket.answers.no_value'),
+				}))
+				: null,
+			category,
+			creator,
+			creatorId: interaction.user.id,
+			guild,
+			number,
+			stats,
+			topic,
+		});
 
 		// For FORUM mode, the opening message is created in threads.create()
 		// For other modes, we send a new message
@@ -1075,43 +1013,11 @@ module.exports = class TicketManager {
 			where: { id: interaction.channel.id },
 		});
 
-		const openingMessage = await interaction.channel.messages.fetch(ticket.openingMessageId);
-
-		if (openingMessage && openingMessage.components.length !== 0) {
-			const components = new ActionRowBuilder();
-
-			if (ticket.topic || ticket._count.questionAnswers !== 0) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'edit' }))
-						.setStyle(ButtonStyle.Secondary)
-						.setEmoji(getMessage('buttons.edit.emoji'))
-						.setLabel(getMessage('buttons.edit.text')),
-				);
-			}
-
-			if (ticket.guild.claimButton && ticket.category.claiming) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'unclaim' }))
-						.setStyle(ButtonStyle.Secondary)
-						.setEmoji(getMessage('buttons.unclaim.emoji'))
-						.setLabel(getMessage('buttons.unclaim.text')),
-				);
-			}
-
-			if (ticket.guild.closeButton) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'close' }))
-						.setStyle(ButtonStyle.Danger)
-						.setEmoji(getMessage('buttons.close.emoji'))
-						.setLabel(getMessage('buttons.close.text')),
-				);
-			}
-
-			await openingMessage.edit({ components: [components] });
-		}
+		// Re-render the whole message rather than replacing its components with a
+		// bare action row: the old code dropped the "Close with Reason" button and,
+		// under Components v2, would have wiped the message body outright.
+		await rerenderOpeningMessage(this.client, interaction.channel, { claimed: true })
+			.catch(error => this.client.log.warn('Failed to update opening message after claim: %s', error.message));
 
 		await interaction.editReply({
 			embeds: [
@@ -1181,43 +1087,10 @@ module.exports = class TicketManager {
 			where: { id: interaction.channel.id },
 		});
 
-		const openingMessage = await interaction.channel.messages.fetch(ticket.openingMessageId);
-
-		if (openingMessage && openingMessage.components.length !== 0) {
-			const components = new ActionRowBuilder();
-
-			if (ticket.topic || ticket._count.questionAnswers !== 0) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'edit' }))
-						.setStyle(ButtonStyle.Secondary)
-						.setEmoji(getMessage('buttons.edit.emoji'))
-						.setLabel(getMessage('buttons.edit.text')),
-				);
-			}
-
-			if (ticket.guild.claimButton && ticket.category.claiming) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'claim' }))
-						.setStyle(ButtonStyle.Secondary)
-						.setEmoji(getMessage('buttons.claim.emoji'))
-						.setLabel(getMessage('buttons.claim.text')),
-				);
-			}
-
-			if (ticket.guild.closeButton) {
-				components.addComponents(
-					new ButtonBuilder()
-						.setCustomId(JSON.stringify({ action: 'close' }))
-						.setStyle(ButtonStyle.Danger)
-						.setEmoji(getMessage('buttons.close.emoji'))
-						.setLabel(getMessage('buttons.close.text')),
-				);
-			}
-
-			await openingMessage.edit({ components: [components] });
-		}
+		// See the equivalent call in claim(): re-render the whole message, not
+		// just the button row.
+		await rerenderOpeningMessage(this.client, interaction.channel, { claimed: false })
+			.catch(error => this.client.log.warn('Failed to update opening message after release: %s', error.message));
 
 		await interaction.editReply({
 			embeds: [

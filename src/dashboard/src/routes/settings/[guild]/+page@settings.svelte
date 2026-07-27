@@ -14,7 +14,11 @@
 
 	const problemSnippets = {
 		botPublic,
-		logChannelMissingPermission
+		logChannelMissingPermission,
+		panelChannelMissing,
+		panelChannelMissingPermission,
+		panelNotPosted,
+		panelOrphanedCategories
 	};
 
 	const formatter = new Intl.NumberFormat();
@@ -32,6 +36,28 @@
 
 {#snippet logChannelMissingPermission(p)}
 	Please give the bot <span class="font-mono">{p.permission}</span> permission in the log channel.
+{/snippet}
+
+{#snippet panelNotPosted(p)}
+	The panel <span class="font-semibold">{p.panel}</span> is not posted in Discord — its message was
+	deleted.
+	<a class="underline" href={guild.id + '/panels'}>Re-send it</a>.
+{/snippet}
+
+{#snippet panelChannelMissing(p)}
+	The channel for the panel <span class="font-semibold">{p.panel}</span> has been deleted.
+	<a class="underline" href={guild.id + '/panels/' + p.panelId}>Choose a new channel</a>.
+{/snippet}
+
+{#snippet panelChannelMissingPermission(p)}
+	Please give the bot <span class="font-mono">{p.permission}</span> permission in the channel used by
+	the panel <span class="font-semibold">{p.panel}</span>.
+{/snippet}
+
+{#snippet panelOrphanedCategories(p)}
+	The panel <span class="font-semibold">{p.panel}</span> refers to a category that no longer exists;
+	those buttons will not appear.
+	<a class="underline" href={guild.id + '/panels/' + p.panelId}>Edit the panel</a>.
 {/snippet}
 
 <div class="grid grid-cols-1 gap-12 md:grid-cols-2">

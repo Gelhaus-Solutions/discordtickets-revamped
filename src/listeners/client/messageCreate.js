@@ -15,7 +15,7 @@ const {
 } = require('../../lib/users');
 const temporal = require('../../lib/temporal');
 const ms = require('ms');
-const emoji = require('node-emoji');
+const { resolveEmoji } = require('../../lib/emoji');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -60,13 +60,15 @@ module.exports = class extends Listener {
 								}))
 								.setPlaceholder(getMessage('menus.category.placeholder'))
 								.setOptions(
-									settings.categories.map(category =>
-										new StringSelectMenuOptionBuilder()
+									settings.categories.map(category => {
+										const option = new StringSelectMenuOptionBuilder()
 											.setValue(String(category.id))
 											.setLabel(category.name)
-											.setDescription(category.description)
-											.setEmoji(emoji.hasEmoji(category.emoji) ? emoji.get(category.emoji) : { id: category.emoji }),
-									),
+											.setDescription(category.description);
+										const categoryEmoji = resolveEmoji(category.emoji);
+										if (categoryEmoji) option.setEmoji(categoryEmoji);
+										return option;
+									}),
 								),
 						),
 				],

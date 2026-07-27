@@ -14,6 +14,14 @@ module.exports = class extends Listener {
 		/** @type {import("client")} */
 		const client = this.client;
 
+		// Panels in a deleted channel keep their rows — the layout is worth
+		// preserving — but lose their message id, so the dashboard reports them
+		// as needing a new channel rather than silently pointing at nothing.
+		await client.prisma.panel.updateMany({
+			data: { messageId: null },
+			where: { channelId: channel.id },
+		}).catch(() => null);
+
 		const ticket = await client.prisma.ticket.findUnique({
 			include: { guild: true },
 			where: { id: channel.id },

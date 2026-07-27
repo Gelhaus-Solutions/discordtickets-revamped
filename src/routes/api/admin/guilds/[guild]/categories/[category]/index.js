@@ -1,5 +1,9 @@
 const { logAdminEvent } = require('../../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../../lib/users');
+const {
+	LayoutError,
+	validateLayout,
+} = require('../../../../../../../lib/components-v2');
 const { ApplicationCommandPermissionType } = require('discord.js');
 
 module.exports.delete = fastify => ({
@@ -90,6 +94,7 @@ module.exports.patch = fastify => ({
 			id: true,
 			image: true,
 			memberLimit: true,
+			messageLayout: true,
 			name: true,
 			openingMessage: true,
 			pingRoles: true,
@@ -126,6 +131,27 @@ module.exports.patch = fastify => ({
 		if (Object.prototype.hasOwnProperty.call(data, 'id')) delete data.id;
 		if (Object.prototype.hasOwnProperty.call(data, 'createdAt')) delete data.createdAt;
 		if (Object.prototype.hasOwnProperty.call(data, 'guildId')) delete data.guildId;
+
+		// A malformed opening-message layout must be rejected here: stored, it
+		// would break ticket creation for the whole category, and the failure
+		// would surface to members rather than to the admin who caused it.
+		if (data.messageLayout !== undefined && data.messageLayout !== null) {
+			try {
+				validateLayout(data.messageLayout, { kind: 'opening' });
+			} catch (error) {
+				if (error instanceof LayoutError) {
+					return res.code(400).send({
+						code: 'invalid_layout',
+						errors: error.errors.map(e => ({
+							message: e.path ? `${e.path}: ${e.message}` : e.message,
+							type: e.code,
+						})),
+						statusCode: 400,
+					});
+				}
+				throw error;
+			}
+		}
 
 		// For THREAD and FORUM modes, don't send totalLimit (it's not applicable)
 		if (data.channelMode === 'THREAD' || data.channelMode === 'FORUM') {
