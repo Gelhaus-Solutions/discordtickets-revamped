@@ -14,8 +14,34 @@
 
 	loadBtn.addEventListener('click', () => loadAll(guildInput.value.trim()));
 
+	// This page is served straight from Fastify, outside the SvelteKit app that
+	// owns the login flow, so nothing here has ever sent the user through
+	// OAuth. Without a `token` cookie every /api/admin call comes back 401 and
+	// each panel just sat on "Loading...". Bounce to the login route instead,
+	// asking for the admin scopes the /api/admin endpoints require.
+	let redirecting = false;
+	function login() {
+		if (redirecting) return;
+		redirecting = true;
+		const r = encodeURIComponent(location.pathname + location.search);
+		location.href = `/auth/login?r=${r}&role=admin`;
+	}
+
 	async function api(path) {
 		const res = await fetch(path, { credentials: 'same-origin' });
+		if (res.status === 401) {
+			// `retried` guards against a redirect loop when login succeeds but the
+			// token still isn't accepted — show the error rather than bouncing
+			// between here and Discord forever.
+			if (!sessionStorage.getItem('dashboard-auth-retried')) {
+				sessionStorage.setItem('dashboard-auth-retried', '1');
+				login();
+				throw new Error('Not authenticated — redirecting to login...');
+			}
+			throw new Error('Not authenticated. Sign in with an account that can manage this guild.');
+		}
+		sessionStorage.removeItem('dashboard-auth-retried');
+		if (res.status === 403) throw new Error('You are not an administrator of this guild.');
 		if (!res.ok) throw new Error(await res.text());
 		return res.json();
 	}

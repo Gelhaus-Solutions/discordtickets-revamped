@@ -43,8 +43,23 @@ export async function load({
 			httpOnly: false,
 		});
 	}
+	// A reverse proxy sitting between us and our own API answers with an HTML
+	// error page rather than JSON when the loopback is misconfigured. Parsing
+	// that blindly threw `Unexpected token '<'` out of the root layout, which
+	// 500s *every* page including /login — leaving no way to sign in. Degrade to
+	// an empty object instead (pages read `client.username`, `client.public` and
+	// friends unguarded, so `null` would only move the crash) and let the page
+	// render.
+	const clientResponse = await fetch('/api/client', { credentials: 'include' });
+	let clientInfo = {};
+	if (clientResponse.headers.get('Content-Type')?.includes('json')) {
+		clientInfo = await clientResponse.json();
+	} else {
+		console.error(`GET /api/client returned ${clientResponse.status} ${clientResponse.headers.get('Content-Type')} instead of JSON — check HTTP_INTERNAL/HTTP_EXTERNAL`);
+	}
+
 	return {
-		client: await (await fetch('/api/client', { credentials: 'include' })).json(),
+		client: clientInfo,
 		locale,
 		theme: cookies.get('theme'),
 		user: body,
