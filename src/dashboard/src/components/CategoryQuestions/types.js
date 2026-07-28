@@ -121,11 +121,20 @@ export const CHANNEL_TYPES = [
 	{ value: 15, label: 'Forum' },
 ];
 
-/** A question's `config`, always an object so the editors can bind into it. */
+/**
+ * A question's `config`, always an object so the editors can read from it.
+ *
+ * Pure on purpose. Every editor calls this from a `$derived`, and Svelte 5
+ * throws `state_unsafe_mutation` if a derived writes to state — which is what
+ * happened for every question created before the migration that added the
+ * column, since those rows have `config = null`. The editors all write back
+ * with `question.config = { ...config, ... }`, so nothing needs a live
+ * reference to the stored object.
+ */
 export function configOf(question) {
-	if (!question.config || typeof question.config !== 'object')
-		question.config = {};
-	return question.config;
+	const { config } = question;
+	if (!config || typeof config !== 'object') return {};
+	return config;
 }
 
 /**
