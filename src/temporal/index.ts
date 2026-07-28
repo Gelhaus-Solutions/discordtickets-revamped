@@ -15,7 +15,11 @@ export {
 	stopWorker,
 } from './worker';
 export { ensureSchedules } from './schedules';
-export { ensureSearchAttributes, searchAttributesRegistered } from './search-attributes';
+export {
+	ensureSearchAttributes,
+	searchAttributesRegistered,
+	stopSearchAttributeRetries,
+} from './search-attributes';
 export type { ActivityDeps } from './activities';
 export * from './gateway';
 export * from './types';

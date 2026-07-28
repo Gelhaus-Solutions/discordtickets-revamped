@@ -54,8 +54,11 @@ module.exports = class extends Listener {
 			// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
 			// before sync() starts workflows, so those starts are tagged. Non-fatal:
 			// when registration fails, starts simply omit the attributes.
-			const saOk = await temporal.ensureSearchAttributes();
-			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged');
+			// The logger is passed in so the *reason* is reported: this used to
+			// swallow the error and warn with no cause attached, which made the
+			// failure impossible to diagnose from the logs.
+			const saOk = await temporal.ensureSearchAttributes(client.log);
+			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged (retrying in the background)');
 			client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
 			temporalReady = true;
 		} catch (error) {

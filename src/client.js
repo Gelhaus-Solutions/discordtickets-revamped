@@ -144,6 +144,7 @@ module.exports = class Client extends FrameworkClient {
 
 	async destroy() {
 		try {
+			temporal.stopSearchAttributeRetries();
 			await temporal.stopWorker();
 			await temporal.closeTemporalClient();
 		} catch (error) {
