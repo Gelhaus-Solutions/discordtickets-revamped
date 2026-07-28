@@ -57,6 +57,7 @@
 	"engines": {
 		"node": ">=20"
 	},
+	"overrides": { "discord.js": "^14.27.0" },
 	"dependencies": {
 		"@eartharoid/dbf": "^0.4.2",
 		"@eartharoid/dtf": "^2.0.1",
