@@ -34,6 +34,7 @@ const ALLOWED_SETTINGS_FIELDS = new Set([
 	'claimButton',
 	'closeButton',
 	'closeReasonButton',
+	'disableDMs',
 	'errorColour',
 	'footer',
 	'locale',

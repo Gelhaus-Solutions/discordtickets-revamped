@@ -277,6 +277,9 @@ commands:
       name: topic
     transcript:
       description: Get the transcript of a ticket
+      dms_disabled:
+        description: This server has disabled direct messages, so transcripts can only be downloaded from within the server.
+        title: ❌ Error
       name: transcript
       not_staff:
         description: Only staff members can read the transcripts of others' tickets.

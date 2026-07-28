@@ -157,20 +157,27 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 
 		if (!ticket) throw new Error(`Ticket ${ticketId} does not exist`);
 
+		// `interaction.guild` is null in DMs — this command is reachable there via
+		// the transcript button on the closure DM (`src/buttons/transcript.js`),
+		// and `shouldAllowAccess` deliberately returns false for a non-creator
+		// outside the guild, so both branches below have to source the locale and
+		// icon from the ticket's guild rather than the interaction's.
+		const getMessage = client.i18n.getLocale(ticket.guild.locale);
+		const errorEmbed = key => new ExtendedEmbedBuilder({
+			iconURL: client.guilds.cache.get(ticket.guildId)?.iconURL(),
+			text: ticket.guild.footer,
+		})
+			.setColor(ticket.guild.errorColour)
+			.setTitle(getMessage(`commands.slash.transcript.${key}.title`))
+			.setDescription(getMessage(`commands.slash.transcript.${key}.description`));
+
+		// The server has switched DMs off, so transcripts must not leave it either.
+		if (!interaction.guildId && ticket.guild.disableDMs) {
+			return await interaction.editReply({ embeds: [errorEmbed('dms_disabled')] });
+		}
+
 		if (!this.shouldAllowAccess(interaction, ticket)) {
-			const settings = await client.prisma.guild.findUnique({ where: { id: interaction.guild.id } });
-			const getMessage = client.i18n.getLocale(settings.locale);
-			return await interaction.editReply({
-				embeds: [
-					new ExtendedEmbedBuilder({
-						iconURL: interaction.guild.iconURL(),
-						text: ticket.guild.footer,
-					})
-						.setColor(ticket.guild.errorColour)
-						.setTitle(getMessage('commands.slash.transcript.not_staff.title'))
-						.setDescription(getMessage('commands.slash.transcript.not_staff.description')),
-				],
-			});
+			return await interaction.editReply({ embeds: [errorEmbed('not_staff')] });
 		}
 
 		const {

@@ -135,6 +135,7 @@ model Guild {
     closeButton        Boolean    @default(false)
     closeReasonButton  Boolean    @default(false)
     createdAt          DateTime   @default(now())
+    disableDMs         Boolean    @default(false)
     errorColour        String     @default("Red")
     feedback           Feedback[]
     footer             String?    @default("Discord Tickets by eartharoid")

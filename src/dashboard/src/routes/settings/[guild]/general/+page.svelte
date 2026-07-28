@@ -250,6 +250,22 @@
 				</div>
 			</div>
 			<div>
+				<label for="disableDMs" class="font-medium">
+					Disable DMs
+					<i
+						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+						title="Stop the bot from sending DMs to members, and from responding to DMs, for this server?"
+					></i>
+					<input
+						type="checkbox"
+						id="disableDMs"
+						name="disableDMs"
+						class="form-checkbox"
+						bind:checked={settings.disableDMs}
+					/>
+				</label>
+			</div>
+			<div>
 				<label class="font-medium">
 					Error colour
 					<i

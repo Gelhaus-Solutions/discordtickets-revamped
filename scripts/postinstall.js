@@ -112,6 +112,7 @@ const MIGRATION_PROBES = {
 			['guilds', 'closeReasonButton'],
 		],
 	},
+	disable_dms: { columns: [['guilds', 'disableDMs']] },
 	features: { columns: [['categories', 'autoAssign']] },
 	// Both objects must be listed: a run that created `panels` but died before
 	// adding categories.messageLayout has to be re-run, not skipped.

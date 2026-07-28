@@ -2034,16 +2034,21 @@ module.exports = class TicketManager {
 		if (ticket.closedById) dmEmbed.addFields(fields.closedById);
 		if (reason) dmEmbed.addFields(fields.reason);
 
-		try {
-			const creator = guild.members.cache.get(ticket.createdById);
-			if (creator) {
-				await creator.send({
-					components: dmComponents,
-					embeds: [dmEmbed],
-				});
+		// `ticket` was reassigned from the update() above, so `ticket.guild` is
+		// straight from the database — not the 3-minute getTicket cache — and the
+		// setting takes effect on the next close.
+		if (!ticket.guild.disableDMs) {
+			try {
+				const creator = guild.members.cache.get(ticket.createdById);
+				if (creator) {
+					await creator.send({
+						components: dmComponents,
+						embeds: [dmEmbed],
+					});
+				}
+			} catch (error) {
+				this.client.log.error(error);
 			}
-		} catch (error) {
-			this.client.log.error(error);
 		}
 
 		const fieldsArray = [];

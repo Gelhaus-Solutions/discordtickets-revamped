@@ -31,6 +31,15 @@ module.exports = class extends Listener {
 	 * @param {import("discord.js").ButtonInteraction|import("discord.js").SelectMenuInteraction} interaction
 	 */
 	async useGuild(settings, interaction, topic) {
+		// Both entry points wait up to 30 seconds for the user to press a button
+		// or pick a server, so DMs may have been disabled since the prompt was
+		// sent. Acknowledge silently and clean the prompt up, as the timeout
+		// handlers do.
+		if (settings.disableDMs) {
+			await interaction.deferUpdate().catch(() => null);
+			await interaction.message.delete().catch(() => null);
+			return;
+		}
 		const getMessage = this.client.i18n.getLocale(settings.locale);
 		if (settings.categories.length === 0) {
 			interaction.update({
@@ -98,13 +107,30 @@ module.exports = class extends Listener {
 
 		if (message.channel.type === ChannelType.DM) {
 			if (message.author.bot) return false;
-			const commonGuilds = await getCommonGuilds(client, message.author.id);
+			let commonGuilds = await getCommonGuilds(client, message.author.id);
+			// Servers with DMs disabled are invisible to this flow: if it was the
+			// user's only common server the listener falls into the silent
+			// `size === 0` return below, and otherwise it simply isn't offered in
+			// the guild picker.
+			if (commonGuilds.size > 0) {
+				const disabled = new Set(
+					(await client.prisma.guild.findMany({
+						select: { id: true },
+						where: {
+							disableDMs: true,
+							id: { in: commonGuilds.map(guild => guild.id) },
+						},
+					})).map(guild => guild.id),
+				);
+				if (disabled.size > 0) commonGuilds = commonGuilds.filter(guild => !disabled.has(guild.id));
+			}
 			if (commonGuilds.size === 0) {
 				return false;
 			} else if (commonGuilds.size === 1) {
 				const settings = await client.prisma.guild.findUnique({
 					select: {
 						categories: true,
+						disableDMs: true,
 						errorColour: true,
 						locale: true,
 						primaryColour: true,
@@ -169,6 +195,7 @@ module.exports = class extends Listener {
 						const settings = await client.prisma.guild.findUnique({
 							select: {
 								categories: true,
+								disableDMs: true,
 								errorColour: true,
 								locale: true,
 								primaryColour: true,
