@@ -137,7 +137,7 @@ model Guild {
     disableDMs         Boolean    @default(false)
     errorColour        String     @default("Red")
     feedback           Feedback[]
-    footer             String?    @default("Discord Tickets by eartharoid")
+    footer             String?    @default("Discord Tickets by eartharoid™ & egelhaus™")
     id                 String     @id @db.VarChar(19)
     locale             String     @default("en-GB")
     logChannel         String?    @db.VarChar(19)

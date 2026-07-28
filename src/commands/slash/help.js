@@ -71,7 +71,7 @@ module.exports = class ClaimSlashCommand extends SlashCommand {
 					.setColor(settings.primaryColour)
 					.setTitle(getMessage('commands.slash.help.title'))
 					.setDescription(staff
-						? `**Discord Tickets v${version} by eartharoid.**`
+						? `**Discord Tickets v${version} by eartharoid™ & egelhaus™.**`
 						: getMessage('commands.slash.help.response.description', { command: `</${newCommand.name}:${newCommand.id}>` }))
 					.setFields(fields),
 			],

@@ -993,7 +993,7 @@ function buildHtml({
 		${feedbackHtml}
 		${messagesHtml}
 		<footer class="transcript-footer">
-			<p>Generated on ${formatDate(new Date())} &bull; ${escapeHtml(guild?.footer || 'Discord Tickets by eartharoid')}</p>
+			<p>Generated on ${formatDate(new Date())} &bull; ${escapeHtml(guild?.footer || 'Discord Tickets by eartharoid™ & egelhaus™')}</p>
 		</footer>
 	</main>
 </body>
