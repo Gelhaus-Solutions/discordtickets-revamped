@@ -42,7 +42,7 @@
 		{
 			icon: 'fa-solid fa-comments',
 			name: 'Feedback',
-			url: 'https://lnk.earth/dsctickets-feedback'
+			url: 'https://github.com/Gelhaus-Solutions/discordtickets-revamped/issues'
 		}
 	];
 </script>
@@ -134,6 +134,14 @@
 								class="cursor-pointer transition duration-300 hover:text-blurple dark:hover:text-blurple"
 								>eartharoid&trade;</a
 							>
+							&amp;
+							<a
+								href="https://ennogelhaus.de"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="cursor-pointer transition duration-300 hover:text-blurple dark:hover:text-blurple"
+								>egelhaus&trade;</a
+							>
 						</p>
 						<p>
 							&copy;
@@ -143,6 +151,17 @@
 								target="_blank"
 								class="cursor-pointer transition duration-300 hover:text-blurple dark:hover:text-blurple"
 								>Isaac Saunders</a
+							>
+						</p>
+						<p>
+							&copy;
+							2026
+							<a
+								href="https://ennogelhaus.de"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="cursor-pointer transition duration-300 hover:text-blurple dark:hover:text-blurple"
+								>Enno Gelhaus</a
 							>
 						</p>
 						<!-- <p class="my-4">
