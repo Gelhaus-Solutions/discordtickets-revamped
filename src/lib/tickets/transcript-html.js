@@ -3,6 +3,7 @@
 const ms = require('ms');
 const path = require('path');
 const fs = require('fs');
+const { formatAnswer } = require('./questions');
 
 // Lazy-loaded: pools is only available inside the full bot process.
 // The migration script uses buildHtml directly without the worker pool.
@@ -64,8 +65,16 @@ function discordMarkdownToHtml(text) {
 	html = html.replace(/&lt;#(\d+)&gt;/g, '<span class="mention">#$1</span>');
 	// Line breaks
 	html = html.replace(/\n/g, '<br>');
-	// URLs
-	html = html.replace(/(https?:\/\/[^\s<>"]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+	// Links. Markdown links and bare URLs are matched in one pass on purpose: run
+	// separately, whichever went second would find the URL the first had already
+	// wrapped in an anchor and nest a second one inside it. Markdown links are how
+	// file-upload answers are rendered.
+	html = html.replace(
+		/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s<>"]+)/g,
+		(match, text, url, bare) => (bare
+			? `<a href="${bare}" target="_blank" rel="noopener noreferrer">${bare}</a>`
+			: `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`),
+	);
 
 	return html;
 }
@@ -826,10 +835,15 @@ function buildHtml({
 		const answerItems = questionAnswers.map(a => {
 			const q = qMap[a.questionId];
 			const label = q?.label || a.questionId;
-			const val = decrypted.answers?.[a.id] || a.value || '—';
+			const stored = decrypted.answers?.[a.id] || a.value || '';
+			// Non-text answers are stored as JSON (option values, snowflakes, upload
+			// URLs), so they go through the same formatter the ticket message uses.
+			// The result is Discord markdown — mentions and upload links included —
+			// which is what `discordMarkdownToHtml` renders, not raw text.
+			const val = q ? formatAnswer(q, stored) : stored;
 			return `<div class="answer-item">
 				<div class="answer-label">${escapeHtml(label)}</div>
-				<div class="answer-value">${escapeHtml(val)}</div>
+				<div class="answer-value">${val ? discordMarkdownToHtml(val) : '—'}</div>
 			</div>`;
 		}).join('');
 		answersHtml = `<div class="answers-panel"><h2>📋 Ticket Questions</h2>${answerItems}</div>`;

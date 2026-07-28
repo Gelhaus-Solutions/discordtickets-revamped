@@ -2,12 +2,13 @@ const { Button } = require('@eartharoid/dbf');
 const {
 	ActionRowBuilder,
 	ModalBuilder,
-	StringSelectMenuBuilder,
-	StringSelectMenuOptionBuilder,
 	TextInputBuilder,
 	TextInputStyle,
 } = require('discord.js');
-const { resolveEmoji } = require('../lib/emoji');
+const {
+	buildQuestionComponents,
+	isAnswerable,
+} = require('../lib/tickets/questions');
 const { pools } = require('../lib/threads');
 
 const { crypto } = pools;
@@ -59,6 +60,20 @@ module.exports = class EditButton extends Button {
 					),
 			);
 		} else {
+			// Components are keyed by *answer* id here, not question id, so the
+			// questions modal knows which row each submitted value updates. The
+			// prefill map stays keyed by question id, which is what the builder
+			// looks values up by.
+			const answers = ticket.questionAnswers
+				.filter(answer => answer.question && isAnswerable(answer.question))
+				.sort((a, b) => a.question.order - b.question.order);
+			const answerIds = new Map(answers.map(answer => [answer.question.id, answer.id]));
+			const prefill = new Map(
+				await Promise.all(answers.map(async answer => [
+					answer.question.id,
+					answer.value ? await crypto.queue(w => w.decrypt(answer.value)) : '',
+				])),
+			);
 			await interaction.showModal(
 				new ModalBuilder()
 					.setCustomId(JSON.stringify({
@@ -67,47 +82,10 @@ module.exports = class EditButton extends Button {
 					}))
 					.setTitle(ticket.category.name)
 					.setComponents(
-						await Promise.all(
-							ticket.questionAnswers
-								.filter(a => a.question.type === 'TEXT') // TODO: remove this when modals support select menus
-								.map(async a => {
-									if (a.question.type === 'TEXT') {
-										const field = new TextInputBuilder()
-											.setCustomId(String(a.id))
-											.setLabel(a.question.label)
-											.setStyle(a.question.style)
-											.setMaxLength(Math.min(a.question.maxLength, 1000))
-											.setMinLength(a.question.minLength)
-											.setPlaceholder(a.question.placeholder)
-											.setRequired(a.question.required);
-										if (a.value) field.setValue(await crypto.queue(w => w.decrypt(a.value)));
-										else if (a.question.value) field.setValue(a.question.value);
-										return new ActionRowBuilder().setComponents(field);
-									} else if (a.question.type === 'MENU') {
-										return new ActionRowBuilder()
-											.setComponents(
-												new StringSelectMenuBuilder()
-													.setCustomId(a.question.id)
-													.setPlaceholder(a.question.placeholder || a.question.label)
-													.setMaxValues(a.question.maxLength)
-													.setMinValues(a.question.minLength)
-													.setOptions(
-														a.question.options.map((o, i) => {
-															const builder = new StringSelectMenuOptionBuilder()
-																.setValue(String(i))
-																.setLabel(o.label);
-															if (o.description) builder.setDescription(o.description);
-															if (o.emoji) {
-																const optionEmoji = resolveEmoji(o.emoji);
-																if (optionEmoji) builder.setEmoji(optionEmoji);
-															}
-															return builder;
-														}),
-													),
-											);
-									}
-								}),
-						),
+						buildQuestionComponents(answers.map(answer => answer.question), {
+							customIdFor: question => String(answerIds.get(question.id)),
+							prefill,
+						}),
 					),
 			);
 		}

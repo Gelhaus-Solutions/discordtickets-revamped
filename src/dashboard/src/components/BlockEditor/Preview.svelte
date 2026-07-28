@@ -1,6 +1,6 @@
 <script>
 	import { marked } from 'marked';
-	import emoji from 'emoji-name-map';
+	import { displayEmoji } from '$lib/emoji.js';
 	import { countComponents, countText, LIMITS } from './blocks.js';
 
 	/**
@@ -42,19 +42,17 @@
 	};
 
 	const categoryName = (id) => categories.find((c) => c.id === id)?.name ?? 'Unknown category';
-	const categoryEmoji = (id) => {
-		const raw = categories.find((c) => c.id === id)?.emoji;
-		if (!raw) return '';
-		return emoji.get(raw) ?? (/^\d{17,20}$/.test(raw) ? '' : raw);
-	};
+	const categoryEmoji = (id) => displayEmoji(categories.find((c) => c.id === id)?.emoji);
 
 	const buttonLabel = (button) =>
 		button.kind === 'link'
 			? button.label || 'Link'
 			: button.label || categoryName(button.categoryId);
 
+	// Mirrors `buildButton`: the button's own emoji wins, then the category's.
+	// Resolved rather than shown raw, or a shortcode would preview as its own text.
 	const buttonEmoji = (button) =>
-		button.emoji || (button.kind === 'ticket' ? categoryEmoji(button.categoryId) : '');
+		displayEmoji(button.emoji) || (button.kind === 'ticket' ? categoryEmoji(button.categoryId) : '');
 
 	const buttonClass = (button) => {
 		const style = button.style ?? (button.kind === 'link' ? 'secondary' : 'primary');

@@ -1,5 +1,5 @@
 <script>
-	import emoji from 'emoji-name-map';
+	import { displayEmoji } from '$lib/emoji.js';
 	import { browser } from '$app/environment';
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
@@ -46,7 +46,7 @@
 					<div class="flex items-center gap-4">
 						<span class="text-5xl">
 							{#if category.emoji}
-								{emoji.get(category.emoji) ?? ''}
+								{displayEmoji(category.emoji)}
 							{/if}
 						</span>
 						<div>

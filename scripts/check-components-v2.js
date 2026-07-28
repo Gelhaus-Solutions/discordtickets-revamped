@@ -149,15 +149,19 @@ t('custom_id is byte-identical to the legacy format', () => {
 	}));
 });
 
-t('multi-category buttons use category names + secondary style', () => {
+t('buttons use category names + emoji', () => {
 	const row = built.components[0].toJSON().components.find(c => c.type === 1);
 	assert.strictEqual(row.components[0].label, 'Support');
-	assert.strictEqual(row.components[0].style, 2);
+	assert.strictEqual(row.components[0].style, 1, 'primary');
 	assert.strictEqual(row.components[0].emoji.name, '❓');
 	assert.strictEqual(row.components[1].emoji.id, '123456789012345678');
 });
 
-t('single-category panel falls back to the generic create label', () => {
+// Regression: a panel referencing exactly one category used to ignore the
+// category's name, emoji and the dashboard's own preview, and post the generic
+// localised "🎫 Create a ticket" instead — with no way to override it short of
+// typing a label. The count of referenced categories no longer changes anything.
+t('a single-category panel still uses the category name and emoji', () => {
 	const one = {
 		blocks: [{
 			buttons: [{
@@ -174,8 +178,33 @@ t('single-category panel falls back to the generic create label', () => {
 		kind: 'panel',
 	});
 	const row = out.components[0].toJSON();
-	assert.strictEqual(row.components[0].label, 'Create a ticket');
+	assert.strictEqual(row.components[0].label, 'Support');
+	assert.strictEqual(row.components[0].emoji.name, '❓');
 	assert.strictEqual(row.components[0].style, 1, 'primary');
+});
+
+t('an explicit label, emoji and style still win over the category', () => {
+	const one = {
+		blocks: [{
+			buttons: [{
+				categoryId: 1,
+				emoji: '🔥',
+				kind: 'ticket',
+				label: 'Ask for help',
+				style: 'danger',
+			}],
+			id: 'x',
+			type: 'buttons',
+		}],
+		version: 1,
+	};
+	const row = v2.buildMessage(one, {
+		...baseCtx,
+		kind: 'panel',
+	}).components[0].toJSON();
+	assert.strictEqual(row.components[0].label, 'Ask for help');
+	assert.strictEqual(row.components[0].emoji.name, '🔥');
+	assert.strictEqual(row.components[0].style, 4, 'danger');
 });
 
 console.log('\n== select menu ==');
@@ -540,8 +569,6 @@ t('junk is still rejected', () => {
 });
 
 t('a 💁 category emoji survives a real panel build', () => {
-	// Two categories, because a single-category panel deliberately falls back to
-	// the generic `buttons.create.*` label and emoji instead of the category's.
 	const cats = new Map([
 		[1, {
 			description: 'Get help',

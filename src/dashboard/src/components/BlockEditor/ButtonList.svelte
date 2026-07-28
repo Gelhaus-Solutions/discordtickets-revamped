@@ -1,5 +1,6 @@
 <script>
 	import { newButton, LIMITS } from './blocks.js';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 
 	/**
 	 * @typedef {Object} Props
@@ -67,16 +68,13 @@
 					/>
 				</label>
 
-				<label class="text-sm">
+				<div class="text-sm">
 					<span class="font-medium">Emoji</span>
-					<input
-						type="text"
-						class="input form-input text-sm"
-						placeholder={button.kind === 'ticket' ? "The category's emoji" : ''}
-						value={button.emoji ?? ''}
-						oninput={(e) => (button.emoji = e.currentTarget.value || null)}
+					<EmojiPicker
+						bind:value={button.emoji}
+						placeholder={button.kind === 'ticket' ? "The category's emoji" : 'None'}
 					/>
-				</label>
+				</div>
 
 				{#if button.kind === 'ticket'}
 					<label class="text-sm">

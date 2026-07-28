@@ -5,6 +5,11 @@ const {
 const ExtendedEmbedBuilder = require('../lib/embed');
 const { logTicketEvent } = require('../lib/logging');
 const { rerenderOpeningMessage } = require('../lib/tickets/opening-message');
+const {
+	formatAnswer,
+	isAnswerable,
+	readAnswers,
+} = require('../lib/tickets/questions');
 const { pools } = require('../lib/threads');
 const { cleanCodeBlockContent } = require('discord.js');
 
@@ -53,32 +58,56 @@ module.exports = class QuestionsModal extends Modal {
 				where: { id: interaction.channel.id },
 			});
 
+			// The modal is keyed by answer id, and only carries the answerable
+			// questions (a TEXT_DISPLAY block has no field to read back). Iterating
+			// the stored answers rather than `interaction.fields.fields` is what makes
+			// non-text types work: the old version assumed every field had a plain
+			// `.value`, which is only true of text inputs.
+			const answers = original.questionAnswers
+				.filter(answer => answer.question && isAnswerable(answer.question))
+				.sort((a, b) => a.question.order - b.question.order);
+			const answerIds = new Map(answers.map(answer => [answer.question.id, answer.id]));
+			const submitted = readAnswers(interaction, answers.map(answer => answer.question), { customIdFor: question => String(answerIds.get(question.id)) });
+
+			// Uploads have to be re-posted for the same reason they are on creation:
+			// the modal's attachment URLs expire.
+			await client.tickets.repostUploads(submitted, interaction.channel);
+
 			const plainTextAnswers = await Promise.all(
-				original.questionAnswers
-					.map(async answer => ({
-						after: interaction.fields.getTextInputValue(String(answer.id)),
-						before: answer.value ? await crypto.queue(w => w.decrypt(answer.value)) : '',
+				submitted.map(async (entry, i) => {
+					const answer = answers[i];
+					const before = answer.value ? await crypto.queue(w => w.decrypt(answer.value)) : '';
+					// Discord sends an empty upload field when the user leaves the
+					// existing files alone, which is indistinguishable from clearing
+					// them — so an empty submission keeps what was already there.
+					const after = entry.question.type === 'FILE_UPLOAD' && (!entry.value || entry.value === '[]')
+						? before
+						: entry.value;
+					return {
+						after,
+						before,
 						id: answer.id,
-						question: answer.question,
-					})),
+						question: entry.question,
+					};
+				}),
 			);
 
 			let topic;
 			if (category.customTopic) {
-				const customTopicAnswer = original.questionAnswers.find(a => a.question.id === category.customTopic);
+				const customTopicAnswer = plainTextAnswers.find(a => a.question.id === category.customTopic);
 				if (!customTopicAnswer) throw new Error('Custom topic answer not found');
-				topic = interaction.fields.getTextInputValue(String(customTopicAnswer.id));
+				// Only a text question can supply the topic; anything else stores JSON.
+				if (customTopicAnswer.question.type === 'TEXT') topic = customTopicAnswer.after;
 			}
 
 			const ticket = await client.prisma.ticket.update({
 				data: {
 					questionAnswers: {
 						update: await Promise.all(
-							interaction.fields.fields
-								.map(async f => ({
-									data: { value: f.value ? await crypto.queue(w => w.encrypt(f.value)) : '' },
-									where: { id: Number(f.customId) },
-								})),
+							plainTextAnswers.map(async answer => ({
+								data: { value: answer.after ? await crypto.queue(w => w.encrypt(answer.after)) : '' },
+								where: { id: answer.id },
+							})),
 						),
 					},
 					topic: topic ? await crypto.queue(w => w.encrypt(topic)) : null,
@@ -97,7 +126,7 @@ module.exports = class QuestionsModal extends Modal {
 			await rerenderOpeningMessage(client, interaction.channel, {
 				answers: plainTextAnswers.map(a => ({
 					label: a.question.label,
-					value: a.after || getMessage('ticket.answers.no_value'),
+					value: formatAnswer(a.question, a.after, { getMessage }),
 				})),
 				topic,
 			}).catch(error => client.log.warn('Failed to update opening message after answer edit: %s', error.message));
@@ -121,11 +150,15 @@ module.exports = class QuestionsModal extends Modal {
 			const inlineDiffEmbeds = [];
 
 			for (const answer of plainTextAnswers) {
-				diff.original[answer.question.label] = answer.before || getMessage('ticket.answers.no_value');
-				diff.updated[answer.question.label] = answer.after || getMessage('ticket.answers.no_value');
+				// The log and the diff show what a human chose, not the JSON the
+				// non-text types are stored as.
+				const before = formatAnswer(answer.question, answer.before, { getMessage });
+				const after = formatAnswer(answer.question, answer.after, { getMessage });
+				diff.original[answer.question.label] = before;
+				diff.updated[answer.question.label] = after;
 				if (answer.before !== answer.after) {
-					const from = answer.before ? answer.before.replace(/^/gm, '- ') + '\n' : '';
-					const to = answer.after ? answer.after.replace(/^/gm, '+ ') + '\n' : '';
+					const from = answer.before ? before.replace(/^/gm, '- ') + '\n' : '';
+					const to = answer.after ? after.replace(/^/gm, '+ ') + '\n' : '';
 					inlineDiffEmbeds.push(
 						new EmbedBuilder()
 							.setColor(ticket.guild.primaryColour)

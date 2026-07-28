@@ -20,7 +20,7 @@
 		"prestart": "node -e \"require('fs').existsSync('dist/temporal/index.js')||process.exit(1)\" || npm run temporal.build",
 		"start": "node .",
 		"studio": "npx prisma studio",
-		"test": "node scripts/check-i18n && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2",
+		"test": "node scripts/check-i18n && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2 && node scripts/check-questions",
 		"prepare": "husky install || exit 0"
 	},
 	"commitlint": {
@@ -79,6 +79,7 @@
 		"cryptr": "^6.3.0",
 		"discord.js": "^14.27.0",
 		"dotenv": "^16.4.7",
+		"emoji-name-map": "^1.2.9",
 		"fastify": "^5.3.2",
 		"figlet": "^1.8.0",
 		"fs-extra": "^10.1.0",

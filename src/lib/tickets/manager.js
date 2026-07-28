@@ -16,18 +16,20 @@ const {
 	ChannelType,
 	inlineCode,
 	ModalBuilder,
-	StringSelectMenuBuilder,
-	StringSelectMenuOptionBuilder,
 	TextInputBuilder,
 	TextInputStyle,
 	MessageFlags,
 } = require('discord.js');
-const { resolveEmoji } = require('../emoji');
 const {
 	buildOpeningMessage,
 	categoryNeedsStats,
 	rerenderOpeningMessage,
 } = require('./opening-message');
+const {
+	buildQuestionComponents,
+	formatAnswer,
+	readAnswers,
+} = require('./questions');
 const ms = require('ms');
 const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
@@ -352,46 +354,7 @@ module.exports = class TicketManager {
 						referencesTicketId,
 					}))
 					.setTitle(category.name)
-					.setComponents(
-						category.questions
-							.filter(q => q.type === 'TEXT') // TODO: remove this when modals support select menus
-							.map(q => {
-								if (q.type === 'TEXT') {
-									const field = new TextInputBuilder()
-										.setCustomId(q.id)
-										.setLabel(q.label)
-										.setStyle(q.style)
-										.setMaxLength(Math.min(q.maxLength, 1000))
-										.setMinLength(q.minLength)
-										.setPlaceholder(q.placeholder)
-										.setRequired(q.required);
-									if (q.value) field.setValue(q.value);
-									return new ActionRowBuilder().setComponents(field);
-								} else if (q.type === 'MENU') {
-									return new ActionRowBuilder()
-										.setComponents(
-											new StringSelectMenuBuilder()
-												.setCustomId(q.id)
-												.setPlaceholder(q.placeholder || q.label)
-												.setMaxValues(q.maxLength)
-												.setMinValues(q.minLength)
-												.setOptions(
-													q.options.map((o, i) => {
-														const builder = new StringSelectMenuOptionBuilder()
-															.setValue(String(i))
-															.setLabel(o.label);
-														if (o.description) builder.setDescription(o.description);
-														if (o.emoji) {
-															const optionEmoji = resolveEmoji(o.emoji);
-															if (optionEmoji) builder.setEmoji(optionEmoji);
-														}
-														return builder;
-													}),
-												),
-										);
-								}
-							}),
-					),
+					.setComponents(buildQuestionComponents(category.questions)),
 			);
 		} else if (category.requireTopic && !topic) {
 			await interaction.showModal(
@@ -429,6 +392,58 @@ module.exports = class TicketManager {
 	}
 
 	/**
+	 * Move modal uploads somewhere permanent.
+	 *
+	 * A file uploaded through a modal is served from an ephemeral CDN URL that
+	 * stops resolving within about a day, so storing it verbatim would leave a
+	 * dead link in the ticket, the export and the HTML transcript. Re-posting it
+	 * into the ticket channel gives it a message-attachment URL that lives as long
+	 * as the message does, and — because it is now an ordinary message — the
+	 * archiver picks it up with everything else.
+	 *
+	 * Best-effort: a guild that has revoked Attach Files, or a file over the
+	 * guild's upload limit, must not take the whole ticket down with it. The
+	 * original (expiring) URLs are kept in that case, which is still better than
+	 * nothing.
+	 *
+	 * Mutates `submitted` in place.
+	 *
+	 * @param {?{question: object, value: string, attachments: ?import('discord.js').Collection}[]} submitted
+	 * @param {import('discord.js').GuildTextBasedChannel} channel
+	 * @returns {Promise<boolean>} whether any answer's stored value changed
+	 */
+	async repostUploads(submitted, channel) {
+		if (!submitted) return false;
+		let changed = false;
+		for (const answer of submitted) {
+			const files = [...(answer.attachments?.values() ?? [])];
+			answer.attachments = null;
+			if (!files.length) continue;
+			try {
+				const posted = await channel.send({
+					content: `**${answer.question.label}**`,
+					files: files.map(file => ({
+						attachment: file.url,
+						description: file.description ?? undefined,
+						name: file.name,
+					})),
+				});
+				answer.value = JSON.stringify([...posted.attachments.values()].map(attachment => ({
+					name: attachment.name,
+					url: attachment.url,
+				})));
+				changed = true;
+			} catch (error) {
+				this.client.log.warn(
+					'Failed to re-post %d upload(s) for question %s in %s: %s',
+					files.length, answer.question.id, channel.id, error.message,
+				);
+			}
+		}
+		return changed;
+	}
+
+	/**
 	 * @param {object} data
 	 * @param {string} data.category
 	 * @param {import("discord.js").ButtonInteraction
@@ -444,21 +459,20 @@ module.exports = class TicketManager {
 			this.getCategory(categoryId),
 		]);
 
-		let answers;
+		// The submitted answers, decrypted and with the attachments (if any) still
+		// attached — they are re-posted into the ticket further down, once its
+		// channel exists, because Discord's modal attachment URLs expire.
+		/** @type {?{question: object, value: string, attachments: ?import('discord.js').Collection}[]} */
+		let submitted = null;
 		if (interaction.isModalSubmit()) {
 			if (action === 'questions') {
-				answers = await Promise.all(
-					category.questions
-						.filter(q => q.type === 'TEXT')
-						.map(async q => ({
-							questionId: q.id,
-							userId: interaction.user.id,
-							value: interaction.fields.getTextInputValue(q.id)
-								? await crypto.queue(w => w.encrypt(interaction.fields.getTextInputValue(q.id)))
-								: '', // TODO: maybe this should be null?
-						})),
-				);
-				if (category.customTopic) topic = interaction.fields.getTextInputValue(category.customTopic);
+				submitted = readAnswers(interaction, category.questions);
+				if (category.customTopic) {
+					// Only a text question can be the topic: everything else stores JSON,
+					// and a channel topic of `["123"]` helps nobody.
+					const custom = submitted.find(a => a.question.id === category.customTopic && a.question.type === 'TEXT');
+					if (custom) topic = custom.value;
+				}
 			} else if (action === 'topic') {
 				topic = interaction.fields.getTextInputValue('topic');
 			}
@@ -606,11 +620,16 @@ module.exports = class TicketManager {
 		// or `embeds` at all, so the role pings that used to live in `content` are
 		// a text component now, and `allowedMentions` has to be explicit or they
 		// would not notify anyone.
-		const openingMessageData = buildOpeningMessage(this.client, {
-			answers: answers
-				? category.questions.map(q => ({
-					label: q.label,
-					value: interaction.fields.getTextInputValue(q.id) || getMessage('ticket.answers.no_value'),
+		//
+		// Rendered from `submitted` rather than re-read from the interaction: the
+		// previous version called `getTextInputValue()` on every question, including
+		// the non-TEXT ones the answer list above deliberately skipped, so a single
+		// select or checkbox would have thrown here.
+		const renderOpeningMessage = () => buildOpeningMessage(this.client, {
+			answers: submitted
+				? submitted.map(a => ({
+					label: a.question.label,
+					value: formatAnswer(a.question, a.value, { getMessage }),
 				}))
 				: null,
 			category,
@@ -621,6 +640,7 @@ module.exports = class TicketManager {
 			stats,
 			topic,
 		});
+		const openingMessageData = renderOpeningMessage();
 
 		// For FORUM mode, the opening message is created in threads.create()
 		// For other modes, we send a new message
@@ -640,6 +660,15 @@ module.exports = class TicketManager {
 		} else {
 			// CHANNEL and THREAD modes: send a new message with embeds and components
 			sent = await channel.send(openingMessageData);
+		}
+
+		// Files uploaded through the modal live on an ephemeral CDN URL that expires
+		// within a day, so anything stored as-is would be a dead link by the time
+		// anyone read the transcript. Re-posting them into the ticket gives them a
+		// permanent URL *and* puts them where the archiver will capture them.
+		if (await this.repostUploads(submitted, channel)) {
+			await sent.edit(renderOpeningMessage()).catch(error =>
+				this.client.log.warn('Failed to update opening message with re-posted uploads: %s', error.message));
 		}
 
 		sent.pin({ reason: 'Ticket opening message' })
@@ -766,7 +795,17 @@ module.exports = class TicketManager {
 			topic: topic ? await crypto.queue(w => w.encrypt(topic)) : null,
 		};
 		if (referencesTicketId) data.referencesTicket = { connect: { id: referencesTicketId } };
-		if (answers) data.questionAnswers = { createMany: { data: answers } };
+		if (submitted) {
+			data.questionAnswers = {
+				createMany: {
+					data: await Promise.all(submitted.map(async a => ({
+						questionId: a.question.id,
+						userId: interaction.user.id,
+						value: a.value ? await crypto.queue(w => w.encrypt(a.value)) : '',
+					}))),
+				},
+			};
+		}
 
 		await interaction.editReply({
 			components: [],

@@ -1,17 +1,34 @@
 <script>
-	import { run } from 'svelte/legacy';
-
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import Sortable from 'sortablejs';
 	import TextQuestion from './TextQuestion.svelte';
 	import MenuQuestion from './MenuQuestion.svelte';
+	import ChoiceQuestion from './ChoiceQuestion.svelte';
+	import CheckboxQuestion from './CheckboxQuestion.svelte';
+	import EntityQuestion from './EntityQuestion.svelte';
+	import UploadQuestion from './UploadQuestion.svelte';
+	import TextDisplayQuestion from './TextDisplayQuestion.svelte';
 	import Required from '../Required.svelte';
 	import { questionsState as qS } from '../state.svelte.js';
+	import { QUESTION_TYPES, applyTypeDefaults, kindOf } from './types.js';
 
 	let loading = $state({});
 	let expanded = $state(null);
 	let list = $state();
+
+	/** One editor per kind — several types share one (all four entity pickers). */
+	const EDITORS = {
+		checkbox: CheckboxQuestion,
+		choice: ChoiceQuestion,
+		display: TextDisplayQuestion,
+		entity: EntityQuestion,
+		select: MenuQuestion,
+		text: TextQuestion,
+		upload: UploadQuestion
+	};
+
+	const hintFor = (type) => QUESTION_TYPES.find((t) => t.value === type)?.hint ?? '';
 
 	onMount(() => {
 		Sortable.create(list, {
@@ -108,29 +125,22 @@
 										class="input form-multiselect text-sm"
 										required
 										bind:value={q.type}
-										onchange={() => {
-											if (q.type === 'TEXT') q.maxLength = 1000;
-											else if (q.type === 'MENU') q.maxLength = 1;
-										}}
+										onchange={() => applyTypeDefaults(qS.questions[i])}
 									>
-										<option value={null} class="p-1" default disabled>Select an input type</option>
-										<option value="TEXT" class="p-1"> Text </option>
-										<option
-											value="MENU"
-											class="p-1"
-											disabled
-											title="Disabled until supported by Discord"
-										>
-											Select menu
-										</option>
+										<option value={null} class="p-1" disabled>Select an input type</option>
+										{#each QUESTION_TYPES as type (type.value)}
+											<option value={type.value} class="p-1">{type.label}</option>
+										{/each}
 									</select>
 								</label>
+								{#if hintFor(q.type)}
+									<p class="mt-1 text-xs text-gray-500 dark:text-slate-400">{hintFor(q.type)}</p>
+								{/if}
 							</div>
 
-							{#if q.type === 'TEXT'}
-								<TextQuestion bind:question={qS.questions[i]} />
-							{:else if q.type === 'MENU'}
-								<MenuQuestion bind:question={qS.questions[i]} />
+							{#if EDITORS[kindOf(q.type)]}
+								{@const Editor = EDITORS[kindOf(q.type)]}
+								<Editor bind:question={qS.questions[i]} />
 							{/if}
 						</div>
 					</div>

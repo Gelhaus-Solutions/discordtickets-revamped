@@ -9,6 +9,7 @@ const { join } = require('path');
 const Mustache = require('mustache');
 const { AttachmentBuilder } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
+const { formatAnswer } = require('../../lib/tickets/questions');
 const { pools } = require('../../lib/threads');
 
 const { transcript: pool } = pools;
@@ -70,6 +71,15 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 		const client = this.client;
 
 		ticket = await pool.queue(w => w(ticket));
+
+		// The worker only decrypts. Non-text answers are stored as JSON, so the
+		// template would otherwise print `["one","two"]` where a reader expects the
+		// option labels. Done here rather than in the worker so the worker thread
+		// stays free of the discord.js builders `formatAnswer` lives beside.
+		ticket.questionAnswers = ticket.questionAnswers.map(answer => ({
+			...answer,
+			value: answer.question ? formatAnswer(answer.question, answer.value) : answer.value,
+		}));
 
 		const channelName = ticket.category.channelName
 			.replace(/{+\s?(user)?name\s?}+/gi, ticket.createdBy?.username)

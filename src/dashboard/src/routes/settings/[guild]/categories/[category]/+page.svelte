@@ -2,11 +2,13 @@
 	import { run, preventDefault } from 'svelte/legacy';
 
 	import ms from 'ms';
-	import emoji from 'emoji-name-map';
+	import { displayEmoji } from '$lib/emoji.js';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 	import { marked } from 'marked';
 	import { v4 as uuidv4 } from 'uuid';
 	import CategoryQuestions from '$components/CategoryQuestions/Questions.svelte';
 	import { questionsState as qS } from '$components/state.svelte';
+	import { validateQuestion } from '$components/CategoryQuestions/validate.js';
 	import Required from '$components/Required.svelte';
 	import { getContext, onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
@@ -122,18 +124,16 @@
 				throw new Error(`The description is too long (${json.description.length}>100).`);
 
 			json.questions = qS.questions.map((q) => {
-				if (q.type === 'TEXT') {
-					if (q.value.length > 0 && q.value.length < q.minLength)
-						throw `The value of the "${q.label}" question is shorter than the minimum length.`;
-					if (q.value.length > q.maxLength)
-						throw `The value of the "${q.label}" question is longer than the maximum length.`;
-				}
+				const problem = validateQuestion(q);
+				if (problem) throw new Error(`The "${q.label}" question ${problem}`);
 				delete q._real;
 				return q;
 			});
 
-			if (json.questions.find((q) => q.id === json.customTopic) === undefined)
-				json.customTopic = null;
+			// Only a text question can supply the topic — every other type stores
+			// JSON, and a channel topic of `["urgent"]` helps nobody.
+			const topicQuestion = json.questions.find((q) => q.id === json.customTopic);
+			if (topicQuestion === undefined || topicQuestion.type !== 'TEXT') json.customTopic = null;
 
 			const response = await fetch(url, {
 				method: category.id ? 'PATCH' : 'POST',
@@ -213,7 +213,7 @@
 </div>
 <h1 class="m-4 text-center text-4xl font-bold">Categories</h1>
 <h2 class="m-4 text-center text-2xl font-semibold text-gray-500 dark:text-slate-400">
-	{emoji.get(category.emoji) ?? ''}
+	{displayEmoji(category.emoji)}
 	{category.name || 'New category'}
 </h2>
 <div class="m-2 mx-auto max-w-5xl p-4 text-lg">
@@ -386,7 +386,7 @@
 								{#each categories as cat}
 									{#if cat.id !== category.id}
 										<option value={cat.id} class="p-1">
-											{emoji.get(cat.emoji) ?? ''} {cat.name}
+											{displayEmoji(cat.emoji)} {cat.name}
 										</option>
 									{/if}
 								{/each}
@@ -413,8 +413,7 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="Emoji used for buttons & dropdowns"
 						></i>
-						<span class="text-2xl">{emoji.get(category.emoji) ?? ''}</span>
-						<input type="text" class="input form-input" required bind:value={category.emoji} />
+						<EmojiPicker bind:value={category.emoji} required placeholder="Choose an emoji" />
 					</label>
 				</div>
 				<div>
@@ -782,9 +781,8 @@
 											None
 										</option>
 										<hr />
-										{#each qS.questions as q}
+										{#each qS.questions.filter((q) => q.type === 'TEXT') as q}
 											<option value={q.id} class="p-1">
-												<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" /> -->
 												{q.label}
 											</option>
 										{/each}
@@ -802,6 +800,7 @@
 									class="rounded-lg p-2 px-5 font-medium text-green-500 transition duration-300 hover:text-green-300 disabled:cursor-not-allowed dark:text-green-500 dark:hover:text-green-500/50"
 									onclick={() => {
 										qS.questions.push({
+											config: {},
 											id: uuidv4(),
 											label: `Question ${qS.questions.length + 1}`,
 											maxLength: 1000,

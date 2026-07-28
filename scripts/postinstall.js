@@ -120,6 +120,10 @@ const MIGRATION_PROBES = {
 		columns: [['categories', 'messageLayout']],
 		tables: ['panels'],
 	},
+	// The enum widening in the same migration cannot be probed portably (MySQL
+	// keeps the values inline on the column, PostgreSQL in a separate type), but
+	// the column is added last, so its presence implies the enum went first.
+	question_types: { columns: [['questions', 'config']] },
 	// This one drops guilds.botBanner and restore_bot_banner adds it back, so
 	// column presence cannot distinguish "before the drop" from "after the
 	// restore". Treat it as applied whenever bot_customization is: re-running it

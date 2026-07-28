@@ -581,10 +581,20 @@ const buildButton = (spec, ctx) => {
 	const category = ctx.categories?.get(spec.categoryId);
 	if (!category) return null; // orphaned category — skip rather than throw mid-ticket
 
-	const single = ctx.singleCategory;
-	const label = spec.label ?? (single ? ctx.getMessage('buttons.create.text') : category.name);
-	const emojiValue = spec.emoji ?? (single ? ctx.getMessage('buttons.create.emoji') : category.emoji);
-	const style = BUTTON_STYLES[spec.style] ?? (single ? ButtonStyle.Primary : ButtonStyle.Secondary);
+	// The button spec first, then the category. There used to be a third rule: a
+	// panel referencing exactly one category ignored both and used the generic
+	// localised "🎟 Create a ticket" instead, to match the pre-block-editor panel.
+	//
+	// Nothing in the dashboard said so. Its preview and its placeholder text both
+	// promised the category's name and emoji, so an admin who configured a
+	// one-category panel approved one thing and Discord posted another — and no
+	// amount of editing the category changed it. Now the two agree.
+	//
+	// The generic label survives only as a fallback for a category with no name,
+	// which the API does not allow but old rows may have.
+	const label = spec.label ?? category.name ?? ctx.getMessage('buttons.create.text');
+	const emojiValue = spec.emoji ?? category.emoji ?? null;
+	const style = BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary;
 
 	button
 		// Byte-identical to the pre-v2 custom_id so panels created before this
@@ -859,27 +869,12 @@ const buildMessage = (layout, ctx) => {
 		}]);
 	}
 
-	// Ticket buttons fall back to the generic "Create a ticket" label only when the
-	// whole message serves exactly one category, matching the old panel behaviour.
-	const referenced = new Set();
-	const walk = blocks => {
-		for (const block of blocks ?? []) {
-			if (block?.type === 'container') {
-				walk(block.blocks);
-			} else if (block?.type === 'buttons') {
-				for (const b of block.buttons ?? []) if (b?.kind === 'ticket') referenced.add(b.categoryId);
-			} else if (block?.type === 'section' && block.accessory?.kind === 'button' && block.accessory.button?.kind === 'ticket') {
-				referenced.add(block.accessory.button.categoryId);
-			} else if (block?.type === 'select') {
-				for (const id of block.categoryIds ?? ctx.categories?.keys() ?? []) referenced.add(id);
-			}
-		}
-	};
-	walk(layout?.blocks);
-
+	// A ticket button's label, emoji and colour used to depend on how many
+	// categories the whole message referenced, which meant walking the tree to
+	// count them first. `buildButton` no longer cares — see the comment there —
+	// so the walk is gone with it.
 	const renderCtx = {
 		...ctx,
-		singleCategory: referenced.size === 1,
 		vars: ctx.vars ?? {},
 	};
 

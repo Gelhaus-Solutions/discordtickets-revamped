@@ -1,6 +1,12 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../lib/users');
-const { displayEmoji } = require('../../../../../../lib/emoji');
+const {
+	displayEmoji, isValidEmoji,
+} = require('../../../../../../lib/emoji');
+const {
+	QuestionError,
+	validateQuestions,
+} = require('../../../../../../lib/questions-validate');
 const {
 	ApplicationCommandPermissionType,
 	ChannelType: { GuildCategory },
@@ -114,6 +120,27 @@ module.exports.post = fastify => ({
 		}
 
 		data.channelName ||= 'ticket-{num}'; // not ??=, expect empty string
+
+		// Same reasoning as the PATCH route: an out-of-range question or an
+		// unresolvable emoji is only discovered when a member tries to open a
+		// ticket, so it has to be caught at the point the admin saves it.
+		try {
+			validateQuestions(data.questions);
+		} catch (error) {
+			if (error instanceof QuestionError) {
+				const badRequest = new Error('Invalid questions');
+				badRequest.statusCode = 400;
+				badRequest.errors = error.errors;
+				throw badRequest;
+			}
+			throw error;
+		}
+
+		if (data.emoji !== undefined && data.emoji !== null && data.emoji !== '' && !isValidEmoji(data.emoji)) {
+			const badRequest = new Error('emoji must be a Unicode emoji, a custom emoji ID, or a <:name:id> tag');
+			badRequest.statusCode = 400;
+			throw badRequest;
+		}
 
 		// Prepare category data for Prisma
 		const categoryData = { ...data };

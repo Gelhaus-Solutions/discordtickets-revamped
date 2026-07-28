@@ -1,25 +1,11 @@
 <script>
+	import QuestionFields from './QuestionFields.svelte';
+	import { LIMITS } from './types.js';
+
 	let { question = $bindable() } = $props();
-	import Required from '../Required.svelte';
 </script>
 
-<div>
-	<label class="font-medium">
-		Label
-		<Required />
-		<i
-			class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-			title="The title of the question"
-		></i>
-		<input
-			type="text"
-			class="input form-input text-sm"
-			required
-			maxlength="45"
-			bind:value={question.label}
-		/>
-	</label>
-</div>
+<QuestionFields bind:question />
 <div>
 	<label class="font-medium">
 		Maximum length
@@ -32,7 +18,7 @@
 			class="input form-input text-sm"
 			required
 			min="1"
-			max="1000"
+			max={LIMITS.textValue}
 			bind:value={question.maxLength}
 		/>
 	</label>
@@ -49,7 +35,7 @@
 			class="input form-input text-sm"
 			required
 			min="0"
-			max="1000"
+			max={LIMITS.textValue}
 			bind:value={question.minLength}
 		/>
 	</label>
@@ -64,13 +50,13 @@
 		<input
 			type="text"
 			class="input form-input text-sm"
-			maxlength="100"
+			maxlength={LIMITS.textPlaceholder}
 			bind:value={question.placeholder}
 		/>
 	</label>
 </div>
 <div>
-	<label for="required" class="font-medium">
+	<label for="required-{question.id}" class="font-medium">
 		Required
 		<i
 			class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
@@ -78,8 +64,7 @@
 		></i>
 		<input
 			type="checkbox"
-			id="required"
-			name="required"
+			id="required-{question.id}"
 			class="form-checkbox"
 			bind:checked={question.required}
 		/>
@@ -93,14 +78,8 @@
 			title="How big should the input box be?"
 		></i>
 		<select class="input form-multiselect" required bind:value={question.style}>
-			<option value={1} class="p-1">
-				<!-- <i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400" /> -->
-				Short (single-line)
-			</option>
-			<option value={2} class="p-1">
-				<!-- <i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400" /> -->
-				Long (multi-line)
-			</option>
+			<option value={1} class="p-1">Short (single-line)</option>
+			<option value={2} class="p-1">Long (multi-line)</option>
 		</select>
 	</label>
 </div>
@@ -111,7 +90,10 @@
 			class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 			title="A pre-filled value"
 		></i>
-		<textarea class="input form-input text-sm" maxlength="1000" bind:value={question.value}
+		<textarea
+			class="input form-input text-sm"
+			maxlength={LIMITS.textValue}
+			bind:value={question.value}
 		></textarea>
 	</label>
 </div>

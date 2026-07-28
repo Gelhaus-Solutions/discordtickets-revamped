@@ -182,6 +182,10 @@ model Panel {
 
 model Question {
     answers     QuestionAnswer[]
+    // Per-type extras that don't warrant a column each: `description` (the Label
+    // description shown under the question in the modal), `channelTypes` for
+    // CHANNEL_SELECT, `defaultChecked` for CHECKBOX, `content` for TEXT_DISPLAY.
+    config      Json?
     createdAt   DateTime         @default(now())
     id          String           @id @default(uuid())
     category    Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -289,6 +293,18 @@ enum ChannelMode {
 }
 
 enum QuestionType {
+    // MENU is the string select. It predates the others and is kept under its
+    // original name so no data migration is needed.
     MENU
     TEXT
+    USER_SELECT
+    ROLE_SELECT
+    CHANNEL_SELECT
+    MENTIONABLE_SELECT
+    CHECKBOX
+    CHECKBOX_GROUP
+    RADIO_GROUP
+    FILE_UPLOAD
+    // Not an input: static markdown rendered in the modal, no answer stored.
+    TEXT_DISPLAY
 }

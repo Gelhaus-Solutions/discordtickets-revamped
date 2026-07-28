@@ -4,6 +4,11 @@ const {
 	LayoutError,
 	validateLayout,
 } = require('../../../../../../../lib/components-v2');
+const { isValidEmoji } = require('../../../../../../../lib/emoji');
+const {
+	QuestionError,
+	validateQuestions,
+} = require('../../../../../../../lib/questions-validate');
 const { ApplicationCommandPermissionType } = require('discord.js');
 
 module.exports.delete = fastify => ({
@@ -45,6 +50,7 @@ module.exports.get = fastify => ({
 				questions: {
 					select: {
 						// createdAt: true,
+						config: true,
 						id: true,
 						label: true,
 						maxLength: true,
@@ -101,6 +107,7 @@ module.exports.patch = fastify => ({
 			questions: {
 				select: {
 					// createdAt: true,
+					config: true,
 					id: true,
 					label: true,
 					maxLength: true,
@@ -151,6 +158,33 @@ module.exports.patch = fastify => ({
 				}
 				throw error;
 			}
+		}
+
+		// An out-of-range question makes Discord reject the whole modal, so the
+		// failure would land on a member opening a ticket rather than on the admin
+		// who saved it.
+		try {
+			validateQuestions(data.questions);
+		} catch (error) {
+			if (error instanceof QuestionError) {
+				return res.code(400).send({
+					code: 'invalid_questions',
+					errors: error.errors,
+					statusCode: 400,
+				});
+			}
+			throw error;
+		}
+
+		// An emoji that resolves to nothing is worse than one that fails: Discord
+		// accepts it and silently renders a blank space on every button and menu
+		// option for this category.
+		if (data.emoji !== undefined && data.emoji !== null && data.emoji !== '' && !isValidEmoji(data.emoji)) {
+			return res.code(400).send({
+				code: 'invalid_emoji',
+				errors: [{ message: 'emoji must be a Unicode emoji, a custom emoji ID, or a <:name:id> tag' }],
+				statusCode: 400,
+			});
 		}
 
 		// For THREAD and FORUM modes, don't send totalLimit (it's not applicable)

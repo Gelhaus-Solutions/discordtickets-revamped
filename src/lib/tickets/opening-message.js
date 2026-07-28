@@ -3,6 +3,7 @@ const {
 	defaultOpeningLayout,
 	needsStats,
 } = require('../components-v2');
+const { formatAnswer } = require('./questions');
 
 /**
  * The ticket opening message.
@@ -136,10 +137,17 @@ async function rerenderOpeningMessage(client, channel, {
 
 	let resolvedAnswers = answers;
 	if (resolvedAnswers === undefined) {
+		const getMessage = client.i18n.getLocale(ticket.category.guild.locale);
 		resolvedAnswers = ticket.questionAnswers.length
 			? await Promise.all(ticket.questionAnswers.map(async a => ({
 				label: a.question.label,
-				value: a.value ? await crypto.queue(w => w.decrypt(a.value)) : '',
+				// Non-text answers are stored as JSON, so they have to go through the
+				// same formatter the opening message used when the ticket was opened.
+				value: formatAnswer(
+					a.question,
+					a.value ? await crypto.queue(w => w.decrypt(a.value)) : '',
+					{ getMessage },
+				),
 			})))
 			: null;
 	}
