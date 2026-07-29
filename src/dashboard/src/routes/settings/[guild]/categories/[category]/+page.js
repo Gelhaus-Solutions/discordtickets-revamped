@@ -55,6 +55,19 @@ export async function load({ fetch, params }) {
 		).json(),
 		settings: await (
 			await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions)
-		).json()
+		).json(),
+		// Only automations a button press can start: the opening message's ticket
+		// controls can carry buttons for them, and the API rejects the rest.
+		automations: await (async () => {
+			const response = await fetch(
+				`/api/admin/guilds/${params.guild}/automations`,
+				fetchOptions
+			);
+			if (!response.ok) return [];
+			const body = await response.json();
+			return (Array.isArray(body) ? body : []).filter((a) =>
+				a.triggerTypes?.includes('trigger.button.pressed')
+			);
+		})()
 	};
 }

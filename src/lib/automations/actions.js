@@ -32,6 +32,8 @@ const {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
+	MessageFlags,
+	RESTJSONErrorCodes,
 } = require('discord.js');
 const {
 	addRole,
@@ -60,6 +62,12 @@ const skip = reason => ({
  * same thing in an automation.
  */
 const render = (content, ctx) => substitute(String(content ?? ''), ctx.vars);
+
+/** What Discord says when an interaction token is past its 15 minutes. */
+const EXPIRED_INTERACTION = [
+	RESTJSONErrorCodes.UnknownInteraction,
+	RESTJSONErrorCodes.InvalidWebhookToken,
+];
 
 const BUTTON_STYLES = {
 	danger: ButtonStyle.Danger,
@@ -235,6 +243,33 @@ function makeRunners(client, runNested) {
 				allowedMentions: { repliedUser: false },
 				content,
 			});
+			return {};
+		}),
+
+		'action.message.ephemeral': real(async (node, ctx) => {
+			// Never serialized, so a run that parked on a `flow.wait` has lost it —
+			// and the 15-minute token would have expired anyway.
+			if (!ctx.interaction) return skip('no_interaction');
+			const content = render(node.params.content, ctx);
+			try {
+				// The trigger handler already opened an ephemeral reply with
+				// `deferReply`, so the first private node fills that in and any
+				// later one follows up. After `ack: 'none'` there is no deferred
+				// reply to fill in — `ephemeral` is false — so it follows up too.
+				if (ctx.interaction.ephemeral && ctx.interaction.deferred && !ctx.interaction.replied) {
+					await ctx.interaction.editReply({ content });
+				} else {
+					await ctx.interaction.followUp({
+						content,
+						flags: MessageFlags.Ephemeral,
+					});
+				}
+			} catch (error) {
+				// A run slower than the token is an outcome the log should name,
+				// not a fault: there is nothing an admin could fix in the graph.
+				if (EXPIRED_INTERACTION.includes(error?.code)) return skip('interaction_expired');
+				throw error;
+			}
 			return {};
 		}),
 

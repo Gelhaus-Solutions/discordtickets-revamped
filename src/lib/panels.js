@@ -172,8 +172,11 @@ async function deletePanelMessage(client, panel) {
  * Validate a layout against a guild's categories.
  * Throws {@link LayoutError}, which routes map to a 400.
  */
-function validatePanelLayout(layout, categories) {
+function validatePanelLayout(layout, categories, automationKeys = null) {
 	return validateLayout(layout, {
+		// Null means "don't check", which is what a caller with no automation list
+		// gets — the button handler still refuses an automation that has gone.
+		automationKeys: automationKeys && new Set(automationKeys),
 		categoryIds: new Map(categories.map(c => [c.id, c])),
 		kind: 'panel',
 	});

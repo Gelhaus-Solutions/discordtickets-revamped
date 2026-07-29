@@ -7,6 +7,7 @@ const {
 	validatePanelLayout,
 } = require('../../../../../../lib/panels');
 const { defaultPanelLayout } = require('../../../../../../lib/components-v2');
+const { loadRefs } = require('../../../../../../lib/automations/http');
 const { resolveGuildChannel } = require('../../../../../../lib/misc');
 
 /**
@@ -82,8 +83,9 @@ module.exports.post = fastify => ({
 			});
 		}
 
+		const { buttonAutomationKeys } = await loadRefs(client, guild.id);
 		try {
-			validatePanelLayout(layout, settings.categories);
+			validatePanelLayout(layout, settings.categories, buttonAutomationKeys);
 		} catch (error) {
 			const described = describeError(error, guild);
 			if (described) return res.code(described.status).send(described.body);

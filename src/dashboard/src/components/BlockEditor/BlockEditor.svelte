@@ -12,12 +12,19 @@
 	 * @typedef {Object} Props
 	 * @property {any[]} blocks
 	 * @property {any[]} categories
+	 * @property {any[]} [automations] automations a button press can start
 	 * @property {string} [context] 'panel' or 'opening'
 	 * @property {boolean} [nested] true inside a container (no further nesting)
 	 */
 
 	/** @type {Props} */
-	let { blocks = $bindable(), categories, context = 'panel', nested = false } = $props();
+	let {
+		blocks = $bindable(),
+		categories,
+		automations = [],
+		context = 'panel',
+		nested = false
+	} = $props();
 
 	let list = $state();
 	let expanded = $state(null);
@@ -155,12 +162,13 @@
 							<BlockEditor
 								bind:blocks={blocks[i].blocks}
 								{categories}
+								{automations}
 								{context}
 								nested={true}
 							/>
 						</div>
 					{:else}
-						<BlockFields bind:block={blocks[i]} {categories} {context} />
+						<BlockFields bind:block={blocks[i]} {categories} {automations} {context} />
 					{/if}
 				</div>
 			{/if}

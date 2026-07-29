@@ -295,6 +295,66 @@ t('claimed state flips claim -> unclaim', () => {
 	assert.deepStrictEqual(row.components.map(c => JSON.parse(c.custom_id).action), ['unclaim', 'close']);
 });
 
+t('custom automation buttons render in a second controls row', () => {
+	const withButtons = JSON.parse(JSON.stringify(opening));
+	const controls = withButtons.blocks.find(b => b.type === 'controls');
+	controls.buttons = [{
+		emoji: '🔒',
+		kind: 'automation',
+		label: 'Escalate',
+		style: 'danger',
+	}];
+	controls.buttons[0].automationKey = 'abc123';
+
+	v2.validateLayout(withButtons, {
+		automationKeys: new Set(['abc123']),
+		categoryIds: categories,
+		kind: 'opening',
+	});
+
+	const out = v2.buildMessage(withButtons, {
+		...baseCtx,
+		kind: 'opening',
+		opening: {
+			creatorId: '111',
+			pingRoles: [],
+			showClaim: true,
+			showClose: true,
+		},
+		vars: {},
+	});
+	const rows = out.components.filter(c => c.toJSON().type === 1).map(c => c.toJSON());
+	assert.strictEqual(rows.length, 2, 'built-ins and custom buttons are separate rows');
+	assert.deepStrictEqual(rows[0].components.map(c => JSON.parse(c.custom_id).action), ['claim', 'close']);
+	assert.strictEqual(rows[1].components[0].label, 'Escalate');
+	assert.strictEqual(rows[1].components[0].style, 4, 'danger');
+	assert.deepStrictEqual(JSON.parse(rows[1].components[0].custom_id), {
+		action: 'auto',
+		k: 'abc123',
+	});
+});
+
+t('a controls block with no built-in buttons still renders its custom row', () => {
+	const withButtons = JSON.parse(JSON.stringify(opening));
+	withButtons.blocks.find(b => b.type === 'controls').buttons = [{
+		automationKey: 'abc123',
+		kind: 'automation',
+		label: 'Escalate',
+	}];
+	const out = v2.buildMessage(withButtons, {
+		...baseCtx,
+		kind: 'opening',
+		opening: {
+			creatorId: '111',
+			pingRoles: [],
+		},
+		vars: {},
+	});
+	const rows = out.components.filter(c => c.toJSON().type === 1).map(c => c.toJSON());
+	assert.strictEqual(rows.length, 1);
+	assert.strictEqual(rows[0].components[0].label, 'Escalate');
+});
+
 t('allowedMentions carries the pings', () => {
 	const out = v2.buildMessage(opening, {
 		...baseCtx,
@@ -462,6 +522,56 @@ expectFail('rejects over-budget components', {
 	})),
 	version: 1,
 }, 'panel', 'too_many');
+
+expectFail('rejects a ticket button in the ticket controls', {
+	blocks: [{
+		buttons: [{
+			categoryId: 1,
+			kind: 'ticket',
+		}],
+		id: 'a',
+		type: 'controls',
+	}],
+	version: 1,
+}, 'opening', 'invalid');
+
+expectFail('rejects more custom controls buttons than fit a row', {
+	blocks: [{
+		buttons: Array.from({ length: 6 }, (_, i) => ({
+			automationKey: 'k' + i,
+			kind: 'automation',
+			label: 'x',
+		})),
+		id: 'a',
+		type: 'controls',
+	}],
+	version: 1,
+}, 'opening', 'too_many');
+
+t('rejects a controls button pointing at an automation that does not exist', () => {
+	try {
+		v2.validateLayout({
+			blocks: [{
+				buttons: [{
+					automationKey: 'gone',
+					kind: 'automation',
+					label: 'x',
+				}],
+				id: 'a',
+				type: 'controls',
+			}],
+			version: 1,
+		}, {
+			automationKeys: new Set(['abc123']),
+			categoryIds: categories,
+			kind: 'opening',
+		});
+		throw new Error('expected LayoutError');
+	} catch (e) {
+		assert.strictEqual(e.name, 'LayoutError', 'got ' + e.message);
+		assert.ok(e.errors.some(x => x.code === 'unknown_automation'), JSON.stringify(e.errors));
+	}
+});
 
 expectFail('rejects opening-only blocks in a panel', {
 	blocks: [{

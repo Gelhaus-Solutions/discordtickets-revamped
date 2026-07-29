@@ -133,7 +133,12 @@
 				</p>
 			{/if}
 
-			<BlockEditor bind:blocks={layout.blocks} categories={data.categories} context="panel" />
+			<BlockEditor
+				bind:blocks={layout.blocks}
+				categories={data.categories}
+				automations={data.automations}
+				context="panel"
+			/>
 		</div>
 
 		<Preview

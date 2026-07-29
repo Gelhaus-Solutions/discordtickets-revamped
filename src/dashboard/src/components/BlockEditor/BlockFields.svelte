@@ -11,10 +11,17 @@
 	 * @property {any} block
 	 * @property {any[]} categories
 	 * @property {string} context
+	 * @property {any[]} [automations] automations a button press can start
 	 */
 
 	/** @type {Props} */
-	let { block = $bindable(), categories, context } = $props();
+	let { block = $bindable(), categories, context, automations = [] } = $props();
+
+	// Controls blocks saved before automation buttons existed have no list at all,
+	// and `bind:` needs something to bind to.
+	$effect(() => {
+		if (block.type === 'controls' && !Array.isArray(block.buttons)) block.buttons = [];
+	});
 
 	const addGalleryItem = () => {
 		if (block.items.length >= LIMITS.galleryItems) return;
@@ -34,7 +41,21 @@
 	};
 </script>
 
-{#if BLOCK_META[block.type]?.dynamic}
+{#if block.type === 'controls'}
+	<p class="text-sm text-gray-500 dark:text-slate-400">
+		The Claim, Close and Edit buttons are filled in per ticket, from your category and server
+		settings. You can add your own buttons here — each one starts an automation, and they appear
+		in a row underneath.
+	</p>
+	<div class="mt-2">
+		<ButtonList
+			bind:buttons={block.buttons}
+			{categories}
+			{automations}
+			kinds={['automation']}
+		/>
+	</div>
+{:else if BLOCK_META[block.type]?.dynamic}
 	<p class="text-sm text-gray-500 dark:text-slate-400">
 		{BLOCK_META[block.type].description} Filled in automatically for each ticket — nothing to configure.
 	</p>
@@ -70,7 +91,7 @@
 		</label>
 	</div>
 {:else if block.type === 'buttons'}
-	<ButtonList bind:buttons={block.buttons} {categories} />
+	<ButtonList bind:buttons={block.buttons} {categories} {automations} />
 {:else if block.type === 'select'}
 	<div class="flex flex-col gap-2">
 		<label class="text-sm">
@@ -187,6 +208,7 @@
 			<ButtonList
 				buttons={[block.accessory.button]}
 				{categories}
+				{automations}
 			/>
 		{/if}
 	</div>

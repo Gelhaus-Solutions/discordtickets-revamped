@@ -476,6 +476,7 @@
 						<BlockEditor
 							bind:blocks={category.messageLayout.blocks}
 							categories={[]}
+							automations={data.automations}
 							context="opening"
 						/>
 						<button

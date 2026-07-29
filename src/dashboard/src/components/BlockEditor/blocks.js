@@ -42,7 +42,7 @@ export const BLOCK_META = {
 		label: 'Container'
 	},
 	controls: {
-		description: 'The Claim / Close / Edit buttons.',
+		description: 'The Claim / Close / Edit buttons, plus any automation buttons you add.',
 		dynamic: true,
 		icon: 'fa-sliders',
 		label: 'Ticket controls'
@@ -115,21 +115,26 @@ export function newBlock(type) {
 			return { ...base, items: [{ url: '', description: '' }] };
 		case 'select':
 			return { ...base, categoryIds: null, placeholder: null };
+		case 'controls':
+			// The built-in Claim/Close/Edit buttons are not configurable; these are
+			// the admin's own automation buttons, shown in a row under them.
+			return { ...base, buttons: [] };
 		default:
 			return base;
 	}
 }
 
 export function newButton(kind = 'ticket') {
-	return kind === 'link'
-		? { kind: 'link', url: '', label: '', emoji: null }
-		: {
-				kind: 'ticket',
-				categoryId: null,
-				style: null,
-				label: null,
-				emoji: null
-			};
+	if (kind === 'link') return { kind: 'link', url: '', label: '', emoji: null };
+	if (kind === 'automation')
+		return { kind: 'automation', automationKey: null, style: 'primary', label: '', emoji: null };
+	return {
+		kind: 'ticket',
+		categoryId: null,
+		style: null,
+		label: null,
+		emoji: null
+	};
 }
 
 export function newLayout() {
@@ -189,8 +194,10 @@ export function countComponents(layout) {
 				return 1 + (block.text?.length ?? 0) + (block.accessory ? 1 : 0);
 			case 'select':
 				return 2;
-			case 'controls':
-				return 5;
+			case 'controls': {
+				const custom = Math.min(block.buttons?.length ?? 0, LIMITS.rowButtons);
+				return 5 + (custom ? 1 + custom : 0);
+			}
 			default:
 				return 1;
 		}

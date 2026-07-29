@@ -589,6 +589,23 @@ const NODE_TYPES = {
 			type: 'textarea',
 		}],
 	},
+	'action.message.ephemeral': {
+		category: 'action',
+		description: 'Reply where only the person who pressed the button or picked the option can see it.',
+		label: 'Send an ephemeral reply',
+		// Only an interaction can be answered privately. Declaring the capability
+		// is what turns "why did nothing happen?" under a ticket trigger into a
+		// 400 at save time.
+		needs: ['interaction'],
+		outputs: ['out'],
+		params: [{
+			key: 'content',
+			label: 'Message',
+			maxLength: LIMITS.messageLength,
+			required: true,
+			type: 'textarea',
+		}],
+	},
 	'action.message.react': {
 		category: 'action',
 		description: 'React to the message that triggered this.',

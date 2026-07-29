@@ -79,6 +79,7 @@ export const NODE_ICONS = {
 	'action.automation.run': 'fa-diagram-project',
 	'action.log': 'fa-file-lines',
 	'action.message.dm': 'fa-envelope',
+	'action.message.ephemeral': 'fa-eye-slash',
 	'action.message.react': 'fa-face-smile',
 	'action.message.reply': 'fa-reply',
 	'action.message.send': 'fa-paper-plane',

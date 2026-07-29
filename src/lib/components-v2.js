@@ -489,10 +489,31 @@ const validateLayout = (layout, {
 			break;
 		}
 
+		case 'controls':
+			// The built-in Claim/Close/Edit buttons are not configurable, but an
+			// admin may add their own automation buttons under them.
+			if (block.buttons !== undefined && block.buttons !== null) {
+				if (!Array.isArray(block.buttons)) {
+					push(`${path}.buttons`, 'invalid', 'Ticket controls buttons must be a list');
+				} else if (block.buttons.length > LIMITS.rowButtons) {
+					push(`${path}.buttons`, 'too_many', `Ticket controls may have at most ${LIMITS.rowButtons} extra buttons`);
+				} else {
+					block.buttons.forEach((b, i) => {
+						// A ticket or link button here would be meaningless: the message
+						// is already inside the ticket it would open.
+						if (b?.kind !== 'automation') {
+							push(`${path}.buttons[${i}].kind`, 'invalid', 'Ticket controls can only hold automation buttons');
+						} else {
+							validateButton(b, `${path}.buttons[${i}]`);
+						}
+					});
+				}
+			}
+			break;
+
 		case 'footer':
 		case 'mentions':
 		case 'answers':
-		case 'controls':
 			break;
 
 		default:
@@ -537,8 +558,12 @@ const countComponents = layout => {
 			return 1 + (Array.isArray(block.text) ? block.text.length : 0) + (block.accessory ? 1 : 0);
 		case 'select':
 			return 2; // a select occupies a whole action row
-		case 'controls':
-			return 1 + 4; // worst case: edit + claim + close + close-reason
+		case 'controls': {
+			// Worst case: edit + claim + close + close-reason, plus a second row
+			// for the admin's own automation buttons.
+			const custom = Array.isArray(block.buttons) ? Math.min(block.buttons.length, LIMITS.rowButtons) : 0;
+			return 1 + 4 + (custom ? 1 + custom : 0);
+		}
 		case 'answers':
 			return 1;
 		default:
@@ -668,8 +693,16 @@ const buildSelect = (block, ctx) => {
  * The claim/close controls. This is the single source of truth: `manager.js`
  * builds the opening message from it, and claim()/release()/the edit modals
  * re-render the whole layout through it rather than rebuilding a bare row.
+ *
+ * An admin may hang their own automation buttons off the block. Those go in a
+ * **second row** rather than alongside Claim/Close: how many built-in buttons
+ * there are depends on the guild's settings and on whether the ticket is
+ * claimed, so packing both into one row would silently drop custom buttons past
+ * Discord's five-per-row limit on some tickets and not others.
+ *
+ * @returns {ActionRowBuilder[]} zero, one or two rows
  */
-const buildControls = ctx => {
+const buildControls = (block, ctx) => {
 	const o = ctx.opening ?? {};
 	const getMessage = ctx.getMessage;
 	const buttons = [];
@@ -707,7 +740,16 @@ const buildControls = ctx => {
 			.setLabel('Close with Reason'));
 	}
 
-	return buttons.length ? new ActionRowBuilder().setComponents(buttons.slice(0, LIMITS.rowButtons)) : null;
+	const rows = [];
+	if (buttons.length) rows.push(new ActionRowBuilder().setComponents(buttons.slice(0, LIMITS.rowButtons)));
+
+	const custom = (block?.buttons ?? [])
+		.map(b => buildButton(b, ctx))
+		.filter(Boolean)
+		.slice(0, LIMITS.rowButtons);
+	if (custom.length) rows.push(new ActionRowBuilder().setComponents(custom));
+
+	return rows;
 };
 
 /** The topic / question answers that used to be a second embed's fields. */
@@ -840,10 +882,8 @@ const buildBlock = (block, ctx) => {
 		return content ? [new TextDisplayBuilder().setContent(content)] : [];
 	}
 
-	case 'controls': {
-		const row = buildControls(ctx);
-		return row ? [row] : [];
-	}
+	case 'controls':
+		return buildControls(block, ctx);
 
 	case 'container': {
 		const container = new ContainerBuilder();

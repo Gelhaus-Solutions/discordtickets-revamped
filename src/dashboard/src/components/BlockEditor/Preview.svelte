@@ -44,10 +44,11 @@
 	const categoryName = (id) => categories.find((c) => c.id === id)?.name ?? 'Unknown category';
 	const categoryEmoji = (id) => displayEmoji(categories.find((c) => c.id === id)?.emoji);
 
-	const buttonLabel = (button) =>
-		button.kind === 'link'
-			? button.label || 'Link'
-			: button.label || categoryName(button.categoryId);
+	const buttonLabel = (button) => {
+		if (button.kind === 'link') return button.label || 'Link';
+		if (button.kind === 'automation') return button.label || 'Automation';
+		return button.label || categoryName(button.categoryId);
+	};
 
 	// Mirrors `buildButton`: the button's own emoji wins, then the category's.
 	// Resolved rather than shown raw, or a shortcode would preview as its own text.
@@ -150,6 +151,16 @@
 			<span class="rounded bg-gray-500 px-3 py-1 text-sm font-medium text-white">🙌 Claim</span>
 			<span class="rounded bg-red-600 px-3 py-1 text-sm font-medium text-white">✖️ Close</span>
 		</div>
+		{#if (block.buttons ?? []).length}
+			<div class="mt-1 flex flex-wrap gap-2">
+				{#each block.buttons as button}
+					<span class="rounded px-3 py-1 text-sm font-medium {buttonClass(button)}">
+						{buttonEmoji(button)}
+						{buttonLabel(button)}
+					</span>
+				{/each}
+			</div>
+		{/if}
 	{/if}
 {/snippet}
 

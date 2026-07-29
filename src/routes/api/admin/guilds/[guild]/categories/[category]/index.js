@@ -5,6 +5,7 @@ const {
 	validateLayout,
 } = require('../../../../../../../lib/components-v2');
 const { isValidEmoji } = require('../../../../../../../lib/emoji');
+const { loadRefs } = require('../../../../../../../lib/automations/http');
 const {
 	QuestionError,
 	validateQuestions,
@@ -143,8 +144,14 @@ module.exports.patch = fastify => ({
 		// would break ticket creation for the whole category, and the failure
 		// would surface to members rather than to the admin who caused it.
 		if (data.messageLayout !== undefined && data.messageLayout !== null) {
+			// Only automations a button press can start: the controls block's extra
+			// buttons are button triggers, so anything else would be a dead button.
+			const { buttonAutomationKeys } = await loadRefs(client, guildId);
 			try {
-				validateLayout(data.messageLayout, { kind: 'opening' });
+				validateLayout(data.messageLayout, {
+					automationKeys: new Set(buttonAutomationKeys),
+					kind: 'opening',
+				});
 			} catch (error) {
 				if (error instanceof LayoutError) {
 					return res.code(400).send({
