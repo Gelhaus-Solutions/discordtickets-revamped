@@ -80,7 +80,7 @@ class AutomationManager {
 	/** A short per-guild-unique handle, for button custom_ids and schedule ids. */
 	async uniqueKey(guildId) {
 		for (let attempt = 0; attempt < 5; attempt++) {
-			const key = uid.rnd();
+			const key = uid.randomUUID();
 			const clash = await this.client.prisma.automation.findFirst({
 				select: { id: true },
 				where: {
