@@ -144,7 +144,9 @@
 
 <svelte:head><title>{name}</title></svelte:head>
 
-<ErrorBox {error} />
+{#if error}
+	<ErrorBox {error} />
+{/if}
 
 <SvelteFlowProvider>
 	<div class="mb-4 flex flex-wrap items-center gap-3">

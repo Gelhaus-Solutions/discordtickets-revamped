@@ -11,6 +11,48 @@ const { saveHtmlTranscript } = require('../../lib/tickets/transcript-html');
 const { reconcileCustomization } = require('../../lib/customization');
 const temporal = require('../../lib/temporal');
 
+/**
+ * Bring Temporal's automation schedules in line with the database.
+ *
+ * Bounded and non-fatal: a failure here costs a cron automation firing late,
+ * which is not worth failing a boot over.
+ */
+async function reconcileAutomationSchedules(client) {
+	try {
+		const crons = await client.prisma.automation.findMany({
+			select: {
+				graph: true,
+				guildId: true,
+				id: true,
+				key: true,
+				triggerKey: true,
+			},
+			where: {
+				enabled: true,
+				triggerType: 'trigger.schedule.cron',
+			},
+		});
+
+		const {
+			deleted, upserted,
+		} = await Promise.race([
+			temporal.reconcileAutomationSchedules(
+				crons.map(row => ({
+					automationId: row.id,
+					cron: row.triggerKey,
+					guildId: row.guildId,
+					key: row.key,
+					timezone: row.graph?.nodes?.find(n => n.type === 'trigger.schedule.cron')?.params?.timezone ?? 'UTC',
+				})),
+			),
+			new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), ms('2m')).unref()),
+		]);
+		client.log.info('Automation schedules reconciled (%d active, %d removed)', upserted, deleted);
+	} catch (error) {
+		client.log.warn('Could not reconcile automation schedules: %s', error?.message ?? error);
+	}
+}
+
 module.exports = class extends Listener {
 	constructor(client, options) {
 		super(client, {
@@ -57,44 +99,22 @@ module.exports = class extends Listener {
 			// The logger is passed in so the *reason* is reported: this used to
 			// swallow the error and warn with no cause attached, which made the
 			// failure impossible to diagnose from the logs.
-			// Make Temporal's schedules match the database. The routes keep them in
-			// step as automations are edited, but best-effort — this is what
-			// actually guarantees convergence, and the only thing that cleans up
-			// after guilds removed while the bot was down.
-			try {
-				const crons = await client.prisma.automation.findMany({
-					select: {
-						graph: true,
-						guildId: true,
-						id: true,
-						key: true,
-						triggerKey: true,
-					},
-					where: {
-						enabled: true,
-						triggerType: 'trigger.schedule.cron',
-					},
-				});
-				const {
-					deleted, upserted,
-				} = await temporal.reconcileAutomationSchedules(
-					crons.map(row => ({
-						automationId: row.id,
-						cron: row.triggerKey,
-						guildId: row.guildId,
-						key: row.key,
-						timezone: row.graph?.nodes?.find(n => n.type === 'trigger.schedule.cron')?.params?.timezone ?? 'UTC',
-					})),
-				);
-				client.log.info('Automation schedules reconciled (%d active, %d removed)', upserted, deleted);
-			} catch (error) {
-				client.log.warn('Could not reconcile automation schedules: %s', error?.message ?? error);
-			}
-
 			const saOk = await temporal.ensureSearchAttributes(client.log);
 			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged (retrying in the background)');
 			client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
 			temporalReady = true;
+
+			// Make Temporal's schedules match the database: the routes keep them
+			// in step as automations are edited, but best-effort, so this is what
+			// guarantees convergence and cleans up after guilds removed while the
+			// bot was down.
+			//
+			// Deliberately *not* awaited. It walks every schedule in the namespace,
+			// which is unbounded work against Temporal's visibility store — putting
+			// that in front of `sync()` means a slow or half-up Temporal delays
+			// re-arming every open ticket's stale workflow. Nothing else waits on
+			// the result, so it runs alongside startup and reports when it lands.
+			reconcileAutomationSchedules(client);
 		} catch (error) {
 			client.log.error('Temporal is unavailable — durable work (stale tickets, scheduled closes, exports) is disabled until it recovers');
 			client.log.error(error);

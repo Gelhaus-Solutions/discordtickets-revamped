@@ -99,7 +99,9 @@
 
 <svelte:head><title>Automations</title></svelte:head>
 
-<ErrorBox {error} />
+{#if error}
+	<ErrorBox {error} />
+{/if}
 
 <h1 class="m-4 text-center text-4xl font-bold">Automations</h1>
 <p class="mx-4 mb-6 text-center text-gray-500 dark:text-slate-400">
