@@ -1,5 +1,6 @@
 const { Listener } = require('@eartharoid/dbf');
 const temporal = require('../../lib/temporal');
+const { schedulesFor } = require('../../lib/automations/schedules');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -20,14 +21,26 @@ module.exports = class extends Listener {
 		// next reconcile, which is the behaviour an admin would expect.
 		client.automations?.invalidate(guild.id).catch(() => null);
 		try {
-			const crons = await client.prisma.automation.findMany({
-				select: { key: true },
-				where: {
-					guildId: guild.id,
-					triggerType: 'trigger.schedule.cron',
+			const automations = await client.prisma.automation.findMany({
+				select: {
+					enabled: true,
+					graph: true,
+					guildId: true,
+					id: true,
+					key: true,
 				},
+				where: { guildId: guild.id },
 			});
-			for (const { key } of crons) await temporal.deleteAutomationSchedule(guild.id, key);
+			// Disabled ones have no schedules, but a graph's cron nodes are the same
+			// either way — force `enabled` so every one gets torn down.
+			for (const automation of automations) {
+				for (const schedule of schedulesFor({
+					...automation,
+					enabled: true,
+				})) {
+					await temporal.deleteAutomationSchedule(schedule.guildId, schedule.key, schedule.nodeId);
+				}
+			}
 		} catch (error) {
 			client.log.warn('Could not remove automation schedules for %s: %s', guild.id, error?.message ?? error);
 		}

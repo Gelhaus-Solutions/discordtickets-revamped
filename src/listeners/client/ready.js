@@ -1,6 +1,7 @@
 const { Listener } = require('@eartharoid/dbf');
 const ms = require('ms');
 const sync = require('../../lib/sync');
+const { schedulesFor } = require('../../lib/automations/schedules');
 const checkForUpdates = require('../../lib/updates');
 const {
 	getAverageTimes,
@@ -19,32 +20,24 @@ const temporal = require('../../lib/temporal');
  */
 async function reconcileAutomationSchedules(client) {
 	try {
-		const crons = await client.prisma.automation.findMany({
+		const automations = await client.prisma.automation.findMany({
 			select: {
+				enabled: true,
 				graph: true,
 				guildId: true,
 				id: true,
 				key: true,
-				triggerKey: true,
 			},
-			where: {
-				enabled: true,
-				triggerType: 'trigger.schedule.cron',
-			},
+			where: { enabled: true },
 		});
+		// One automation can hold several cron triggers, so this flattens to a
+		// schedule per node rather than per automation.
+		const wanted = automations.flatMap(automation => schedulesFor(automation));
 
 		const {
 			deleted, upserted,
 		} = await Promise.race([
-			temporal.reconcileAutomationSchedules(
-				crons.map(row => ({
-					automationId: row.id,
-					cron: row.triggerKey,
-					guildId: row.guildId,
-					key: row.key,
-					timezone: row.graph?.nodes?.find(n => n.type === 'trigger.schedule.cron')?.params?.timezone ?? 'UTC',
-				})),
-			),
+			temporal.reconcileAutomationSchedules(wanted),
 			new Promise((_, reject) => setTimeout(() => reject(new Error('timed out')), ms('2m')).unref()),
 		]);
 		client.log.info('Automation schedules reconciled (%d active, %d removed)', upserted, deleted);

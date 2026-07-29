@@ -25,6 +25,7 @@ const {
 	runAutomation,
 	runFrom,
 } = require('./runtime');
+const { cronNodes } = require('./schedules');
 
 const uid = new ShortUniqueId({ length: 6 });
 
@@ -60,8 +61,7 @@ class AutomationManager {
 					id: true,
 					key: true,
 					name: true,
-					triggerKey: true,
-					triggerType: true,
+					triggerTypes: true,
 				},
 				where: {
 					enabled: true,
@@ -101,7 +101,7 @@ class AutomationManager {
 	 * Two queries, not one per node: the row is created `RUNNING` up front so a
 	 * crash mid-run is visible, and updated once at the end with the whole trace.
 	 */
-	async run(automation, ctx) {
+	async run(automation, ctx, startNodeId = null) {
 		const startedAt = Date.now();
 		let row;
 		try {
@@ -122,10 +122,15 @@ class AutomationManager {
 
 		ctx.runId = row.id;
 		ctx.automationId = automation.id;
+		// `action.message.send` needs it to build a button that comes back here.
+		ctx.automationKey = automation.key;
 
 		let result;
 		try {
-			result = await runAutomation(automation.graph, ctx, { runners: this.runners });
+			result = await runAutomation(automation.graph, ctx, {
+				runners: this.runners,
+				startNodeId,
+			});
 		} catch (error) {
 			// The interpreter catches per-node faults itself, so reaching here means
 			// something structural. Record it rather than losing the run.
@@ -237,14 +242,20 @@ class AutomationManager {
 	}
 
 	/** Entry point for `trigger.schedule.cron`, called from a Temporal schedule. */
-	async runScheduled(automationId, guildId) {
+	async runScheduled(automationId, guildId, nodeId) {
 		const automation = await this.client.prisma.automation.findUnique({ where: { id: automationId } });
 		if (!automation?.enabled || automation.guildId !== guildId) return;
+
+		// The schedule names its node; a graph may hold several cron triggers, and
+		// only the one that fired should run.
+		const node = cronNodes(automation.graph).find(n => n.id === nodeId);
+		if (!node) return;
+
 		const ctx = new Context(this.client, {
 			guildId,
-			triggerType: automation.triggerType,
+			triggerType: node.type,
 		});
-		await this.run(automation, ctx);
+		await this.run(automation, ctx, node.id);
 	}
 
 	/**
@@ -254,7 +265,7 @@ class AutomationManager {
 	async runNested(key, parent) {
 		const automation = (await this.getForGuild(parent.guildId)).find(a => a.key === key);
 		if (!automation) return;
-		const child = parent.descend(automation.id, null);
+		const child = parent.descend(automation.id, null, automation.key);
 		await this.run(automation, child);
 		// The step budget is shared, so a chain of automations cannot spend it
 		// afresh at every level.

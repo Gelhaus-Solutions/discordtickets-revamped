@@ -451,10 +451,29 @@ function validateButtons(buttons, push, path, options = {}) {
 		if (button.style && !['primary', 'secondary', 'success', 'danger'].includes(button.style)) {
 			push(`${at}.style`, 'unknown_option', 'That is not a button style');
 		}
-		if (typeof button.automationKey !== 'string' || !button.automationKey) {
-			push(`${at}.automationKey`, 'required', 'Pick the automation this button runs');
+		// A button points either at a trigger node in *this* graph — the common
+		// case, and why one automation can own several buttons — or at another
+		// automation entirely.
+		const hasNode = typeof button.nodeId === 'string' && button.nodeId;
+		const hasKey = typeof button.automationKey === 'string' && button.automationKey;
+
+		if (!hasNode && !hasKey) {
+			push(`${at}.nodeId`, 'required', 'Pick what this button does');
 			return;
 		}
+		if (hasNode && hasKey) {
+			push(`${at}.nodeId`, 'ambiguous_target', 'A button runs one thing, not two');
+			return;
+		}
+
+		if (hasNode) {
+			// `buttonNodeIds` is supplied by the caller from the graph being saved.
+			if (options.buttonNodeIds && !options.buttonNodeIds.includes(button.nodeId)) {
+				push(`${at}.nodeId`, 'unknown_trigger', 'That step is not a "button is pressed" trigger in this automation');
+			}
+			return;
+		}
+
 		// `buttonAutomationKeys` is only supplied by the routes; the tests and the
 		// catalogue endpoint validate the shape without the guild's data.
 		if (options.automationKeys && !options.automationKeys.includes(button.automationKey)) {
@@ -646,7 +665,7 @@ const NODE_TYPES = {
 				type: 'textarea',
 			},
 			{
-				help: 'Each button starts another automation — one triggered by "A button is pressed".',
+				help: 'Each button starts a "button is pressed" trigger — in this automation, or another one.',
 				key: 'buttons',
 				label: 'Buttons',
 				maxItems: LIMITS.messageButtons,

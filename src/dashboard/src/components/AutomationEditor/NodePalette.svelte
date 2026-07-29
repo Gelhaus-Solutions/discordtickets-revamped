@@ -3,7 +3,7 @@
 	import { editorState } from './editorState.svelte.js';
 
 	/** Entirely catalogue-driven, so a new node type needs no change here. */
-	let { onadd, hasTrigger = false } = $props();
+	let { onadd } = $props();
 
 	const editor = editorState();
 	let search = $state('');
@@ -43,12 +43,10 @@
 				</p>
 				<div class="flex flex-col gap-1">
 					{#each group.items as item (item.type)}
-						{@const locked = group.category === 'trigger' && hasTrigger}
 						<button
 							type="button"
-							disabled={locked}
-							title={locked ? 'An automation can only have one trigger' : item.description}
-							class="flex items-start gap-2 rounded-lg p-2 text-left transition duration-200 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-slate-800"
+							title={item.description}
+							class="flex items-start gap-2 rounded-lg p-2 text-left transition duration-200 hover:bg-gray-100 dark:hover:bg-slate-800"
 							onclick={() => onadd(item.type)}
 						>
 							<i class="fa-solid {iconFor(item.type)} mt-0.5 {skin.icon}"></i>

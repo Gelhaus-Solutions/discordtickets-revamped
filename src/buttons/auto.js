@@ -1,7 +1,7 @@
 const { Button } = require('@eartharoid/dbf');
 const { MessageFlags } = require('discord.js');
 const { emit } = require('../lib/automations/dispatcher');
-const { triggerNode } = require('../lib/automations/validate');
+const { triggerNodes } = require('../lib/automations/validate');
 
 /**
  * Buttons placed by an admin that set an automation off.
@@ -40,19 +40,26 @@ module.exports = class AutomationButton extends Button {
 		const client = this.client;
 
 		const automations = await client.automations.getForGuild(interaction.guildId);
-		const automation = automations.find(a => a.key === id.k && a.triggerType === 'trigger.button.pressed');
+		const automation = automations.find(a => a.key === id.k);
+
+		// `id.n` names the trigger node, because one graph may hold several of
+		// them. Buttons posted before that existed carry no `n`, so they fall back
+		// to the graph's only button trigger — which is exactly what they meant.
+		const triggers = automation ? triggerNodes(automation.graph).filter(n => n.type === 'trigger.button.pressed') : [];
+		const node = id.n
+			? triggers.find(n => n.id === id.n)
+			: (triggers.length === 1 ? triggers[0] : null);
 
 		// The automation was deleted or disabled after the message was posted.
 		// `buildButton` skips unknown keys when rendering, but a live message can
 		// outlive the automation it points at.
-		if (!automation) {
+		if (!automation || !node) {
 			return await interaction.reply({
 				content: 'That button is no longer connected to anything.',
 				flags: MessageFlags.Ephemeral,
 			});
 		}
 
-		const node = triggerNode(automation.graph);
 		if (node?.params?.ack === 'none') await interaction.deferUpdate();
 		else await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
@@ -65,6 +72,7 @@ module.exports = class AutomationButton extends Button {
 		});
 
 		emit(client, 'trigger.button.pressed', {
+			nodeId: node.id,
 			categoryId: ticket?.categoryId,
 			channelId: interaction.channelId,
 			guildId: interaction.guildId,

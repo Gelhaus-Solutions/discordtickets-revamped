@@ -23,7 +23,7 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 const ms = require('ms');
 const { LIMITS } = require('./errors');
 const { Context } = require('./context');
-const { triggerNode } = require('./validate');
+const { triggerNodes } = require('./validate');
 const { isSuppressed } = require('./discord');
 const regex = require('../regex');
 
@@ -35,9 +35,9 @@ const currentDepth = () => store.getStore()?.depth ?? -1;
 /**
  * Does this automation's trigger actually match what happened?
  *
- * The coarse match is the indexed `triggerType` column; this is the per-trigger
- * fine filter, evaluated in memory because the parameter sets are tiny and
- * neither database is used with JSON-path querying anywhere in this codebase.
+ * The coarse match is the node's type; this is the per-trigger fine filter,
+ * evaluated in memory because the parameter sets are tiny and the whole guild's
+ * automations are already cached here.
  */
 function matches(node, payload) {
 	const params = node.params ?? {};
@@ -118,7 +118,23 @@ async function emit(client, triggerType, payload) {
 		const all = await client.automations.getForGuild(payload.guildId);
 		// The fast path, and the reason this is cheap enough for messageCreate.
 		if (!all.length) return;
-		const candidates = all.filter(a => a.triggerType === triggerType);
+
+		// An automation may hold several triggers, and more than one of them can be
+		// of this type — two "a button is pressed" nodes in one graph is the whole
+		// point of allowing it. Each is its own entry point, so each is its own run.
+		const candidates = [];
+		for (const automation of all) {
+			for (const node of triggerNodes(automation.graph)) {
+				if (node.type !== triggerType) continue;
+				// A button carries the node it belongs to, so only that one runs —
+				// otherwise pressing button A would also fire button B's branch.
+				if (payload.nodeId && node.id !== payload.nodeId) continue;
+				candidates.push({
+					automation,
+					node,
+				});
+			}
+		}
 		if (!candidates.length) return;
 
 		// A role change an automation just made must not re-trigger the automation
@@ -132,9 +148,10 @@ async function emit(client, triggerType, payload) {
 		const depth = currentDepth() + 1;
 		if (depth > LIMITS.depth) return;
 
-		for (const automation of candidates) {
-			const node = triggerNode(automation.graph);
-			if (!node || !matches(node, payload)) continue;
+		for (const {
+			automation, node,
+		} of candidates) {
+			if (!matches(node, payload)) continue;
 			// `break`, not `return`: once the guild is over its budget there is
 			// nothing left to do for this trigger either way, and returning read as
 			// "skip the rest of the list" in a loop that also has work after it.
@@ -158,7 +175,7 @@ async function emit(client, triggerType, payload) {
 			await store.run({
 				depth,
 				rootRunId: store.getStore()?.rootRunId ?? null,
-			}, () => client.automations.run(automation, ctx));
+			}, () => client.automations.run(automation, ctx, node.id));
 		}
 	} catch (error) {
 		client.log?.warn('Automation dispatch failed for %s: %s', triggerType, error?.message ?? error);

@@ -3,6 +3,7 @@
 		Background,
 		BackgroundVariant,
 		Controls,
+		MarkerType,
 		MiniMap,
 		SvelteFlow
 	} from '@xyflow/svelte';
@@ -61,7 +62,14 @@
 	{edgeTypes}
 	{colorMode}
 	{isValidConnection}
-	defaultEdgeOptions={{ type: 'deletable' }}
+	defaultEdgeOptions={{
+		markerEnd: {
+			height: 18,
+			type: MarkerType.ArrowClosed,
+			width: 18
+		},
+		type: 'deletable'
+	}}
 	fitView
 	minZoom={0.25}
 	maxZoom={2}

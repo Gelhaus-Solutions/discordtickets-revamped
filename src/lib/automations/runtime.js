@@ -8,7 +8,9 @@
  *
  * ## Semantics, chosen for predictability over expressiveness
  *
- * 1. **Entry** is the single trigger node, guaranteed by `validate.js`. A
+ * 1. **Entry** is whichever trigger fired. A graph may hold several — two
+ *    "button pressed" nodes answering two buttons the same graph posted — so
+ *    the caller says which one, and the branch hanging off it is what runs. A
  *    resumed run enters at a serialized queue instead.
  * 2. **Traversal** is an explicit FIFO queue, never recursion. Successors are
  *    enqueued in `edges[]` order, which is the order the editor writes them, so
@@ -30,7 +32,7 @@
 
 const { LIMITS } = require('./errors');
 const { NODE_TYPES } = require('./registry');
-const { triggerNode } = require('./validate');
+const { triggerNodes } = require('./validate');
 
 /** Per-node outcomes recorded in `AutomationRun.steps`. */
 const STEP = {
@@ -208,17 +210,27 @@ async function runFrom(graph, ctx, queue, {
 	};
 }
 
-/** Run a graph from its trigger. */
-function runAutomation(graph, ctx, options) {
-	const trigger = triggerNode(graph);
-	if (!trigger) {
+/**
+ * Run a graph from one of its triggers.
+ *
+ * `startNodeId` says which one fired — a graph may have several, and the branch
+ * that runs is the one hanging off that node. Omitted, it falls back to the
+ * only trigger, which is what a resumed run or a single-trigger graph wants.
+ */
+function runAutomation(graph, ctx, options = {}) {
+	const triggers = triggerNodes(graph);
+	const start = options.startNodeId
+		? triggers.find(t => t.id === options.startNodeId)
+		: (triggers.length === 1 ? triggers[0] : null);
+
+	if (!start) {
 		return Promise.resolve({
-			error: 'no_trigger',
-			status: RUN.failed,
+			error: options.startNodeId ? `graph_changed:${options.startNodeId}` : 'no_trigger',
+			status: options.startNodeId ? RUN.cancelled : RUN.failed,
 			steps: [],
 		});
 	}
-	return runFrom(graph, ctx, [trigger.id], options);
+	return runFrom(graph, ctx, [start.id], options);
 }
 
 module.exports = {

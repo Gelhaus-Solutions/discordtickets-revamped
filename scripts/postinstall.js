@@ -147,6 +147,7 @@ const MIGRATION_PROBES = {
 	// Both tables must be listed: a run that created `automations` but died
 	// before `automationRuns` has to be re-run, not skipped.
 	automations: { tables: ['automations', 'automationRuns'] },
+	automation_triggers: { columns: [['automations', 'triggerTypes']] },
 	bot_customization: {
 		columns: [
 			['guilds', 'botAvatar'],

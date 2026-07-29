@@ -84,19 +84,17 @@ model Automation {
     key         String          @db.VarChar(12)
     name        String          @db.VarChar(100)
     runs        AutomationRun[]
-    // Second-level discriminator whose meaning depends on triggerType (the cron
-    // expression, for schedule triggers). NULL means "matches anything".
-    triggerKey  String?         @db.VarChar(100)
-    // Derived server-side from the graph's single trigger node on every write,
-    // so the dispatcher can answer "which automations listen to X in guild Y"
-    // with one indexed query. Neither provider is used with JSON-path querying
-    // anywhere in this codebase, so the column is what makes the lookup cheap.
-    triggerType String          @db.VarChar(64)
+    // The distinct trigger types in the graph, derived server-side on every
+    // write. An automation may hold several triggers, so this is a list.
+    //
+    // Display and coarse filtering only: the dispatcher matches against the
+    // graph's own trigger nodes (it already holds the whole guild in memory), so
+    // this is never what decides whether an automation fires.
+    triggerTypes Json
     updatedAt   DateTime        @updatedAt
 
     @@unique([guildId, key])
     @@index([guildId, enabled])
-    @@index([guildId, triggerType, enabled])
     @@map("automations")
 }
 

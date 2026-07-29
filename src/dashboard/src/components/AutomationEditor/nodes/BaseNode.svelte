@@ -25,7 +25,7 @@
 	<Handle
 		type="target"
 		position={Position.Left}
-		class="!h-3 !w-3 !border-2 !border-white !bg-gray-400 dark:!border-slate-800 dark:!bg-slate-400"
+		class="!border-white !bg-gray-400 dark:!border-slate-800 dark:!bg-slate-400"
 	/>
 {/if}
 
@@ -56,8 +56,8 @@
 		type="source"
 		id={handle}
 		position={Position.Right}
-		style={outputs.length > 1 ? `top: ${38 + i * 24}%` : ''}
-		class="!h-3 !w-3 !border-2 !border-white dark:!border-slate-800 {handle === 'true'
+		style={outputs.length > 1 ? `top: ${30 + i * 40}%` : ''}
+		class="!border-white dark:!border-slate-800 {handle === 'true'
 			? '!bg-green-500'
 			: handle === 'false'
 				? '!bg-red-400'
@@ -68,7 +68,7 @@
 			class="pointer-events-none absolute -right-11 text-[10px] font-semibold {handle === 'true'
 				? 'text-green-600 dark:text-green-400'
 				: 'text-red-500 dark:text-red-400'}"
-			style="top: calc({38 + i * 24}% - 7px)"
+			style="top: calc({30 + i * 40}% - 7px)"
 		>
 			{handle}
 		</span>

@@ -8,9 +8,11 @@
 	 * something to press: "ticket opened → post a button", then a second
 	 * automation "button pressed → add a role".
 	 *
-	 * Only automations triggered by a button press can be picked — pointing a
-	 * button at, say, a ticket-closed automation would render fine and then do
-	 * nothing, which the server also rejects.
+	 * A button points either at a "button is pressed" trigger in *this* graph —
+	 * the usual case, and why one automation can own two buttons — or at another
+	 * automation entirely. Nothing else may be picked: pointing a button at, say,
+	 * a ticket-closed trigger would render fine and then do nothing, which the
+	 * server also rejects.
 	 */
 	let { field, value, onchange } = $props();
 
@@ -25,18 +27,34 @@
 		{ label: 'Red', value: 'danger' }
 	];
 
-	const targets = $derived(editor.buttonAutomations ?? []);
+	const inGraph = $derived(editor.buttonTriggers ?? []);
+	const others = $derived(editor.buttonAutomations ?? []);
+	const hasTargets = $derived(inGraph.length > 0 || others.length > 0);
+
+	/** `nodeId` and `automationKey` are mutually exclusive; the select encodes which. */
+	const valueOf = (button) =>
+		button.nodeId ? `node:${button.nodeId}` : button.automationKey ? `key:${button.automationKey}` : '';
+
+	const pickTarget = (i, raw) =>
+		set(i, raw.startsWith('node:')
+			? { automationKey: undefined, nodeId: raw.slice(5) }
+			: { automationKey: raw.slice(4), nodeId: undefined });
 
 	const set = (i, patch) =>
 		onchange(buttons.map((button, index) => (index === i ? { ...button, ...patch } : button)));
 
 	const add = () =>
-		onchange([...buttons, { automationKey: targets[0]?.key ?? '', label: 'Click me', style: 'primary' }]);
+		onchange([
+			...buttons,
+			inGraph.length > 0
+				? { label: 'Click me', nodeId: inGraph[0].id, style: 'primary' }
+				: { automationKey: others[0]?.key ?? '', label: 'Click me', style: 'primary' }
+		]);
 </script>
 
-{#if targets.length === 0}
+{#if !hasTargets}
 	<p class="rounded-lg bg-amber-400/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-		Make an automation whose trigger is <span class="font-semibold">A button is pressed</span> first —
+		Add an <span class="font-semibold">A button is pressed</span> trigger to this automation first —
 		that is what a button here runs.
 	</p>
 {:else}
@@ -55,13 +73,24 @@
 						/>
 						<select
 							class="input form-multiselect text-sm"
-							value={button.automationKey ?? ''}
-							onchange={(e) => set(i, { automationKey: e.currentTarget.value })}
+							value={valueOf(button)}
+							onchange={(e) => pickTarget(i, e.currentTarget.value)}
 						>
 							<option value="">Pick what it runs</option>
-							{#each targets as target (target.key)}
-								<option value={target.key}>{target.name}</option>
-							{/each}
+							{#if inGraph.length > 0}
+								<optgroup label="In this automation">
+									{#each inGraph as trigger (trigger.id)}
+										<option value="node:{trigger.id}">{trigger.label}</option>
+									{/each}
+								</optgroup>
+							{/if}
+							{#if others.length > 0}
+								<optgroup label="Another automation">
+									{#each others as target (target.key)}
+										<option value="key:{target.key}">{target.name}</option>
+									{/each}
+								</optgroup>
+							{/if}
 						</select>
 						<select
 							class="input form-multiselect text-sm"

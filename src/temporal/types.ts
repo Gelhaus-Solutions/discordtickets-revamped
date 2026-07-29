@@ -143,4 +143,6 @@ export interface AutomationResumeResult {
 export interface AutomationCronInput {
 	automationId: number;
 	guildId: string;
+	/** Which `trigger.schedule.cron` node in the graph this schedule belongs to. */
+	nodeId: string;
 }

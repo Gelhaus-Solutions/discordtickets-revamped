@@ -101,6 +101,8 @@ export interface AutomationSchedule {
 	guildId: string;
 	automationId: number;
 	key: string;
+	/** The `trigger.schedule.cron` node this schedule runs. */
+	nodeId: string;
 	cron: string;
 	timezone: string;
 }
@@ -114,12 +116,13 @@ export interface AutomationSchedule {
 export async function upsertAutomationSchedule(input: AutomationSchedule): Promise<void> {
 	const client = getTemporalClient();
 	const { taskQueue } = getTemporalConfig();
-	const scheduleId = automationScheduleId(input.guildId, input.key);
+	const scheduleId = automationScheduleId(input.guildId, input.key, input.nodeId);
 
 	const action = {
 		args: [{
 			automationId: input.automationId,
 			guildId: input.guildId,
+			nodeId: input.nodeId,
 		}],
 		taskQueue,
 		type: 'startWorkflow' as const,
@@ -151,9 +154,9 @@ export async function upsertAutomationSchedule(input: AutomationSchedule): Promi
 	}
 }
 
-export async function deleteAutomationSchedule(guildId: string, key: string): Promise<void> {
+export async function deleteAutomationSchedule(guildId: string, key: string, nodeId: string): Promise<void> {
 	try {
-		await getTemporalClient().schedule.getHandle(automationScheduleId(guildId, key)).delete();
+		await getTemporalClient().schedule.getHandle(automationScheduleId(guildId, key, nodeId)).delete();
 	} catch {
 		// not found — fine
 	}
@@ -180,7 +183,7 @@ export async function reconcileAutomationSchedules(
 	let upserted = 0;
 
 	for (const row of rows) {
-		expected.add(automationScheduleId(row.guildId, row.key));
+		expected.add(automationScheduleId(row.guildId, row.key, row.nodeId));
 		await upsertAutomationSchedule(row);
 		upserted++;
 	}

@@ -15,6 +15,8 @@ export function createEditorState(initial = {}) {
 		catalogue: initial.catalogue ?? null,
 		/** Automations a button may start: those triggered by a button press. */
 		buttonAutomations: initial.buttonAutomations ?? [],
+		/** `trigger.button.pressed` nodes in the graph being edited. */
+		buttonTriggers: [],
 		categories: initial.categories ?? [],
 		channels: initial.channels ?? [],
 		problems: [],

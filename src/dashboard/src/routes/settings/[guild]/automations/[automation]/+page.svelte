@@ -50,10 +50,17 @@
 
 	const graph = $derived(fromFlow(nodes, edges));
 	const selectedNode = $derived(nodes.find((n) => n.id === editor.selected) ?? null);
-	const hasTrigger = $derived(nodes.some((n) => n.data.type.startsWith('trigger.')));
 
 	$effect(() => {
 		editor.problems = validate(graph, data.catalogue);
+	});
+
+	// What an in-graph button may point at. Kept on the shared editor state so
+	// ButtonsField does not need the whole graph threaded into it.
+	$effect(() => {
+		editor.buttonTriggers = nodes
+			.filter((n) => n.data.type === 'trigger.button.pressed')
+			.map((n) => ({ id: n.id, label: n.data.params?.label || 'Button' }));
 	});
 
 	// `fromFlow` rounds positions, so a drag that ends where it started is not a
@@ -79,11 +86,6 @@
 	});
 
 	const addNode = (type) => {
-		// An automation has exactly one trigger. The palette greys the group out,
-		// but that is presentation — this is the rule, so a second one cannot get
-		// in by any route.
-		if (type.startsWith('trigger.') && hasTrigger) return;
-
 		// Dropped to the right of everything already there, so a new step lands
 		// where the eye is rather than on top of the trigger.
 		const right = nodes.reduce((max, n) => Math.max(max, n.position.x), 0);
@@ -213,7 +215,7 @@
 	{/if}
 
 	<div class="grid grid-cols-1 gap-4 lg:grid-cols-[16rem_1fr_20rem]">
-		<NodePalette onadd={addNode} {hasTrigger} />
+		<NodePalette onadd={addNode} />
 
 		<div
 			class="automations-canvas h-[calc(100dvh-24rem)] min-h-[30rem] overflow-hidden rounded-xl bg-white shadow-sm dark:bg-slate-700"
@@ -230,10 +232,59 @@
 </ToastContainer>
 
 <style>
-	/* Keep the canvas chrome in step with the dashboard's own palette. */
+	/*
+	 * Svelte Flow's defaults are tuned for a white canvas: a 1px #b1b1b7 edge and
+	 * a 6px handle. Against this dashboard's dark slate both are close to
+	 * invisible, and a 6px target is a genuinely hard thing to hit with a mouse.
+	 */
 	.automations-canvas :global(.svelte-flow) {
 		--xy-background-color: transparent;
+		--xy-connectionline-stroke: #5865f2;
+		--xy-connectionline-stroke-width: 2.5;
+		--xy-edge-stroke: #64748b;
+		--xy-edge-stroke-selected: #5865f2;
+		--xy-edge-stroke-width: 2.5;
 	}
+
+	/* Slate-400 rather than slate-500: the dark canvas needs the extra contrast. */
+	:global(.dark) .automations-canvas :global(.svelte-flow) {
+		--xy-edge-stroke: #94a3b8;
+	}
+
+	.automations-canvas :global(.svelte-flow__edge-path) {
+		stroke-linecap: round;
+	}
+
+	/* Hovering an edge highlights it, which makes the little delete cross findable. */
+	.automations-canvas :global(.svelte-flow__edge:hover .svelte-flow__edge-path) {
+		stroke: #5865f2;
+	}
+
+	.automations-canvas :global(.svelte-flow__handle) {
+		border-width: 2px;
+		height: 14px;
+		width: 14px;
+	}
+
+	/*
+	 * The grab zone, not the dot. This gives the handle a ~34px target while it
+	 * still *looks* like a 14px dot — pointer-events are inherited from the
+	 * handle, so this only becomes interactive when the handle itself is.
+	 */
+	.automations-canvas :global(.svelte-flow__handle)::after {
+		border-radius: 9999px;
+		content: '';
+		/* 30px target around a 14px dot. Not larger: on a two-output node the
+		   true/false zones would start to overlap and the lower one would become
+		   unreliable to grab. */
+		inset: -8px;
+		position: absolute;
+	}
+
+	.automations-canvas :global(.svelte-flow__handle:hover) {
+		box-shadow: 0 0 0 4px rgb(88 101 242 / 0.25);
+	}
+
 	.automations-canvas :global(.svelte-flow__controls-button) {
 		border-radius: 0.25rem;
 	}

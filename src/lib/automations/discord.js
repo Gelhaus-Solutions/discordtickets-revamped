@@ -13,18 +13,32 @@ const { PermissionFlagsBits } = require('discord.js');
 /**
  * The `custom_id` of a button that sets an automation off.
  *
- * 31 characters, against Discord's 100-character limit — which this codebase is
- * already close to, and why `Automation.key` is a short generated handle rather
- * than the autoincrement primary key. Defined here so the layout renderer, the
- * `action.message.send` buttons and `src/buttons/auto.js` cannot drift apart;
- * `scripts/check-automations.js` pins the length.
+ * About 45 characters with a node id, against Discord's 100-character limit —
+ * which this codebase is already close to, and why `Automation.key` is a short
+ * generated handle rather than the autoincrement primary key.
+ *
+ * `n` names which trigger node to start from, because a graph may hold several
+ * "a button is pressed" nodes. It is omitted when there is nothing to
+ * disambiguate, which is also what every button posted before multi-trigger
+ * automations existed looks like — those still resolve to the graph's only
+ * button trigger.
+ *
+ * Defined here so the layout renderer, the `action.message.send` buttons and
+ * `src/buttons/auto.js` cannot drift apart; `scripts/check-automations.js` pins
+ * the length.
  */
 const AUTOMATION_BUTTON_ACTION = 'auto';
 
-const automationCustomId = key => JSON.stringify({
-	action: AUTOMATION_BUTTON_ACTION,
-	k: key,
-});
+const automationCustomId = (key, nodeId = null) => JSON.stringify(nodeId
+	? {
+		action: AUTOMATION_BUTTON_ACTION,
+		k: key,
+		n: nodeId,
+	}
+	: {
+		action: AUTOMATION_BUTTON_ACTION,
+		k: key,
+	});
 
 /** How long a role change made by an automation suppresses the matching trigger. */
 const SUPPRESS_MS = 10_000;

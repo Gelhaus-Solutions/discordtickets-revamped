@@ -1,8 +1,9 @@
 const { Context } = require('../../../../../../../lib/automations/context');
 const { runAutomation } = require('../../../../../../../lib/automations/runtime');
 const {
-	loadAutomation, resolveTestContext,
+	badRequest, loadAutomation, resolveTestContext,
 } = require('../../../../../../../lib/automations/http');
+const { triggerNodes } = require('../../../../../../../lib/automations/validate');
 
 /**
  * Dry-run an automation and return the trace.
@@ -27,6 +28,12 @@ module.exports.post = fastify => ({
 		if (!automation) return;
 
 		const body = req.body ?? {};
+		// A graph may hold several triggers; the caller can say which branch to
+		// exercise, otherwise the first one is used.
+		const triggers = triggerNodes(automation.graph);
+		const trigger = (typeof body.nodeId === 'string' && triggers.find(n => n.id === body.nodeId)) || triggers[0];
+		if (!trigger) return res.code(400).send(badRequest('no_trigger', 'This automation has no trigger to run from.'));
+
 		// Conditions are evaluated for real, so every id has to be this guild's
 		// before it reaches the Context — see resolveTestContext.
 		const scope = await resolveTestContext(client, automation, body, req.user.id);
@@ -37,7 +44,7 @@ module.exports.post = fastify => ({
 			channelId: scope.channelId,
 			guildId: automation.guildId,
 			ticketId: scope.ticketId,
-			triggerType: automation.triggerType,
+			triggerType: trigger?.type ?? null,
 			vars: {
 				displayname: req.user.username,
 				name: req.user.username,
@@ -46,7 +53,10 @@ module.exports.post = fastify => ({
 		ctx.dryRun = true;
 
 		const started = Date.now();
-		const result = await runAutomation(automation.graph, ctx, { runners: client.automations.runners });
+		const result = await runAutomation(automation.graph, ctx, {
+			runners: client.automations.runners,
+			startNodeId: trigger.id,
+		});
 
 		return {
 			durationMs: Date.now() - started,

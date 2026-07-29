@@ -153,8 +153,8 @@ export function makeActivities(deps: ActivityDeps) {
 		},
 
 		/** Entry point for `trigger.schedule.cron`. */
-		async startScheduledAutomation(input: { automationId: number; guildId: string }): Promise<void> {
-			await client.automations.runScheduled(input.automationId, input.guildId);
+		async startScheduledAutomation(input: { automationId: number; guildId: string; nodeId: string }): Promise<void> {
+			await client.automations.runScheduled(input.automationId, input.guildId, input.nodeId);
 		},
 
 		async failAutomationRun(runId: string, error: string): Promise<void> {

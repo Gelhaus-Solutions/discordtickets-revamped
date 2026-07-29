@@ -66,13 +66,7 @@ export function validate(graph, catalogue) {
 
 	const triggers = graph.nodes.filter((n) => n.type.startsWith('trigger.'));
 	if (triggers.length === 0) {
-		add(null, 'The automation needs a trigger.');
-		return problems;
-	}
-	if (triggers.length > 1) {
-		for (const trigger of triggers.slice(1)) {
-			add(trigger.id, 'An automation can only have one trigger. Make a second automation instead.');
-		}
+		add(null, 'The automation needs at least one trigger.');
 		return problems;
 	}
 	if (!graph.nodes.some((n) => n.type.startsWith('action.'))) {
@@ -83,9 +77,10 @@ export function validate(graph, catalogue) {
 	if (graph.nodes.length > (limits.nodes ?? Infinity)) add(null, `Too many steps (max ${limits.nodes}).`);
 	if (graph.edges.length > (limits.edges ?? Infinity)) add(null, `Too many connections (max ${limits.edges}).`);
 
-	const trigger = triggers[0];
 	const reached = reachable(graph);
-	const available = new Set(definitionOf(catalogue, trigger.type)?.provides ?? []);
+	// A node's context is only what *every* trigger that can reach it provides.
+	const feedersOf = (nodeId) =>
+		triggers.filter((t) => reachable({ edges: graph.edges, nodes: graph.nodes }, [t.id]).has(nodeId));
 
 	for (const node of graph.nodes) {
 		const definition = definitionOf(catalogue, node.type);
@@ -108,12 +103,19 @@ export function validate(graph, catalogue) {
 			if (missing) add(node.id, `${field.label} is required.`, 'error', field.key);
 		}
 
-		if (node.id === trigger.id) continue;
+		if (triggers.some((t) => t.id === node.id)) continue;
+
+		const feeders = feedersOf(node.id);
+		if (feeders.length === 0) continue;
 		for (const capability of needsOf(node, catalogue)) {
-			if (available.has(capability)) continue;
+			const missing = feeders.filter(
+				(t) => !(definitionOf(catalogue, t.type)?.provides ?? []).includes(capability)
+			);
+			if (missing.length === 0) continue;
+			const names = missing.map((t) => `"${definitionOf(catalogue, t.type)?.label}"`).join(', ');
 			add(
 				node.id,
-				`"${definition.label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which "${definitionOf(catalogue, trigger.type)?.label}" does not provide.`
+				`"${definition.label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which ${names} ${missing.length > 1 ? 'do' : 'does'} not provide.`
 			);
 			break;
 		}

@@ -103,16 +103,16 @@ export function createsCycle(edges, connection) {
 }
 
 /** Node ids reachable from the trigger, for the unreachable-node warning. */
-export function reachable(graph) {
-	const trigger = graph.nodes.find((n) => n.type.startsWith('trigger.'));
-	if (!trigger) return new Set();
+export function reachable(graph, roots = null) {
+	const starts = roots ?? graph.nodes.filter((n) => n.type.startsWith('trigger.')).map((n) => n.id);
+	if (starts.length === 0) return new Set();
 	const next = new Map();
 	for (const edge of graph.edges) {
 		if (!next.has(edge.from)) next.set(edge.from, []);
 		next.get(edge.from).push(edge.to);
 	}
-	const seen = new Set([trigger.id]);
-	const stack = [trigger.id];
+	const seen = new Set(starts);
+	const stack = [...starts];
 	while (stack.length) {
 		for (const to of next.get(stack.pop()) ?? []) {
 			if (seen.has(to)) continue;

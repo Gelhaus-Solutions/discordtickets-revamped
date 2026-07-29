@@ -83,15 +83,21 @@ function buildButtons(node, ctx) {
 	if (specs.length === 0) return [];
 
 	const row = new ActionRowBuilder().addComponents(
-		specs.slice(0, LIMITS.messageButtons).map(spec => {
-			const button = new ButtonBuilder()
-				.setCustomId(automationCustomId(spec.automationKey))
-				.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
-				.setLabel(render(spec.label, ctx).slice(0, 80));
-			const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
-			if (emoji) button.setEmoji(emoji);
-			return button;
-		}),
+		specs.slice(0, LIMITS.messageButtons)
+			.filter(spec => spec.nodeId ? ctx.automationKey : spec.automationKey)
+			.map(spec => {
+			// An in-graph button carries this automation's own key plus the node,
+			// so pressing it comes back to the right branch of the right graph.
+				const button = new ButtonBuilder()
+					.setCustomId(spec.nodeId
+						? automationCustomId(ctx.automationKey, spec.nodeId)
+						: automationCustomId(spec.automationKey))
+					.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
+					.setLabel(render(spec.label, ctx).slice(0, 80));
+				const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
+				if (emoji) button.setEmoji(emoji);
+				return button;
+			}),
 	);
 	return [row];
 }

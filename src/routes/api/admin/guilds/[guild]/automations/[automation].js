@@ -4,7 +4,7 @@ const {
 	describeError,
 } = require('../../../../../../lib/automations/errors');
 const {
-	deriveTrigger,
+	deriveTriggers,
 	validateGraph,
 } = require('../../../../../../lib/automations/validate');
 const {
@@ -52,7 +52,7 @@ module.exports.patch = fastify => ({
 			}
 			// Re-derived, never taken from the body, so the dispatcher's index
 			// cannot drift from the canvas.
-			Object.assign(data, deriveTrigger(data.graph));
+			Object.assign(data, deriveTriggers(data.graph));
 		}
 
 		const updated = await client.prisma.automation.update({
@@ -61,7 +61,8 @@ module.exports.patch = fastify => ({
 		});
 
 		await client.automations.invalidate(original.guildId);
-		syncSchedule(client, updated);
+		// `original` so a cron trigger removed from the graph loses its schedule.
+		syncSchedule(client, updated, original);
 
 		logAdminEvent(client, {
 			action: 'update',
@@ -97,7 +98,7 @@ module.exports.delete = fastify => ({
 		syncSchedule(client, {
 			...deleted,
 			enabled: false,
-		});
+		}, deleted);
 
 		logAdminEvent(client, {
 			action: 'delete',

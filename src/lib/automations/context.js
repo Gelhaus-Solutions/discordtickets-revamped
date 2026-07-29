@@ -25,6 +25,8 @@ class Context {
 
 		this.runId = state.runId ?? null;
 		this.automationId = state.automationId ?? null;
+		/** The automation's short key, so a button it posts can point back at it. */
+		this.automationKey = state.automationKey ?? null;
 		this.triggerType = state.triggerType ?? null;
 
 		this.guildId = state.guildId ?? null;
@@ -75,6 +77,7 @@ class Context {
 		return {
 			actorId: this.actorId,
 			automationId: this.automationId,
+			automationKey: this.automationKey,
 			channelId: this.channelId,
 			depth: this.depth,
 			guildId: this.guildId,
@@ -196,10 +199,11 @@ class Context {
 	}
 
 	/** A child context for `action.automation.run`, one level deeper. */
-	descend(automationId, runId) {
+	descend(automationId, runId, automationKey = null) {
 		const child = new Context(this.client, {
 			...this.serialize(),
 			automationId,
+			automationKey,
 			depth: this.depth + 1,
 			runId,
 			// The step budget is shared: a chain of automations gets one budget

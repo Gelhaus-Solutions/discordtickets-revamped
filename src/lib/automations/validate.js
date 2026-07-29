@@ -43,41 +43,52 @@ const CAPABILITY_LABELS = {
 };
 
 /**
- * The single trigger node, or null.
+ * Every trigger node in a graph.
  *
- * Used by `deriveTrigger` and by the validator, which is why it tolerates a
- * malformed graph rather than assuming validation has already run.
+ * An automation may have more than one: "ticket opened, post two buttons" and
+ * the two "button pressed" branches that answer them belong in one automation,
+ * not three. Tolerates a malformed graph rather than assuming validation has
+ * already run, because `deriveTriggers` and the dispatcher both call it on
+ * stored data.
+ */
+function triggerNodes(graph) {
+	const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
+	return nodes.filter(n => NODE_TYPES[n?.type]?.category === 'trigger');
+}
+
+/**
+ * The one trigger a graph has, when it has exactly one.
+ *
+ * Kept for the places that legitimately mean "the only one" — a button with no
+ * node id in its custom_id, which is every button posted before multi-trigger
+ * automations existed.
  */
 function triggerNode(graph) {
-	const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
-	const triggers = nodes.filter(n => NODE_TYPES[n?.type]?.category === 'trigger');
+	const triggers = triggerNodes(graph);
 	return triggers.length === 1 ? triggers[0] : null;
 }
 
 /**
- * The values of `Automation.triggerType` / `triggerKey` for a graph.
+ * The value of `Automation.triggerTypes` for a graph.
  *
  * The exact analogue of `panels.js#collectCategoryIds`: the client never sends
- * these, they are recomputed from the graph on every write, so they cannot drift
- * from what the canvas actually contains.
+ * this, it is recomputed from the graph on every write, so it cannot drift from
+ * what the canvas contains. Only used for display and coarse filtering — the
+ * dispatcher matches against the graph's own trigger nodes, so this is never
+ * load-bearing for whether an automation fires.
  *
- * @returns {{triggerType: string, triggerKey: string|null}}
+ * @returns {{triggerTypes: string[]}} distinct, sorted
  */
-function deriveTrigger(graph) {
-	const node = triggerNode(graph);
-	if (!node) {
+function deriveTriggers(graph) {
+	const triggers = triggerNodes(graph);
+	if (triggers.length === 0) {
 		throw new AutomationError([{
 			code: 'no_trigger',
-			message: 'The automation needs exactly one trigger',
+			message: 'The automation needs at least one trigger',
 			path: 'nodes',
 		}]);
 	}
-	return {
-		// Only cron needs a second-level discriminator: it lets the schedule
-		// reconciler diff the database against Temporal without parsing graphs.
-		triggerKey: node.type === 'trigger.schedule.cron' ? String(node.params?.cron ?? '') : null,
-		triggerType: node.type,
-	};
+	return { triggerTypes: [...new Set(triggers.map(n => n.type))].sort() };
 }
 
 /** Adjacency, keyed by node id, in `edges[]` order. */
@@ -90,11 +101,12 @@ function adjacency(edges) {
 	return out;
 }
 
-/** Node ids reachable from `startId`, following every handle. */
-function reachableFrom(startId, edges) {
+/** Node ids reachable from any of `startIds`, following every handle. */
+function reachableFrom(startIds, edges) {
+	const roots = Array.isArray(startIds) ? startIds : [startIds];
 	const next = adjacency(edges);
-	const seen = new Set([startId]);
-	const queue = [startId];
+	const seen = new Set(roots);
+	const queue = [...roots];
 	while (queue.length) {
 		for (const edge of next.get(queue.shift()) ?? []) {
 			if (seen.has(edge.to)) continue;
@@ -225,7 +237,14 @@ function validateGraph(graph, options = {}) {
 		validateParams(node.params, type.params, push, at);
 		// Options are passed through so a node can validate against the guild's
 		// own data (which categories exist, which automations a button may run).
-		type.validate?.(node.params, push, at, options);
+		type.validate?.(node.params, push, at, {
+			...options,
+			// Which nodes in *this* graph a button may point at. Computed here
+			// because only the validator has the whole graph in hand.
+			buttonNodeIds: nodes
+				.filter(n => n?.type === 'trigger.button.pressed')
+				.map(n => n.id),
+		});
 
 		if (options.categoryIds) {
 			const referenced = [
@@ -251,17 +270,14 @@ function validateGraph(graph, options = {}) {
 	});
 	if (errors.length) fail();
 
-	/* ── the single trigger ────────────────────────────────────────────────── */
+	/* ── triggers ──────────────────────────────────────────────────────────── */
 
 	const triggers = nodes.filter(n => NODE_TYPES[n.type].category === 'trigger');
-	if (triggers.length === 0) push('nodes', 'no_trigger', 'The automation needs a trigger');
-	if (triggers.length > 1) push('nodes', 'multiple_triggers', 'An automation can only have one trigger. Make a second automation instead.');
+	if (triggers.length === 0) push('nodes', 'no_trigger', 'The automation needs at least one trigger');
 	if (!nodes.some(n => NODE_TYPES[n.type].category === 'action')) {
 		push('nodes', 'no_action', 'The automation does not do anything yet');
 	}
 	if (errors.length) fail();
-
-	const trigger = triggers[0];
 
 	/* ── edges ─────────────────────────────────────────────────────────────── */
 
@@ -332,7 +348,7 @@ function validateGraph(graph, options = {}) {
 
 	/* ── shape of the whole graph ──────────────────────────────────────────── */
 
-	const reachable = reachableFrom(trigger.id, edges);
+	const reachable = reachableFrom(triggers.map(t => t.id), edges);
 	nodes.forEach((node, i) => {
 		if (!reachable.has(node.id)) {
 			push(`nodes[${i}]`, 'unreachable', 'Nothing leads to this step, so it will never run');
@@ -353,15 +369,31 @@ function validateGraph(graph, options = {}) {
 
 	/* ── capabilities ──────────────────────────────────────────────────────── */
 
-	const available = new Set(NODE_TYPES[trigger.type].provides ?? []);
+	// With several triggers, a node's context is only what *every* trigger that
+	// can reach it provides. A step fed by both "a ticket is closed" and "a button
+	// is pressed" gets the intersection — anything else would work when one fired
+	// and fail when the other did, which is the worst way to find out.
+	const reachSets = triggers.map(t => ({
+		provides: new Set(NODE_TYPES[t.type].provides ?? []),
+		reaches: reachableFrom([t.id], edges),
+		trigger: t,
+	}));
+
 	nodes.forEach((node, i) => {
-		if (!reachable.has(node.id) || node.id === trigger.id) return;
+		if (!reachable.has(node.id)) return;
+		if (triggers.some(t => t.id === node.id)) return;
+
+		const feeders = reachSets.filter(r => r.reaches.has(node.id));
+		if (feeders.length === 0) return;
+
 		for (const capability of needsOf(node)) {
-			if (available.has(capability)) continue;
+			const missing = feeders.filter(f => !f.provides.has(capability));
+			if (missing.length === 0) continue;
+			const names = missing.map(f => `"${NODE_TYPES[f.trigger.type].label}"`).join(', ');
 			push(
 				`nodes[${i}]`,
 				'missing_context',
-				`"${NODE_TYPES[node.type].label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which "${NODE_TYPES[trigger.type].label}" does not provide`,
+				`"${NODE_TYPES[node.type].label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which ${names} ${missing.length > 1 ? 'do' : 'does'} not provide`,
 			);
 			break;
 		}
@@ -369,14 +401,16 @@ function validateGraph(graph, options = {}) {
 
 	/* ── the role feedback loop ────────────────────────────────────────────── */
 
-	// `trigger.member.roleAdded` + `action.role.add` on the same role is the one
-	// graph that re-triggers itself no matter how the interpreter behaves. The
-	// depth counter and the suppression key in `discord.js` both catch it at
-	// runtime; rejecting it here means nobody has to find out that way.
-	if (trigger.type === 'trigger.member.roleAdded' || trigger.type === 'trigger.member.roleRemoved') {
+	// `trigger.member.roleAdded` + `action.role.add` on the same role re-triggers
+	// itself no matter how the interpreter behaves. The depth counter and the
+	// suppression key both catch it at runtime; rejecting it here means nobody has
+	// to find out that way.
+	for (const trigger of triggers) {
+		if (trigger.type !== 'trigger.member.roleAdded' && trigger.type !== 'trigger.member.roleRemoved') continue;
 		const mirror = trigger.type === 'trigger.member.roleAdded' ? 'action.role.add' : 'action.role.remove';
+		const downstream = reachableFrom([trigger.id], edges);
 		nodes.forEach((node, i) => {
-			if (!reachable.has(node.id) || node.type !== mirror) return;
+			if (!downstream.has(node.id) || node.type !== mirror) return;
 			if (node.params?.roleId === trigger.params?.roleId) {
 				push(`nodes[${i}].params.roleId`, 'self_loop', 'This would re-trigger the automation forever. Use a different role.');
 			}
@@ -387,8 +421,9 @@ function validateGraph(graph, options = {}) {
 }
 
 module.exports = {
-	deriveTrigger,
+	deriveTriggers,
 	reachableFrom,
 	triggerNode,
+	triggerNodes,
 	validateGraph,
 };

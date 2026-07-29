@@ -79,6 +79,8 @@ export const importWorkflowId = (guildId: string): string => `import-${guildId}`
 // is unique without a timestamp and a retry of the same park is idempotent.
 export const automationRunWorkflowId = (runId: string): string => `automation-run-${runId}`;
 
-// Schedule ids are per (guild, automation). The `automation-` prefix is what
-// `reconcileAutomationSchedules` sweeps on, so nothing else may use it.
-export const automationScheduleId = (guildId: string, key: string): string => `automation-${guildId}-${key}`;
+// Schedule ids are per (guild, automation, trigger node): one graph may hold
+// several cron triggers, and each is its own schedule. The `automation-` prefix
+// is what `reconcileAutomationSchedules` sweeps on, so nothing else may use it.
+export const automationScheduleId = (guildId: string, key: string, nodeId: string): string =>
+	`automation-${guildId}-${key}-${nodeId}`;

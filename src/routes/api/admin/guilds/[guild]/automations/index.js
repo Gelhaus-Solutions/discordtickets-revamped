@@ -4,7 +4,7 @@ const {
 	describeError,
 } = require('../../../../../../lib/automations/errors');
 const {
-	deriveTrigger,
+	deriveTriggers,
 	validateGraph,
 } = require('../../../../../../lib/automations/validate');
 const {
@@ -15,9 +15,9 @@ const {
 /**
  * Fields a caller may set.
  *
- * `triggerType`/`triggerKey` are deliberately absent: they are derived from the
- * graph server-side on every write, the same way `Panel.categories` is, so a
- * client cannot make the dispatcher's index disagree with the canvas.
+ * `triggerTypes` is deliberately absent: it is derived from the graph
+ * server-side on every write, the same way `Panel.categories` is, so a client
+ * cannot make it disagree with the canvas.
  */
 function safeAutomationData(body) {
 	return {
@@ -64,7 +64,7 @@ module.exports.get = fastify => ({
 			lastRun: latest.get(automation.id) ?? null,
 			name: automation.name,
 			nodeCount: automation.graph?.nodes?.length ?? 0,
-			triggerType: automation.triggerType,
+			triggerTypes: automation.triggerTypes ?? [],
 			updatedAt: automation.updatedAt,
 		}));
 	},
@@ -110,17 +110,14 @@ module.exports.post = fastify => ({
 			throw error;
 		}
 
-		const {
-			triggerKey, triggerType,
-		} = deriveTrigger(data.graph);
+		const { triggerTypes } = deriveTriggers(data.graph);
 		const created = await client.prisma.automation.create({
 			data: {
 				...data,
 				createdById: req.user.id,
 				guildId,
 				key: await client.automations.uniqueKey(guildId),
-				triggerKey,
-				triggerType,
+				triggerTypes,
 			},
 		});
 

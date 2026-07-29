@@ -10,7 +10,9 @@
 
 const temporal = require('../temporal');
 const { LIMITS } = require('./errors');
+const { schedulesFor } = require('./schedules');
 const { resolveGuildChannel } = require('../misc');
+const { triggerNodes } = require('./validate');
 
 /**
  * Load a guild's referential context for validation.
@@ -27,9 +29,9 @@ async function loadRefs(client, guildId, selfId = null) {
 		}),
 		client.prisma.automation.findMany({
 			select: {
+				graph: true,
 				id: true,
 				key: true,
-				triggerType: true,
 			},
 			where: { guildId },
 		}),
@@ -39,38 +41,44 @@ async function loadRefs(client, guildId, selfId = null) {
 		automationKeys: automations.map(a => a.key),
 		// A button can only start an automation that a button press triggers.
 		buttonAutomationKeys: automations
-			.filter(a => a.triggerType === 'trigger.button.pressed')
+			.filter(a => triggerNodes(a.graph).some(n => n.type === 'trigger.button.pressed'))
 			.map(a => a.key),
 		categoryIds: categories.map(c => c.id),
 		selfKey: selfId ? automations.find(a => a.id === selfId)?.key ?? null : null,
 	};
 }
 
-/** The timezone a cron automation runs in, read back off its graph. */
-const timezoneOf = automation =>
-	automation.graph?.nodes?.find(n => n.type === 'trigger.schedule.cron')?.params?.timezone ?? 'UTC';
-
 /**
- * Keep an automation's Temporal Schedule in step with its row.
+ * Keep an automation's Temporal Schedules in step with its graph.
+ *
+ * A graph may hold several cron triggers, so this is a set difference rather
+ * than a single upsert: everything the new graph wants is created or updated,
+ * and everything the old one had that the new one does not is deleted.
  *
  * Best-effort and never awaited: a Temporal hiccup must not fail the HTTP write,
  * because `reconcileAutomationSchedules` fixes any drift at the next boot. That
  * is the whole reason the reconciler exists.
+ *
+ * @param {object} automation the row as it now is
+ * @param {object} [previous] the row as it was, so removed nodes can be cleaned up
  */
-function syncSchedule(client, automation) {
-	const shouldExist = automation.enabled && automation.triggerType === 'trigger.schedule.cron';
-	const promise = shouldExist
-		? temporal.upsertAutomationSchedule({
-			automationId: automation.id,
-			cron: automation.triggerKey,
-			guildId: automation.guildId,
-			key: automation.key,
-			timezone: timezoneOf(automation),
-		})
-		: temporal.deleteAutomationSchedule(automation.guildId, automation.key);
+function syncSchedule(client, automation, previous = null) {
+	const wanted = schedulesFor(automation);
+	const had = schedulesFor({
+		...(previous ?? automation),
+		enabled: true,
+	});
 
-	promise.catch(error => client.log.warn(
-		'Could not sync the schedule for automation %s: %s',
+	const keep = new Set(wanted.map(w => w.nodeId));
+	const work = [
+		...wanted.map(w => temporal.upsertAutomationSchedule(w)),
+		...had
+			.filter(h => !keep.has(h.nodeId))
+			.map(h => temporal.deleteAutomationSchedule(h.guildId, h.key, h.nodeId)),
+	];
+
+	Promise.all(work).catch(error => client.log.warn(
+		'Could not sync the schedules for automation %s: %s',
 		automation.id,
 		error?.message ?? error,
 	));
@@ -179,5 +187,4 @@ module.exports = {
 	loadRefs,
 	runQuery,
 	syncSchedule,
-	timezoneOf,
 };

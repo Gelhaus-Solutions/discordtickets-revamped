@@ -25,7 +25,7 @@ const {
 	NODE_TYPES, isValidCron, needsOf,
 } = require(path.join(root, 'src', 'lib', 'automations', 'registry'));
 const {
-	deriveTrigger, validateGraph,
+	deriveTriggers, validateGraph,
 } = require(path.join(root, 'src', 'lib', 'automations', 'validate'));
 const {
 	RUN, STEP, runAutomation, runFrom,
@@ -166,11 +166,85 @@ function stubRunners(overrides = {}) {
 		assert.strictEqual(codeOf(g), 'no_trigger');
 	});
 
-	await t('rejects two triggers', () => {
-		const g = simple();
-		g.nodes.push(node('trigger.ticket.created', {}, 'c'));
-		g.edges.push(edge('c', 'b'));
-		assert.strictEqual(codeOf(g), 'multiple_triggers');
+	// One automation, several entry points: "a ticket opens, post two buttons" and
+	// the two branches answering them belong together.
+	await t('accepts several triggers in one graph', () => {
+		const g = graph(
+			[
+				node('trigger.button.pressed', { label: 'A' }, 'ta'),
+				node('trigger.button.pressed', { label: 'B' }, 'tb'),
+				node('action.role.add', {
+					roleId: '820000000000000001',
+					subject: 'actor',
+				}, 'a'),
+				node('action.role.remove', {
+					roleId: '820000000000000002',
+					subject: 'actor',
+				}, 'b'),
+			],
+			[edge('ta', 'a'), edge('tb', 'b')],
+		);
+		assert.strictEqual(codeOf(g), null);
+	});
+
+	await t('a node fed by two triggers only gets what both provide', () => {
+		// `action.message.reply` needs an actor. A cron trigger has none, so the
+		// shared step is rejected however well the other trigger would serve it.
+		const shared = () => graph(
+			[
+				node('trigger.message.created', { scope: 'ticket' }, 'tm'),
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'tc'),
+				node('action.message.reply', { content: 'hi' }, 'r'),
+			],
+			[edge('tm', 'r'), edge('tc', 'r')],
+		);
+		assert.strictEqual(codeOf(shared()), 'missing_context');
+
+		// The same step reached only by the message trigger is fine.
+		const split = graph(
+			[
+				node('trigger.message.created', { scope: 'ticket' }, 'tm'),
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'tc'),
+				node('action.message.reply', { content: 'hi' }, 'r'),
+				node('action.log', { content: 'tick' }, 'l'),
+			],
+			[edge('tm', 'r'), edge('tc', 'l')],
+		);
+		assert.strictEqual(codeOf(split), null);
+	});
+
+	await t('a button may point at a trigger node in the same graph', () => {
+		const g = graph(
+			[
+				node('trigger.ticket.created', {}, 't'),
+				node('trigger.button.pressed', { label: 'Press me' }, 'btn'),
+				node('action.message.send', {
+					buttons: [{
+						label: 'Press me',
+						nodeId: 'btn',
+					}],
+					content: 'Here you go',
+					target: 'ticket',
+				}, 's'),
+				node('action.role.add', {
+					roleId: '820000000000000001',
+					subject: 'actor',
+				}, 'r'),
+			],
+			[edge('t', 's'), edge('btn', 'r')],
+		);
+		assert.strictEqual(codeOf(g), null);
+
+		// Pointing at something that is not a button trigger is refused.
+		const bad = JSON.parse(JSON.stringify(g));
+		bad.nodes[2].params.buttons[0].nodeId = 't';
+		assert.strictEqual(codeOf(bad), 'unknown_trigger');
 	});
 
 	await t('rejects a graph that does nothing', () => {
@@ -400,25 +474,20 @@ function stubRunners(overrides = {}) {
 		})).includes('ticketChannel'));
 	});
 
-	await t('deriveTrigger reports the type, and the cron only for schedules', () => {
-		assert.deepStrictEqual(deriveTrigger(simple()), {
-			triggerKey: null,
-			triggerType: 'trigger.ticket.closed',
-		});
-		const cron = graph(
+	await t('deriveTriggers lists every distinct trigger type', () => {
+		assert.deepStrictEqual(deriveTriggers(simple()), { triggerTypes: ['trigger.ticket.closed'] });
+
+		const many = graph(
 			[
-				node('trigger.schedule.cron', {
-					cron: '0 9 * * *',
-					timezone: 'UTC',
-				}, 'a'),
-				node('action.log', { content: 'x' }, 'b'),
+				node('trigger.button.pressed', { label: 'A' }, 'ta'),
+				node('trigger.button.pressed', { label: 'B' }, 'tb'),
+				node('trigger.ticket.created', {}, 'tc'),
+				node('action.log', { content: 'x' }, 'a'),
 			],
-			[edge('a', 'b')],
+			[edge('ta', 'a'), edge('tb', 'a'), edge('tc', 'a')],
 		);
-		assert.deepStrictEqual(deriveTrigger(cron), {
-			triggerKey: '0 9 * * *',
-			triggerType: 'trigger.schedule.cron',
-		});
+		// Distinct and sorted — two button triggers are one type.
+		assert.deepStrictEqual(deriveTriggers(many), { triggerTypes: ['trigger.button.pressed', 'trigger.ticket.created'] });
 	});
 
 	await t('describeError produces the panels-shaped 400 body', () => {
@@ -706,6 +775,9 @@ function stubRunners(overrides = {}) {
 	await t('the button custom_id fits in Discord\'s 100 characters', () => {
 		// The real one, so this cannot pass while the shipped format differs.
 		const id = automationCustomId('aB3xY9');
+		// With a trigger node, which is what a multi-trigger graph's buttons carry.
+		const withNode = automationCustomId('aB3xY9', '1a2b3c4d');
+		assert.ok(withNode.length <= 100, `custom_id with a node is ${withNode.length} characters`);
 		assert.ok(id.length <= 100, `custom_id is ${id.length} characters`);
 		// Headroom for a future version field, since the id is stored in messages
 		// that outlive the code that wrote them.
