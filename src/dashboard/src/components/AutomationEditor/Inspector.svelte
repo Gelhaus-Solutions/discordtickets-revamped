@@ -6,10 +6,10 @@
 
 	let { node } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const { deleteElements } = useSvelteFlow();
 
-	const definition = $derived(state.catalogue?.types?.find((t) => t.type === node?.data?.type));
+	const definition = $derived(editor.catalogue?.types?.find((t) => t.type === node?.data?.type));
 	const skin = $derived(node ? (CATEGORY_META[categoryOf(node.data.type)] ?? CATEGORY_META.action) : null);
 	const isTrigger = $derived(node ? categoryOf(node.data.type) === 'trigger' : false);
 </script>
@@ -33,7 +33,7 @@
 					title="Remove this step"
 					onclick={() => {
 						deleteElements({ nodes: [{ id: node.id }] });
-						state.selected = null;
+						editor.selected = null;
 					}}
 				>
 					<i class="fa-solid fa-trash"></i>

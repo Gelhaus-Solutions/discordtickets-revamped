@@ -3,7 +3,7 @@
 
 	let { field, value, onchange, multiple = false } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const selected = $derived(multiple ? (value ?? []) : value);
 </script>
 
@@ -13,7 +13,7 @@
 		class="input form-multiselect h-40 text-sm"
 		onchange={(e) => onchange([...e.currentTarget.selectedOptions].map((o) => o.value))}
 	>
-		{#each state.roles as role (role.id)}
+		{#each editor.roles as role (role.id)}
 			<option value={role.id} selected={selected.includes(role.id)} style={role._style}>
 				{role.name}
 			</option>
@@ -26,7 +26,7 @@
 		onchange={(e) => onchange(e.currentTarget.value || null)}
 	>
 		<option value="">{field.required ? 'Pick a role' : 'Any role'}</option>
-		{#each state.roles as role (role.id)}
+		{#each editor.roles as role (role.id)}
 			<option value={role.id} style={role._style}>{role.name}</option>
 		{/each}
 	</select>

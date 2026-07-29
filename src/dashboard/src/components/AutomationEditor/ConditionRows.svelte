@@ -17,10 +17,10 @@
 	 */
 	let { clauses = [], match = 'all', onchange } = $props();
 
-	const state = editorState();
-	const fields = $derived(state.catalogue?.clauseFields ?? []);
-	const ops = $derived(state.catalogue?.clauseOps ?? {});
-	const limit = $derived(state.catalogue?.limits?.clauses ?? 10);
+	const editor = editorState();
+	const fields = $derived(editor.catalogue?.clauseFields ?? []);
+	const ops = $derived(editor.catalogue?.clauseOps ?? {});
+	const limit = $derived(editor.catalogue?.limits?.clauses ?? 10);
 
 	const definitionOf = (name) => fields.find((f) => f.field === name);
 
@@ -106,7 +106,7 @@
 							onchange={(e) => setClause(i, { questionId: e.currentTarget.value })}
 						>
 							<option value="">Pick a question</option>
-							{#each state.questions as question (question.id)}
+							{#each editor.questions as question (question.id)}
 								<option value={question.id}>{question.label}</option>
 							{/each}
 						</select>

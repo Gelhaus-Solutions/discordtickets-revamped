@@ -6,15 +6,15 @@
 	/** @type {{id: string, data: any, selected: boolean}} */
 	let { id, data, selected } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const category = $derived(categoryOf(data.type));
 	const skin = $derived(CATEGORY_META[category] ?? CATEGORY_META.action);
-	const definition = $derived(state.catalogue?.types?.find((t) => t.type === data.type));
+	const definition = $derived(editor.catalogue?.types?.find((t) => t.type === data.type));
 
 	// Read from context, never from `node.data`: Svelte Flow keeps nodes in
 	// $state.raw, so baking problems into node data would rebuild the whole array
 	// on every keystroke and re-render the canvas.
-	const problems = $derived(state.problems.filter((p) => p.nodeId === id));
+	const problems = $derived(editor.problems.filter((p) => p.nodeId === id));
 	const broken = $derived(problems.some((p) => p.severity === 'error'));
 
 	const outputs = $derived(definition?.outputs ?? ['out']);
@@ -44,7 +44,7 @@
 		{/if}
 	</div>
 	<p class="mt-1 truncate text-sm text-gray-500 dark:text-slate-400">
-		{summarise({ params: data.params, type: data.type }, state.catalogue)}
+		{summarise({ params: data.params, type: data.type }, editor.catalogue)}
 	</p>
 	<span class="mt-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium {skin.chip}">
 		{skin.label.replace(/s$/, '')}

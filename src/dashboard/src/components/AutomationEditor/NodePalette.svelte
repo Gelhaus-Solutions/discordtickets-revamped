@@ -5,11 +5,11 @@
 	/** Entirely catalogue-driven, so a new node type needs no change here. */
 	let { onadd, hasTrigger = false } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	let search = $state('');
 
 	const grouped = $derived.by(() => {
-		const types = state.catalogue?.types ?? [];
+		const types = editor.catalogue?.types ?? [];
 		const needle = search.trim().toLowerCase();
 		return CATEGORY_ORDER.map((category) => ({
 			category,

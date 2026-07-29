@@ -1,7 +1,7 @@
 import { getContext, setContext } from 'svelte';
 
 /**
- * Shared editor state.
+ * Shared editor editor.
  *
  * Node components read `problems` and `selected` from here rather than from
  * `node.data`. That matters: Svelte Flow holds nodes in `$state.raw`, so putting
@@ -11,7 +11,7 @@ import { getContext, setContext } from 'svelte';
 const KEY = Symbol('automation-editor');
 
 export function createEditorState(initial = {}) {
-	const state = $state({
+	const editor = $state({
 		catalogue: initial.catalogue ?? null,
 		categories: initial.categories ?? [],
 		channels: initial.channels ?? [],
@@ -20,8 +20,8 @@ export function createEditorState(initial = {}) {
 		roles: initial.roles ?? [],
 		selected: null
 	});
-	setContext(KEY, state);
-	return state;
+	setContext(KEY, editor);
+	return editor;
 }
 
 export const editorState = () => getContext(KEY);

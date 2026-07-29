@@ -4,7 +4,7 @@
 
 	let { problems = [], onTidy } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const { fitView } = useSvelteFlow();
 
 	let open = $state(false);
@@ -15,7 +15,7 @@
 	const focus = (problem) => {
 		open = false;
 		if (!problem.nodeId) return;
-		state.selected = problem.nodeId;
+		editor.selected = problem.nodeId;
 		fitView({ duration: 300, nodes: [{ id: problem.nodeId }], padding: 0.4 });
 	};
 </script>

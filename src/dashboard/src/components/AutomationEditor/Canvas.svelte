@@ -23,7 +23,7 @@
 	 */
 	let { nodes = $bindable(), edges = $bindable(), colorMode = 'light' } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 
 	const nodeTypes = {
 		action: ActionNode,
@@ -66,8 +66,8 @@
 	maxZoom={2}
 	snapGrid={[20, 20]}
 	deleteKey={['Delete']}
-	onnodeclick={({ node }) => (state.selected = node.id)}
-	onpaneclick={() => (state.selected = null)}
+	onnodeclick={({ node }) => (editor.selected = node.id)}
+	onpaneclick={() => (editor.selected = null)}
 >
 	<Background variant={BackgroundVariant.Dots} gap={20} />
 	<Controls position="bottom-left" />

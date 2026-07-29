@@ -39,7 +39,7 @@
 	let testing = $state(false);
 	let testResult = $state(null);
 
-	const state = createEditorState({
+	const editor = createEditorState({
 		catalogue: data.catalogue,
 		categories: data.categories,
 		channels: data.channels,
@@ -48,18 +48,18 @@
 	});
 
 	const graph = $derived(fromFlow(nodes, edges));
-	const selectedNode = $derived(nodes.find((n) => n.id === state.selected) ?? null);
+	const selectedNode = $derived(nodes.find((n) => n.id === editor.selected) ?? null);
 	const hasTrigger = $derived(nodes.some((n) => n.data.type.startsWith('trigger.')));
 
 	$effect(() => {
-		state.problems = validate(graph, data.catalogue);
+		editor.problems = validate(graph, data.catalogue);
 	});
 
 	// `fromFlow` rounds positions, so a drag that ends where it started is not a
 	// change and does not arm the unsaved-changes guard.
 	let saved = $state(JSON.stringify({ enabled, graph: starting, name }));
 	const modified = $derived(JSON.stringify({ enabled, graph, name }) !== saved);
-	const blocking = $derived(state.problems.filter((p) => p.severity === 'error'));
+	const blocking = $derived(editor.problems.filter((p) => p.severity === 'error'));
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -83,7 +83,7 @@
 		const right = nodes.reduce((max, n) => Math.max(max, n.position.x), 0);
 		const node = newNode(type, data.catalogue, { x: right + 380, y: 60 });
 		nodes = [...nodes, toFlow({ edges: [], nodes: [node] }).nodes[0]];
-		state.selected = node.id;
+		editor.selected = node.id;
 	};
 
 	const tidy = () => {
@@ -183,7 +183,7 @@
 	</div>
 
 	<div class="mb-2">
-		<Toolbar problems={state.problems} onTidy={tidy} />
+		<Toolbar problems={editor.problems} onTidy={tidy} />
 	</div>
 
 	{#if testResult}

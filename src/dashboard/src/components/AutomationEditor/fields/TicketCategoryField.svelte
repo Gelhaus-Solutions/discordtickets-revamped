@@ -3,7 +3,7 @@
 
 	let { field, value, onchange, multiple = false } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const selected = $derived(multiple ? (value ?? []) : value);
 </script>
 
@@ -13,7 +13,7 @@
 		class="input form-multiselect h-32 text-sm"
 		onchange={(e) => onchange([...e.currentTarget.selectedOptions].map((o) => Number(o.value)))}
 	>
-		{#each state.categories as category (category.id)}
+		{#each editor.categories as category (category.id)}
 			<option value={category.id} selected={selected.includes(category.id)}>{category.name}</option>
 		{/each}
 	</select>
@@ -27,7 +27,7 @@
 		onchange={(e) => onchange(e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
 	>
 		<option value="">{field.required ? 'Pick a category' : 'Any category'}</option>
-		{#each state.categories as category (category.id)}
+		{#each editor.categories as category (category.id)}
 			<option value={category.id}>{category.name}</option>
 		{/each}
 	</select>

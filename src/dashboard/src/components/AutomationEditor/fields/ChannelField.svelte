@@ -3,12 +3,12 @@
 
 	let { field, value, onchange, multiple = false } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	// Text (0), announcement (5) and forum (15) can hold a message; a Discord
 	// category (4) is only ever a move target.
 	const TYPES = { 'action.ticket.move': [4] };
 	const allowed = $derived(field.channelTypes ?? TYPES[field.key] ?? [0, 5, 15]);
-	const options = $derived(state.channels.filter((c) => allowed.includes(c.type)));
+	const options = $derived(editor.channels.filter((c) => allowed.includes(c.type)));
 	const selected = $derived(multiple ? (value ?? []) : value);
 </script>
 

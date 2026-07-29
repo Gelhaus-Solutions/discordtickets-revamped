@@ -3,7 +3,7 @@
 
 	let { field, value, onchange } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 
 	// The same placeholders panels and opening messages already use, so an admin
 	// does not have to learn a second syntax.
@@ -41,5 +41,5 @@
 			{(value ?? '').length}/{field.maxLength}
 		</span>
 	{/if}
-	{#if state.catalogue === null}<span></span>{/if}
+	{#if editor.catalogue === null}<span></span>{/if}
 </div>

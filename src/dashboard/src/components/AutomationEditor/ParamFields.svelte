@@ -25,7 +25,7 @@
 	 */
 	let { node } = $props();
 
-	const state = editorState();
+	const editor = editorState();
 	const { updateNodeData } = useSvelteFlow();
 
 	const FIELDS = {
@@ -53,15 +53,15 @@
 
 	const MULTI = new Set(['categories', 'channels', 'roles']);
 
-	const definition = $derived(state.catalogue?.types?.find((t) => t.type === node?.data?.type));
+	const definition = $derived(editor.catalogue?.types?.find((t) => t.type === node?.data?.type));
 	const params = $derived(node?.data?.params ?? {});
-	const problems = $derived(state.problems.filter((p) => p.nodeId === node?.id));
+	const problems = $derived(editor.problems.filter((p) => p.nodeId === node?.id));
 
 	const set = (key, value) => updateNodeData(node.id, { params: { ...params, [key]: value } });
 
 	/** `subject` is a select whose options come from the catalogue, not the field. */
 	const optionsFor = (field) =>
-		field.type === 'subject' ? (state.catalogue?.subjects ?? []) : (field.options ?? []);
+		field.type === 'subject' ? (editor.catalogue?.subjects ?? []) : (field.options ?? []);
 
 	/** Hide the channel picker unless "a specific channel" is actually chosen. */
 	const visible = (field) =>
