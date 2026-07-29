@@ -78,6 +78,11 @@
 	});
 
 	const addNode = (type) => {
+		// An automation has exactly one trigger. The palette greys the group out,
+		// but that is presentation — this is the rule, so a second one cannot get
+		// in by any route.
+		if (type.startsWith('trigger.') && hasTrigger) return;
+
 		// Dropped to the right of everything already there, so a new step lands
 		// where the eye is rather than on top of the trigger.
 		const right = nodes.reduce((max, n) => Math.max(max, n.position.x), 0);
