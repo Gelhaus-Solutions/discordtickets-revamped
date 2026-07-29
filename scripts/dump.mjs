@@ -1,18 +1,19 @@
-import { config } from 'dotenv';
+import paths from './lib/paths.js';
 import fse from 'fs-extra';
-import { join } from 'path';
 import ora from 'ora';
 import { PrismaClient } from '@prisma/client';
 import DTF from '@eartharoid/dtf';
 
-config();
+paths.loadEnv();
 
 const dtf = new DTF('en-GB');
 
 let spinner = ora('Connecting').start();
 
-fse.ensureDirSync(join(process.cwd(), './user/dumps'));
-const file_path = join(process.cwd(), './user/dumps', `${dtf.fill('YYYY-MM-DD-HH-mm-ss')}-db.json`);
+// DATA_DIR, not the working directory: a dump taken from the wrong directory
+// is one nobody finds again.
+fse.ensureDirSync(paths.dataPath('user', 'dumps'));
+const file_path = paths.dataPath('user', 'dumps', `${dtf.fill('YYYY-MM-DD-HH-mm-ss')}-db.json`);
 
 // SQLite is no longer supported by this fork; the provider-specific branches
 // that used to live here could not run at all (no SQLite Prisma client can be

@@ -1,7 +1,10 @@
 /* eslint-disable no-console */
 
-const dotenv = require('dotenv');
+const { existsSync } = require('fs');
 const { colours } = require('leeks.js');
+const {
+	APP_DIR, DATA_DIR, ENV_FILE, dataDirProblem, envFileIsExposed, loadEnv,
+} = require('./lib/paths');
 
 const providers = ['mysql', 'postgresql'];
 
@@ -84,36 +87,62 @@ const env = {
 		!!v ||
 		new Error('is required (Temporal frontend port, e.g. 7233)'),
 	TEMPORAL_TASK_QUEUE: () => true, // optional (default "discord-tickets")
-	TEMPORAL_TLS_CA_PATH: () => true, // optional (server root CA for verification)
-	TEMPORAL_TLS_CERT_PATH: v =>
-		(!temporalTlsEnabled() || !!v) ||
-		new Error('is required for mTLS (path to client certificate); set TEMPORAL_TLS_ENABLED=false to disable'),
+	TEMPORAL_TLS_CA_PATH: v => !v || existsSync(v) ||
+		new Error(`points at a file that does not exist ("${v}")`), // optional (server root CA for verification)
+	// A path that does not exist used to fail deep inside Temporal's native
+	// addon, with an error that named neither the variable nor the file.
+	TEMPORAL_TLS_CERT_PATH: v => {
+		if (!temporalTlsEnabled()) return true;
+		if (!v) return new Error('is required for mTLS (path to client certificate); set TEMPORAL_TLS_ENABLED=false to disable');
+		return existsSync(v) || new Error(`points at a file that does not exist ("${v}")`);
+	},
 	// Optional (default true; set false for insecure local dev), but an
 	// unrecognised value is rejected rather than silently disabling TLS.
 	TEMPORAL_TLS_ENABLED: v => {
 		const parsed = parseBool(v, true);
 		return parsed instanceof Error ? parsed : true;
 	},
-	TEMPORAL_TLS_KEY_PATH: v =>
-		(!temporalTlsEnabled() || !!v) ||
-		new Error('is required for mTLS (path to client private key); set TEMPORAL_TLS_ENABLED=false to disable'),
+	TEMPORAL_TLS_KEY_PATH: v => {
+		if (!temporalTlsEnabled()) return true;
+		if (!v) return new Error('is required for mTLS (path to client private key); set TEMPORAL_TLS_ENABLED=false to disable');
+		return existsSync(v) || new Error(`points at a file that does not exist ("${v}")`);
+	},
 	TEMPORAL_SET_CURRENT_ON_START: () => true, // optional (default true; promote this build to Current on startup)
 	TEMPORAL_TLS_SERVER_NAME: () => true, // optional (SNI override)
 	TEMPORAL_WORKER_BUILD_ID: () => true, // optional (defaults to injected 6-char git SHA)
 };
 
 const load = options => {
-	dotenv.config(options);
+	loadEnv(options);
+
+	// State has to go somewhere writable, and finding that out here — with the
+	// path in the message — beats an ENOENT from whichever component happens to
+	// write first.
+	const problem = dataDirProblem();
+	if (problem) {
+		console.log('\x07' + colours.redBright(`Error: The data directory "${DATA_DIR}" ${problem}.`));
+		console.log(colours.yellowBright('Set DT_DATA_DIR to a writable directory, or fix its permissions.'));
+		process.exit(1);
+	}
+
 	Object.entries(env).forEach(([name, validate]) => {
 		const result = validate(process.env[name]); // `true` for pass, or `Error` for fail
 		if (result instanceof Error) {
 			console.log('\x07' + colours.redBright(`Error: The "${name}" environment variable ${result.message}.`));
+			console.log(colours.gray(`  (environment file: ${ENV_FILE})`));
 			process.exit(1);
 		}
 	});
+
+	if (envFileIsExposed()) {
+		console.log(colours.yellowBright(`Warning: ${ENV_FILE} is readable by other users on this machine. It holds your bot token and encryption key; "chmod 600" it.`));
+	}
 };
 
 module.exports = {
+	APP_DIR,
+	DATA_DIR,
+	ENV_FILE,
 	env,
 	load,
 };

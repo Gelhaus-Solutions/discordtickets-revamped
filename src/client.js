@@ -4,6 +4,7 @@ const {
 	Partials,
 } = require('discord.js');
 const logger = require('./lib/logger');
+const { dataPath } = require('./lib/paths');
 const { setLogger: setThreadsLogger } = require('./lib/threads');
 const { PrismaClient } = require('@prisma/client');
 const Keyv = require('keyv');
@@ -62,7 +63,7 @@ module.exports = class Client extends FrameworkClient {
 		this.i18n = new I18n('en-GB', locales);
 
 		// to maintain references, these shouldn't be reassigned
-		Object.assign(this.config, YAML.parse(fs.readFileSync('./user/config.yml', 'utf8')));
+		Object.assign(this.config, YAML.parse(fs.readFileSync(dataPath('user', 'config.yml'), 'utf8')));
 		Object.assign(this.log, logger(this.config));
 
 		// Worker-pool diagnostics default to the console, which never reaches the
@@ -71,7 +72,7 @@ module.exports = class Client extends FrameworkClient {
 
 		this.banned_guilds = new Set(
 			(() => {
-				let array = fs.readFileSync('./user/banned-guilds.txt', 'utf8').trim().split(/\r?\n/);
+				let array = fs.readFileSync(dataPath('user', 'banned-guilds.txt'), 'utf8').trim().split(/\r?\n/);
 				if (array[0] === '') array = [];
 				return array;
 			})(),

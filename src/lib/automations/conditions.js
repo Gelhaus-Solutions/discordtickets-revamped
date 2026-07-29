@@ -24,6 +24,7 @@ const {
 	isStaff,
 } = require('../users');
 const { pools } = require('../threads');
+const regex = require('../regex');
 
 /** Numeric comparisons, shared by the duration and number clauses. */
 const compare = {
@@ -44,13 +45,10 @@ function textMatches(haystack, clause) {
 	case 'is':
 		return text.toLowerCase() === value.toLowerCase();
 	case 'matches':
-		try {
-			return new RegExp(value, clause.flags ?? 'i').test(text);
-		} catch {
-			// Validation compiles the pattern at save time, so reaching here means
-			// the row predates a stricter check. False, not a crash.
-			return false;
-		}
+		// Validation checks the pattern at save time, so a pattern that is
+		// refused here predates the check (or is simply invalid). False, not a
+		// crash — and never an unbounded match on the shared event loop.
+		return regex.test(value, clause.flags ?? 'i', text);
 	default:
 		return false;
 	}

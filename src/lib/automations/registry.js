@@ -41,6 +41,9 @@
  */
 
 const { LIMITS } = require('./errors');
+const {
+	MAX_PATTERN_LENGTH, isSafePattern,
+} = require('../regex');
 
 /** What a run context can hold. Triggers `provide` these; nodes `need` them. */
 const CAPABILITIES = [
@@ -136,13 +139,26 @@ function isValidTimezone(value) {
 	}
 }
 
-function isValidRegex(pattern, flags) {
+/**
+ * Check a stored pattern, returning the error code to report.
+ *
+ * "Does it compile" was the only check here, which says nothing about how long
+ * it takes to run: these patterns are matched against every message in every
+ * guild, on the single thread that also serves Discord and the dashboard. See
+ * `src/lib/regex.js` for what is refused and why.
+ *
+ * @param {unknown} pattern
+ * @param {string} [flags]
+ * @returns {'invalid_regex'|'unsafe_regex'|null} null when the pattern is fine
+ */
+function regexError(pattern, flags) {
+	if (typeof pattern !== 'string') return 'invalid_regex';
 	try {
 		new RegExp(pattern, flags ?? '');
-		return true;
 	} catch {
-		return false;
+		return 'invalid_regex';
 	}
+	return isSafePattern(pattern) ? null : 'unsafe_regex';
 }
 
 /**
@@ -208,6 +224,7 @@ const MESSAGES = {
 	too_long: 'is too long',
 	too_many: 'has too many entries',
 	unknown_option: 'is not one of the allowed values',
+	unsafe_regex: `is too complex to run safely — avoid a repeat applied to a group that already repeats (like "(a+)+"), and keep it under ${MAX_PATTERN_LENGTH} characters`,
 	value_too_large: 'is too large',
 	value_too_small: 'is too small',
 };
@@ -386,8 +403,12 @@ function validateClauses(clauses, push, path) {
 		if (clause.field === 'ticket.answer' && typeof clause.questionId !== 'string') {
 			push(`${at}.questionId`, 'required', 'Pick which question to check');
 		}
-		if (definition.operand === 'regex' && clause.op === 'matches' && !isValidRegex(clause.value, clause.flags)) {
-			push(`${at}.value`, 'invalid_regex', `The pattern ${message('invalid_regex')}`);
+		if (definition.operand === 'regex' && clause.op === 'matches') {
+			// Clause values never reach the generic `maxLength` check below (that
+			// runs over node params, not clauses), so this is the only length
+			// limit they get.
+			const code = regexError(clause.value, clause.flags);
+			if (code) push(`${at}.value`, code, `The pattern ${message(code)}`);
 		}
 		if (definition.operand !== 'regex') {
 			const check = FIELD_TYPES[definition.operand];
@@ -973,8 +994,9 @@ const NODE_TYPES = {
 			if (params?.scope === 'channels' && !(params.channelIds?.length > 0)) {
 				push(`${path}.channelIds`, 'required', 'Pick at least one channel');
 			}
-			if (params?.pattern && !isValidRegex(params.pattern, 'i')) {
-				push(`${path}.pattern`, 'invalid_regex', `The pattern ${message('invalid_regex')}`);
+			if (params?.pattern) {
+				const code = regexError(params.pattern, 'i');
+				if (code) push(`${path}.pattern`, code, `The pattern ${message(code)}`);
 			}
 		},
 	},
@@ -1182,8 +1204,8 @@ module.exports = {
 	SUBJECTS,
 	catalogue,
 	isValidCron,
-	isValidRegex,
 	isValidTimezone,
+	regexError,
 	needsOf,
 	validateClauses,
 	validateParams,

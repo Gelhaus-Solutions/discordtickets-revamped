@@ -6,6 +6,8 @@ const {
 const DTF = require('@eartharoid/dtf');
 const { short } = require('leeks.js');
 const { format } = require('util');
+const { isAbsolute } = require('path');
+const { dataPath } = require('./paths');
 
 const dtf = new DTF('en-GB');
 const colours = {
@@ -41,7 +43,11 @@ module.exports = config => {
 		transports.push(
 			new FileTransport({
 				clean_directory: config.logs.files.keepFor,
-				directory: config.logs.files.directory,
+				// A relative directory in config.yml (the default is `./logs`) used
+				// to land wherever the process happened to be started from.
+				directory: isAbsolute(config.logs.files.directory)
+					? config.logs.files.directory
+					: dataPath(config.logs.files.directory),
 				format: '[{timestamp}] [{LEVEL}] ({NAMESPACE}) @{file}:{line}:{column} {content}',
 				level: config.logs.level,
 				name: 'Discord Tickets by eartharoid™ & egelhaus™',

@@ -1,5 +1,6 @@
 const ms = require('ms');
 const { logAdminEvent } = require('../../../../../../lib/logging');
+const { validateTagBody } = require('../../../../../../lib/tags');
 
 module.exports.get = fastify => ({
 	handler: async req => {
@@ -22,14 +23,10 @@ module.exports.post = fastify => ({
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const guild = client.guilds.cache.get(req.params.guild);
-		const data = req.body ?? {};
 		// Whitelist: prevent client-supplied `guild`, `guildId`, `id`, `createdAt`
-		// from overriding the trusted scope via object spread.
-		const safeData = {
-			content: typeof data.content === 'string' ? data.content : '',
-			name: typeof data.name === 'string' ? data.name : '',
-			regex: typeof data.regex === 'string' ? data.regex : null,
-		};
+		// from overriding the trusted scope via object spread. `regex` is checked
+		// for catastrophic backtracking, because it is run against every message.
+		const safeData = validateTagBody(req.body ?? {}, { partial: false });
 		const tag = await client.prisma.tag.create({
 			data: {
 				...safeData,

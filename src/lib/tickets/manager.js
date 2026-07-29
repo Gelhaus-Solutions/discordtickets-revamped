@@ -44,6 +44,13 @@ const {
 } = require('../stats');
 const { pools } = require('../threads');
 const temporal = require('../temporal');
+const {
+	CATEGORY_FIELDS,
+	GUILD_FIELDS,
+	QUESTION_FIELDS,
+	TAG_FIELDS,
+	pick,
+} = require('../schemas/importable');
 
 const { crypto } = pools;
 
@@ -99,10 +106,14 @@ module.exports = class TicketManager {
 	/**
 	 * Retrieve cached ticket data for the closing sequence
 	 * @param {string} ticketId the ticket ID
-	 * @param {boolean} force bypass & update the cache?
+	 * @param {boolean} [force] bypass & update the cache?
+	 * @param {string} [guildId] when given, only return the ticket if it belongs
+	 * to this guild. Callers that take a ticket id from a request must pass it:
+	 * a bare lookup by id is how the automation test endpoint became a way to
+	 * ask questions about another server's tickets.
 	 * @returns {Promise<TicketCategoryFeedbackGuild>}
 	 */
-	async getTicket(ticketId, force) {
+	async getTicket(ticketId, force, guildId) {
 		const cacheKey = `cache/ticket+category+feedback+guild:${ticketId}`;
 		/** @type {TicketCategoryFeedbackGuild} */
 		let ticket = await this.client.keyv.get(cacheKey);
@@ -117,13 +128,18 @@ module.exports = class TicketManager {
 			});
 			await this.client.keyv.set(cacheKey, ticket, ms('3m'));
 		}
+		if (guildId && ticket?.guildId !== guildId) return null;
 		return ticket;
 	}
 
+	// `!count` treats 0 as a cache miss, which is harmless (it re-counts and gets
+	// 0 back). A *negative* count is truthy, so it was returned forever — and a
+	// negative total means `totalCount >= totalLimit` never trips again, quietly
+	// removing the category's ticket cap until the next restart.
 	async getTotalCount(categoryId) {
 		this.$count.categories[categoryId] ||= {};
 		let count = this.$count.categories[categoryId].total;
-		if (!count) {
+		if (!count || count < 0) {
 			count = await this.client.prisma.ticket.count({
 				where: {
 					categoryId,
@@ -138,7 +154,7 @@ module.exports = class TicketManager {
 	async getMemberCount(categoryId, memberId) {
 		this.$count.categories[categoryId] ||= {};
 		let count = this.$count.categories[categoryId][memberId];
-		if (!count) {
+		if (!count || count < 0) {
 			count = await this.client.prisma.ticket.count({
 				where: {
 					categoryId: categoryId,
@@ -875,6 +891,20 @@ module.exports = class TicketManager {
 			this.client.log.warn.tickets('An error occurred whilst creating ticket', channel.id);
 			this.client.log.error.tickets(ref);
 			this.client.log.error.tickets(error);
+
+			// The channel/thread exists in Discord by this point, with its
+			// overwrites and pinned opening message — but there is no ticket row
+			// behind it, so nothing can ever close it and the member is looking at
+			// a channel the bot does not know about. Take it back down.
+			await channel.delete('Ticket creation failed').catch(() => null);
+
+			// `$numbers` is an in-memory counter, so the number this attempt took
+			// is otherwise burned. On a unique-constraint collision it is the
+			// counter itself that is wrong (another process, or a restart mid
+			// create), so drop it and let the next call re-read the database.
+			if (error?.code === 'P2002') delete this.$numbers[category.guild.id];
+			else if (this.$numbers[category.guild.id] === number) this.$numbers[category.guild.id] -= 1;
+
 			await interaction.editReply({
 				components: [],
 				embeds: [
@@ -888,6 +918,7 @@ module.exports = class TicketManager {
 						}),
 				],
 			});
+			return;
 		}
 
 		try {
@@ -1750,8 +1781,18 @@ module.exports = class TicketManager {
 		Object.freeze(settingsJSON);
 		const settings = structuredClone(settingsJSON);
 		const { categories } = settings;
-		delete settings.categories; // this also mutates `settings`
 		heartbeat();
+
+		// Nothing from the archive is spread into a Prisma create. Prisma's
+		// create inputs accept nested relation operations, so
+		// `{ ...settings }` let an archive carry
+		// `tickets: { connect: [{ guildId_number: { guildId: "<other guild>", number: 1 } }] }`
+		// and reassign another guild's tickets — with their encrypted topics,
+		// answers and message history — to the importing guild. Every payload is
+		// rebuilt from an explicit column list instead, and an unrecognised key
+		// aborts the import rather than being dropped silently.
+		const guildData = pick(settings, GUILD_FIELDS, 'guild setting', ['categories', 'createdAt', 'id', 'tags']);
+		const tagData = (settings.tags ?? []).map(tag => pick(tag, TAG_FIELDS, 'tag', ['createdAt', 'guildId', 'id']));
 
 		await client.prisma.$transaction([
 			client.prisma.guild.delete({
@@ -1760,16 +1801,9 @@ module.exports = class TicketManager {
 			}),
 			client.prisma.guild.create({
 				data: {
-					...settings,
+					...guildData,
 					id: guildId,
-					tags: {
-						createMany: {
-							data: settings.tags.map(tag => {
-								delete tag.id;
-								return tag;
-							}),
-						},
-					},
+					tags: { createMany: { data: tagData } },
 				},
 				// select ID so it doesn't return everything else
 				select: { id: true },
@@ -1779,19 +1813,13 @@ module.exports = class TicketManager {
 
 		const newCategories = await client.prisma.$transaction(
 			categories.map(category => {
-				delete category.id;
+				const questions = (category.questions ?? [])
+					.map(question => pick(question, QUESTION_FIELDS, 'question', ['categoryId', 'createdAt']));
 				return client.prisma.category.create({
 					data: {
-						...category,
+						...pick(category, CATEGORY_FIELDS, 'category', ['backupCategoryId', 'createdAt', 'guildId', 'id', 'questions']),
 						guild: { connect: { id: guildId } },
-						questions: {
-							createMany: {
-								data: category.questions.map(question => {
-									delete question.categoryId;
-									return question;
-								}),
-							},
-						},
+						questions: { createMany: { data: questions } },
 					},
 					select: { id: true },
 				});
@@ -1801,6 +1829,25 @@ module.exports = class TicketManager {
 
 		// settingsJSON.categories because `categories` has been mutated (no id)
 		const categoryMap = new Map(settingsJSON.categories.map((cat, idx) => ([cat.id, newCategories[idx].id])));
+
+		// Backup categories are self-references, so they can only be restored
+		// once every category has its new id. They used to be spread in with the
+		// *exporting* instance's ids, which pointed at whatever category happened
+		// to hold that id here (or at nothing at all).
+		const backupLinks = settingsJSON.categories
+			.map((cat, idx) => ({
+				backupId: categoryMap.get(cat.backupCategoryId),
+				id: newCategories[idx].id,
+			}))
+			.filter(link => link.backupId !== undefined);
+		if (backupLinks.length) {
+			await client.prisma.$transaction(backupLinks.map(link => client.prisma.category.update({
+				data: { backupCategoryId: link.backupId },
+				select: { id: true },
+				where: { id: link.id },
+			})));
+			heartbeat();
+		}
 
 		const ticketsFile = files.find(f => f.path === 'tickets.jsonl');
 		const ticketsPromises = [];
@@ -1850,23 +1897,15 @@ module.exports = class TicketManager {
 		reason = null,
 	}) {
 		// This runs as a Temporal activity with retries, and it is not naturally
-		// idempotent: a retry would decrement the in-memory category counters a
-		// second time (making a category falsely report itself full), send the
+		// idempotent: a second pass would decrement the in-memory category
+		// counters again (making a category falsely report itself full), send the
 		// closure DM again, and post a second entry in the log channel.
 		//
-		// Read `open` straight from the database rather than through getTicket(),
-		// whose 3-minute cache would still report the ticket as open for exactly
-		// the fast retries this needs to catch.
-		const current = await this.client.prisma.ticket.findUnique({
-			select: { open: true },
-			where: { id: ticketId },
-		});
-		if (!current) return;
-		if (current.open === false) {
-			this.client.log.info('Ticket %s is already closed; skipping duplicate close', ticketId);
-			return;
-		}
-
+		// The claim on the ticket is the `open: true -> false` write further down,
+		// which is a conditional update: only one caller can win it. Reading
+		// `open` here first is a cheap early exit for the common case, not the
+		// guard — a read followed by an unconditional write let two concurrent
+		// closes (an activity retry racing /force-close) both get through.
 		let ticket = await this.getTicket(ticketId);
 		if (!ticket) return;
 
@@ -1877,15 +1916,22 @@ module.exports = class TicketManager {
 			where: { id: ticket.id },
 		});
 
+		// `closedById` rather than a `closedBy` relation write: the claim below is
+		// an `updateMany`, which does not accept nested relation operations. The
+		// user row is ensured separately.
+		if (closedBy) {
+			await this.client.prisma.user.upsert({
+				create: { id: closedBy },
+				select: { id: true },
+				update: {},
+				where: { id: closedBy },
+			});
+		}
+
 		/** @type {import("@prisma/client").Ticket} */
 		const data = {
 			closedAt: new Date(),
-			closedBy: closedBy && {
-				connectOrCreate: {
-					create: { id: closedBy },
-					where: { id: closedBy },
-				},
-			} || undefined, // Prisma wants undefined not null because it is a relation
+			closedById: closedBy || undefined,
 			closedReason: reason && await crypto.queue(w => w.encrypt(reason)),
 			messageCount: archivedMessages,
 			open: false,
@@ -1905,8 +1951,22 @@ module.exports = class TicketManager {
 		}
 
 		try {
-			ticket = await this.client.prisma.ticket.update({
+			// Claim the close. `updateMany` is the only Prisma call that takes a
+			// non-unique `where`, which is what makes this a compare-and-swap: the
+			// loser gets `count: 0` and stops here, instead of repeating the whole
+			// closure sequence.
+			const { count } = await this.client.prisma.ticket.updateMany({
 				data,
+				where: {
+					id: ticket.id,
+					open: true,
+				},
+			});
+			if (count === 0) {
+				this.client.log.info('Ticket %s is already closed; skipping duplicate close', ticketId);
+				return;
+			}
+			ticket = await this.client.prisma.ticket.findUnique({
 				include: {
 					category: true,
 					feedback: true,
@@ -1914,12 +1974,16 @@ module.exports = class TicketManager {
 				},
 				where: { id: ticket.id },
 			});
+			if (!ticket) return;
 			this.$closeRequests.delete(ticketId);
 			// Terminal close: stop the durable inactivity workflow for this ticket.
 			temporal.cancelStaleWorkflow(ticketId).catch(() => {});
-			this.$count.categories[ticket.categoryId] ??= {};
-			this.$count.categories[ticket.categoryId].total -= 1;
-			this.$count.categories[ticket.categoryId][ticket.createdById] -= 1;
+			// Clamped: a count that went negative is never treated as a cache miss
+			// (`-1` is truthy), so it would stick forever and permanently disable
+			// the category's ticket limit.
+			const counts = this.$count.categories[ticket.categoryId] ??= {};
+			counts.total = Math.max(0, (counts.total ?? 1) - 1);
+			counts[ticket.createdById] = Math.max(0, (counts[ticket.createdById] ?? 1) - 1);
 		} catch (error) {
 			this.client.log.error(error);
 			return;

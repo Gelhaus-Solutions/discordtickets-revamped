@@ -17,6 +17,7 @@ const temporal = require('../../lib/temporal');
 const ms = require('ms');
 const { emit } = require('../../lib/automations/dispatcher');
 const { resolveEmoji } = require('../../lib/emoji');
+const regex = require('../../lib/regex');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -346,7 +347,12 @@ module.exports = class extends Listener {
 					client.keyv.set(cacheKey, tags, ms('1h'));
 				}
 
-				const tag = tags.find(tag => tag.regex && message.content.match(new RegExp(tag.regex, 'mi')));
+				// Tag patterns are admin-supplied and run against every message, so
+				// they go through the shared guard rather than `new RegExp` — see
+				// src/lib/regex.js. A pattern that fails the check simply never
+				// matches, which is also what happens to rows saved before the
+				// tags API started validating them.
+				const tag = tags.find(tag => tag.regex && regex.test(tag.regex, 'mi', message.content));
 				if (tag) {
 					await message.reply({
 						embeds: [

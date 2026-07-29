@@ -37,21 +37,18 @@ if (!semver.satisfies(process.versions.node, pkg.engines.node)) {
 	process.exit(1);
 }
 
-// check cwd
-const base_dir = path.resolve(path.join(__dirname, '../'));
-const cwd = path.resolve(process.cwd());
-if (base_dir !== cwd) {
-	console.log('\x07' + colours.yellowBright('Warning: The current working directory is not the same as the base directory.'));
-	if (!process.env.DOCKER) {
-		console.log(colours.yellowBright('This may result in unexpected behaviour, particularly with missing environment variables.'));
-	}
-	console.log('  Base directory:    ' + colours.gray(base_dir));
-	console.log('  Current directory: ' + colours.gray(cwd));
-	console.log(colours.blueBright('  Learn more at https://lnk.earth/dt-cwd.'));
-}
-
 process.env.NODE_ENV ??= 'production'; // make sure NODE_ENV is set
+
+// The working directory no longer decides anything: code is resolved against
+// APP_DIR and state against DATA_DIR, both of which come from the file's own
+// location unless DT_APP_DIR/DT_DATA_DIR say otherwise. This replaces a warning
+// that told the operator their cwd was "wrong" without doing anything about it.
+const {
+	APP_DIR, DATA_DIR, ENV_FILE,
+} = require('./env');
 require('./env').load(); // load and check environment variables
+console.log(colours.gray(`  app: ${APP_DIR}`));
+console.log(colours.gray(` data: ${DATA_DIR}  (env: ${ENV_FILE})`));
 
 const fs = require('fs');
 const YAML = require('yaml');
@@ -59,6 +56,7 @@ const logger = require('./lib/logger');
 
 // create a Logger using the default config
 // and set listeners as early as possible.
+const { dataPath } = require('./lib/paths');
 let config = YAML.parse(fs.readFileSync(path.join(__dirname, 'user/config.yml'), 'utf8'));
 let log = logger(config);
 
@@ -107,9 +105,9 @@ if(sentryEnabled) {
 const Client = require('./client');
 const http = require('./http');
 
-// the `user` directory may or may not exist depending on if sqlite is being used.
-// copy any files that don't already exist
-fs.cpSync(path.join(__dirname, 'user'), './user', {
+// Seed the data directory with the default config/templates, without ever
+// overwriting an operator's edits.
+fs.cpSync(path.join(__dirname, 'user'), dataPath('user'), {
 	force: false,
 	recursive: true,
 });

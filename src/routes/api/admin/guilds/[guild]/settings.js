@@ -1,6 +1,8 @@
 const { logAdminEvent } = require('../../../../../lib/logging.js');
 const { Colors } = require('discord.js');
 const temporal = require('../../../../../lib/temporal');
+const { GUILD_SETTINGS_FIELDS } = require('../../../../../lib/schemas/importable');
+const { resolveGuildChannel } = require('../../../../../lib/misc');
 
 // The bot profile fields live behind the customization endpoint. botAvatar and
 // botBanner are base64 data URIs of up to 8 MiB each, so returning them here
@@ -25,26 +27,47 @@ module.exports.get = fastify => ({
 // Fields the settings UI is allowed to update. botAvatar/botBio/botUsername
 // are intentionally excluded — those go through the customization endpoint
 // (with stricter validation). Relations (categories, tags, …) are excluded
-// to prevent client payloads from rewriting nested data.
-const ALLOWED_SETTINGS_FIELDS = new Set([
-	'archive',
-	'autoClose',
-	'autoTag',
-	'blocklist',
-	'claimButton',
-	'closeButton',
-	'closeReasonButton',
-	'disableDMs',
-	'errorColour',
-	'footer',
-	'locale',
-	'logChannel',
-	'primaryColour',
-	'reopenWindow',
-	'staleAfter',
-	'successColour',
-	'workingHours',
-]);
+// to prevent client payloads from rewriting nested data. Shared with the guild
+// importer so the two lists cannot drift.
+const ALLOWED_SETTINGS_FIELDS = new Set(GUILD_SETTINGS_FIELDS);
+
+/**
+ * Validate the JSON columns the UI can write.
+ *
+ * Only the field *names* were checked before, so a `Json` column could be set
+ * to anything — and `autoTag` being a number rather than an array makes
+ * `settings.autoTag.includes(...)` throw in the messageCreate listener, on
+ * every message in that guild.
+ *
+ * @param {Record<string, unknown>} data the whitelisted patch body
+ * @throws {Error} with a message the dashboard shows verbatim
+ */
+function validateJsonFields(data) {
+	const isSnowflake = v => typeof v === 'string' && /^\d{17,20}$/.test(v);
+
+	if ('autoTag' in data) {
+		const ok = ['all', 'ticket', '!ticket'].includes(data.autoTag) ||
+			(Array.isArray(data.autoTag) && data.autoTag.every(isSnowflake));
+		if (!ok) throw new Error('autoTag must be "all", "ticket", "!ticket", or an array of channel IDs.');
+	}
+
+	if ('blocklist' in data) {
+		if (!Array.isArray(data.blocklist) || !data.blocklist.every(isSnowflake)) {
+			throw new Error('blocklist must be an array of role/user IDs.');
+		}
+	}
+
+	if ('workingHours' in data) {
+		const hours = data.workingHours;
+		// A closed day is sent as `null` by the dashboard, and read back by
+		// lib/working-hours.js the same way.
+		const isDay = v => v === null ||
+			(Array.isArray(v) && v.length === 2 && v.every(t => typeof t === 'string' && /^\d{1,2}:\d{2}$/.test(t)));
+		if (!Array.isArray(hours) || hours.length !== 8 || typeof hours[0] !== 'string' || !hours.slice(1).every(isDay)) {
+			throw new Error('workingHours must be a timezone followed by 7 [open, close] pairs (or null for a closed day).');
+		}
+	}
+}
 
 /**
  * Push a changed `staleAfter` into the running per-ticket stale workflows so
@@ -94,10 +117,18 @@ module.exports.patch = fastify => ({
 				throw new Error(`${data[c]} is not a valid colour. Valid colours are HEX and: ${Object.keys(Colors).join(', ')}`);
 			}
 		}
+		validateJsonFields(data);
 
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const id = req.params.guild;
+
+		// The log channel must belong to *this* guild: it was written straight to
+		// the database, so an admin could point their audit log at a channel in
+		// someone else's server and have the bot narrate it there.
+		if (data.logChannel && !resolveGuildChannel(client, id, data.logChannel)) {
+			throw new Error('The log channel must be a channel in this server.');
+		}
 		const original = await client.prisma.guild.findUnique({ where: { id } });
 		const settings = await client.prisma.guild.update({
 			data: data,

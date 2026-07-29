@@ -34,6 +34,19 @@ module.exports.get = () => ({
 			method: 'POST',
 		})).json();
 
+		// A failed exchange (expired/replayed `code`) still returns 200 with an
+		// `error` body. Without this the flow carried on and issued a cookie whose
+		// `expiresAt` was `NaN` — serialised to null, rejected by every subsequent
+		// request, leaving the user in a login loop with no explanation.
+		if (!data.access_token) {
+			req.routeOptions.config.client.log.warn('OAuth token exchange failed: %s', data.error_description ?? data.error ?? 'no access_token');
+			return res.code(400).send({
+				error: 'Bad Request',
+				message: 'Discord rejected that login attempt. Please try again.',
+				statusCode: 400,
+			});
+		}
+
 		const rawRedirect = (data.guild?.id && `/settings/${data.guild?.id}`) || state.get('redirect') || '/';
 		// Only allow same-origin relative paths; reject protocol-relative (`//evil`),
 		// scheme URLs (`javascript:`, `http://...`), and anything containing control
@@ -48,6 +61,14 @@ module.exports.get = () => ({
 
 		const bearerOptions = { headers: { 'Authorization': `Bearer ${data.access_token}` } };
 		const user = await (await fetch('https://discordapp.com/api/users/@me', bearerOptions)).json();
+		if (!user?.id) {
+			req.routeOptions.config.client.log.warn('OAuth user lookup failed: %s', user?.message ?? 'no id');
+			return res.code(502).send({
+				error: 'Bad Gateway',
+				message: 'Could not read your Discord account. Please try again.',
+				statusCode: 502,
+			});
+		}
 
 		let scopes;
 		if (data.scope) {

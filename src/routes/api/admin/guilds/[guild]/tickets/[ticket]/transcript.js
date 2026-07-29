@@ -1,5 +1,6 @@
 'use strict';
 const path = require('path');
+const { dataPath } = require('../../../../../../../lib/paths');
 const fs = require('fs');
 // A plain relative require. `require` resolves against this file's directory,
 // never the working directory, so the previous candidate-path search was
@@ -94,8 +95,11 @@ module.exports.get = fastify => ({
 
 		// Try to serve from disk cache first (unless regen requested)
 		if (!forceRegen && ticket.htmlTranscript) {
-			const filepath = path.join(process.cwd(), ticket.htmlTranscript);
-			if (fs.existsSync(filepath)) {
+			// Resolved against DATA_DIR, and confined to it: `htmlTranscript` is a
+			// column, and a column is only ever as trustworthy as everything that
+			// can write to it (an import archive, historically).
+			const filepath = path.resolve(dataPath(ticket.htmlTranscript));
+			if (filepath.startsWith(path.resolve(dataPath('user', 'transcripts')) + path.sep) && fs.existsSync(filepath)) {
 				const html = fs.readFileSync(filepath, 'utf8');
 				if (asDownload) {
 					res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
@@ -116,7 +120,7 @@ module.exports.get = fastify => ({
 
 		// Cache to disk asynchronously
 		try {
-			const dir = path.join(process.cwd(), 'user', 'transcripts');
+			const dir = dataPath('user', 'transcripts');
 			if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 			const filepath = path.join(dir, `ticket-${ticketId}.html`);
 			fs.writeFileSync(filepath, html, 'utf8');

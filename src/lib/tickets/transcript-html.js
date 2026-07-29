@@ -2,6 +2,7 @@
 'use strict';
 const ms = require('ms');
 const path = require('path');
+const { dataPath } = require('../paths');
 const fs = require('fs');
 const { formatAnswer } = require('./questions');
 
@@ -761,11 +762,11 @@ function buildHtml({
 		},
 		{
 			label: 'Category',
-			value: escapeHtml(category?.name || 'Unknown'),
+			value: category?.name || 'Unknown',
 		},
 		{
 			label: 'Created By',
-			value: userMap[ticket.createdById] ? decrypted.usernames[ticket.createdById] || `User ${ticket.createdById}` : `<@${ticket.createdById}>`,
+			value: userMap[ticket.createdById] ? decrypted.usernames[ticket.createdById] || `User ${ticket.createdById}` : `User ${ticket.createdById}`,
 		},
 		{
 			label: 'Created At',
@@ -781,13 +782,13 @@ function buildHtml({
 	if (duration) {
 		metaItems.push({
 			label: 'Duration',
-			value: escapeHtml(duration),
+			value: duration,
 		});
 	}
 	if (responseTime) {
 		metaItems.push({
 			label: 'First Response',
-			value: escapeHtml(responseTime),
+			value: responseTime,
 		});
 	}
 	if (ticket.closedById) {
@@ -807,13 +808,13 @@ function buildHtml({
 	if (closedReason) {
 		metaItems.push({
 			label: 'Close Reason',
-			value: escapeHtml(closedReason),
+			value: closedReason,
 		});
 	}
 	if (topic) {
 		metaItems.push({
 			label: 'Topic',
-			value: escapeHtml(topic),
+			value: topic,
 		});
 	}
 	if (ticket.messageCount) {
@@ -823,8 +824,13 @@ function buildHtml({
 		});
 	}
 
+	// Escaped here rather than at each call site: three of these values are
+	// display names, which is a guild nickname the member picks — so
+	// `<img src=x onerror=...>` used to land in the transcript as markup. The
+	// dashboard serves transcripts under a strict CSP, but the copy written to
+	// user/transcripts/ is opened straight off disk with no CSP at all.
 	const metaHtml = metaItems
-		.map(item => `<div class="meta-item"><h3>${item.label}</h3><p>${item.value}</p></div>`)
+		.map(item => `<div class="meta-item"><h3>${escapeHtml(item.label)}</h3><p>${escapeHtml(item.value)}</p></div>`)
 		.join('');
 
 	// Q&A section
@@ -1097,7 +1103,7 @@ async function saveHtmlTranscript(client, ticketId) {
 	const html = await generateHtmlTranscript(client, ticketId);
 	if (!html) return null;
 
-	const dir = path.join(process.cwd(), 'user', 'transcripts');
+	const dir = dataPath('user', 'transcripts');
 	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
 	const filename = `ticket-${ticketId}.html`;

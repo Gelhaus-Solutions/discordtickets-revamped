@@ -7,6 +7,7 @@ const {
 	validatePanelLayout,
 } = require('../../../../../../lib/panels');
 const { defaultPanelLayout } = require('../../../../../../lib/components-v2');
+const { resolveGuildChannel } = require('../../../../../../lib/misc');
 
 /**
  * Panels a caller may not set directly — `categories` is derived from the
@@ -94,7 +95,10 @@ module.exports.post = fastify => ({
 		let channel;
 		let createdChannel = false;
 		if (data.channelId) {
-			channel = await client.channels.fetch(data.channelId).catch(() => null);
+			// Must be a channel of *this* guild: `client.channels` spans every
+			// guild the bot is in, so an admin could otherwise post their panel
+			// (buttons, text and all) into someone else's server.
+			channel = resolveGuildChannel(client, guild.id, data.channelId);
 			if (!channel) {
 				return res.code(400).send({
 					code: 'unknown_channel',

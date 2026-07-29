@@ -25,6 +25,7 @@ const { LIMITS } = require('./errors');
 const { Context } = require('./context');
 const { triggerNode } = require('./validate');
 const { isSuppressed } = require('./discord');
+const regex = require('../regex');
 
 /** `{depth, rootRunId}` for the currently-executing automation, if any. */
 const store = new AsyncLocalStorage();
@@ -69,13 +70,9 @@ function matches(node, payload) {
 		if (params.scope === 'ticket' && !payload.ticketId) return false;
 		if (params.scope === 'nonTicket' && payload.ticketId) return false;
 		if (params.scope === 'channels' && !params.channelIds?.includes(payload.channelId)) return false;
-		if (params.pattern) {
-			try {
-				if (!new RegExp(params.pattern, 'i').test(payload.content ?? '')) return false;
-			} catch {
-				return false;
-			}
-		}
+		// Runs for every message in every guild, before any rate limit — see
+		// src/lib/regex.js for why the pattern is not compiled directly.
+		if (params.pattern && !regex.test(params.pattern, 'i', payload.content)) return false;
 		return true;
 	}
 
@@ -138,7 +135,10 @@ async function emit(client, triggerType, payload) {
 		for (const automation of candidates) {
 			const node = triggerNode(automation.graph);
 			if (!node || !matches(node, payload)) continue;
-			if (await rateLimited(client, payload.guildId)) return;
+			// `break`, not `return`: once the guild is over its budget there is
+			// nothing left to do for this trigger either way, and returning read as
+			// "skip the rest of the list" in a loop that also has work after it.
+			if (await rateLimited(client, payload.guildId)) break;
 
 			const ctx = new Context(client, {
 				actorId: payload.userId ?? null,

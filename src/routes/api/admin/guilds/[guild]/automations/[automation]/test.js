@@ -1,6 +1,8 @@
 const { Context } = require('../../../../../../../lib/automations/context');
 const { runAutomation } = require('../../../../../../../lib/automations/runtime');
-const { loadAutomation } = require('../../../../../../../lib/automations/http');
+const {
+	loadAutomation, resolveTestContext,
+} = require('../../../../../../../lib/automations/http');
 
 /**
  * Dry-run an automation and return the trace.
@@ -25,11 +27,16 @@ module.exports.post = fastify => ({
 		if (!automation) return;
 
 		const body = req.body ?? {};
+		// Conditions are evaluated for real, so every id has to be this guild's
+		// before it reaches the Context — see resolveTestContext.
+		const scope = await resolveTestContext(client, automation, body, req.user.id);
+		if (scope.error) return res.code(400).send(scope.error);
+
 		const ctx = new Context(client, {
-			actorId: typeof body.userId === 'string' ? body.userId : req.user.id,
-			channelId: typeof body.channelId === 'string' ? body.channelId : null,
+			actorId: scope.actorId,
+			channelId: scope.channelId,
 			guildId: automation.guildId,
-			ticketId: typeof body.ticketId === 'string' ? body.ticketId : null,
+			ticketId: scope.ticketId,
 			triggerType: automation.triggerType,
 			vars: {
 				displayname: req.user.username,

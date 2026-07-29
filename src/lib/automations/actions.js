@@ -24,6 +24,7 @@
 const { logAutomationEvent } = require('../logging');
 const { resolveEmoji } = require('../emoji');
 const { substitute } = require('../components-v2');
+const { resolveGuildChannel } = require('../misc');
 const { pools } = require('../threads');
 const temporal = require('../temporal');
 const {
@@ -57,7 +58,10 @@ const render = (content, ctx) => substitute(String(content ?? ''), ctx.vars);
 async function resolveTarget(node, ctx) {
 	switch (node.params?.target) {
 	case 'channel':
-		return ctx.client.channels.fetch(node.params.channelId).catch(() => null);
+		// Scoped to the automation's own guild: `client.channels` covers every
+		// guild the bot is in, so this used to be a way to have the bot post
+		// admin-authored content into somebody else's server.
+		return resolveGuildChannel(ctx.client, ctx.guildId, node.params.channelId);
 	case 'triggerChannel':
 		return ctx.getChannel();
 	default:

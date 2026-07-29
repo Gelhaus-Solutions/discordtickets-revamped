@@ -1,10 +1,10 @@
-import { config } from 'dotenv';
+import paths from './lib/paths.js';
 import { program } from 'commander';
 import fse from 'fs-extra';
 import ora from 'ora';
 import { PrismaClient } from '@prisma/client';
 
-config();
+paths.loadEnv();
 
 program
 	.requiredOption('-f, --file <path>', 'the path of the dump to import')

@@ -1,9 +1,9 @@
-import { config } from 'dotenv';
+import paths from './lib/paths.js';
 import { program } from 'commander';
 import ora from 'ora';
 import { PrismaClient } from '@prisma/client';
 
-config();
+paths.loadEnv();
 
 program
 	.requiredOption('-y, --yes', 'ARE YOU SURE?')

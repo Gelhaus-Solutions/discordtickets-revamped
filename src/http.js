@@ -97,6 +97,20 @@ module.exports = async client => {
 	};
 
 	/**
+	 * Is this a service token that may skip the elevated-scope re-auth?
+	 *
+	 * `service: true` used to be honoured on its own, and any authenticated
+	 * dashboard user could mint such a token from `/api/users/@me/key`. Issuance
+	 * is now restricted to `SUPER` operators, and the claim is only trusted for
+	 * a user who is still in that list — so removing an id from `SUPER`
+	 * immediately revokes its key, without waiting for the 90-day expiry.
+	 *
+	 * @param {{ id?: string, service?: boolean }} user the verified JWT payload
+	 */
+	const isServiceToken = user => user?.service === true && client.supers.includes(user.id);
+	fastify.decorate('isServiceToken', isServiceToken);
+
+	/**
 	 * Send the caller through the OAuth flow and back to where they were going.
 	 * `/auth/login` stores `r` in the state cookie and `/auth/callback` only
 	 * honours it if it is a safe relative path.
@@ -112,7 +126,10 @@ module.exports = async client => {
 			const data = await req.jwtVerify();
 			// Reject tokens that don't carry the expected lifetime fields rather
 			// than letting `undefined < Date.now()` silently return false.
-			if (typeof data.expiresAt !== 'number' || typeof data.createdAt !== 'number') throw 'expired';
+			// `Number.isFinite`, not `typeof`: JSON serialises NaN as null, but a
+			// future change that keeps the number would otherwise pass this check
+			// and then compare `NaN < Date.now()` — which is false, i.e. valid.
+			if (!Number.isFinite(data.expiresAt) || !Number.isFinite(data.createdAt)) throw 'expired';
 			if (data.expiresAt < Date.now()) throw 'expired';
 			if (process.env.INVALIDATE_TOKENS) {
 				const cutoff = new Date(process.env.INVALIDATE_TOKENS).getTime();
@@ -128,77 +145,100 @@ module.exports = async client => {
 		}
 	});
 
-	fastify.decorate('isMember', async (req, res) => {
+	/**
+	 * Fetch the requester's member object, mapping "not a member" to a 403.
+	 *
+	 * `GuildMemberManager#fetch` *rejects* with `DiscordAPIError[10007]` when the
+	 * user isn't in the guild — it never resolves to a falsy value — so the
+	 * `if (!guildMember)` check this replaces was unreachable, and the real
+	 * not-a-member case fell into a catch that did a bare `res.send(err)`.
+	 * That leaked the raw Discord error *and*, because an async hook that
+	 * doesn't return its reply lets the request lifecycle continue, allowed the
+	 * route handler to run for a user who is not a member of the guild.
+	 * Every exit path here returns the reply.
+	 *
+	 * @returns {Promise<import("discord.js").GuildMember|null>} the member, or
+	 * `null` when a response has already been sent.
+	 */
+	const fetchRequesterMember = async (req, res, guild) => {
 		try {
-			const userId = req.user.id;
-			const guildId = req.params.guild;
-			const guild = client.guilds.cache.get(guildId);
-			if (!guild) {
-				return res.code(404).send({
-					error: 'Not Found',
-					message: 'The requested resource could not be found.',
-					statusCode: 404,
-
-				});
-			}
-			const guildMember = await guild.members.fetch(userId);
-			if (!guildMember) {
-				return res.code(403).send({
+			return await guild.members.fetch(req.user.id);
+		} catch (error) {
+			// 10007 unknown member, 10013 unknown user
+			if (error?.code === 10007 || error?.code === 10013) {
+				res.code(403).send({
 					error: 'Forbidden',
 					message: 'You are not permitted for this action.',
 					statusCode: 403,
-
 				});
+				return null;
 			}
-		} catch (err) {
-			res.send(err);
+			client.log.error('Failed to fetch member %s of guild %s', req.user.id, guild.id);
+			client.log.error(error);
+			res.code(500).send({
+				error: 'Internal Server Error',
+				message: 'Could not verify your membership of this guild.',
+				statusCode: 500,
+			});
+			return null;
 		}
+	};
+
+	fastify.decorate('isMember', async (req, res) => {
+		const guildId = req.params.guild;
+		const guild = client.guilds.cache.get(guildId);
+		if (!guild) {
+			return res.code(404).send({
+				error: 'Not Found',
+				message: 'The requested resource could not be found.',
+				statusCode: 404,
+
+			});
+		}
+		const guildMember = await fetchRequesterMember(req, res, guild);
+		if (!guildMember) return res;
 	});
 
 	fastify.decorate('isAdmin', async (req, res) => {
-		try {
-			const userId = req.user.id;
-			const guildId = req.params.guild;
-			const guild = client.guilds.cache.get(guildId);
-			if (!guild) {
-				return res.code(404).send({
-					error: 'Not Found',
-					message: 'The requested resource could not be found.',
-					statusCode: 404,
+		const guildId = req.params.guild;
+		const guild = client.guilds.cache.get(guildId);
+		if (!guild) {
+			return res.code(404).send({
+				error: 'Not Found',
+				message: 'The requested resource could not be found.',
+				statusCode: 404,
 
-				});
-			}
-			if (client.banned_guilds.has(guildId)) {
-				return res.code(451).send({
-					error: 'Unavailable For Legal Reasons',
-					message: 'This guild has been banned for breaking the terms of service.',
-					statusCode: 451,
-				});
-			}
-			if (!req.user.service && !req.user.scopes?.includes('applications.commands.permissions.update')) {
-				// The dashboard reads `elevate` and re-authenticates itself; a
-				// browser navigation has no such handler, so send it round the
-				// admin login flow directly.
-				if (isBrowserNavigation(req)) return redirectToLogin(req, res, 'admin');
-				return res.code(401).send({
-					elevate: 'admin',
-					error: 'Unauthorised',
-					message: 'Extra scopes required; reauthenticate.',
-					statusCode: 401,
-				});
-			}
-			const guildMember = await guild.members.fetch(userId);
-			const isAdmin = await getPrivilegeLevel(guildMember) >= 2;
-			if (!isAdmin) {
-				return res.code(403).send({
-					error: 'Forbidden',
-					message: 'You are not permitted for this action.',
-					statusCode: 403,
+			});
+		}
+		if (client.banned_guilds.has(guildId)) {
+			return res.code(451).send({
+				error: 'Unavailable For Legal Reasons',
+				message: 'This guild has been banned for breaking the terms of service.',
+				statusCode: 451,
+			});
+		}
+		if (!isServiceToken(req.user) && !req.user.scopes?.includes('applications.commands.permissions.update')) {
+			// The dashboard reads `elevate` and re-authenticates itself; a
+			// browser navigation has no such handler, so send it round the
+			// admin login flow directly.
+			if (isBrowserNavigation(req)) return redirectToLogin(req, res, 'admin');
+			return res.code(401).send({
+				elevate: 'admin',
+				error: 'Unauthorised',
+				message: 'Extra scopes required; reauthenticate.',
+				statusCode: 401,
+			});
+		}
+		const guildMember = await fetchRequesterMember(req, res, guild);
+		if (!guildMember) return res;
+		const isAdmin = await getPrivilegeLevel(guildMember) >= 2;
+		if (!isAdmin) {
+			return res.code(403).send({
+				error: 'Forbidden',
+				message: 'You are not permitted for this action.',
+				statusCode: 403,
 
-				});
-			}
-		} catch (err) {
-			res.send(err);
+			});
 		}
 	});
 
@@ -268,33 +308,22 @@ module.exports = async client => {
 		})); // register route
 	});
 
-	// Prefer a vendored build in the repository if it exists. Use a file:// URL
-	// import so dynamic import resolves correctly from CommonJS context.
+	// The dashboard build is committed and ships alongside this file, so it is
+	// found relative to `src/` — no cwd guessing and no hardcoded `/app`, each of
+	// which was only ever right for one install method.
 	let handlerModule;
-	// Check multiple possible locations for the vendored dashboard build.
-	const candidates = [
-		join(process.cwd(), 'src', 'dashboard', 'build', 'handler.js'), // when working directory contains repo
-		join('/app', 'src', 'dashboard', 'build', 'handler.js'), // when files copied to /app in Docker image
-		join(__dirname, 'dashboard', 'build', 'handler.js'), // relative to src/ in repo
-	];
+	const handlerPath = join(__dirname, 'dashboard', 'build', 'handler.js');
 
-	let foundPath;
-	for (const p of candidates) {
-		if (existsSync(p)) {
-			foundPath = p;
-			break;
-		}
-	}
-
-	if (foundPath) {
+	if (existsSync(handlerPath)) {
 		try {
-			handlerModule = await import(pathToFileURL(foundPath).href);
-			client.log.info('Using vendored @discord-tickets/settings handler from ' + foundPath);
+			// A file:// URL so dynamic import resolves correctly from CommonJS.
+			handlerModule = await import(pathToFileURL(handlerPath).href);
+			client.log.info('Using vendored dashboard build from ' + handlerPath);
 		} catch (err) {
-			client.log.error('Failed to import vendored dashboard handler at ' + foundPath, err && err.stack ? err.stack : err);
+			client.log.error('Failed to import the dashboard build at ' + handlerPath, err && err.stack ? err.stack : err);
 		}
 	} else {
-		client.log.warn('Vendored dashboard handler not found at any candidate path; dashboard will not be served. Checked: ' + candidates.join(', '));
+		client.log.warn('Dashboard build not found at ' + handlerPath + '; the dashboard will not be served.');
 	}
 
 	// Only register the dashboard handler if we successfully imported it.

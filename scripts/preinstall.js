@@ -1,12 +1,21 @@
 /* eslint-disable no-console */
+/**
+ * Make sure this installation has an environment file with an encryption key.
+ *
+ * Runs from npm's `preinstall` hook *and* from `scripts/start.sh`, which is why
+ * it has **no dependencies**: npm runs `preinstall` before `node_modules`
+ * exists, so `require('leeks.js')` here used to abort a fresh `npm install`
+ * with MODULE_NOT_FOUND before anything else could happen.
+ */
 const { randomBytes } = require('crypto');
 const fs = require('fs');
-const { resolve } = require('path');
-const { short } = require('leeks.js');
+const {
+	DATA_DIR, ENV_FILE, dataDirProblem,
+} = require('./lib/paths');
 
-function log (...strings) {
-	console.log(short('&9[preinstall]&r'), ...strings);
-}
+const colour = (code, string) => (process.stdout.isTTY ? `\x1b[${code}m${string}\x1b[0m` : string);
+const log = (...strings) => console.log(colour(34, '[preinstall]'), ...strings);
+const error = (...strings) => console.error(colour(31, '[preinstall]'), ...strings);
 
 if (process.env.CI) {
 	log('CI detected, skipping');
@@ -16,7 +25,7 @@ if (process.env.CI) {
 const env = {
 	CPU_LIMIT: '',
 	DB_CONNECTION_URL: '',
-	DB_PROVIDER: '', // don't default to sqlite, postinstall checks if empty
+	DB_PROVIDER: '', // postinstall checks if this is empty
 	DISABLE_ENCRYPTION: false,
 	DISCORD_SECRET: '',
 	DISCORD_TOKEN: '',
@@ -27,11 +36,10 @@ const env = {
 	HTTP_PORT: 8169,
 	HTTP_TRUST_PROXY: false,
 	INVALIDATE_TOKENS: '',
-	NODE_ENV: 'production', // not bot-specific
 	OVERRIDE_ARCHIVE: '',
 	PUBLIC_BOT: false,
 	PUBLISH_COMMANDS: false,
-	SUPER: '319467558166069248',
+	SUPER: '',
 	// Temporal is required — the bot refuses to start without an address/port
 	// (see src/env.js). These defaults assume an insecure local cluster; for
 	// production set TEMPORAL_TLS_ENABLED=true and the TEMPORAL_TLS_*_PATH vars.
@@ -43,29 +51,25 @@ const env = {
 	TEMPORAL_TLS_ENABLED: false,
 };
 
-// The .env path must be resolved against the repository, not the working
-// directory. In Docker the cwd is /home/container while the app lives in /app,
-// so a relative './.env' was written somewhere ephemeral — meaning a brand new
-// ENCRYPTION_KEY was generated on every container recreate, permanently
-// orphaning every encrypted ticket topic, close reason, feedback comment and
-// archived message.
-const envPath = resolve(__dirname, '../.env');
-const ephemeral = process.env.DOCKER === 'true' || process.env.PTERODACTYL === 'true';
+// A key generated here has to survive restarts, or every ticket topic, close
+// reason, feedback comment and archived message encrypted with the old one
+// becomes unreadable. So it is only ever written to DATA_DIR — the volume the
+// operator persists — and never when that directory is missing or read-only.
+const problem = dataDirProblem();
 
-// check ENCRYPTION_KEY because we don't want to force use of the .env file
-if (process.env.ENCRYPTION_KEY || fs.existsSync(envPath)) {
+if (process.env.ENCRYPTION_KEY || fs.existsSync(ENV_FILE)) {
 	log('nothing to do');
-} else if (ephemeral) {
-	// Never silently mint a key in a container: it would differ on every
-	// recreate, and the previous one is unrecoverable.
-	console.error(short('&cENCRYPTION_KEY is not set.&r'));
-	console.error('Set it explicitly in your compose file / container environment before starting.');
+} else if (process.env.DOCKER === 'true' || problem) {
+	error('ENCRYPTION_KEY is not set.');
+	if (problem) error(`(the data directory ${DATA_DIR} ${problem}, so one cannot be saved here)`);
+	console.error('Set it explicitly in your container environment / panel variables before starting.');
 	console.error('Generate one with:  openssl rand -hex 24');
-	console.error(short('&e&lIf this instance already has data, you MUST reuse its original key or that data becomes unreadable.&r'));
+	console.error(colour(33, 'If this instance already has data, you MUST reuse its original key or that data becomes unreadable.'));
 	process.exit(1);
 } else {
 	log('generating ENCRYPTION_KEY');
-	fs.writeFileSync(envPath, Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n'));
-	log(`created .env file at ${envPath}`);
-	log(short('&r&0&!e WARNING &r &e&lkeep your environment variables safe, don\'t lose your encryption key or you will lose data'));
+	// 0600: this file holds the bot token and the encryption key.
+	fs.writeFileSync(ENV_FILE, Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n', { mode: 0o600 });
+	log(`created .env file at ${ENV_FILE}`);
+	log(colour(33, 'keep your environment variables safe — losing the encryption key means losing data'));
 }

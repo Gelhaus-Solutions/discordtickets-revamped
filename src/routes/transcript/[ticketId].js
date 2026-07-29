@@ -36,12 +36,12 @@ module.exports.get = fastify => ({
 			if (!ticket) return notFound();
 
 			// Confirm the caller actually administrates the ticket's guild.
-			if (!req.user.service) {
-				const guild = client.guilds.cache.get(ticket.guildId);
-				if (!guild) return notFound();
-				const member = await guild.members.fetch(req.user.id).catch(() => null);
-				if (!member || await getPrivilegeLevel(member) < 2) return notFound();
-			}
+			// Service tokens used to skip this entirely, which defeated the
+			// anti-enumeration design described above; they are not exempt.
+			const guild = client.guilds.cache.get(ticket.guildId);
+			if (!guild) return notFound();
+			const member = await guild.members.fetch(req.user.id).catch(() => null);
+			if (!member || await getPrivilegeLevel(member) < 2) return notFound();
 
 			// Redirect to the API endpoint.
 			// Fastify 5 takes (url, code); the v4 (code, url) order made this

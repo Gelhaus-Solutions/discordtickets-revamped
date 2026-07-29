@@ -5,7 +5,7 @@ const {
 	MessageFlags,
 } = require('discord.js');
 const fs = require('fs');
-const { join } = require('path');
+const { dataPath } = require('../../lib/paths');
 const Mustache = require('mustache');
 const { AttachmentBuilder } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
@@ -49,7 +49,7 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 		// disable escaping for any other Mustache.render in the process. We
 		// scope the override to renders that go through `this.renderTranscript`.
 		this.template = fs.readFileSync(
-			join('./user/templates/', this.client.config.templates.transcript + '.mustache'),
+			dataPath('user', 'templates', this.client.config.templates.transcript + '.mustache'),
 			{ encoding: 'utf8' },
 		);
 	}

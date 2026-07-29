@@ -6,6 +6,7 @@ const {
 	syncPanel,
 	validatePanelLayout,
 } = require('../../../../../../lib/panels');
+const { resolveGuildChannel } = require('../../../../../../lib/misc');
 
 /**
  * Load a panel and confirm it belongs to the guild in the path, so a panel id
@@ -61,7 +62,21 @@ module.exports.patch = fastify => ({
 			throw error;
 		}
 
-		const channelId = typeof req.body.channel === 'string' ? req.body.channel : original.channelId;
+		// A moved panel must stay inside this guild — see resolveGuildChannel.
+		let channelId = original.channelId;
+		if (typeof req.body.channel === 'string' && req.body.channel !== original.channelId) {
+			if (!resolveGuildChannel(client, guild.id, req.body.channel)) {
+				return res.code(400).send({
+					code: 'unknown_channel',
+					errors: [{
+						message: 'That channel is not in this server.',
+						type: 'unknown_channel',
+					}],
+					statusCode: 400,
+				});
+			}
+			channelId = req.body.channel;
+		}
 		const movedChannel = channelId !== original.channelId;
 
 		// Moving a panel: take the old message down first, so the panel does not

@@ -1,5 +1,6 @@
 const ms = require('ms');
 const { logAdminEvent } = require('../../../../../../lib/logging');
+const { validateTagBody } = require('../../../../../../lib/tags');
 
 module.exports.delete = fastify => ({
 	handler: async (req, res) => {
@@ -61,14 +62,16 @@ module.exports.patch = fastify => ({
 		const guildId = req.params.guild;
 		const tagId = Number(req.params.tag);
 		const guild = client.guilds.cache.get(req.params.guild);
-		const data = req.body;
 
 		const original = req.params.tag && await client.prisma.tag.findUnique({ where: { id: tagId } });
 
 		if (!original || original.guildId !== guildId) return res.status(400).send(new Error('Bad Request'));
 
-		if (Object.prototype.hasOwnProperty.call(data, 'id')) delete data.id;
-		if (Object.prototype.hasOwnProperty.call(data, 'createdAt')) delete data.createdAt;
+		// The request body used to be handed to Prisma with only `id` and
+		// `createdAt` removed. `guildId` is a writable scalar, so a PATCH could
+		// move the tag into a server the caller has no rights over — where an
+		// always-matching `regex` then had the bot reply to every message.
+		const data = validateTagBody(req.body ?? {}, { partial: true });
 
 		const tag = await client.prisma.tag.update({
 			data,

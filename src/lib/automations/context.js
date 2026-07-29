@@ -117,24 +117,32 @@ class Context {
 		});
 	}
 
+	// Everything a context resolves is scoped to its own guild. Ids can reach a
+	// context from a request body (the dry-run endpoint) as well as from a
+	// trigger, and both `prisma.ticket.findUnique` and `client.channels` are
+	// global — so without the guild filter, clauses like `ticket.answer`
+	// (which decrypts) would answer questions about other servers' tickets.
+
 	getTicket() {
 		return this._once('ticket', () => {
 			if (!this.ticketId) return null;
-			return this.client.tickets.getTicket(this.ticketId);
+			return this.client.tickets.getTicket(this.ticketId, false, this.guildId);
 		});
 	}
 
 	getTicketChannel() {
-		return this._once('ticketChannel', () => {
+		return this._once('ticketChannel', async () => {
 			if (!this.ticketId) return null;
-			return this.client.channels.fetch(this.ticketId);
+			const channel = await this.client.channels.fetch(this.ticketId).catch(() => null);
+			return channel?.guildId === this.guildId ? channel : null;
 		});
 	}
 
 	getChannel() {
-		return this._once('channel', () => {
+		return this._once('channel', async () => {
 			if (!this.channelId) return null;
-			return this.client.channels.fetch(this.channelId);
+			const channel = await this.client.channels.fetch(this.channelId).catch(() => null);
+			return channel?.guildId === this.guildId ? channel : null;
 		});
 	}
 

@@ -1,19 +1,29 @@
 /* eslint-disable no-console */
-require('dotenv').config();
+const {
+	appPath, loadEnv,
+} = require('./lib/paths');
+
+loadEnv();
+
 const fs = require('fs-extra');
+const crypto = require('crypto');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const { short } = require('leeks.js');
-const {
-	join,
-	resolve,
-} = require('path');
+const { join } = require('path');
 
 const fallback = { prisma: './node_modules/prisma/build/index.js' };
 
-function pathify(path) {
-	return resolve(__dirname, '../', path);
-}
+// Everything is resolved against the application directory, never the working
+// directory: in Docker the cwd is /home/container while the app is /app, so a
+// relative `./prisma` here removed the wrong (non-existent) directory and left
+// the previous provider's migrations in place — including its differently
+// named baseline.
+const pathify = path => appPath(path);
+
+// `--required` is passed by scripts/start.sh: at boot an unset DB_PROVIDER is
+// fatal, but during `npm ci` (where no environment exists yet) it is normal.
+const REQUIRED = process.argv.includes('--required');
 
 function log(...strings) {
 	console.log(short('&9[postinstall]&r'), ...strings);
@@ -41,6 +51,11 @@ const providers = ['mysql', 'postgresql'];
 const provider = process.env.DB_PROVIDER;
 
 if (!provider) {
+	if (REQUIRED) {
+		console.error(short('&cDB_PROVIDER is not set.&r'));
+		console.error('Set it to "mysql" or "postgresql", along with DB_CONNECTION_URL.');
+		process.exit(1);
+	}
 	log('environment not set, exiting.');
 	process.exit(0);
 }
@@ -60,20 +75,45 @@ if (provider === 'sqlite') {
 if (!providers.includes(provider)) throw new Error(`DB_PROVIDER must be one of: ${providers}`);
 
 log(`provider=${provider}`);
-log(`copying ${provider} schema & migrations`);
 
-// Both branches must be pathified: in Docker the working directory is
-// /home/container while the app lives in /app, so a relative `./prisma` here
-// removed the wrong (non-existent) directory and left the previous provider's
-// migrations in place — including its differently-named baseline.
-if (fs.existsSync(pathify('./prisma'))) {
-	fs.rmSync(pathify('./prisma'), {
-		force: true,
-		recursive: true,
-	});
+/**
+ * A fingerprint of the provider's schema + migrations, so an unchanged install
+ * does not re-copy the tree and re-run `prisma generate` on every boot. That
+ * matters on panels and bare metal, where the app directory may be read-only
+ * after the first run and where boot time is visible to the operator.
+ */
+function fingerprint(dir) {
+	const hash = crypto.createHash('sha256');
+	const walk = current => {
+		for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+			const full = join(current, entry.name);
+			if (entry.isDirectory()) walk(full);
+			else hash.update(entry.name).update(fs.readFileSync(full));
+		}
+	};
+	walk(dir);
+	return hash.digest('hex');
 }
-fs.mkdirSync(pathify('./prisma'), { recursive: true });
-fs.copySync(pathify(`./db/${provider}`), pathify('./prisma')); // copy schema & migrations
+
+const marker = pathify('./prisma/.provider');
+const expected = `${provider}\n${fingerprint(pathify(`./db/${provider}`))}\n`;
+const current = fs.existsSync(marker) ? fs.readFileSync(marker, 'utf8') : null;
+const generated = fs.existsSync(pathify('./node_modules/.prisma/client/index.js'));
+const upToDate = current === expected && generated;
+
+if (upToDate) {
+	log('schema & client are up to date');
+} else {
+	log(`copying ${provider} schema & migrations`);
+	if (fs.existsSync(pathify('./prisma'))) {
+		fs.rmSync(pathify('./prisma'), {
+			force: true,
+			recursive: true,
+		});
+	}
+	fs.mkdirSync(pathify('./prisma'), { recursive: true });
+	fs.copySync(pathify(`./db/${provider}`), pathify('./prisma')); // copy schema & migrations
+}
 
 // Databases created before upstream adopted migrations (its postinstall used
 // `prisma db push`), or restored from a dump that excluded `_prisma_migrations`,
@@ -211,7 +251,18 @@ async function baseline() {
 // no rejection handler, and scripts/start.sh ignored the exit code, so the bot
 // started against a half-migrated schema and sprayed P2022 errors instead.
 (async () => {
-	await npx('prisma generate');
+	if (!upToDate) {
+		await npx('prisma generate');
+		fs.writeFileSync(marker, expected);
+	}
+
+	// For operators who migrate out of band, or run more than one replica —
+	// `prisma migrate deploy` is not safe to run concurrently.
+	if (process.env.DT_SKIP_MIGRATIONS === 'true') {
+		log('DT_SKIP_MIGRATIONS is set, skipping migrations');
+		return;
+	}
+
 	try {
 		await npx('prisma migrate deploy');
 	} catch (error) {

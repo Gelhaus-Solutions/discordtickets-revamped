@@ -10,6 +10,7 @@
 
 const temporal = require('../temporal');
 const { LIMITS } = require('./errors');
+const { resolveGuildChannel } = require('../misc');
 
 /**
  * Load a guild's referential context for validation.
@@ -111,10 +112,65 @@ async function loadAutomation(client, req, res) {
 	return automation;
 }
 
+/**
+ * Resolve the ids a dry-run was asked to pretend with, refusing any that are
+ * not this guild's.
+ *
+ * The dry run stubs out *actions*, not *conditions* — that is the point of it,
+ * since "which branch does this take" is the question being asked. But
+ * conditions read real data: `ticket.answer` decrypts a stored answer,
+ * `message.content` fetches a real message. With the ids taken verbatim from
+ * the request body, an admin of any one guild could point the run at another
+ * guild's ticket and read the answer back one true/false at a time from the
+ * returned trace.
+ *
+ * @param {import('client')} client
+ * @param {import('@prisma/client').Automation} automation
+ * @param {Record<string, unknown>} body
+ * @param {string} fallbackUserId the caller, used when no actor is given
+ * @returns {Promise<{ actorId: string, channelId: string|null, ticketId: string|null }|{ error: object }>}
+ */
+async function resolveTestContext(client, automation, body, fallbackUserId) {
+	const guildId = automation.guildId;
+	const guild = client.guilds.cache.get(guildId);
+	const resolved = {
+		actorId: fallbackUserId,
+		channelId: null,
+		ticketId: null,
+	};
+
+	if (typeof body.ticketId === 'string' && body.ticketId) {
+		const ticket = await client.prisma.ticket.findFirst({
+			select: { id: true },
+			where: {
+				guildId,
+				id: body.ticketId,
+			},
+		});
+		if (!ticket) return { error: badRequest('unknown_ticket', 'That ticket is not in this server.') };
+		resolved.ticketId = ticket.id;
+	}
+
+	if (typeof body.channelId === 'string' && body.channelId) {
+		const channel = resolveGuildChannel(client, guildId, body.channelId);
+		if (!channel) return { error: badRequest('unknown_channel', 'That channel is not in this server.') };
+		resolved.channelId = channel.id;
+	}
+
+	if (typeof body.userId === 'string' && body.userId) {
+		const member = guild ? await guild.members.fetch(body.userId).catch(() => null) : null;
+		if (!member) return { error: badRequest('unknown_member', 'That member is not in this server.') };
+		resolved.actorId = member.id;
+	}
+
+	return resolved;
+}
+
 module.exports = {
 	LIMITS,
 	badRequest,
 	loadAutomation,
+	resolveTestContext,
 	loadRefs,
 	runQuery,
 	syncSchedule,
