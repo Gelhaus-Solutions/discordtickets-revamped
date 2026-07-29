@@ -10,6 +10,22 @@
 
 const { PermissionFlagsBits } = require('discord.js');
 
+/**
+ * The `custom_id` of a button that sets an automation off.
+ *
+ * 31 characters, against Discord's 100-character limit — which this codebase is
+ * already close to, and why `Automation.key` is a short generated handle rather
+ * than the autoincrement primary key. Defined here so the layout renderer, the
+ * `action.message.send` buttons and `src/buttons/auto.js` cannot drift apart;
+ * `scripts/check-automations.js` pins the length.
+ */
+const AUTOMATION_BUTTON_ACTION = 'auto';
+
+const automationCustomId = key => JSON.stringify({
+	action: AUTOMATION_BUTTON_ACTION,
+	k: key,
+});
+
 /** How long a role change made by an automation suppresses the matching trigger. */
 const SUPPRESS_MS = 10_000;
 
@@ -149,7 +165,9 @@ async function removeRole(client, {
 }
 
 module.exports = {
+	AUTOMATION_BUTTON_ACTION,
 	SUPPRESS_MS,
+	automationCustomId,
 	addRole,
 	checkRole,
 	isSuppressed,

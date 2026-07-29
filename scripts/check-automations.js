@@ -31,6 +31,7 @@ const {
 	RUN, STEP, runAutomation, runFrom,
 } = require(path.join(root, 'src', 'lib', 'automations', 'runtime'));
 const { Context } = require(path.join(root, 'src', 'lib', 'automations', 'context'));
+const { automationCustomId } = require(path.join(root, 'src', 'lib', 'automations', 'discord'));
 
 let pass = 0;
 const t = async (name, fn) => {
@@ -435,6 +436,79 @@ function stubRunners(overrides = {}) {
 		assert.strictEqual(describeError(new Error('unrelated')), null, 'a real fault must not become a 400');
 	});
 
+	// The flow the feature exists for: one automation posts a button, a second is
+	// started by pressing it.
+	await t('a send-message action can carry automation buttons', () => {
+		const g = graph(
+			[
+				node('trigger.ticket.created', {}, 'a'),
+				node('action.message.send', {
+					buttons: [{
+						automationKey: 'btn123',
+						label: 'Claim your role',
+						style: 'success',
+					}],
+					content: 'Press below',
+					target: 'ticket',
+				}, 'b'),
+			],
+			[edge('a', 'b')],
+		);
+		assert.strictEqual(codeOf(g, {
+			automationKeys: ['btn123'],
+			buttonAutomationKeys: ['btn123'],
+		}), null);
+	});
+
+	await t('a button must point at a button-triggered automation', () => {
+		const g = graph(
+			[
+				node('trigger.ticket.created', {}, 'a'),
+				node('action.message.send', {
+					buttons: [{
+						automationKey: 'other',
+						label: 'Nope',
+					}],
+					content: 'x',
+					target: 'ticket',
+				}, 'b'),
+			],
+			[edge('a', 'b')],
+		);
+		// Exists, but is started by something else — rendering fine and then doing
+		// nothing when pressed is the worst kind of broken.
+		assert.strictEqual(codeOf(g, {
+			automationKeys: ['other'],
+			buttonAutomationKeys: [],
+		}), 'not_a_button_automation');
+		// Does not exist at all.
+		assert.strictEqual(codeOf(g, {
+			automationKeys: [],
+			buttonAutomationKeys: [],
+		}), 'unknown_automation');
+	});
+
+	await t('a button needs a label and a target automation', () => {
+		const build = button => graph(
+			[
+				node('trigger.ticket.created', {}, 'a'),
+				node('action.message.send', {
+					buttons: [button],
+					content: 'x',
+					target: 'ticket',
+				}, 'b'),
+			],
+			[edge('a', 'b')],
+		);
+		assert.strictEqual(codeOf(build({ automationKey: 'btn123' })), 'required');
+		assert.strictEqual(codeOf(build({ label: 'Hi' })), 'required');
+		assert.strictEqual(codeOf(build({
+			automationKey: 'btn123',
+			label: 'Hi',
+			style: 'rainbow',
+		})), 'unknown_option');
+	});
+
 	console.log('\ninterpreter\n');
 
 	await t('a linear graph runs in order', async () => {
@@ -630,10 +704,8 @@ function stubRunners(overrides = {}) {
 	console.log('\nguards\n');
 
 	await t('the button custom_id fits in Discord\'s 100 characters', () => {
-		const id = JSON.stringify({
-			action: 'auto',
-			k: 'aB3xY9',
-		});
+		// The real one, so this cannot pass while the shipped format differs.
+		const id = automationCustomId('aB3xY9');
 		assert.ok(id.length <= 100, `custom_id is ${id.length} characters`);
 		// Headroom for a future version field, since the id is stored in messages
 		// that outlive the code that wrote them.

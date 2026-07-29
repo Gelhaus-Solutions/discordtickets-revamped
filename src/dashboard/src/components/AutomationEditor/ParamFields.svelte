@@ -3,6 +3,7 @@
 	import { editorState } from './editorState.svelte.js';
 	import ConditionRows from './ConditionRows.svelte';
 	import BooleanField from './fields/BooleanField.svelte';
+	import ButtonsField from './fields/ButtonsField.svelte';
 	import ChannelField from './fields/ChannelField.svelte';
 	import DurationField from './fields/DurationField.svelte';
 	import EmojiField from './fields/EmojiField.svelte';
@@ -30,6 +31,7 @@
 
 	const FIELDS = {
 		boolean: BooleanField,
+		buttons: ButtonsField,
 		categories: TicketCategoryField,
 		category: TicketCategoryField,
 		channel: ChannelField,

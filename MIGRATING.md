@@ -1,8 +1,9 @@
 # Migrating to discordtickets-revamped
 
 This fork changes the database schema and adds a required Temporal cluster.
-Everything below assumes docker-compose, which is the only supported install
-method.
+The database steps are the same for every install method; where the mechanics
+differ (Docker, bare metal, Pterodactyl/Pelican) that is called out. See
+[docs/installation.md](docs/installation.md) for installing from scratch.
 
 > [!CAUTION]
 > **Back up your database and your bot volume before you start.** Also make a
@@ -28,6 +29,25 @@ To generate a key for a brand-new install:
 ```sh
 openssl rand -hex 24
 ```
+
+## Other behaviour changes in this release
+
+**Service API keys are now operator-only.** `GET /api/users/@me/key` used to
+issue a 90-day token to any logged-in dashboard user, and that token skipped
+several authorization checks. Only user IDs listed in `SUPER` can issue one now,
+and the claim is only honoured while the ID is still in that list. Existing
+service keys held by non-operators stop working; reissue them as a `SUPER` user.
+
+**`SUPER` no longer has a default.** It used to default to the upstream
+author's Discord ID. Set it to your own ID — it grants settings access to every
+guild, access to any transcript, and the ability to issue service keys.
+
+**An empty environment variable now counts as unset.** A blank panel variable or
+a bare `KEY:` in a compose file no longer shadows the value in `.env` (it used
+to, which produced "ENCRYPTION_KEY is required" while the key sat in the file
+being read).
+
+---
 
 ## Sessions and API keys are invalidated on upgrade
 
@@ -104,8 +124,9 @@ database.
    npm run db.dump
    ```
 
-   This writes `user/dumps/<timestamp>-db.json`. Copy it somewhere safe, and
-   note the instance's `ENCRYPTION_KEY`. The dump stays encrypted with that key.
+   This writes `user/dumps/<timestamp>-db.json` (in the old instance's data
+   directory). Copy it somewhere safe, and note the instance's
+   `ENCRYPTION_KEY` — the dump stays encrypted with that key.
 
 2. Stand up PostgreSQL (or MySQL) and deploy this fork against it, with:
    - `DB_PROVIDER=postgresql` (or `mysql`)
@@ -127,8 +148,18 @@ database.
    database:
 
    ```sh
-   docker compose run --rm bot sh -c 'cd /app && npm run db.restore -- -f /path/to/dump.json -y'
+   # Docker: the dump has to be readable inside the container, so put it in the
+   # bot volume (e.g. /home/container/user/dumps/) first.
+   docker compose run --rm --entrypoint sh bot -c \
+     'cd /app && npm run db.restore -- -f /home/container/user/dumps/dump.json -y'
+
+   # Bare metal / panel, from the application directory:
+   DT_DATA_DIR=/var/lib/discord-tickets npm run db.restore -- -f /path/to/dump.json -y
    ```
+
+   The scripts read the same `.env` the bot does, resolved from `DT_DATA_DIR` —
+   they used to read `./.env` relative to wherever you happened to be, which in
+   the Docker command above was `/app/.env`, a file that does not exist.
 
 5. Start the bot again and check the dashboard:
 
@@ -145,6 +176,55 @@ dump was created with. Stop, restore your backup, and correct the key.
 > that link cleared and reapplies it in a second pass, because MySQL checks
 > foreign keys per row and would otherwise reject a category pointing at one
 > that has not been inserted yet.
+
+---
+
+## Per-method notes
+
+### Docker Compose
+
+The bot volume should now cover the whole data directory, not just `user/`:
+
+```yaml
+volumes:
+  - tickets-bot:/home/container      # was tickets-bot:/home/container/user
+```
+
+`.env`, `user/` and `logs/` all live there (`DT_DATA_DIR=/home/container` in the
+image). Also add `init: true` and `stop_grace_period: 45s` to the `bot` service —
+without the grace period Docker kills the bot before the Temporal worker has
+drained.
+
+### Bare metal
+
+If you previously ran the bot out of a git checkout, install the release
+tarball instead — it ships `dist/temporal` prebuilt, so nothing needs a
+TypeScript toolchain on the server. Point `DT_DATA_DIR` at wherever you keep
+`user/`, and move your `.env` next to it. The bot prints both directories at
+startup, and any environment error names the file it actually read.
+
+### Pterodactyl / Pelican (from the upstream egg)
+
+The upstream egg cannot run this fork: it sets `PTERODACTYL=true` with the
+encryption key in a file rather than the environment, and the old startup
+command copied `/app` over `/home/container/app` on every boot — which wiped
+anything written there. The new eggs install into `/home/container` directly.
+
+1. Back up `/home/container/.env` and `/home/container/user/` (and your database).
+2. Note your `ENCRYPTION_KEY`.
+3. Change the server's egg to [eggs/pterodactyl.json](eggs/pterodactyl.json) or
+   [eggs/pelican.json](eggs/pelican.json), and its image to a **Debian** Node
+   yolk (`ghcr.io/parkervcp/yolks:nodejs_22`) — Alpine cannot load Temporal's
+   native addon.
+4. Delete the leftover `/home/container/app` directory.
+5. Reinstall the server. The install script keeps an existing `.env`, so your
+   key survives; if you had none, put yours in `/home/container/.env` before
+   starting.
+6. Fill in the Startup tab — `DB_PROVIDER` must be `mysql` or `postgresql`, and
+   the `TEMPORAL_*` variables are required.
+
+Reinstalling is also how you upgrade from then on: it replaces the code and
+leaves `.env`, `user/` and `logs/` alone.
 
 ---
 

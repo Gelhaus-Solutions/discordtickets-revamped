@@ -29,6 +29,7 @@ async function loadRefs(client, guildId, selfId = null) {
 			select: {
 				id: true,
 				key: true,
+				triggerType: true,
 			},
 			where: { guildId },
 		}),
@@ -36,6 +37,10 @@ async function loadRefs(client, guildId, selfId = null) {
 
 	return {
 		automationKeys: automations.map(a => a.key),
+		// A button can only start an automation that a button press triggers.
+		buttonAutomationKeys: automations
+			.filter(a => a.triggerType === 'trigger.button.pressed')
+			.map(a => a.key),
 		categoryIds: categories.map(c => c.id),
 		selfKey: selfId ? automations.find(a => a.id === selfId)?.key ?? null : null,
 	};

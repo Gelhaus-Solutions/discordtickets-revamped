@@ -37,6 +37,8 @@ const PUBLIC_LIMITS = {
 	inlineMs: 10_000,
 	/** A wait this short is done with setTimeout if Temporal is unreachable. */
 	inlineWaitMs: 15_000,
+	/** Buttons on one `action.message.send`. Discord's action-row cap. */
+	messageButtons: 5,
 	messageLength: 2000,
 	nameLength: 100,
 	nodes: 40,

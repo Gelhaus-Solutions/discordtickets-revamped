@@ -8,8 +8,9 @@ node_modules/
 .idea/
 # files
 *.env*
+!.env.example
 *.db*
 *.log
 *.DS_Store
 summary.md
-/package-lock.json
+bun.lock

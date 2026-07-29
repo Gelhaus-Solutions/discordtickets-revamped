@@ -223,7 +223,9 @@ function validateGraph(graph, options = {}) {
 		}
 
 		validateParams(node.params, type.params, push, at);
-		type.validate?.(node.params, push, at);
+		// Options are passed through so a node can validate against the guild's
+		// own data (which categories exist, which automations a button may run).
+		type.validate?.(node.params, push, at, options);
 
 		if (options.categoryIds) {
 			const referenced = [

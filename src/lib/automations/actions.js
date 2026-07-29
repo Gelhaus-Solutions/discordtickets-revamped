@@ -21,6 +21,7 @@
  * out why their automation quietly did nothing.
  */
 
+const { LIMITS } = require('./errors');
 const { logAutomationEvent } = require('../logging');
 const { resolveEmoji } = require('../emoji');
 const { substitute } = require('../components-v2');
@@ -28,7 +29,13 @@ const { resolveGuildChannel } = require('../misc');
 const { pools } = require('../threads');
 const temporal = require('../temporal');
 const {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+} = require('discord.js');
+const {
 	addRole,
+	automationCustomId,
 	removeRole,
 } = require('./discord');
 const {
@@ -53,6 +60,41 @@ const skip = reason => ({
  * same thing in an automation.
  */
 const render = (content, ctx) => substitute(String(content ?? ''), ctx.vars);
+
+const BUTTON_STYLES = {
+	danger: ButtonStyle.Danger,
+	primary: ButtonStyle.Primary,
+	secondary: ButtonStyle.Secondary,
+	success: ButtonStyle.Success,
+};
+
+/**
+ * Turn an `action.message.send` button list into an action row.
+ *
+ * This is what lets one automation hand the member a button that starts
+ * another: "ticket opened -> post a button", then "button pressed -> add a
+ * role". The custom_id is the same one `src/buttons/auto.js` parses.
+ *
+ * Returns an empty array when there are no buttons, so the caller can spread it
+ * into `components` unconditionally.
+ */
+function buildButtons(node, ctx) {
+	const specs = Array.isArray(node.params?.buttons) ? node.params.buttons : [];
+	if (specs.length === 0) return [];
+
+	const row = new ActionRowBuilder().addComponents(
+		specs.slice(0, LIMITS.messageButtons).map(spec => {
+			const button = new ButtonBuilder()
+				.setCustomId(automationCustomId(spec.automationKey))
+				.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
+				.setLabel(render(spec.label, ctx).slice(0, 80));
+			const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
+			if (emoji) button.setEmoji(emoji);
+			return button;
+		}),
+	);
+	return [row];
+}
 
 /** Resolve where `action.message.send` should post. */
 async function resolveTarget(node, ctx) {
@@ -157,6 +199,7 @@ function makeRunners(client, runNested) {
 			if (!channel?.send) return skip('unknown_channel');
 			await channel.send({
 				allowedMentions: { parse: ['users', 'roles'] },
+				components: buildButtons(node, ctx),
 				content: render(node.params.content, ctx),
 			});
 			return {};

@@ -97,12 +97,20 @@ services:
         condition: service_healthy
     restart: unless-stopped
     hostname: bot
+    # An init process to reap the Prisma query engine's children, and enough
+    # grace for the shutdown sequence in src/index.js (20s) to drain the
+    # Temporal worker before Docker sends SIGKILL. The default 10s cut it short.
+    init: true
+    stop_grace_period: 45s
     networks:
       - discord-tickets
     ports:
       - 8169:8169
     volumes:
-      - tickets-bot:/home/container/user
+      # The whole data directory, not just user/: .env, user/ and logs/ live
+      # side by side (DT_DATA_DIR=/home/container in the image) and are all
+      # state worth keeping across a recreate.
+      - tickets-bot:/home/container
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       # For production mTLS, mount your Temporal client certs read-only, e.g.:
@@ -131,7 +139,10 @@ services:
       OVERRIDE_ARCHIVE: null
       PUBLIC_BOT: "false"
       PUBLISH_COMMANDS: "false"
-      SUPER: 319467558166069248 # comma-separated list of discord user IDs with superuser access to change bot settings for all guilds the bot is in, regardless of the users permissions
+      # Comma-separated Discord user IDs with operator rights: bot settings for
+      # every guild, any transcript, and service API keys. Set it to YOUR id —
+      # it used to default to someone else's.
+      SUPER:
       # IMPORTANT: You should read https://discordtickets.app/self-hosting/configuration/#super before continuing!
       CPU_LIMIT: # optional: cap the worker thread pool (defaults to the number of available cores)
       # Secret used to sign dashboard JWTs. If left empty it is derived from

@@ -7,7 +7,7 @@
 # and these files
 !.npmrc
 !package.json
-!bun.lock
+!package-lock.json
 !tsconfig.temporal.json
 
 # ...but never ship vendored dependencies or build caches from inside them.

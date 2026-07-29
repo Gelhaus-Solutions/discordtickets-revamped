@@ -21,7 +21,7 @@ This includes changes to:
 
 The frontend build compiles the SvelteKit application into production assets in `src/dashboard/build`, which **is committed to the repository** — the Dockerfile does not build the dashboard. Without building, changes made to `.svelte` files will not be reflected in the actual application.
 
-Note that the dashboard has its own dependency tree and uses **npm** (`src/dashboard/package-lock.json`), while the bot itself uses **bun** (`bun.lock`).
+Note that the dashboard has its own dependency tree (`src/dashboard/package-lock.json`), separate from the bot's own `package-lock.json`. Both use npm.
 
 ## Temporal Layer (TypeScript)
 
@@ -30,12 +30,12 @@ All async and scheduled work (stale tickets, auto-close, cron, transcript export
 **CRITICAL**: After changing anything under `src/temporal/`, you MUST rebuild it:
 
 ```bash
-bun run temporal.build      # tsc -> dist/temporal, then bundles the workflows
-bun run temporal.typecheck  # type-check without emitting
+npm run temporal.build      # tsc -> dist/temporal, then bundles the workflows
+npm run temporal.typecheck  # type-check without emitting
 ```
 
 - `dist/` is generated output — never edit it, never commit it (it is gitignored).
-- `src/temporal/**` and `dist/**` are excluded from eslint (see `eslint.config.mjs`), so `bun run temporal.typecheck` is the only check covering them. Run it before considering a Temporal change done.
+- `src/temporal/**` and `dist/**` are excluded from eslint (see `eslint.config.mjs`), so `npm run temporal.typecheck` is the only check covering them. Run it before considering a Temporal change done.
 - Workflow code is deterministic and pre-bundled by `scripts/bundle-workflows.mjs`; side-effecting work belongs in activities (`src/temporal/activities/`), not workflows.
 - The JS side talks to Temporal through `src/lib/temporal.js`; configuration and defaults are in `src/temporal/config.ts`.
 - A Temporal cluster is **required** at runtime: `src/env.js` exits the process if `TEMPORAL_ADDRESS`/`TEMPORAL_PORT` are missing, and mTLS is on by default (`TEMPORAL_TLS_ENABLED` defaults to `true`).
@@ -70,9 +70,9 @@ Migrations run automatically at bot startup without manual intervention (`script
 ## Testing
 
 After making changes:
-- `bun run lint` — eslint over `src` and `scripts` (JS only)
-- `bun run temporal.typecheck` — if you touched `src/temporal/`
-- `bun run test` — validates that every locale in `src/i18n/` matches the English keys; run it after changing any `.yml` there
+- `npm run lint` — eslint over `src` and `scripts` (JS only)
+- `npm run temporal.typecheck` — if you touched `src/temporal/`
+- `npm run test` — validates that every locale in `src/i18n/` matches the English keys; run it after changing any `.yml` there
 - Test the functionality locally if possible
 - Verify no console errors or warnings
 - Check responsive design on mobile and desktop

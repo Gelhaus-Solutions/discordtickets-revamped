@@ -1,0 +1,75 @@
+name: Release tarball
+
+# The install artefact for every non-Docker method: bare metal, Pterodactyl and
+# Pelican all fetch this. It exists because Temporal is required and the bot
+# cannot start without `dist/temporal`, which is build output — and building it
+# from source needs devDependencies, which `npm install` silently skips
+# whenever NODE_ENV=production is set. Shipping it prebuilt removes that whole
+# class of failure from the install path; it is ~2 MB of plain JavaScript with
+# no native code, so one build is portable everywhere the bot runs.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tarball:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # CI=true stops preinstall from generating an encryption key here.
+      - run: CI=true npm ci --include=dev
+
+      - name: Build the Temporal layer
+        run: npm run temporal.build
+
+      - name: Stamp the worker build id
+        run: printf '%s' "${GITHUB_SHA:0:6}" > dist/temporal/build-id.txt
+
+      # The dashboard build is committed rather than built here (see the
+      # dashboard-build job in lint.yml). If it is missing, the tarball would
+      # install a bot with no dashboard and no error — so fail loudly.
+      - name: Check the vendored dashboard build is present
+        run: test -f src/dashboard/build/handler.js
+
+      - name: Stage the tree
+        run: |
+          version="${{ github.event.release.tag_name || github.sha }}"
+          mkdir -p out/discordtickets-revamped
+          rsync -a --exclude-from=.tarballignore ./ out/discordtickets-revamped/
+          printf '%s\n' "$version" > out/discordtickets-revamped/VERSION
+
+      - name: Pack
+        run: |
+          tar -czf discordtickets-revamped.tar.gz -C out discordtickets-revamped
+          sha256sum discordtickets-revamped.tar.gz > discordtickets-revamped.tar.gz.sha256
+          tar -tzf discordtickets-revamped.tar.gz | head -20
+          ls -lh discordtickets-revamped.tar.gz
+
+      # Deliberately unversioned filenames: the eggs and the bare-metal docs
+      # fetch .../releases/latest/download/discordtickets-revamped.tar.gz, which
+      # only resolves if the asset name is stable across releases.
+      - uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release'
+        with:
+          files: |
+            discordtickets-revamped.tar.gz
+            discordtickets-revamped.tar.gz.sha256
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          name: discordtickets-revamped-tarball
+          path: |
+            discordtickets-revamped.tar.gz
+            discordtickets-revamped.tar.gz.sha256

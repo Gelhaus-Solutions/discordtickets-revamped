@@ -1,0 +1,46 @@
+# Excluded from the release tarball (rsync --exclude-from).
+#
+# What ships is what an operator needs to *run* the bot: src/ (including the
+# committed dashboard build), db/, scripts/, dist/temporal built by CI, and the
+# manifests. Development inputs do not — notably src/dashboard/src, because the
+# dashboard build is committed and served as-is. Customising the dashboard
+# means installing from git.
+.git
+.github
+.claude
+.husky
+.vscode
+node_modules
+# Leading slash = the repository root only. Without it rsync matches at every
+# level, which silently dropped src/user/ — the default config.yml the bot
+# seeds DATA_DIR from, and without which it cannot start.
+/out
+/prisma
+/user
+/dist/temporal/tsconfig.tsbuildinfo
+src/dashboard/src
+src/dashboard/static
+src/dashboard/node_modules
+src/dashboard/.svelte-kit
+src/dashboard/package.json
+src/dashboard/package-lock.json
+src/dashboard/svelte.config.js
+src/dashboard/vite.config.js
+src/dashboard/tailwind.config.cjs
+src/dashboard/postcss.config.cjs
+src/dashboard/jsconfig.json
+.env
+.env.local
+.env.backup
+*.log
+*.tar.gz
+eslint.config.mjs
+CHANGELOG.md
+CONTRIBUTORS.md
+.all-contributorsrc
+.editorconfig
+.gitattributes
+.gitignore
+.dockerignore
+.tarballignore
+summary.md

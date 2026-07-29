@@ -418,6 +418,53 @@ function validateClauses(clauses, push, path) {
 	});
 }
 
+/**
+ * Validate the buttons attached to `action.message.send`.
+ *
+ * Each one points at another automation, which must exist in this guild *and*
+ * be triggered by a button press — pointing a button at a ticket-closed
+ * automation would render fine and then do nothing when pressed, which is the
+ * worst kind of broken.
+ */
+function validateButtons(buttons, push, path, options = {}) {
+	if (buttons === undefined || buttons === null) return;
+	if (!Array.isArray(buttons)) {
+		push(path, 'not_a_list', 'Buttons must be a list');
+		return;
+	}
+	if (buttons.length > LIMITS.messageButtons) {
+		push(path, 'too_many', `Too many buttons (max ${LIMITS.messageButtons})`);
+		return;
+	}
+
+	buttons.forEach((button, i) => {
+		const at = `${path}[${i}]`;
+		if (!button || typeof button !== 'object') {
+			push(at, 'not_an_object', 'This button is not valid');
+			return;
+		}
+		if (typeof button.label !== 'string' || !button.label.trim()) {
+			push(`${at}.label`, 'required', 'Buttons need a label');
+		} else if (button.label.length > 80) {
+			push(`${at}.label`, 'too_long', 'The label is too long (max 80)');
+		}
+		if (button.style && !['primary', 'secondary', 'success', 'danger'].includes(button.style)) {
+			push(`${at}.style`, 'unknown_option', 'That is not a button style');
+		}
+		if (typeof button.automationKey !== 'string' || !button.automationKey) {
+			push(`${at}.automationKey`, 'required', 'Pick the automation this button runs');
+			return;
+		}
+		// `buttonAutomationKeys` is only supplied by the routes; the tests and the
+		// catalogue endpoint validate the shape without the guild's data.
+		if (options.automationKeys && !options.automationKeys.includes(button.automationKey)) {
+			push(`${at}.automationKey`, 'unknown_automation', 'That automation no longer exists');
+		} else if (options.buttonAutomationKeys && !options.buttonAutomationKeys.includes(button.automationKey)) {
+			push(`${at}.automationKey`, 'not_a_button_automation', 'That automation is not started by a button press');
+		}
+	});
+}
+
 /** Capabilities every clause in a node's params depends on. */
 function clauseNeeds(params) {
 	const needs = new Set();
@@ -598,11 +645,19 @@ const NODE_TYPES = {
 				required: true,
 				type: 'textarea',
 			},
+			{
+				help: 'Each button starts another automation — one triggered by "A button is pressed".',
+				key: 'buttons',
+				label: 'Buttons',
+				maxItems: LIMITS.messageButtons,
+				type: 'buttons',
+			},
 		],
-		validate: (params, push, path) => {
+		validate: (params, push, path, options) => {
 			if (params?.target === 'channel' && !params.channelId) {
 				push(`${path}.channelId`, 'required', 'Pick a channel to send to');
 			}
+			validateButtons(params?.buttons, push, `${path}.buttons`, options);
 		},
 	},
 	'action.role.add': {
@@ -1207,6 +1262,7 @@ module.exports = {
 	isValidTimezone,
 	regexError,
 	needsOf,
+	validateButtons,
 	validateClauses,
 	validateParams,
 };

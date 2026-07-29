@@ -35,6 +35,7 @@ const {
 	isValidEmoji,
 	resolveEmoji,
 } = require('./emoji');
+const { automationCustomId } = require('./automations/discord');
 
 const LAYOUT_VERSION = 1;
 
@@ -597,12 +598,7 @@ const buildButton = (spec, ctx) => {
 		// already applied to a deleted category below.
 		if (ctx.automations && !ctx.automations.has(spec.automationKey)) return null;
 		button
-			// 31 characters. `scripts/check-automations.js` pins this against
-			// Discord's 100-character custom_id limit, which is already tight.
-			.setCustomId(JSON.stringify({
-				action: 'auto',
-				k: spec.automationKey,
-			}))
+			.setCustomId(automationCustomId(spec.automationKey))
 			.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
 			.setLabel(truncate(substitute(spec.label, ctx.vars), 80));
 		const e = toEmoji(spec.emoji);

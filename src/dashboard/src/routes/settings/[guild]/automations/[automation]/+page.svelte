@@ -40,6 +40,7 @@
 	let testResult = $state(null);
 
 	const editor = createEditorState({
+		buttonAutomations: data.buttonAutomations,
 		catalogue: data.catalogue,
 		categories: data.categories,
 		channels: data.channels,

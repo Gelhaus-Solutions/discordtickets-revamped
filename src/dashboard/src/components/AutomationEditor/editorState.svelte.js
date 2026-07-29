@@ -13,6 +13,8 @@ const KEY = Symbol('automation-editor');
 export function createEditorState(initial = {}) {
 	const editor = $state({
 		catalogue: initial.catalogue ?? null,
+		/** Automations a button may start: those triggered by a button press. */
+		buttonAutomations: initial.buttonAutomations ?? [],
 		categories: initial.categories ?? [],
 		channels: initial.channels ?? [],
 		problems: [],

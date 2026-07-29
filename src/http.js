@@ -343,6 +343,11 @@ module.exports = async client => {
 		});
 	}
 
+	// Reachable from `client.destroy()`, which stops accepting requests before
+	// tearing down Temporal and Prisma. Without this the HTTP server kept
+	// serving — against a disconnecting database — for the whole shutdown.
+	client.fastify = fastify;
+
 	// start the fastify server
 	fastify.listen({
 		host: process.env.HTTP_HOST,

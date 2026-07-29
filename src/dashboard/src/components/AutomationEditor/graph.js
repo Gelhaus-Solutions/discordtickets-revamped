@@ -49,9 +49,6 @@ export function toFlow(graph) {
 			type: 'deletable'
 		})),
 		nodes: (graph?.nodes ?? []).map((node) => ({
-			// The trigger is the entry point; deleting it would leave a graph that
-			// cannot be saved, so the canvas simply does not offer it.
-			deletable: !node.type.startsWith('trigger.'),
 			data: { params: node.params ?? {}, type: node.type },
 			id: node.id,
 			position: node.position ?? { x: 0, y: 0 },

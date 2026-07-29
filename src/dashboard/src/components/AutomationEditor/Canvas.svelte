@@ -52,23 +52,6 @@
 		return !createsCycle(edges, connection);
 	};
 
-	/**
-	 * The trigger is the entry point, so it cannot be deleted.
-	 *
-	 * `deletable: false` on the node already covers the Delete key, but this
-	 * covers *every* path — a multi-select that happens to include the trigger, a
-	 * programmatic `deleteElements`, anything added later. A selection is filtered
-	 * rather than refused outright, so deleting five nodes that include the
-	 * trigger removes the other four instead of silently doing nothing.
-	 */
-	const onbeforedelete = ({ edges: doomedEdges, nodes: doomedNodes }) => {
-		const keep = doomedNodes.filter((n) => !String(n.data?.type ?? '').startsWith('trigger.'));
-		if (keep.length === doomedNodes.length) return true;
-		return {
-			edges: doomedEdges,
-			nodes: keep
-		};
-	};
 </script>
 
 <SvelteFlow
@@ -78,7 +61,6 @@
 	{edgeTypes}
 	{colorMode}
 	{isValidConnection}
-	{onbeforedelete}
 	defaultEdgeOptions={{ type: 'deletable' }}
 	fitView
 	minZoom={0.25}

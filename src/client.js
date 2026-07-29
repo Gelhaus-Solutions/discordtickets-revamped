@@ -150,6 +150,14 @@ module.exports = class Client extends FrameworkClient {
 	}
 
 	async destroy() {
+		// Order matters: stop taking new work, then drain it, then let go of the
+		// database. The HTTP server used to keep serving requests while Temporal
+		// and Prisma were being torn down underneath it.
+		try {
+			await this.fastify?.close();
+		} catch (error) {
+			this.log.error(error);
+		}
 		try {
 			temporal.stopSearchAttributeRetries();
 			await temporal.stopWorker();

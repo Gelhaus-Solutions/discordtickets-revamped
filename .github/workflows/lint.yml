@@ -24,24 +24,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
-      - run: bun run lint
+          node-version: 22
+          cache: npm
+      - run: CI=true npm ci
+      - run: npx eslint src scripts
 
   typecheck:
     name: Typecheck (Temporal layer)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
+          node-version: 22
+          cache: npm
+      - run: CI=true npm ci
       # src/temporal/**/*.ts is excluded from eslint (see eslint.config.mjs),
       # so TypeScript is the only thing checking it.
-      - run: bun run temporal.typecheck
+      - run: npm run temporal.typecheck
+      # The bot cannot start without dist/temporal, and release tarballs ship it
+      # prebuilt — so a build that only breaks at release time is too late.
+      - run: npm run temporal.build
 
   dashboard-build:
     name: Vendored dashboard build is not stale
@@ -96,21 +101,37 @@ jobs:
           --health-cmd "mysqladmin ping -proot" --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
+          node-version: 22
+          cache: npm
+      - run: CI=true npm ci
       - name: PostgreSQL
         run: |
-          bunx prisma migrate diff \
+          npx prisma migrate diff \
             --from-migrations db/postgresql/migrations \
             --to-schema-datamodel db/postgresql/schema.prisma \
             --shadow-database-url postgresql://postgres:postgres@localhost:5432/shadow \
             --exit-code
       - name: MySQL
         run: |
-          bunx prisma migrate diff \
+          npx prisma migrate diff \
             --from-migrations db/mysql/migrations \
             --to-schema-datamodel db/mysql/schema.prisma \
             --shadow-database-url mysql://root:root@localhost:3306/shadow \
             --exit-code
+
+  tests:
+    name: Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: CI=true npm ci
+      # Needs a generated Prisma client: check-importable reads the datamodel
+      # to prove the import allow-lists still cover every column.
+      - run: npx prisma generate --schema db/postgresql/schema.prisma
+      - run: npm test

@@ -12,6 +12,7 @@ export async function load({ fetch, params }) {
 		fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`),
 		fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`),
 		fetch(`/api/admin/guilds/${params.guild}/categories`),
+		fetch(`/api/admin/guilds/${params.guild}/automations`),
 		...(isNew ? [] : [fetch(`/api/admin/guilds/${params.guild}/automations/${params.automation}`)])
 	];
 
@@ -23,12 +24,17 @@ export async function load({ fetch, params }) {
 		error(response.status, isJSON ? JSON.stringify(body) : body);
 	}
 
-	const [catalogue, roles, channels, categories, automation] = await Promise.all(
+	const [catalogue, roles, channels, categories, siblings, automation] = await Promise.all(
 		responses.map((r) => r.json())
 	);
 
 	return {
 		automation: automation ?? null,
+		// What an `action.message.send` button may point at. The server rejects
+		// anything else, so the picker only offers these.
+		buttonAutomations: siblings
+			.filter((a) => a.triggerType === 'trigger.button.pressed' && a.id !== Number(params.automation))
+			.map((a) => ({ key: a.key, name: a.name })),
 		catalogue,
 		categories,
 		channels,

@@ -18,85 +18,78 @@ A quick overview of what has changed:
 - And much more!
 
 ## Requirements
-- **Docker + Docker Compose.** Nothing else is supported (see the disclaimer below).
+
+- **Node.js 20+** (22 LTS recommended) on a **glibc** platform. Alpine/musl is not supported — Temporal's native addon has no musl build.
 - **MySQL or PostgreSQL.** SQLite support has been removed — `DB_PROVIDER` must be `mysql` or `postgresql`.
-- **A Temporal cluster.** This is **not optional**: the bot validates `TEMPORAL_ADDRESS` and `TEMPORAL_PORT` at startup and exits if they are missing. The provided [docker-compose.yml](docker-compose.yml) brings up a self-hosted Temporal server plus its own PostgreSQL and the Temporal Web UI.
+- **A Temporal cluster.** This is **not optional**: every scheduled and durable job (stale tickets, auto-close, the reopen window, exports, cron automations) runs on it, and the bot exits at startup without `TEMPORAL_ADDRESS`/`TEMPORAL_PORT`. Use [Temporal Cloud](https://temporal.io/cloud) or self-host — the provided [docker-compose.yml](docker-compose.yml) brings up a cluster with its own PostgreSQL and the Web UI.
 
-## Here's how to use it:
+## Installing
 
-### Disclaimer
-**We do not support bare-metal, Pterodactyl, Pelican, or any other installation method, other than docker-compose.**
-This repo is also **not** production ready, so we are not responsible for any damages.
-Use at your own risk.
+**[docs/installation.md](docs/installation.md) is the full guide.** In short:
 
-### New Instance
-Use our [docker-compose.yml](https://github.com/Gelhaus-Solutions/discordtickets-revamped/blob/main/docker-compose.yml) to install a new instance with stable releases. Read it in full before deploying — it ships with insecure placeholder passwords and an insecure (plaintext) Temporal connection that are fine for local testing and **not** fine for production.
+| Method | How |
+| --- | --- |
+| **Docker Compose** | [docker-compose.yml](docker-compose.yml) — brings up the database and Temporal too. Image tags: `:latest`, `:1`, `:1.4`, `:1.4.x` for releases, `:main` for development builds. |
+| **Bare metal** | Extract the [release tarball](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/latest), `npm ci --omit=dev --omit=optional`, run under systemd. |
+| **Pterodactyl** | Import [eggs/pterodactyl.json](eggs/pterodactyl.json) on a Debian Node yolk. |
+| **Pelican** | Import [eggs/pelican.json](eggs/pelican.json) on a Debian Node yolk. |
 
-Image tags:
-
-| Tag | Published by | Contents |
-| --- | --- | --- |
-| `:latest`, `:1`, `:1.4`, `:1.4.x` | [release-docker.yml](.github/workflows/release-docker.yml) on GitHub release | Stable releases |
-| `:main` | [docker.yml](.github/workflows/docker.yml) on every push to `main` | Development builds |
-
-### Old Instance
-**Read [MIGRATING.md](MIGRATING.md) — it has the full procedure, including the SQLite path and how to recover a half-applied MySQL migration.**
-
-The short version, for an existing MySQL or PostgreSQL install:
-
-1. Take a backup of your bot volume **and** your database before touching anything. Note your existing `ENCRYPTION_KEY`.
-2. Change your bot image in your `docker-compose.yml` to `ghcr.io/gelhaus-solutions/discordtickets-revamped:latest` (or `:main` for development builds).
-3. **Add a Temporal cluster to your stack.** Copy the `temporal`, `temporal-postgresql` and `temporal-ui` services and the `temporal-postgresql` volume out of our [docker-compose.yml](docker-compose.yml) into yours, and add the `TEMPORAL_*` environment variables to your `bot` service (see the table below). Without these, the bot will refuse to start.
-4. Set `ENCRYPTION_KEY` and `DB_PROVIDER` explicitly on the `bot` service.
-5. Run `docker compose up -d`, then watch `docker compose logs -f bot` for the `[postinstall]` migration output and `Listening at …`.
-6. Go into your dashboard to check that everything went right. If not, restore your backup and try again.
-
-There is no script to run by hand — your database is migrated in place on startup.
+The release tarball ships the compiled Temporal layer and the dashboard build,
+so nothing has to be built on the target machine.
 
 > [!IMPORTANT]
-> Set `ENCRYPTION_KEY` yourself. Ticket topics, close reasons, feedback comments and archived messages are encrypted with it, and it is not recoverable. The bot now refuses to start in a container when it is unset, rather than generating a throwaway key that would be different after every recreate.
+> Set `ENCRYPTION_KEY` yourself (`openssl rand -hex 24`) and never change it.
+> Ticket topics, close reasons, feedback comments and archived messages are
+> encrypted with it, and it is not recoverable — not even from a database
+> backup. The bot refuses to start rather than inventing a throwaway key that
+> would differ after every recreate.
 
-> Database migrations run automatically at startup (`scripts/postinstall.js` runs `prisma migrate deploy`), for both MySQL and PostgreSQL. A failed migration now stops the boot instead of letting the bot run against a half-migrated schema.
+### Upgrading an existing instance
+
+**Read [MIGRATING.md](MIGRATING.md)** — it covers each install method, the
+SQLite path, and how to recover a half-applied migration.
+
+Database migrations run automatically at startup
+(`scripts/postinstall.js` runs `prisma migrate deploy`) for both providers, and
+a failed migration stops the boot instead of letting the bot run against a
+half-migrated schema. There is no script to run by hand.
 
 ## Environment variables
 
-The bot-specific variables are documented upstream at <https://discordtickets.app/self-hosting/configuration/#environment-variables>. These are the ones this fork adds or changes — see [src/env.js](src/env.js) for the authoritative validation.
-
-| Variable | Required | Default | Notes |
-| --- | --- | --- | --- |
-| `DB_PROVIDER` | yes | — | `mysql` or `postgresql`. SQLite is no longer supported. |
-| `TEMPORAL_ADDRESS` | yes | — | Host/IP of the Temporal frontend. |
-| `TEMPORAL_PORT` | yes | — | Temporal frontend port, usually `7233`. |
-| `TEMPORAL_NAMESPACE` | no | `default` | |
-| `TEMPORAL_TASK_QUEUE` | no | `discord-tickets` | |
-| `TEMPORAL_DEPLOYMENT_NAME` | no | `discord-tickets` | Worker Deployment name used for versioning. |
-| `TEMPORAL_TLS_ENABLED` | no | **`true`** | Defaults to on. Set to `false` for an insecure local/dev connection. |
-| `TEMPORAL_TLS_CERT_PATH` | when TLS on | — | Client certificate (mTLS). |
-| `TEMPORAL_TLS_KEY_PATH` | when TLS on | — | Client private key (mTLS). |
-| `TEMPORAL_TLS_CA_PATH` | no | — | Server root CA, if it isn't publicly trusted. |
-| `TEMPORAL_TLS_SERVER_NAME` | no | — | SNI override. |
-| `TEMPORAL_WORKER_BUILD_ID` | no | injected git SHA | Identifies the worker build; set automatically by the Docker build. |
-| `TEMPORAL_SET_CURRENT_ON_START` | no | `true` | Promote this build to the deployment's Current Version on startup. |
-| `JWT_SECRET` | no | derived | If unset, the JWT signing key is derived from `ENCRYPTION_KEY` via HKDF and the bot logs a warning. **Upgrading from upstream invalidates existing dashboard sessions and service API keys**, because upstream signed with the raw `ENCRYPTION_KEY`. To keep them valid, set `JWT_SECRET` to your `ENCRYPTION_KEY` value. Otherwise users simply log in again and service keys must be reissued. |
-| `SENTRY_DSN` | no | — | Enables Sentry. `SENTRY_LOGGING`, `SENTRY_SAMPLE_RATE` and `SENTRY_PROFILING_RATE` tune it. |
-| `STATS_URL` | no | — | Houston-compatible endpoint for anonymous usage stats. Unlike upstream, **nothing is reported unless you set this** — it is not sent to `stats.discordtickets.app`. |
+See [docs/installation.md](docs/installation.md#environment-variables) for the
+variables this fork adds or changes, [.env.example](.env.example) for an
+annotated file to copy, and [src/env.js](src/env.js) for the authoritative
+validation. Everything else is documented upstream at
+<https://discordtickets.app/self-hosting/configuration/#environment-variables>.
 
 ## Development
 
-The bot itself is plain JavaScript (CommonJS) run by Node; the Temporal layer in [src/temporal/](src/temporal/) is TypeScript that has to be compiled before the bot will start. Dependencies are managed with [bun](https://bun.sh).
+The bot itself is plain JavaScript (CommonJS) run by Node; the Temporal layer in
+[src/temporal/](src/temporal/) is TypeScript that has to be compiled before the
+bot will start. Dependencies are managed with npm (`package-lock.json` is the
+one lockfile).
 
 ```sh
-bun install                 # also runs scripts/preinstall + postinstall (writes .env, runs prisma)
-bun run temporal.build      # compile src/temporal -> dist/temporal + bundle workflows
-bun run temporal.typecheck  # type-check only
-bun run lint                # eslint (JS only; src/temporal and dist are excluded)
-bun run test                # validate the i18n files
-node .                      # start the bot
+npm install --include=dev    # devDependencies are needed to build the Temporal layer
+npm run temporal.build       # compile src/temporal -> dist/temporal + bundle workflows
+npm run temporal.typecheck   # type-check only
+npm run lint                 # eslint (JS only; src/temporal and dist are excluded)
+npm test                     # i18n, components, panels, transcripts, questions,
+                             # automations, import allow-lists, regex safety
+npm start                    # start the bot (builds the Temporal layer if missing)
 ```
 
-`scripts/start.sh` (the Docker entrypoint) builds the Temporal layer automatically if `dist/temporal/index.js` is missing.
+> Exporting `NODE_ENV=production` before installing makes npm skip
+> devDependencies, so the Temporal layer cannot be compiled. `scripts/ensure-temporal.js`
+> says so explicitly when it happens.
 
-The dashboard is a separate SvelteKit app in [src/dashboard/](src/dashboard/) with its own dependencies, and its compiled output in `src/dashboard/build` is committed. After changing any `.svelte` file you must rebuild it:
+State (`.env`, `user/`, `logs/`) lives in the *data directory*, which defaults to
+the repository and is overridden with `DT_DATA_DIR`. The working directory no
+longer affects anything.
+
+The dashboard is a separate SvelteKit app in [src/dashboard/](src/dashboard/)
+with its own dependencies, and its compiled output in `src/dashboard/build` is
+committed. After changing any `.svelte` file you must rebuild it:
 
 ```sh
 cd src/dashboard && npm install && npm run build

@@ -1,0 +1,515 @@
+{
+    "_comment": "Discord Tickets (revamped) \u2014 https://github.com/Gelhaus-Solutions/discordtickets-revamped",
+    "meta": {
+        "version": "PLCN_v1",
+        "update_url": null
+    },
+    "exported_at": "2026-07-29T00:00:00+00:00",
+    "uuid": "6f2f1a94-1d2e-4a7f-9f0e-2b8f7c4d5e61",
+    "name": "Discord Tickets (revamped)",
+    "author": "egelhaus@ennogelhaus.de",
+    "description": "A fork of Discord Tickets, the open-source ticket management bot for Discord, with more features and fewer bugs.\n\nRequires MySQL or PostgreSQL (SQLite is not supported) and a reachable Temporal cluster \u2014 all scheduled and durable work (stale tickets, auto-close, exports, cron automations) runs on it, and the bot will not start without one. See docs/installation.md in the repository.\n\nNeeds a glibc Node image (the Debian yolks below). Temporal's native addon has no musl build, so Alpine images will not work. Allow ~500 MB of disk.",
+    "features": null,
+    "docker_images": {
+        "Node 22 (recommended)": "ghcr.io/parkervcp/yolks:nodejs_22",
+        "Node 24": "ghcr.io/parkervcp/yolks:nodejs_24"
+    },
+    "file_denylist": [],
+    "startup": "sh ./scripts/start.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"Listening at\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Installs (or upgrades) Discord Tickets (revamped) into /mnt/server.\n#\n# Only code paths are replaced: .env, user/ and logs/ are the server's state\n# and are left alone, so \"Reinstall Server\" is also the upgrade procedure.\nset -e\n\nBOT_VERSION=\"${BOT_VERSION:-latest}\"\nBASE=\"https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases\"\nif [ \"$BOT_VERSION\" = \"latest\" ]; then\n    URL=\"${BASE}/latest/download/discordtickets-revamped.tar.gz\"\nelse\n    URL=\"${BASE}/download/${BOT_VERSION}/discordtickets-revamped.tar.gz\"\nfi\n\nmkdir -p /mnt/server\ncd /mnt/server\n\necho \"Downloading ${URL}\"\ncurl -fsSL -o /tmp/bot.tar.gz \"$URL\"\n\necho \"Replacing the application\"\nrm -rf src scripts db dist docs node_modules package.json package-lock.json .npmrc .nvmrc .env.example\ntar -xzf /tmp/bot.tar.gz --strip-components=1 -C /mnt/server\nrm -f /tmp/bot.tar.gz\n\n# CI=true keeps preinstall from generating a key here (it is generated below,\n# once, so a reinstall never rotates it). DB_PROVIDER= makes postinstall exit\n# before touching a database that may not exist yet \u2014 @prisma/client's own\n# postinstall still runs, so the query engines land in node_modules.\necho \"Installing dependencies\"\nCI=true DB_PROVIDER= npm ci --omit=dev --omit=optional --no-audit --no-fund\n\nif [ ! -f /mnt/server/.env ]; then\n    echo \"Generating an encryption key\"\n    KEY=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \\n')\n    {\n        echo \"# Generated at install time. Everything else lives on the Startup tab.\"\n        echo \"# NEVER change ENCRYPTION_KEY once the bot has stored data: ticket\"\n        echo \"# topics, close reasons, feedback and archived messages are encrypted\"\n        echo \"# with it and cannot be read back without the original value.\"\n        echo \"ENCRYPTION_KEY=${KEY}\"\n    } > /mnt/server/.env\n    chmod 600 /mnt/server/.env\nfi\n\nmkdir -p /mnt/server/user /mnt/server/logs\n\necho \"\"\necho \"Installed. Before starting, set on the Startup tab:\"\necho \"  DISCORD_TOKEN, DISCORD_SECRET\"\necho \"  DB_PROVIDER (mysql or postgresql) and DB_CONNECTION_URL\"\necho \"  TEMPORAL_ADDRESS (and the TEMPORAL_TLS_* variables if it is not local)\"\necho \"\"\n",
+            "container": "ghcr.io/parkervcp/yolks:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Version",
+            "description": "Release tag to install, or `latest`. Change it and reinstall to upgrade.",
+            "env_variable": "BOT_VERSION",
+            "default_value": "latest",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:20"
+            ],
+            "field_type": "text",
+            "sort": 0
+        },
+        {
+            "name": "Discord bot token",
+            "description": "From the Bot page of your application in the Discord developer portal.",
+            "env_variable": "DISCORD_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:100"
+            ],
+            "field_type": "text",
+            "sort": 1
+        },
+        {
+            "name": "Discord client secret",
+            "description": "From the OAuth2 page of your application in the Discord developer portal.",
+            "env_variable": "DISCORD_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:100"
+            ],
+            "field_type": "text",
+            "sort": 2
+        },
+        {
+            "name": "Database provider",
+            "description": "`mysql` or `postgresql`. SQLite is not supported by this fork.",
+            "env_variable": "DB_PROVIDER",
+            "default_value": "postgresql",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:mysql,postgresql"
+            ],
+            "field_type": "text",
+            "sort": 3
+        },
+        {
+            "name": "Database URL",
+            "description": "e.g. postgresql://user:password@host:5432/tickets or mysql://user:password@host:3306/tickets",
+            "env_variable": "DB_CONNECTION_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:500"
+            ],
+            "field_type": "text",
+            "sort": 4
+        },
+        {
+            "name": "Encryption key",
+            "description": "Leave EMPTY to use the key generated during installation (recommended). NEVER change this once the bot has data \u2014 every encrypted field becomes unreadable.",
+            "env_variable": "ENCRYPTION_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "min:48",
+                "max:128"
+            ],
+            "field_type": "text",
+            "sort": 5
+        },
+        {
+            "name": "JWT secret",
+            "description": "Optional. Signs dashboard sessions; derived from the encryption key when empty. Set it to your old ENCRYPTION_KEY if you are migrating from upstream and want existing sessions to survive.",
+            "env_variable": "JWT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:200"
+            ],
+            "field_type": "text",
+            "sort": 6
+        },
+        {
+            "name": "External URL",
+            "description": "The URL users reach the dashboard on, with no trailing slash. Must match the OAuth redirect URI in the Discord developer portal. Leave empty to use http://<server ip>:<port>.",
+            "env_variable": "HTTP_EXTERNAL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 7
+        },
+        {
+            "name": "Internal URL",
+            "description": "Optional. An address the bot can reach itself on, bypassing your reverse proxy.",
+            "env_variable": "HTTP_INTERNAL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 8
+        },
+        {
+            "name": "Trust proxy",
+            "description": "Set to true only when running behind a reverse proxy you control.",
+            "env_variable": "HTTP_TRUST_PROXY",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 9
+        },
+        {
+            "name": "Temporal address",
+            "description": "Host or IP of the Temporal frontend. Required \u2014 the bot will not start without it.",
+            "env_variable": "TEMPORAL_ADDRESS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 10
+        },
+        {
+            "name": "Temporal port",
+            "description": "Temporal frontend port, usually 7233.",
+            "env_variable": "TEMPORAL_PORT",
+            "default_value": "7233",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "integer",
+                "between:1,65535"
+            ],
+            "field_type": "text",
+            "sort": 11
+        },
+        {
+            "name": "Temporal namespace",
+            "description": "Temporal namespace. For Temporal Cloud this is `<namespace>.<account>`.",
+            "env_variable": "TEMPORAL_NAMESPACE",
+            "default_value": "default",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:100"
+            ],
+            "field_type": "text",
+            "sort": 12
+        },
+        {
+            "name": "Temporal task queue",
+            "description": "Leave as-is unless you run several bots against one namespace.",
+            "env_variable": "TEMPORAL_TASK_QUEUE",
+            "default_value": "discord-tickets",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:100"
+            ],
+            "field_type": "text",
+            "sort": 13
+        },
+        {
+            "name": "Temporal deployment name",
+            "description": "Worker Deployment name used for versioning.",
+            "env_variable": "TEMPORAL_DEPLOYMENT_NAME",
+            "default_value": "discord-tickets",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "max:100"
+            ],
+            "field_type": "text",
+            "sort": 14
+        },
+        {
+            "name": "Temporal TLS",
+            "description": "true for Temporal Cloud or any cluster reached over a network you do not control. Plaintext gRPC on 7233 has no authentication at all, and workflow state includes ticket data.",
+            "env_variable": "TEMPORAL_TLS_ENABLED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 15
+        },
+        {
+            "name": "Temporal client certificate",
+            "description": "Path to the mTLS client certificate, e.g. /home/container/certs/client.pem (upload it with the file manager).",
+            "env_variable": "TEMPORAL_TLS_CERT_PATH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 16
+        },
+        {
+            "name": "Temporal client key",
+            "description": "Path to the mTLS client private key, e.g. /home/container/certs/client.key",
+            "env_variable": "TEMPORAL_TLS_KEY_PATH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 17
+        },
+        {
+            "name": "Temporal CA certificate",
+            "description": "Path to the server root CA, if it is not publicly trusted.",
+            "env_variable": "TEMPORAL_TLS_CA_PATH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 18
+        },
+        {
+            "name": "Temporal server name",
+            "description": "SNI override, if your cluster needs one.",
+            "env_variable": "TEMPORAL_TLS_SERVER_NAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 19
+        },
+        {
+            "name": "Superusers",
+            "description": "Comma-separated Discord user IDs with operator rights: settings for every guild, any transcript, and service API keys. Set it to your own ID, or leave it empty.",
+            "env_variable": "SUPER",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 20
+        },
+        {
+            "name": "Public bot",
+            "description": "Set to true only if anyone may invite this bot. Disables stale-ticket handling.",
+            "env_variable": "PUBLIC_BOT",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 21
+        },
+        {
+            "name": "Publish commands",
+            "description": "Register slash commands on every start.",
+            "env_variable": "PUBLISH_COMMANDS",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 22
+        },
+        {
+            "name": "Invalidate tokens",
+            "description": "Set to an ISO date to invalidate every session and API key issued before it.",
+            "env_variable": "INVALIDATE_TOKENS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:40"
+            ],
+            "field_type": "text",
+            "sort": 23
+        },
+        {
+            "name": "Override archive",
+            "description": "Set to false to disable message archiving for every server.",
+            "env_variable": "OVERRIDE_ARCHIVE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:20"
+            ],
+            "field_type": "text",
+            "sort": 24
+        },
+        {
+            "name": "Disable encryption",
+            "description": "Leave false. Encryption protects ticket content at rest.",
+            "env_variable": "DISABLE_ENCRYPTION",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "required",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 25
+        },
+        {
+            "name": "CPU limit",
+            "description": "Optional cap on the worker thread pool. Defaults to the number of available cores.",
+            "env_variable": "CPU_LIMIT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "integer",
+                "between:1,64"
+            ],
+            "field_type": "text",
+            "sort": 26
+        },
+        {
+            "name": "Stats URL",
+            "description": "Optional Houston-compatible endpoint for anonymous usage stats. Nothing is reported when empty.",
+            "env_variable": "STATS_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 27
+        },
+        {
+            "name": "Sentry DSN",
+            "description": "Optional error reporting.",
+            "env_variable": "SENTRY_DSN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 28
+        },
+        {
+            "name": "Data directory",
+            "description": "Where .env, user/ and logs/ live. Do not change.",
+            "env_variable": "DT_DATA_DIR",
+            "default_value": "/home/container",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": [
+                "required",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 29
+        },
+        {
+            "name": "Application directory",
+            "description": "Where the code lives. Do not change.",
+            "env_variable": "DT_APP_DIR",
+            "default_value": "/home/container",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": [
+                "required",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 30
+        },
+        {
+            "name": "Node environment",
+            "description": "Do not change.",
+            "env_variable": "NODE_ENV",
+            "default_value": "production",
+            "user_viewable": false,
+            "user_editable": false,
+            "rules": [
+                "required",
+                "string",
+                "in:production,development"
+            ],
+            "field_type": "text",
+            "sort": 31
+        }
+    ]
+}

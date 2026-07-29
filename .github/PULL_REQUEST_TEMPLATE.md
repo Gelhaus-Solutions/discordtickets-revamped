@@ -6,7 +6,7 @@
 	Reminders:
 	- Commits must follow conventional commits (they are linted in CI).
 	- If you changed anything under src/dashboard, run `npm run build` there and commit `src/dashboard/build`.
-	- If you changed anything under src/temporal, run `bun run temporal.typecheck`.
+	- If you changed anything under src/temporal, run `npm run temporal.typecheck`.
 	- If you changed a database schema, update both db/mysql and db/postgresql.
 -->
 
