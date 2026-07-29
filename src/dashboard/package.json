@@ -52,5 +52,8 @@
     "preview": "vite preview",
     "lint": "prettier --check --plugin-search-dir=. . && eslint .",
     "format": "prettier --write --plugin-search-dir=. ."
+  },
+  "dependencies": {
+    "@xyflow/svelte": "^1.6.2"
   }
 }

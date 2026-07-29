@@ -96,3 +96,51 @@ export interface JobResult {
 	ok: boolean;
 	message?: string;
 }
+
+/**
+ * A parked automation run.
+ *
+ * Ids only — never a discord.js object, a Map, a Set or a Date. This crosses
+ * the Temporal boundary as JSON and may sit there for days, and
+ * `scripts/check-automations.js` asserts the round trip is lossless.
+ */
+export interface AutomationRunState {
+	runId: string;
+	automationId: number;
+	guildId: string;
+	triggerType: string;
+	actorId: string | null;
+	ticketId: string | null;
+	channelId: string | null;
+	messageId: string | null;
+	selection: string[] | null;
+	vars: Record<string, unknown>;
+	depth: number;
+	stepsUsed: number;
+	/** Nodes already executed, so a resumed run keeps the at-most-once rule. */
+	executed: string[];
+	/** Node ids still to run. */
+	queue: string[];
+	trace: unknown[];
+}
+
+export interface AutomationRunInput {
+	runId: string;
+	automationId: number;
+	guildId: string;
+	state: AutomationRunState;
+	/** How long to sleep before resuming. */
+	waitMs: number;
+}
+
+export interface AutomationResumeResult {
+	status: string;
+	/** Present only when the run hit another `flow.wait`. */
+	waitMs?: number;
+	state?: AutomationRunState;
+}
+
+export interface AutomationCronInput {
+	automationId: number;
+	guildId: string;
+}

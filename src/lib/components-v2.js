@@ -313,10 +313,10 @@ const defaultOpeningLayout = (openingMessage = '', { image = null } = {}) => {
  * plain Error from `toJSON()`, which is indistinguishable from a server fault).
  *
  * @param {object} layout
- * @param {{kind: 'panel'|'opening', categoryIds?: Set<number>|Map<number, any>}} opts
+ * @param {{kind: 'panel'|'opening'|'automation', categoryIds?: Set<number>|Map<number, any>, automationKeys?: Set<string>|Map<string, any>}} opts
  */
 const validateLayout = (layout, {
-	categoryIds = null, kind = 'panel',
+	automationKeys = null, categoryIds = null, kind = 'panel',
 } = {}) => {
 	const errors = [];
 	const push = (path, code, message) => errors.push({
@@ -327,6 +327,10 @@ const validateLayout = (layout, {
 	const knownCategory = id => {
 		if (!categoryIds) return true;
 		return typeof categoryIds.has === 'function' ? categoryIds.has(id) : false;
+	};
+	const knownAutomation = key => {
+		if (!automationKeys) return true;
+		return typeof automationKeys.has === 'function' ? automationKeys.has(key) : false;
 	};
 
 	if (!layout || typeof layout !== 'object') {
@@ -379,6 +383,16 @@ const validateLayout = (layout, {
 			} else if (!knownCategory(button.categoryId)) {
 				push(`${path}.categoryId`, 'unknown_category', `Category ${button.categoryId} does not exist in this server`);
 			}
+		} else if (button.kind === 'automation') {
+			// Deliberately does *not* count as an entry point: a panel made only of
+			// automation buttons still fails `no_entry_point`, which is correct —
+			// it opens no tickets.
+			if (typeof button.automationKey !== 'string' || !button.automationKey) {
+				push(`${path}.automationKey`, 'required', 'Automation buttons need an automation');
+			} else if (!knownAutomation(button.automationKey)) {
+				push(`${path}.automationKey`, 'unknown_automation', 'That automation does not exist in this server');
+			}
+			if (!button.label) push(`${path}.label`, 'required', 'Automation buttons need a label');
 		} else {
 			push(`${path}.kind`, 'invalid', `Unknown button kind '${button.kind}'`);
 		}
@@ -573,6 +587,24 @@ const buildButton = (spec, ctx) => {
 		const url = substitute(spec.url, ctx.vars);
 		if (!isHttpUrl(url)) return null;
 		button.setURL(url).setStyle(ButtonStyle.Link).setLabel(truncate(substitute(spec.label, ctx.vars), 80));
+		const e = toEmoji(spec.emoji);
+		if (e) button.setEmoji(e);
+		return button;
+	}
+
+	if (spec.kind === 'automation') {
+		// Orphaned automation — skip rather than throw mid-panel, exactly the rule
+		// already applied to a deleted category below.
+		if (ctx.automations && !ctx.automations.has(spec.automationKey)) return null;
+		button
+			// 31 characters. `scripts/check-automations.js` pins this against
+			// Discord's 100-character custom_id limit, which is already tight.
+			.setCustomId(JSON.stringify({
+				action: 'auto',
+				k: spec.automationKey,
+			}))
+			.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
+			.setLabel(truncate(substitute(spec.label, ctx.vars), 80));
 		const e = toEmoji(spec.emoji);
 		if (e) button.setEmoji(e);
 		return button;

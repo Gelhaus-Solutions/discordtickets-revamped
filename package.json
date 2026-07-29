@@ -20,7 +20,7 @@
 		"prestart": "node -e \"require('fs').existsSync('dist/temporal/index.js')||process.exit(1)\" || npm run temporal.build",
 		"start": "node .",
 		"studio": "npx prisma studio",
-		"test": "node scripts/check-i18n && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2 && node scripts/check-questions",
+		"test": "node scripts/check-i18n && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2 && node scripts/check-questions && node scripts/check-automations",
 		"prepare": "husky install || exit 0"
 	},
 	"commitlint": {

@@ -262,10 +262,64 @@ async function logMessageEvent(client, {
 	return await channel.send({ embeds });
 }
 
+/**
+ * Post a line written by an automation's `action.log` node.
+ *
+ * Deliberately much plainer than `logAdminEvent`: the content is an admin's own
+ * text rather than a diff the bot generated, so there is nothing to lay out.
+ * Fire-and-forget like its siblings — a log write must never fail the run that
+ * produced it.
+ *
+ * @param {import("client")} client
+ * @param {object} details
+ * @param {string} details.guildId
+ * @param {string} details.content
+ * @param {string} [details.userId] whoever triggered the automation, if anyone
+ */
+async function logAutomationEvent(client, {
+	content, guildId, userId,
+}) {
+	try {
+		const settings = await client.prisma.guild.findUnique({
+			select: {
+				footer: true,
+				logChannel: true,
+			},
+			where: { id: guildId },
+		});
+		if (!settings?.logChannel) return;
+		const channel = client.channels.cache.get(settings.logChannel);
+		if (!channel) return;
+
+		const embed = new EmbedBuilder()
+			.setColor('Blurple')
+			.setDescription(String(content).slice(0, 4000))
+			.setTimestamp()
+			.setTitle('⚙️ Automation');
+		if (settings.footer) embed.setFooter({ text: settings.footer });
+		// Whoever set the automation off, when there was one — a scheduled
+		// automation has nobody to name.
+		if (userId) {
+			embed.addFields({
+				name: 'Triggered by',
+				value: `<@${userId}>`,
+			});
+		}
+
+		return await channel.send({
+			allowedMentions: { parse: [] },
+			embeds: [embed],
+		});
+	} catch (error) {
+		client.log.warn('Failed to write automation log for guild %s: %s', guildId, error?.message ?? error);
+	}
+}
+
 module.exports = {
 	getLogChannel,
 	getSUID,
 	logAdminEvent,
+	logAutomationEvent,
 	logMessageEvent,
 	logTicketEvent,
 };

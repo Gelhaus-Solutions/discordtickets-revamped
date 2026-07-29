@@ -6,7 +6,10 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
-const { getEmoji } = require('./priority');
+const {
+	managedPrefix,
+	renderChannelName,
+} = require('../../lib/tickets/mutations');
 
 /**
  * /escalate – Move a ticket to a different (typically higher-tier) category and
@@ -158,13 +161,14 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 			newCategory.discordCategory !== ticket.category.discordCategory)
 		) {
 			const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
-			const channelName = newCategory.channelName
-				.replace(/{+\s?(user)?name\s?}+/gi, creator?.user.username ?? ticket.createdById)
-				.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator?.displayName ?? ticket.createdById)
-				.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number === 1488 ? '1487b' : ticket.number);
+			const channelName = renderChannelName(newCategory.channelName, {
+				creator,
+				fallback: ticket.createdById,
+				number: ticket.number,
+			});
 
 			// Preserve claim (✅) and priority emoji prefixes
-			const finalName = (ticket.claimedById ? '✅' : '') + (ticket.priority ? getEmoji(ticket.priority) : '') + channelName;
+			const finalName = managedPrefix(ticket) + channelName;
 
 			const discordCategory = await interaction.guild.channels.fetch(newCategory.discordCategory).catch(() => null);
 			await interaction.channel.edit({

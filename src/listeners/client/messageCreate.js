@@ -15,6 +15,7 @@ const {
 } = require('../../lib/users');
 const temporal = require('../../lib/temporal');
 const ms = require('ms');
+const { emit } = require('../../lib/automations/dispatcher');
 const { resolveEmoji } = require('../../lib/emoji');
 
 module.exports = class extends Listener {
@@ -300,6 +301,24 @@ module.exports = class extends Listener {
 					}
 				}
 			}
+
+			// Beside the auto-tag block on purpose: `settings` and `ticket` are
+			// already loaded here, so the hot path costs one cache read in the
+			// dispatcher and nothing else.
+			emit(client, 'trigger.message.created', {
+				categoryId: ticket?.categoryId,
+				channelId: message.channel.id,
+				content: message.content,
+				guildId: message.guild.id,
+				isBot: message.author.bot,
+				messageId: message.id,
+				ticketId: ticket?.id,
+				userId: message.author.id,
+				vars: {
+					displayname: message.member?.displayName,
+					name: message.author.username,
+				},
+			});
 
 			// auto-tag
 			if (

@@ -5,9 +5,7 @@ const {
 	ApplicationCommandOptionType,
 } = require('discord.js');
 const { isStaff } = require('../../lib/users');
-const ms = require('ms');
-const { logTicketEvent } = require('../../lib/logging');
-const { getEmoji } = require('./priority');
+const { renameTicket } = require('../../lib/tickets/mutations');
 
 module.exports = class RenameSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -90,15 +88,17 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 			});
 		}
 
-		const { name: originalName } = interaction.channel;
 		const rawName = interaction.options.getString('name'); // Get the new name from the user's input
-		// Re-apply managed prefixes so ✅ (claim) and priority emoji are preserved
-		const claimedPrefix = ticket.claimedById ? '✅' : '';
-		const priorityEmoji = ticket.priority ? getEmoji(ticket.priority) : '';
-		const name = claimedPrefix + priorityEmoji + rawName;
 
-		// Validate the new name length (must be between 1 and 100 characters)
-		if (name.length < 1 || name.length > 100) {
+		// The prefix handling, the rate limit and the log all live in
+		// `mutations.js` so an automation can rename a channel the same way.
+		const renamed = await renameTicket(client, {
+			actorId: interaction.user.id,
+			name: rawName,
+			ticketId: ticket.id,
+		});
+
+		if (renamed.reason === 'invalid_name') {
 			return await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder({
@@ -112,15 +112,7 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 			});
 		}
 
-		// Check for rate limit for renaming the channel (allowing 2 renames every 10 minutes)
-		const rateLimitKey = `rate-limits/channel-rename:${interaction.channel.id}`;
-		let renameTimestamps = await this.client.keyv.get(rateLimitKey) ?? [];
-
-		// Remove any timestamps older than 10 minutes
-		renameTimestamps = renameTimestamps.filter(timestamp => Date.now() - timestamp < ms('10m'));
-
-		if (renameTimestamps.length >= 2) {
-			// If two renames have already occurred in the last 10 minutes, return rate limited
+		if (renamed.reason === 'rate_limited') {
 			return await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder({
@@ -135,13 +127,6 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 			});
 		}
 
-		// Add the current timestamp to the array
-		renameTimestamps.push(Date.now());
-		await this.client.keyv.set(rateLimitKey, renameTimestamps, ms('10m'));
-
-		// Proceed with renaming the channel
-		await interaction.channel.edit({ name });
-
 		// Respond with a success message (show only the user-provided portion)
 		await interaction.editReply({
 			embeds: [
@@ -155,17 +140,5 @@ module.exports = class RenameSlashCommand extends SlashCommand {
 			],
 		});
 
-		logTicketEvent(this.client, {
-			action: 'update',
-			diff: {
-				original: { name: originalName },
-				updated: { name },
-			},
-			target: {
-				id: ticket.id,
-				name: `<#${ticket.id}>`,
-			},
-			userId: interaction.user.id,
-		});
 	}
 };

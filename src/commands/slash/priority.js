@@ -1,17 +1,11 @@
 const { SlashCommand } = require('@eartharoid/dbf');
 const { ApplicationCommandOptionType } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
-const { logTicketEvent } = require('../../lib/logging');
 const { isStaff } = require('../../lib/users');
-
-const getEmoji = priority => {
-	const emojis = {
-		'HIGH': '🔴',
-		'MEDIUM': '🟠',
-		'LOW': '🟢', // eslint-disable-line sort-keys
-	};
-	return emojis[priority?.toUpperCase()] ?? '🔵';
-};
+const {
+	getEmoji,
+	setPriority,
+} = require('../../lib/tickets/mutations');
 
 module.exports = class PrioritySlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -100,34 +94,13 @@ module.exports = class PrioritySlashCommand extends SlashCommand {
 		}
 
 		const priority = interaction.options.getString('priority', true).trim();
-		let name = interaction.channel.name;
-		// Separate the ✅ claim prefix so the priority emoji is always inserted immediately after it
-		const claimedPrefix = name.startsWith('✅') ? '✅' : '';
-		const unprefixed = claimedPrefix ? name.slice(1) : name;
-		if (ticket.priority) {
-			name = claimedPrefix + unprefixed.replace(getEmoji(ticket.priority), getEmoji(priority));
-		} else {
-			name = claimedPrefix + getEmoji(priority) + unprefixed;
-		}
-		await interaction.channel.setName(name);
 
-		// don't reassign ticket because the original is used below
-		await client.prisma.ticket.update({
-			data: { priority },
-			where: { id: interaction.channel.id },
-		});
-
-		logTicketEvent(this.client, {
-			action: 'update',
-			diff: {
-				original: { priority: ticket.priority },
-				updated: { priority: priority },
-			},
-			target: {
-				id: ticket.id,
-				name: `<#${ticket.id}>`,
-			},
-			userId: interaction.user.id,
+		// The rename, the update and the log all live in `mutations.js` so an
+		// automation can do exactly the same thing without an interaction.
+		await setPriority(client, {
+			actorId: interaction.user.id,
+			priority,
+			ticketId: interaction.channel.id,
 		});
 
 		return await interaction.editReply({

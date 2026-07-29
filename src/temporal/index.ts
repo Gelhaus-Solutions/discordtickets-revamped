@@ -14,7 +14,12 @@ export {
 	startWorker,
 	stopWorker,
 } from './worker';
-export { ensureSchedules } from './schedules';
+export {
+	deleteAutomationSchedule,
+	ensureSchedules,
+	reconcileAutomationSchedules,
+	upsertAutomationSchedule,
+} from './schedules';
 export {
 	ensureSearchAttributes,
 	searchAttributesRegistered,

@@ -12,6 +12,7 @@ const fs = require('fs');
 const { join } = require('path');
 const YAML = require('yaml');
 const TicketManager = require('./lib/tickets/manager');
+const { AutomationManager } = require('./lib/automations/manager');
 const temporal = require('./lib/temporal');
 const ms = require('ms');
 
@@ -83,6 +84,11 @@ module.exports = class Client extends FrameworkClient {
 			this.keyv = new Keyv();
 
 			this.tickets = new TicketManager(this);
+
+			// Beside `tickets` on purpose: the Temporal activities are written as
+			// `client.<manager>.<method>`, so the durability layer needs no extra
+			// dependency wiring to reach automations.
+			this.automations = new AutomationManager(this);
 
 			this.supers = (process.env.SUPER ?? '').split(',');
 

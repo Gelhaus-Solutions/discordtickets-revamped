@@ -4,7 +4,7 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
-const { logTicketEvent } = require('../../lib/logging');
+const { removeTicketMember } = require('../../lib/tickets/mutations');
 
 module.exports = class RemoveSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -91,7 +91,15 @@ module.exports = class RemoveSlashCommand extends SlashCommand {
 		const ticketChannel = await interaction.guild.channels.fetch(ticket.id);
 		const member = interaction.options.getMember('member', true);
 
-		if (member.id === client.user.id || member.id === ticket.createdById) {
+		// The bot and the ticket creator are refused inside `mutations.js`, so an
+		// automation cannot lock the bot out of a channel it has to close either.
+		const removed = await removeTicketMember(client, {
+			actorId: interaction.user.id,
+			ticketId: ticket.id,
+			userId: member.id,
+		});
+
+		if (!removed.ok) {
 			return await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder()
@@ -100,8 +108,6 @@ module.exports = class RemoveSlashCommand extends SlashCommand {
 				],
 			});
 		}
-
-		await ticketChannel.permissionOverwrites.delete(member, `${interaction.user.tag} removed ${member.user.tag} from the ticket`);
 
 		await ticketChannel.send({
 			embeds: [
@@ -129,17 +135,5 @@ module.exports = class RemoveSlashCommand extends SlashCommand {
 			],
 		});
 
-		logTicketEvent(this.client, {
-			action: 'update',
-			diff: {
-				original: { [getMessage('log.ticket.removed')]: member.user.tag },
-				updated: {},
-			},
-			target: {
-				id: ticket.id,
-				name: `<#${ticket.id}>`,
-			},
-			userId: interaction.user.id,
-		});
 	}
 };

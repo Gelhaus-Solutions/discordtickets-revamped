@@ -1,5 +1,7 @@
 import { Context } from '@temporalio/activity';
 import type {
+	AutomationResumeResult,
+	AutomationRunState,
 	CloseTicketInput,
 	ExportGuildInput,
 	ImportGuildInput,
@@ -132,6 +134,42 @@ export function makeActivities(deps: ActivityDeps) {
 				input.archivePath,
 				() => Context.current().heartbeat('import'),
 			);
+		},
+
+		/**
+		 * Continue an automation run that was parked on a `flow.wait`.
+		 *
+		 * Re-reads the graph rather than carrying it, so an edit during a
+		 * three-day wait takes effect — and a run whose nodes no longer exist ends
+		 * CANCELLED rather than executing a stale graph.
+		 */
+		async resumeAutomationRun(input: { runId: string; state: AutomationRunState }): Promise<AutomationResumeResult> {
+			const result = await client.automations.resume(input.state);
+			return {
+				state: result?.state,
+				status: result?.status ?? 'FAILED',
+				waitMs: result?.waitMs,
+			};
+		},
+
+		/** Entry point for `trigger.schedule.cron`. */
+		async startScheduledAutomation(input: { automationId: number; guildId: string }): Promise<void> {
+			await client.automations.runScheduled(input.automationId, input.guildId);
+		},
+
+		async failAutomationRun(runId: string, error: string): Promise<void> {
+			await client.prisma.automationRun.update({
+				data: {
+					error,
+					finishedAt: new Date(),
+					status: 'FAILED',
+				},
+				where: { id: runId },
+			}).catch(() => null);
+		},
+
+		async pruneAutomationRuns(): Promise<void> {
+			await client.automations.pruneRuns();
 		},
 	};
 }

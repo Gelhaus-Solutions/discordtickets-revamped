@@ -9,6 +9,7 @@ import {
 	log,
 	proxyActivities,
 	setHandler,
+	sleep,
 	startChild,
 } from '@temporalio/workflow';
 import type { Activities } from '../activities';
@@ -20,6 +21,9 @@ import {
 	reopenWorkflowId,
 } from '../task-queues';
 import type {
+	AutomationCronInput,
+	AutomationRunInput,
+	AutomationRunState,
 	BulkCloseInput,
 	BulkCloseResult,
 	CascadeCloseUserInput,
@@ -346,4 +350,53 @@ export async function houstonStatsWorkflow(): Promise<void> {
 
 export async function updateCheckWorkflow(): Promise<void> {
 	await acts.runUpdateCheck();
+}
+
+/**
+ * How many `flow.wait` hops one parked run may take.
+ *
+ * Each hop is a sleep plus an activity, so history grows linearly. Twenty is far
+ * more than any sane automation and bounds the history without needing
+ * continue-as-new — a graph is a DAG with a node cap, so it cannot legitimately
+ * wait more times than it has nodes.
+ */
+const MAX_WAIT_HOPS = 20;
+
+/**
+ * Carry an automation run across its `flow.wait` nodes.
+ *
+ * The workflow owns the sleeping and nothing else: all the interpretation
+ * happens back in the bot process, inside `resumeAutomationRun`. That keeps the
+ * graph semantics in one place (`runtime.js`) rather than split across the
+ * sandbox boundary.
+ */
+export async function automationRunWorkflow(input: AutomationRunInput): Promise<void> {
+	let state: AutomationRunState = input.state;
+	let waitMs = input.waitMs;
+
+	for (let hop = 0; hop < MAX_WAIT_HOPS; hop++) {
+		if (waitMs > 0) await sleep(waitMs);
+		const result = await acts.resumeAutomationRun({
+			runId: input.runId,
+			state,
+		});
+		// Anything other than another park means the run is over — the activity
+		// has already written the final row.
+		if (result.status !== 'SUSPENDED' || !result.state) return;
+		state = result.state;
+		waitMs = result.waitMs ?? 0;
+	}
+
+	log.warn('Automation run exceeded the wait-hop limit', { runId: input.runId });
+	await acts.failAutomationRun(input.runId, 'too_many_waits');
+}
+
+/** One tick of a `trigger.schedule.cron` automation. */
+export async function automationCronWorkflow(input: AutomationCronInput): Promise<void> {
+	await acts.startScheduledAutomation(input);
+}
+
+/** Delete run rows past the retention window and the per-guild cap. */
+export async function automationRetentionWorkflow(): Promise<void> {
+	await acts.pruneAutomationRuns();
 }

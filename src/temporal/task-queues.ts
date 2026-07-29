@@ -20,6 +20,9 @@ export const WorkflowType = {
 	generateTranscript: 'generateTranscriptWorkflow',
 	houstonStats: 'houstonStatsWorkflow',
 	updateCheck: 'updateCheckWorkflow',
+	automationRun: 'automationRunWorkflow',
+	automationCron: 'automationCronWorkflow',
+	automationRetention: 'automationRetentionWorkflow',
 } as const;
 
 /** Coarse workflow classification, exposed as the `WorkflowKind` search attribute. */
@@ -32,6 +35,7 @@ export const WorkflowKind = {
 	export: 'export',
 	import: 'import',
 	transcript: 'transcript',
+	automation: 'automation',
 } as const;
 
 /** Custom Search Attribute keys (registered on the namespace at startup). */
@@ -70,3 +74,11 @@ export const reopenWorkflowId = (ticketId: string): string => `reopen-${ticketId
 // surface as 429. Re-running after completion reuses the id (allowed).
 export const exportWorkflowId = (guildId: string): string => `export-${guildId}`;
 export const importWorkflowId = (guildId: string): string => `import-${guildId}`;
+
+// One workflow per parked run. The run id is a uuid from the database, so this
+// is unique without a timestamp and a retry of the same park is idempotent.
+export const automationRunWorkflowId = (runId: string): string => `automation-run-${runId}`;
+
+// Schedule ids are per (guild, automation). The `automation-` prefix is what
+// `reconcileAutomationSchedules` sweeps on, so nothing else may use it.
+export const automationScheduleId = (guildId: string, key: string): string => `automation-${guildId}-${key}`;

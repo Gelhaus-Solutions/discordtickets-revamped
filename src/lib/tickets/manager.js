@@ -34,8 +34,9 @@ const ms = require('ms');
 const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
 const { isStaff } = require('../users');
+const { getWorkingHours } = require('../working-hours');
+const { emit } = require('../automations/dispatcher');
 const { Collection } = require('discord.js');
-const spacetime = require('spacetime');
 
 const { getSUID } = require('../logging');
 const {
@@ -861,6 +862,14 @@ module.exports = class TicketManager {
 				},
 				userId: interaction.user.id,
 			});
+
+			emit(this.client, 'trigger.ticket.created', {
+				categoryId: ticket.categoryId,
+				guildId: ticket.guildId,
+				ticketId: ticket.id,
+				userId: ticket.createdById,
+				vars: { name: creator?.user?.username },
+			});
 		} catch (error) {
 			const ref = getSUID();
 			this.client.log.warn.tickets('An error occurred whilst creating ticket', channel.id);
@@ -882,46 +891,17 @@ module.exports = class TicketManager {
 		}
 
 		try {
-			const rawWorkingHours = category.guild.workingHours;
-			// Clone to avoid mutating the cached array
-			const workingHours = Array.isArray(rawWorkingHours) ? [...rawWorkingHours] : JSON.parse(JSON.stringify(rawWorkingHours));
-			const timezone = workingHours[0];
-			workingHours.shift(); // remove timezone (safe: working on a clone)
-			const now = spacetime.now(timezone);
-			const currentHours = workingHours[now.day()];
-			const start = now.time(currentHours[0]);
-			const end = now.time(currentHours[1]);
-			let working = true;
+			const {
+				nextOpenAt, when, working,
+			} = getWorkingHours(category.guild.workingHours);
 
-			if (currentHours[0] === currentHours[1] || now.isAfter(end)) { // staff have the day off or have finished for the day
-				// first look for the next working day *this* week (after today)
-				let nextIndex = workingHours.findIndex((hours, i) => i > now.day() && hours[0] !== hours[1]);
-				// if there isn't one, look for the next working day *next* week (before and including today's weekday)
-				if (nextIndex === -1) nextIndex = workingHours.findIndex((hours, i) => i <= now.day() && hours[0] !== hours[1]);
-				if (nextIndex !== -1) {
-					working = false;
-					const next = workingHours[nextIndex];
-					let then = now.add(nextIndex - now.day(), 'day');
-					if (nextIndex <= now.day()) then = then.add(1, 'week');
-					const timestamp = Math.ceil(then.time(next[0]).goto('utc').d.getTime() / 1000); // in seconds
-					channel.send({
-						embeds: [
-							new ExtendedEmbedBuilder()
-								.setColor(category.guild.primaryColour)
-								.setTitle(getMessage('ticket.working_hours.next.title'))
-								.setDescription(getMessage('ticket.working_hours.next.description', { timestamp })),
-						],
-					}).catch(this.client.log.error);
-				}
-			} else if (now.isBefore(start)) { // staff haven't started working yet
-				working = false;
-				const timestamp = Math.ceil(start.goto('utc').d.getTime() / 1000); // in seconds
+			if (!working && nextOpenAt) {
 				channel.send({
 					embeds: [
 						new ExtendedEmbedBuilder()
 							.setColor(category.guild.primaryColour)
-							.setTitle(getMessage('ticket.working_hours.today.title'))
-							.setDescription(getMessage('ticket.working_hours.today.description', { timestamp })),
+							.setTitle(getMessage(`ticket.working_hours.${when}.title`))
+							.setDescription(getMessage(`ticket.working_hours.${when}.description`, { timestamp: nextOpenAt })),
 					],
 				}).catch(this.client.log.error);
 			}
@@ -992,6 +972,13 @@ module.exports = class TicketManager {
 				name: channel.toString(),
 			},
 			userId,
+		});
+
+		emit(this.client, 'trigger.ticket.claimed', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId: ticket.id,
+			userId: ticket.claimedById,
 		});
 	}
 
@@ -1074,6 +1061,13 @@ module.exports = class TicketManager {
 			},
 			userId: interaction.user.id,
 		});
+
+		emit(this.client, 'trigger.ticket.claimed', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId: ticket.id,
+			userId: ticket.claimedById,
+		});
 	}
 
 	/**
@@ -1145,6 +1139,13 @@ module.exports = class TicketManager {
 				id: ticket.id,
 				name: interaction.channel.toString(),
 			},
+			userId: interaction.user.id,
+		});
+
+		emit(this.client, 'trigger.ticket.released', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId: ticket.id,
 			userId: interaction.user.id,
 		});
 	}
@@ -1346,6 +1347,13 @@ module.exports = class TicketManager {
 				where: { id: ticket.id },
 			});
 		}
+
+		emit(this.client, 'trigger.ticket.closeRequested', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId: ticket.id,
+			userId: interaction.user.id,
+		});
 	}
 
 	/**
@@ -1465,6 +1473,13 @@ module.exports = class TicketManager {
 						timestamp: Math.floor((ticket.lastMessageAt || ticket.createdAt).getTime() / 1000),
 					})),
 			],
+		});
+
+		emit(this.client, 'trigger.ticket.stale', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId,
+			userId: ticket.createdById,
 		});
 
 		return guild.autoClose ? Date.now() + guild.autoClose : null;
@@ -1601,6 +1616,13 @@ module.exports = class TicketManager {
 			lastActivityAt: Date.now(),
 			ticketId,
 		}).catch(error => this.client.log.error(error));
+
+		emit(this.client, 'trigger.ticket.reopened', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId,
+			userId: ticket.createdById,
+		});
 	}
 
 	/**
@@ -2120,6 +2142,13 @@ module.exports = class TicketManager {
 				name: `${ticket.category.name} **#${ticket.number}**`,
 			},
 			userId: closedBy || this.client.user.id,
+		});
+
+		emit(this.client, 'trigger.ticket.closed', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			ticketId: ticket.id,
+			userId: closedBy ?? ticket.createdById,
 		});
 
 	}

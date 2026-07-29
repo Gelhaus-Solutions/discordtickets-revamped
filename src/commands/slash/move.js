@@ -4,7 +4,7 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
-const { getEmoji } = require('./priority');
+const { moveTicket } = require('../../lib/tickets/mutations');
 module.exports = class MoveSlashCommand extends SlashCommand {
 	constructor(client, options) {
 		const name = 'move';
@@ -81,11 +81,17 @@ module.exports = class MoveSlashCommand extends SlashCommand {
 			});
 		}
 
-		const creator = await interaction.guild.members.fetch(ticket.createdById);
 		const newCategory = await client.prisma.category.findUnique({ where: { id: interaction.options.getInteger('category', true) } });
-		const discordCategory = await interaction.guild.channels.fetch(newCategory.discordCategory);
 
-		if (discordCategory.children.cache.size === 50) {
+		// The reparent, the counter bookkeeping and the log all live in
+		// `mutations.js` so an automation can do the same without an interaction.
+		const moved = await moveTicket(client, {
+			actorId: interaction.user.id,
+			categoryId: newCategory.id,
+			ticketId: ticket.id,
+		});
+
+		if (moved.reason === 'category_full') {
 			return await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder({
@@ -99,72 +105,6 @@ module.exports = class MoveSlashCommand extends SlashCommand {
 				flags: MessageFlags.Ephemeral,
 			});
 		} else {
-			// don't reassign `ticket`, the previous value is used below
-			await client.prisma.ticket.update({
-				data: { category: { connect: { id: newCategory.id } } },
-				where: { id: ticket.id },
-			});
-
-			// alias
-			const $counters = client.tickets.$count.categories;
-
-			// make sure new category exist (#531)
-			$counters[newCategory.id] ??= {};
-
-			// more specific aliases
-			const $oldCategory = $counters[ticket.categoryId];
-			const $newCategory = $counters[newCategory.id];
-
-			// decrement old's total and member count
-			$oldCategory.total--;
-			$oldCategory[ticket.createdById]--;
-
-			// increment new's totaL count
-			$newCategory.total ||= 0;
-			$newCategory.total++;
-
-			// increment new's member count
-			$newCategory[ticket.createdById] ||= 0;
-			$newCategory[ticket.createdById]++;
-
-			// these 3 could be done separately,
-			// but using `setParent`, `setName` etc instead of a single `edit` call increases the number of API requests
-			if (
-				newCategory.staffRoles !== ticket.category.staffRoles ||
-				newCategory.channelName !== ticket.category.channelName ||
-				newCategory.discordCategory !== ticket.category.discordCategory
-			) {
-				const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
-				const channelName = newCategory.channelName
-					.replace(/{+\s?(user)?name\s?}+/gi, creator.user.username)
-					.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator.displayName)
-					.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number === 1488 ? '1487b' : ticket.number);
-				await interaction.channel.edit({
-					lockPermissions: false,
-					name: (ticket.claimedById ? '✅' : '') + (ticket.priority ? getEmoji(ticket.priority) : '') + channelName,
-					parent: discordCategory,
-					permissionOverwrites: [
-						{
-							deny: ['ViewChannel'],
-							id: interaction.guild.roles.everyone,
-						},
-						{
-							allow,
-							id: this.client.user.id,
-						},
-						{
-							allow,
-							id: creator.id,
-						},
-						...newCategory.staffRoles.map(id => ({
-							allow,
-							id,
-						})),
-					],
-					reason: `Moved by ${interaction.user.tag}`,
-				});
-			}
-
 			await interaction.editReply({
 				embeds: [
 					new ExtendedEmbedBuilder()

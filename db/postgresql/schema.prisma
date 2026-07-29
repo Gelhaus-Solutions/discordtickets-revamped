@@ -67,6 +67,65 @@ model ArchivedUser {
     @@map("archivedUsers")
 }
 
+model Automation {
+    createdAt   DateTime        @default(now())
+    // Not a User relation, for the same reason as Panel.createdById: User rows
+    // only exist for ticket participants.
+    createdById String?         @db.VarChar(19)
+    enabled     Boolean         @default(true)
+    // { version, nodes[], edges[] } — see src/lib/automations/validate.js.
+    graph       Json
+    guild       Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+    guildId     String          @db.VarChar(19)
+    id          Int             @id @default(autoincrement())
+    // Short, stable, per-guild-unique handle. Used in button custom_ids (where
+    // Discord's 100-char budget is already tight) and in Temporal schedule ids,
+    // so it is deliberately not the autoincrement pk.
+    key         String          @db.VarChar(12)
+    name        String          @db.VarChar(100)
+    runs        AutomationRun[]
+    // Second-level discriminator whose meaning depends on triggerType (the cron
+    // expression, for schedule triggers). NULL means "matches anything".
+    triggerKey  String?         @db.VarChar(100)
+    // Derived server-side from the graph's single trigger node on every write,
+    // so the dispatcher can answer "which automations listen to X in guild Y"
+    // with one indexed query. Neither provider is used with JSON-path querying
+    // anywhere in this codebase, so the column is what makes the lookup cheap.
+    triggerType String          @db.VarChar(64)
+    updatedAt   DateTime        @updatedAt
+
+    @@unique([guildId, key])
+    @@index([guildId, enabled])
+    @@index([guildId, triggerType, enabled])
+    @@map("automations")
+}
+
+model AutomationRun {
+    automation   Automation          @relation(fields: [automationId], references: [id], onDelete: Cascade)
+    automationId Int
+    createdAt    DateTime            @default(now())
+    durationMs   Int?
+    // A machine code (`step_budget_exceeded`, `missing_permissions`, …) and the
+    // node it happened on. Never a raw stack — this is shown in the dashboard.
+    error        String?             @db.Text
+    finishedAt   DateTime?
+    guildId      String              @db.VarChar(19)
+    id           String              @id @default(uuid())
+    // Compact per-node trace, capped at LIMITS.steps entries:
+    // [{ n: "n3", t: "action.role.add", s: "ok", ms: 41 }, …]
+    // No @default: MySQL forbids a literal default on a JSON column (see the
+    // note in db/mysql/migrations/20260728000000_panels).
+    steps        Json
+    status       AutomationRunStatus @default(RUNNING)
+    ticketId     String?             @db.VarChar(19)
+    triggerType  String              @db.VarChar(64)
+    userId       String?             @db.VarChar(19)
+
+    @@index([guildId, createdAt])
+    @@index([automationId, createdAt])
+    @@map("automationRuns")
+}
+
 model Category {
     autoAssign       Boolean      @default(false)
     backupCategory   Category?    @relation(name: "CategoryBackup", fields: [backupCategoryId], references: [id], onDelete: SetNull)
@@ -121,34 +180,35 @@ model Feedback {
 }
 
 model Guild {
-    autoClose          Int        @default(43200000)
-    autoTag            Json       @default("[]")
-    archive            Boolean    @default(true)
-    blocklist          Json       @default("[]")
-    botAvatar          String?    @db.Text
-    botBanner          String?    @db.Text
-    botBio             String?    @db.Text
-    botUsername        String?    @db.VarChar(255)
-    categories         Category[]
-    claimButton        Boolean    @default(false)
-    closeButton        Boolean    @default(false)
-    closeReasonButton  Boolean    @default(false)
-    createdAt          DateTime   @default(now())
-    disableDMs         Boolean    @default(false)
-    errorColour        String     @default("Red")
-    feedback           Feedback[]
-    footer             String?    @default("Discord Tickets by eartharoid™ & egelhaus™")
-    id                 String     @id @db.VarChar(19)
-    locale             String     @default("en-GB")
-    logChannel         String?    @db.VarChar(19)
-    panels             Panel[]
-    primaryColour      String     @default("#009999")
-    reopenWindow       Int        @default(0)
-    staleAfter         Int?
-    successColour      String     @default("Green")
-    tags               Tag[]
-    tickets            Ticket[]
-    workingHours       Json       @default("[\"UTC\", [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"]]")
+    autoClose         Int          @default(43200000)
+    autoTag           Json         @default("[]")
+    automations       Automation[]
+    archive           Boolean      @default(true)
+    blocklist         Json         @default("[]")
+    botAvatar         String?      @db.Text
+    botBanner         String?      @db.Text
+    botBio            String?      @db.Text
+    botUsername       String?      @db.VarChar(255)
+    categories        Category[]
+    claimButton       Boolean      @default(false)
+    closeButton       Boolean      @default(false)
+    closeReasonButton Boolean      @default(false)
+    createdAt         DateTime     @default(now())
+    disableDMs        Boolean      @default(false)
+    errorColour       String       @default("Red")
+    feedback          Feedback[]
+    footer            String?      @default("Discord Tickets by eartharoid™ & egelhaus™")
+    id                String       @id @db.VarChar(19)
+    locale            String       @default("en-GB")
+    logChannel        String?      @db.VarChar(19)
+    panels            Panel[]
+    primaryColour     String       @default("#009999")
+    reopenWindow      Int          @default(0)
+    staleAfter        Int?
+    successColour     String       @default("Green")
+    tags              Tag[]
+    tickets           Ticket[]
+    workingHours      Json         @default("[\"UTC\", [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"]]")
 
     @@map("guilds")
 }
@@ -283,6 +343,18 @@ model User {
     questionAnswers QuestionAnswer[]
 
     @@map("users")
+}
+
+enum AutomationRunStatus {
+    RUNNING
+    // Parked in a Temporal workflow, waiting on a flow.wait node.
+    SUSPENDED
+    SUCCESS
+    FAILED
+    // The graph short-circuited on a condition before any action ran.
+    SKIPPED
+    // The automation was edited, disabled or deleted while the run was parked.
+    CANCELLED
 }
 
 enum ChannelMode {

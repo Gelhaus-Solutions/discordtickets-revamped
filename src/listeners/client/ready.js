@@ -57,6 +57,40 @@ module.exports = class extends Listener {
 			// The logger is passed in so the *reason* is reported: this used to
 			// swallow the error and warn with no cause attached, which made the
 			// failure impossible to diagnose from the logs.
+			// Make Temporal's schedules match the database. The routes keep them in
+			// step as automations are edited, but best-effort — this is what
+			// actually guarantees convergence, and the only thing that cleans up
+			// after guilds removed while the bot was down.
+			try {
+				const crons = await client.prisma.automation.findMany({
+					select: {
+						graph: true,
+						guildId: true,
+						id: true,
+						key: true,
+						triggerKey: true,
+					},
+					where: {
+						enabled: true,
+						triggerType: 'trigger.schedule.cron',
+					},
+				});
+				const {
+					deleted, upserted,
+				} = await temporal.reconcileAutomationSchedules(
+					crons.map(row => ({
+						automationId: row.id,
+						cron: row.triggerKey,
+						guildId: row.guildId,
+						key: row.key,
+						timezone: row.graph?.nodes?.find(n => n.type === 'trigger.schedule.cron')?.params?.timezone ?? 'UTC',
+					})),
+				);
+				client.log.info('Automation schedules reconciled (%d active, %d removed)', upserted, deleted);
+			} catch (error) {
+				client.log.warn('Could not reconcile automation schedules: %s', error?.message ?? error);
+			}
+
 			const saOk = await temporal.ensureSearchAttributes(client.log);
 			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged (retrying in the background)');
 			client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);

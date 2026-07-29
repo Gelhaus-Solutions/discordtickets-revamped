@@ -1,7 +1,10 @@
 import { ScheduleOverlapPolicy } from '@temporalio/client';
 import { getTemporalClient } from './client';
 import { getTemporalConfig } from './config';
-import { WorkflowType } from './task-queues';
+import {
+	WorkflowType,
+	automationScheduleId,
+} from './task-queues';
 
 interface ScheduleDef {
 	id: string;
@@ -45,6 +48,12 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 			id: 'update-check',
 			workflowType: WorkflowType.updateCheck,
 		},
+		{
+			enabled: true,
+			every: 24 * HOUR,
+			id: 'automation-run-retention',
+			workflowType: WorkflowType.automationRetention,
+		},
 	];
 
 	// Drop schedules that no longer exist in code (e.g. the old db-maintenance no-op).
@@ -85,4 +94,114 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 			if (!nameIs(err, 'ScheduleAlreadyRunning')) throw err;
 		}
 	}
+}
+
+/** One `trigger.schedule.cron` automation, as the reconciler sees it. */
+export interface AutomationSchedule {
+	guildId: string;
+	automationId: number;
+	key: string;
+	cron: string;
+	timezone: string;
+}
+
+/**
+ * Create or update the Temporal Schedule behind a cron automation.
+ *
+ * `create` throws if the schedule already exists, so an existing one is updated
+ * in place — the spec is the only thing that can have changed.
+ */
+export async function upsertAutomationSchedule(input: AutomationSchedule): Promise<void> {
+	const client = getTemporalClient();
+	const { taskQueue } = getTemporalConfig();
+	const scheduleId = automationScheduleId(input.guildId, input.key);
+
+	const action = {
+		args: [{
+			automationId: input.automationId,
+			guildId: input.guildId,
+		}],
+		taskQueue,
+		type: 'startWorkflow' as const,
+		// Temporal appends its own timestamp, so a static base id is fine and
+		// makes the runs easy to find in the UI.
+		workflowId: `${scheduleId}-scheduled`,
+		workflowType: WorkflowType.automationCron,
+	};
+	const spec = {
+		cronExpressions: [input.cron],
+		timeZone: input.timezone,
+	};
+
+	try {
+		await client.schedule.create({
+			action,
+			// A slow run must never overlap the next tick.
+			policies: { overlap: ScheduleOverlapPolicy.SKIP },
+			scheduleId,
+			spec,
+		});
+	} catch (err) {
+		if (!nameIs(err, 'ScheduleAlreadyRunning')) throw err;
+		await client.schedule.getHandle(scheduleId).update(previous => ({
+			...previous,
+			action,
+			spec,
+		}));
+	}
+}
+
+export async function deleteAutomationSchedule(guildId: string, key: string): Promise<void> {
+	try {
+		await getTemporalClient().schedule.getHandle(automationScheduleId(guildId, key)).delete();
+	} catch {
+		// not found — fine
+	}
+}
+
+/**
+ * Make Temporal's schedules match the database.
+ *
+ * Called once at startup. The route handlers keep schedules in step as
+ * automations are edited, but they are best-effort by design — a Temporal
+ * hiccup must not fail an HTTP write — so this is what actually guarantees
+ * convergence. It is also the only thing that cleans up after a guild being
+ * removed, a row being deleted straight from the database, or anything that
+ * happened while the bot was down.
+ *
+ * The sweep is the dynamic-id equivalent of `RETIRED_SCHEDULE_IDS` above:
+ * anything named `automation-*` that the database does not know about is gone.
+ */
+export async function reconcileAutomationSchedules(
+	rows: AutomationSchedule[],
+): Promise<{ deleted: number; upserted: number }> {
+	const client = getTemporalClient();
+	const expected = new Set<string>();
+	let upserted = 0;
+
+	for (const row of rows) {
+		expected.add(automationScheduleId(row.guildId, row.key));
+		await upsertAutomationSchedule(row);
+		upserted++;
+	}
+
+	let deleted = 0;
+	for await (const schedule of client.schedule.list()) {
+		const id = schedule.scheduleId;
+		// `automation-run-retention` is a static schedule declared above, not a
+		// user's automation — the prefix overlaps, so it is excluded by name.
+		if (!id.startsWith('automation-') || id === 'automation-run-retention') continue;
+		if (expected.has(id)) continue;
+		try {
+			await client.schedule.getHandle(id).delete();
+			deleted++;
+		} catch {
+			// already gone — fine
+		}
+	}
+
+	return {
+		deleted,
+		upserted,
+	};
 }

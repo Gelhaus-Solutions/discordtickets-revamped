@@ -13,6 +13,7 @@ import {
 	UpdateName,
 	WorkflowKind,
 	WorkflowType,
+	automationRunWorkflowId,
 	closeWorkflowId,
 	exportWorkflowId,
 	importWorkflowId,
@@ -20,6 +21,7 @@ import {
 	staleWorkflowId,
 } from './task-queues';
 import type {
+	AutomationRunInput,
 	BulkCloseInput,
 	CascadeCloseUserInput,
 	CloseTicketInput,
@@ -329,4 +331,28 @@ export async function startGenerateTranscript(input: GenerateTranscriptInput): P
 			ticketId: input.ticketId,
 		}),
 	});
+}
+
+/**
+ * Park an automation run until its `flow.wait` elapses.
+ *
+ * The workflow id is derived from the run id, so a retried park reuses the same
+ * workflow instead of creating a second one — which is why an already-started
+ * error is swallowed rather than raised.
+ */
+export async function startAutomationRun(input: AutomationRunInput): Promise<void> {
+	const client = getTemporalClient();
+	try {
+		await client.workflow.start(WorkflowType.automationRun, {
+			args: [input],
+			searchAttributes: buildSearchAttributes({
+				guildId: input.guildId,
+				kind: WorkflowKind.automation,
+			}),
+			taskQueue: taskQueue(),
+			workflowId: automationRunWorkflowId(input.runId),
+		});
+	} catch (err) {
+		if (!isAlreadyStarted(err)) throw err;
+	}
 }

@@ -336,6 +336,7 @@ log:
     description:
       joined: "{user} {verb} {targetType}"
       target:
+        automation: an automation
         category: a category
         panel: a panel
         question: a question
@@ -344,6 +345,7 @@ log:
     title:
       joined: "{targetType} {verb}"
       target:
+        automation: Automation
         category: Category
         panel: Panel
         question: Question

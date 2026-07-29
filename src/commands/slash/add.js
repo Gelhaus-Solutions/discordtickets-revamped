@@ -4,7 +4,7 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
-const { logTicketEvent } = require('../../lib/logging');
+const { addTicketMember } = require('../../lib/tickets/mutations');
 
 module.exports = class AddSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -91,17 +91,23 @@ module.exports = class AddSlashCommand extends SlashCommand {
 		const ticketChannel = await interaction.guild.channels.fetch(ticket.id);
 		const member = interaction.options.getMember('member', true);
 
-		await ticketChannel.permissionOverwrites.edit(
-			member,
-			{
-				AttachFiles: true,
-				EmbedLinks: true,
-				ReadMessageHistory: true,
-				SendMessages: true,
-				ViewChannel: true,
-			},
-			`${interaction.user.tag} added ${member.user.tag} to the ticket`,
-		);
+		// The overwrite (or thread membership) and the log live in `mutations.js`
+		// so an automation can add someone the same way.
+		const added = await addTicketMember(client, {
+			actorId: interaction.user.id,
+			ticketId: ticket.id,
+			userId: member.id,
+		});
+
+		if (!added.ok) {
+			return await interaction.editReply({
+				embeds: [
+					new ExtendedEmbedBuilder()
+						.setColor(ticket.guild.errorColour)
+						.setTitle('❌'),
+				],
+			});
+		}
 
 		await ticketChannel.send({
 			embeds: [
@@ -127,19 +133,6 @@ module.exports = class AddSlashCommand extends SlashCommand {
 						ticket: ticketChannel.toString(),
 					})),
 			],
-		});
-
-		logTicketEvent(this.client, {
-			action: 'update',
-			diff: {
-				original: {},
-				updated: { [getMessage('log.ticket.added')]: member.user.tag },
-			},
-			target: {
-				id: ticket.id,
-				name: `<#${ticket.id}>`,
-			},
-			userId: interaction.user.id,
 		});
 
 	}

@@ -2,6 +2,7 @@ const { Modal } = require('@eartharoid/dbf');
 const ExtendedEmbedBuilder = require('../lib/embed');
 const { MessageFlags } = require('discord.js');
 const { pools } = require('../lib/threads');
+const { emit } = require('../lib/automations/dispatcher');
 
 const { crypto } = pools;
 module.exports = class FeedbackModal extends Modal {
@@ -45,6 +46,14 @@ module.exports = class FeedbackModal extends Modal {
 			where: { id: interaction.channel.id },
 		});
 
+
+		emit(client, 'trigger.ticket.feedback', {
+			categoryId: ticket.categoryId,
+			guildId: ticket.guildId,
+			rating,
+			ticketId: ticket.id,
+			userId: interaction.user.id,
+		});
 
 		if (id.next === 'requestClose') await client.tickets.requestClose(interaction, id.reason);
 		else if (id.next === 'acceptClose') await client.tickets.acceptClose(interaction);
