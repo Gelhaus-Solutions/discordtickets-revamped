@@ -1,10 +1,11 @@
 <script>
+	import { untrack } from 'svelte';
 	import { page } from '$app/stores';
 	import RunLog from '$components/AutomationEditor/RunLog.svelte';
 
 	let { data } = $props();
 
-	let runs = $state(data.runs);
+	let runs = $state(untrack(() => data.runs));
 	let loading = $state(false);
 
 	// A button rather than a poller: nothing else in this dashboard polls, and a

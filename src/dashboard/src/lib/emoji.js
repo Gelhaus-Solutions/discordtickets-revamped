@@ -34,7 +34,7 @@ export function customEmoji(value) {
 		animated,
 		id,
 		name: tag?.[2] ?? null,
-		url: `https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}?size=32`,
+		url: `https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'png'}?size=32`
 	};
 }
 

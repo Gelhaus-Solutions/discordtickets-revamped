@@ -13,10 +13,10 @@ export function reroute({ url }) {
 }
 
 /** @type {import('@sveltejs/kit').Handle} */
-export async function handle({
-	event, resolve,
-}) {
-	const response = await resolve(event, { filterSerializedResponseHeaders: () => true });
+export async function handle({ event, resolve }) {
+	const response = await resolve(event, {
+		filterSerializedResponseHeaders: () => true
+	});
 	return response;
 }
 
@@ -47,12 +47,10 @@ function internalOrigin() {
 }
 
 /** @type {import('@sveltejs/kit').HandleFetch} */
-export async function handleFetch({
-	event, request, fetch,
-}) {
+export async function handleFetch({ event, request, fetch }) {
 	const url = new URL(request.url);
 	const isSameOrigin = url.origin === event.url.origin;
-	const isInternalPath = INTERNAL_PREFIXES.some(prefix => url.pathname.startsWith(prefix));
+	const isInternalPath = INTERNAL_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
 
 	if (!isSameOrigin || !isInternalPath) return fetch(request);
 
@@ -75,26 +73,24 @@ export async function handleFetch({
 		duplex: 'half', // required by undici whenever a body stream is passed
 		headers,
 		method: request.method,
-		signal: request.signal,
+		signal: request.signal
 	});
 
 	return fetch(rewritten);
 }
 
 /** @type {import('@sveltejs/kit').HandleServerError} */
-export function handleError({
-	error, event,
-}) {
+export function handleError({ error, event }) {
 	const errorId = Date.now().toString(16);
 	if (dev || process?.env.NODE_ENV === 'development') console.error(error);
 	process?.emit('sveltekit:error', {
 		error,
 		errorId,
-		event,
+		event
 	});
 	return {
 		name: 'Internal Server Error',
 		message: error.message,
-		errorId,
+		errorId
 	};
 }

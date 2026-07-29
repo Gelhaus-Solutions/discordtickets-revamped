@@ -1,16 +1,18 @@
 import { error } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageLoad} */
-export async function load({
-	fetch, params,
-}) {
+export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 
 	const [categories, channels, settings] = await Promise.all([
-		fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions).then(r => r.json()),
-		fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions).then(r => r.json()),
+		fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions).then((r) => r.json()),
+		fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions).then(
+			(r) => r.json()
+		),
 		// `/settings` carries primaryColour and footer; the guild root returns stats.
-		fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions).then(r => (r.ok ? r.json() : {})),
+		fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions).then((r) =>
+			r.ok ? r.json() : {}
+		)
 	]);
 
 	// `new` is not a panel id — it means "start from a blank layout", matching the
@@ -20,11 +22,14 @@ export async function load({
 			categories,
 			channels,
 			panel: null,
-			settings,
+			settings
 		};
 	}
 
-	const response = await fetch(`/api/admin/guilds/${params.guild}/panels/${params.panel}`, fetchOptions);
+	const response = await fetch(
+		`/api/admin/guilds/${params.guild}/panels/${params.panel}`,
+		fetchOptions
+	);
 	const isJSON = response.headers.get('Content-Type')?.includes('json');
 	const body = isJSON ? await response.json() : await response.text();
 	if (!response.ok) {
@@ -35,6 +40,6 @@ export async function load({
 		categories,
 		channels,
 		panel: body,
-		settings,
+		settings
 	};
 }

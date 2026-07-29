@@ -1,7 +1,7 @@
 <script>
 	import '@xyflow/svelte/dist/style.css';
 	import { SvelteFlowProvider } from '@xyflow/svelte';
-	import { getContext, onMount } from 'svelte';
+	import { getContext, onMount, untrack } from 'svelte';
 	import { beforeNavigate, goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { toasts, ToastContainer, BootstrapToast } from 'svelte-toasts';
@@ -31,22 +31,25 @@
 	// rather than mutating them.
 	let nodes = $state.raw(initial.nodes);
 	let edges = $state.raw(initial.edges);
-	let name = $state(data.automation?.name ?? 'New automation');
-	let enabled = $state(data.automation?.enabled ?? true);
+	let name = $state(untrack(() => data.automation?.name ?? 'New automation'));
+	let enabled = $state(untrack(() => data.automation?.enabled ?? true));
 
 	let error = $state(null);
 	let loading = $state(false);
 	let testing = $state(false);
 	let testResult = $state(null);
 
-	const editor = createEditorState({
-		buttonAutomations: data.buttonAutomations,
-		catalogue: data.catalogue,
-		categories: data.categories,
-		channels: data.channels,
-		questions: data.categories.flatMap((c) => c.questions ?? []),
-		roles: data.roles
-	});
+	// Seeded once from the loader; the canvas owns it from here.
+	const editor = createEditorState(
+		untrack(() => ({
+			buttonAutomations: data.buttonAutomations,
+			catalogue: data.catalogue,
+			categories: data.categories,
+			channels: data.channels,
+			questions: data.categories.flatMap((c) => c.questions ?? []),
+			roles: data.roles
+		}))
+	);
 
 	const graph = $derived(fromFlow(nodes, edges));
 	const selectedNode = $derived(nodes.find((n) => n.id === editor.selected) ?? null);
@@ -65,7 +68,7 @@
 
 	// `fromFlow` rounds positions, so a drag that ends where it started is not a
 	// change and does not arm the unsaved-changes guard.
-	let saved = $state(JSON.stringify({ enabled, graph: starting, name }));
+	let saved = $state(untrack(() => JSON.stringify({ enabled, graph: starting, name })));
 	const modified = $derived(JSON.stringify({ enabled, graph, name }) !== saved);
 	const blocking = $derived(editor.problems.filter((p) => p.severity === 'error'));
 

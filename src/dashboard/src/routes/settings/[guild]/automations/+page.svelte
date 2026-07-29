@@ -1,14 +1,14 @@
 <script>
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import { toasts, ToastContainer, BootstrapToast } from 'svelte-toasts';
 	import ErrorBox from '$components/ErrorBox.svelte';
 	import { iconFor, CATEGORY_META } from '$components/AutomationEditor/nodes.js';
 
 	let { data } = $props();
 
-	let automations = $state(data.automations);
+	let automations = $state(untrack(() => data.automations));
 	let error = $state(null);
 	let busy = $state({});
 
@@ -194,6 +194,8 @@
 							type="button"
 							disabled={busy[automation.id] || atLimit}
 							class="rounded-lg bg-gray-200 px-3 py-1.5 text-sm font-medium transition duration-300 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
+							aria-label="Duplicate this automation"
+							title="Duplicate"
 							onclick={() => duplicate(automation)}
 						>
 							<i class="fa-solid fa-copy"></i>
@@ -202,6 +204,8 @@
 							type="button"
 							disabled={busy[automation.id]}
 							class="rounded-lg bg-red-300 px-3 py-1.5 text-sm font-medium transition duration-300 hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-red-500/75 dark:hover:bg-red-500"
+							aria-label="Delete this automation"
+							title="Delete"
 							onclick={() => del(automation)}
 						>
 							<i class="fa-solid fa-trash"></i>

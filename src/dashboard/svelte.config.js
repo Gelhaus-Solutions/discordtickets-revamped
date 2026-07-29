@@ -5,10 +5,10 @@ import { sveltePreprocess } from 'svelte-preprocess';
 const config = {
 	kit: {
 		adapter: adapter({ out: 'build' }),
-		alias: { $components: './src/components' },
+		alias: { $components: './src/components' }
 	},
 	preprocess: [sveltePreprocess({ postcss: true })],
-	trailingSlash: 'never',
+	trailingSlash: 'never'
 };
 
 export default config;

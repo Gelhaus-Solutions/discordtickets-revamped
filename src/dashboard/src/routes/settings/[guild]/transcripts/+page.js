@@ -1,8 +1,5 @@
-
 /** @type {import('./$types').PageLoad} */
-export async function load({
-	fetch, params,
-}) {
+export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 
 	try {
@@ -10,14 +7,14 @@ export async function load({
 		return {
 			transcripts: [],
 			totalTranscripts: 0,
-			searched: false,
+			searched: false
 		};
 	} catch (err) {
 		console.error('Failed to load transcripts:', err);
 		return {
 			transcripts: [],
 			totalTranscripts: 0,
-			searched: false,
+			searched: false
 		};
 	}
 }

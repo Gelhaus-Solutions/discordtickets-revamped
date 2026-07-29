@@ -1,15 +1,12 @@
-
 /** @type {import('./$types').PageLoad} */
-export async function load({
-	fetch, params,
-}) {
+export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 
 	try {
 		const [feedbackRes, analyticsRes, categoriesRes] = await Promise.all([
 			fetch(`/api/admin/guilds/${params.guild}/feedback?limit=100`, fetchOptions),
 			fetch(`/api/admin/guilds/${params.guild}/analytics`, fetchOptions),
-			fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions),
+			fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions)
 		]);
 
 		const feedbackData = feedbackRes.ok ? await feedbackRes.json() : { feedback: [] };
@@ -22,19 +19,25 @@ export async function load({
 		// Calculate feedback statistics
 		const stats = {
 			total: feedbackData.totalCount || feedback.length,
-			avgRating: feedbackData.avgRating || (feedback.length > 0 ? (feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / feedback.length).toFixed(2) : 0),
+			avgRating:
+				feedbackData.avgRating ||
+				(feedback.length > 0
+					? (
+							feedback.reduce((sum, f) => sum + (f.rating || 0), 0) / feedback.length
+						).toFixed(2)
+					: 0),
 			byRating: feedbackData.ratingCounts || {
-				5: feedback.filter(f => f.rating === 5).length,
-				4: feedback.filter(f => f.rating === 4).length,
-				3: feedback.filter(f => f.rating === 3).length,
-				2: feedback.filter(f => f.rating === 2).length,
-				1: feedback.filter(f => f.rating === 1).length,
-			},
+				5: feedback.filter((f) => f.rating === 5).length,
+				4: feedback.filter((f) => f.rating === 4).length,
+				3: feedback.filter((f) => f.rating === 3).length,
+				2: feedback.filter((f) => f.rating === 2).length,
+				1: feedback.filter((f) => f.rating === 1).length
+			}
 		};
 
 		// Group feedback by category
 		const feedbackByCategory = {};
-		feedback.forEach(f => {
+		feedback.forEach((f) => {
 			// Use categoryName from API response, fall back to 'Unknown'
 			const categoryName = f.categoryName || 'Unknown';
 			if (!feedbackByCategory[categoryName]) {
@@ -49,7 +52,7 @@ export async function load({
 			feedbackByCategory,
 			trend: feedbackData.trend || [],
 			categories,
-			analytics,
+			analytics
 		};
 	} catch (err) {
 		console.error('Failed to load feedback data:', err);
@@ -63,14 +66,13 @@ export async function load({
 					4: 0,
 					3: 0,
 					2: 0,
-					1: 0,
-				},
+					1: 0
+				}
 			},
 			feedbackByCategory: {},
 			trend: [],
 			categories: [],
-			analytics: null,
+			analytics: null
 		};
 	}
 }
-

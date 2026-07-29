@@ -1,10 +1,11 @@
 <script>
+	import { untrack } from 'svelte';
 	import { humanDuration, parseDuration } from '../nodes.js';
 
 	let { field, value, onchange } = $props();
 
 	// Stored as milliseconds (like `Category.cooldown`), typed as `10m` / `2h`.
-	let text = $state(value == null ? '' : humanShorthand(value));
+	let text = $state(untrack(() => (value == null ? '' : humanShorthand(value))));
 	const parsed = $derived(parseDuration(text));
 
 	function humanShorthand(ms) {

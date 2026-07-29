@@ -52,4 +52,6 @@ export function autoLayout(graph) {
 }
 
 export const needsLayout = (graph) =>
-	(graph?.nodes ?? []).some((n) => !Number.isFinite(n.position?.x) || !Number.isFinite(n.position?.y));
+	(graph?.nodes ?? []).some(
+		(n) => !Number.isFinite(n.position?.x) || !Number.isFinite(n.position?.y)
+	);

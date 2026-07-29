@@ -1,14 +1,10 @@
-import {
-	error, redirect,
-} from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import Negotiator from 'negotiator';
 import { getSupportedLocales } from '$lib/i18n';
 import ms from 'ms';
 
 /** @type {import('./$types').LayoutServerLoad} */
-export async function load({
-	cookies, fetch, request, url,
-}) {
+export async function load({ cookies, fetch, request, url }) {
 	if (url.pathname === '/invite') {
 		redirect(307, `/auth/login?invite&guild=${url.searchParams.get('guild') || ''}`);
 	}
@@ -40,7 +36,7 @@ export async function load({
 			path: '/',
 			sameSite: 'lax',
 			secure: false,
-			httpOnly: false,
+			httpOnly: false
 		});
 	}
 	// A reverse proxy sitting between us and our own API answers with an HTML
@@ -50,18 +46,22 @@ export async function load({
 	// an empty object instead (pages read `client.username`, `client.public` and
 	// friends unguarded, so `null` would only move the crash) and let the page
 	// render.
-	const clientResponse = await fetch('/api/client', { credentials: 'include' });
+	const clientResponse = await fetch('/api/client', {
+		credentials: 'include'
+	});
 	let clientInfo = {};
 	if (clientResponse.headers.get('Content-Type')?.includes('json')) {
 		clientInfo = await clientResponse.json();
 	} else {
-		console.error(`GET /api/client returned ${clientResponse.status} ${clientResponse.headers.get('Content-Type')} instead of JSON — check HTTP_INTERNAL/HTTP_EXTERNAL`);
+		console.error(
+			`GET /api/client returned ${clientResponse.status} ${clientResponse.headers.get('Content-Type')} instead of JSON — check HTTP_INTERNAL/HTTP_EXTERNAL`
+		);
 	}
 
 	return {
 		client: clientInfo,
 		locale,
 		theme: cookies.get('theme'),
-		user: body,
+		user: body
 	};
 }

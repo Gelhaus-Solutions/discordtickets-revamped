@@ -1,0 +1,7 @@
+# Generated output. `npm run lint` runs `prettier --check .` from here, so
+# without this it checks Rollup's chunks and SvelteKit's .svelte-kit tree —
+# 634 of the 678 files it used to flag were build artefacts nobody edits.
+build/
+.svelte-kit/
+node_modules/
+package-lock.json

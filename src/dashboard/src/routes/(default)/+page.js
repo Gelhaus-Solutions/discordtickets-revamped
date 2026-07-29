@@ -3,9 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { importJSON } from '$lib/i18n';
 
 /** @type {import('./$types').PageLoad} */
-export async function load({
-	parent, fetch,
-}) {
+export async function load({ parent, fetch }) {
 	// TODO: remove this when the portal section is more complete
 	redirect(302, '/settings');
 
@@ -19,8 +17,8 @@ export async function load({
 	return {
 		translations: importJSON(
 			await import(`../../lib/locales/${locale}/_common.json`),
-			await import(`../../lib/locales/${locale}/misc.json`),
+			await import(`../../lib/locales/${locale}/misc.json`)
 		),
-		guilds,
+		guilds
 	};
 }

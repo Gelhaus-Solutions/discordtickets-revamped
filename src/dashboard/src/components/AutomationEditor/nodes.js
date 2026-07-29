@@ -132,7 +132,8 @@ export function summarise(node, catalogue) {
 		const n = params.clauses?.length ?? 0;
 		return `${n} condition${n === 1 ? '' : 's'}`;
 	}
-	if (node.type === 'trigger.schedule.cron') return `${params.cron ?? ''} (${params.timezone ?? 'UTC'})`;
+	if (node.type === 'trigger.schedule.cron')
+		return `${params.cron ?? ''} (${params.timezone ?? 'UTC'})`;
 	if (params.content) return String(params.content).slice(0, 60);
 	if (params.name) return String(params.name).slice(0, 60);
 
@@ -161,7 +162,9 @@ export function humanDuration(ms) {
 /** Parse `10m` / `2h` / `1d 6h` into milliseconds. */
 export function parseDuration(input) {
 	if (typeof input === 'number') return input;
-	const text = String(input ?? '').trim().toLowerCase();
+	const text = String(input ?? '')
+		.trim()
+		.toLowerCase();
 	if (!text) return null;
 	if (/^\d+$/.test(text)) return Number(text) * 1000;
 

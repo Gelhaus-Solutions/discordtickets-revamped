@@ -123,7 +123,13 @@ export function newBlock(type) {
 export function newButton(kind = 'ticket') {
 	return kind === 'link'
 		? { kind: 'link', url: '', label: '', emoji: null }
-		: { kind: 'ticket', categoryId: null, style: null, label: null, emoji: null };
+		: {
+				kind: 'ticket',
+				categoryId: null,
+				style: null,
+				label: null,
+				emoji: null
+			};
 }
 
 export function newLayout() {
@@ -140,12 +146,20 @@ export function defaultOpeningLayout(openingMessage = '', { image = null } = {})
 	const inner = [
 		{
 			...newBlock('section'),
-			accessory: { kind: 'thumbnail', url: '{avatar}', description: 'Ticket creator' },
+			accessory: {
+				kind: 'thumbnail',
+				url: '{avatar}',
+				description: 'Ticket creator'
+			},
 			text: [openingMessage || ' ']
 		}
 	];
 
-	if (image) inner.push({ ...newBlock('gallery'), items: [{ url: image, description: '' }] });
+	if (image)
+		inner.push({
+			...newBlock('gallery'),
+			items: [{ url: image, description: '' }]
+		});
 
 	inner.push(newBlock('answers'), newBlock('separator'), newBlock('footer'));
 

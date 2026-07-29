@@ -18,7 +18,7 @@ export const LIMITS = {
 	selectValues: 25,
 	textPlaceholder: 100,
 	textValue: 4000,
-	uploadFiles: 10,
+	uploadFiles: 10
 };
 
 /**
@@ -30,72 +30,71 @@ export const QUESTION_TYPES = [
 		value: 'TEXT',
 		label: 'Text box',
 		kind: 'text',
-		hint: 'A single or multi-line text input',
+		hint: 'A single or multi-line text input'
 	},
 	{
 		value: 'MENU',
 		label: 'Dropdown (choices)',
 		kind: 'select',
-		hint: 'A dropdown of options you define',
+		hint: 'A dropdown of options you define'
 	},
 	{
 		value: 'RADIO_GROUP',
 		label: 'Radio buttons',
 		kind: 'choice',
-		hint: 'Pick exactly one of 2–10 options',
+		hint: 'Pick exactly one of 2–10 options'
 	},
 	{
 		value: 'CHECKBOX_GROUP',
 		label: 'Checkboxes',
 		kind: 'choice',
-		hint: 'Pick any number of up to 10 options',
+		hint: 'Pick any number of up to 10 options'
 	},
 	{
 		value: 'CHECKBOX',
 		label: 'Single checkbox',
 		kind: 'checkbox',
-		hint: 'A yes/no tick box',
+		hint: 'A yes/no tick box'
 	},
 	{
 		value: 'USER_SELECT',
 		label: 'User picker',
 		kind: 'entity',
-		hint: 'Pick members of the server',
+		hint: 'Pick members of the server'
 	},
 	{
 		value: 'ROLE_SELECT',
 		label: 'Role picker',
 		kind: 'entity',
-		hint: 'Pick roles',
+		hint: 'Pick roles'
 	},
 	{
 		value: 'MENTIONABLE_SELECT',
 		label: 'User or role picker',
 		kind: 'entity',
-		hint: 'Pick members and/or roles',
+		hint: 'Pick members and/or roles'
 	},
 	{
 		value: 'CHANNEL_SELECT',
 		label: 'Channel picker',
 		kind: 'entity',
-		hint: 'Pick channels',
+		hint: 'Pick channels'
 	},
 	{
 		value: 'FILE_UPLOAD',
 		label: 'File upload',
 		kind: 'upload',
-		hint: 'Attach files — they are re-posted into the ticket so the links keep working',
+		hint: 'Attach files — they are re-posted into the ticket so the links keep working'
 	},
 	{
 		value: 'TEXT_DISPLAY',
 		label: 'Text block (no input)',
 		kind: 'display',
-		hint: 'Static text shown in the modal — asks nothing and stores nothing',
-	},
+		hint: 'Static text shown in the modal — asks nothing and stores nothing'
+	}
 ];
 
-export const kindOf = (type) =>
-	QUESTION_TYPES.find((t) => t.value === type)?.kind ?? null;
+export const kindOf = (type) => QUESTION_TYPES.find((t) => t.value === type)?.kind ?? null;
 
 /** Types whose answers come from an option list you define. */
 export const NEEDS_OPTIONS = new Set(['MENU', 'CHECKBOX_GROUP', 'RADIO_GROUP']);
@@ -104,7 +103,7 @@ export const NEEDS_OPTIONS = new Set(['MENU', 'CHECKBOX_GROUP', 'RADIO_GROUP']);
 export const OPTION_RANGE = {
 	CHECKBOX_GROUP: [1, LIMITS.choiceOptions],
 	MENU: [1, LIMITS.selectOptions],
-	RADIO_GROUP: [2, LIMITS.choiceOptions],
+	RADIO_GROUP: [2, LIMITS.choiceOptions]
 };
 
 /**
@@ -118,7 +117,7 @@ export const CHANNEL_TYPES = [
 	{ value: 11, label: 'Public thread' },
 	{ value: 12, label: 'Private thread' },
 	{ value: 13, label: 'Stage' },
-	{ value: 15, label: 'Forum' },
+	{ value: 15, label: 'Forum' }
 ];
 
 /**

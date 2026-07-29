@@ -74,13 +74,17 @@ export function validate(graph, catalogue) {
 	}
 
 	const limits = catalogue.limits ?? {};
-	if (graph.nodes.length > (limits.nodes ?? Infinity)) add(null, `Too many steps (max ${limits.nodes}).`);
-	if (graph.edges.length > (limits.edges ?? Infinity)) add(null, `Too many connections (max ${limits.edges}).`);
+	if (graph.nodes.length > (limits.nodes ?? Infinity))
+		add(null, `Too many steps (max ${limits.nodes}).`);
+	if (graph.edges.length > (limits.edges ?? Infinity))
+		add(null, `Too many connections (max ${limits.edges}).`);
 
 	const reached = reachable(graph);
 	// A node's context is only what *every* trigger that can reach it provides.
 	const feedersOf = (nodeId) =>
-		triggers.filter((t) => reachable({ edges: graph.edges, nodes: graph.nodes }, [t.id]).has(nodeId));
+		triggers.filter((t) =>
+			reachable({ edges: graph.edges, nodes: graph.nodes }, [t.id]).has(nodeId)
+		);
 
 	for (const node of graph.nodes) {
 		const definition = definitionOf(catalogue, node.type);
@@ -98,7 +102,10 @@ export function validate(graph, catalogue) {
 		for (const field of definition.params ?? []) {
 			if (!field.required) continue;
 			const value = node.params?.[field.key];
-			const missing = value === undefined || value === null || value === '' ||
+			const missing =
+				value === undefined ||
+				value === null ||
+				value === '' ||
 				(Array.isArray(value) && value.length === 0);
 			if (missing) add(node.id, `${field.label} is required.`, 'error', field.key);
 		}
@@ -112,7 +119,9 @@ export function validate(graph, catalogue) {
 				(t) => !(definitionOf(catalogue, t.type)?.provides ?? []).includes(capability)
 			);
 			if (missing.length === 0) continue;
-			const names = missing.map((t) => `"${definitionOf(catalogue, t.type)?.label}"`).join(', ');
+			const names = missing
+				.map((t) => `"${definitionOf(catalogue, t.type)?.label}"`)
+				.join(', ');
 			add(
 				node.id,
 				`"${definition.label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which ${names} ${missing.length > 1 ? 'do' : 'does'} not provide.`

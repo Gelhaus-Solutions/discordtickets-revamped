@@ -1,8 +1,6 @@
 import { error } from '@sveltejs/kit';
 /** @type {import('./$types').PageLoad} */
-export async function load({
-	fetch, params,
-}) {
+export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 	const response = await fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions);
 	const isJSON = response.headers.get('Content-Type')?.includes('json');
@@ -13,7 +11,10 @@ export async function load({
 		// Try to fetch analytics data
 		let analytics = null;
 		try {
-			const analyticsRes = await fetch(`/api/admin/guilds/${params.guild}/analytics`, fetchOptions);
+			const analyticsRes = await fetch(
+				`/api/admin/guilds/${params.guild}/analytics`,
+				fetchOptions
+			);
 			if (analyticsRes.ok) {
 				analytics = await analyticsRes.json();
 			}
@@ -25,10 +26,18 @@ export async function load({
 			settings: body,
 			analytics,
 			channels: await (
-				await fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions)
+				await fetch(
+					`/api/admin/guilds/${params.guild}/data?query=channels.cache`,
+					fetchOptions
+				)
 			).json(),
 			locales: await (await fetch('/api/locales', fetchOptions)).json(),
-			roles: await (await fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`, fetchOptions)).json(),
+			roles: await (
+				await fetch(
+					`/api/admin/guilds/${params.guild}/data?query=roles.cache`,
+					fetchOptions
+				)
+			).json()
 		};
 	}
 }

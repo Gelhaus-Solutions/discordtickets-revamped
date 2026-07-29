@@ -74,7 +74,10 @@ export function fromFlow(nodes, edges) {
 		nodes: nodes.map((node) => ({
 			id: node.id,
 			params: node.data.params ?? {},
-			position: { x: Math.round(node.position.x), y: Math.round(node.position.y) },
+			position: {
+				x: Math.round(node.position.x),
+				y: Math.round(node.position.y)
+			},
 			type: node.data.type
 		})),
 		version: GRAPH_VERSION
@@ -104,7 +107,8 @@ export function createsCycle(edges, connection) {
 
 /** Node ids reachable from the trigger, for the unreachable-node warning. */
 export function reachable(graph, roots = null) {
-	const starts = roots ?? graph.nodes.filter((n) => n.type.startsWith('trigger.')).map((n) => n.id);
+	const starts =
+		roots ?? graph.nodes.filter((n) => n.type.startsWith('trigger.')).map((n) => n.id);
 	if (starts.length === 0) return new Set();
 	const next = new Map();
 	for (const edge of graph.edges) {

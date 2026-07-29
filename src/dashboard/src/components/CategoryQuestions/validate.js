@@ -16,8 +16,7 @@ export function validateQuestion(question) {
 
 	const label = (question.label ?? '').trim();
 	if (!label) return 'needs a label.';
-	if (label.length > LIMITS.label)
-		return `has a label longer than ${LIMITS.label} characters.`;
+	if (label.length > LIMITS.label) return `has a label longer than ${LIMITS.label} characters.`;
 
 	const config = question.config ?? {};
 	if ((config.description ?? '').length > LIMITS.description) {
@@ -25,8 +24,7 @@ export function validateQuestion(question) {
 	}
 
 	if (kind === 'display') {
-		if (!(config.content ?? '').trim())
-			return 'is a text block with no text.';
+		if (!(config.content ?? '').trim()) return 'is a text block with no text.';
 		return null;
 	}
 
@@ -47,11 +45,8 @@ export function validateQuestion(question) {
 		if (options.length < least)
 			return `needs at least ${least} option${least === 1 ? '' : 's'}.`;
 		if (options.length > most) return `has more than ${most} options.`;
-		if (options.some((o) => !(o.label ?? '').trim()))
-			return 'has an option with no label.';
-		const values = options.map(
-			(o) => (o.value ?? '').trim() || (o.label ?? '').trim(),
-		);
+		if (options.some((o) => !(o.label ?? '').trim())) return 'has an option with no label.';
+		const values = options.map((o) => (o.value ?? '').trim() || (o.label ?? '').trim());
 		if (new Set(values).size !== values.length)
 			return 'has two options storing the same value.';
 	}
@@ -71,8 +66,7 @@ export function validateQuestion(question) {
 		const min = question.minLength ?? 0;
 		if (max < 1) return 'must allow at least one choice.';
 		if (min > max) return 'requires more choices than it allows.';
-		if (question.required && min < 1)
-			return 'is required but allows zero choices.';
+		if (question.required && min < 1) return 'is required but allows zero choices.';
 	}
 
 	return null;
