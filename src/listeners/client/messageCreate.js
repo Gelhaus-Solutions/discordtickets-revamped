@@ -15,7 +15,10 @@ const {
 } = require('../../lib/users');
 const temporal = require('../../lib/temporal');
 const ms = require('ms');
-const { emit } = require('../../lib/automations/dispatcher');
+const {
+	emit,
+	flattenEmbeds,
+} = require('../../lib/automations/dispatcher');
 const { resolveEmoji } = require('../../lib/emoji');
 const regex = require('../../lib/regex');
 
@@ -306,12 +309,23 @@ module.exports = class extends Listener {
 			// Beside the auto-tag block on purpose: `settings` and `ticket` are
 			// already loaded here, so the hot path costs one cache read in the
 			// dispatcher and nothing else.
-			emit(client, 'trigger.message.created', {
+			// One pass over the guild's automations for both triggers: a message is
+			// always "a message is posted", and — if it clears every check on the
+			// node — also "another bot sends a command".
+			emit(client, ['trigger.message.created', 'trigger.bot.command'], {
 				categoryId: ticket?.categoryId,
 				channelId: message.channel.id,
 				content: message.content,
+				// Another bot's output usually lives in an embed, so a trigger
+				// watching one has to be able to see it. Only built when there is
+				// one to build — this runs for every message in every guild.
+				embedText: message.embeds?.length ? flattenEmbeds(message) : null,
 				guildId: message.guild.id,
 				isBot: message.author.bot,
+				isSelf: message.author.id === client.user.id,
+				// Anyone with Manage Webhooks can choose a webhook's name and
+				// avatar, so a bot command trigger refuses them outright.
+				webhookId: message.webhookId ?? null,
 				messageId: message.id,
 				ticketId: ticket?.id,
 				userId: message.author.id,

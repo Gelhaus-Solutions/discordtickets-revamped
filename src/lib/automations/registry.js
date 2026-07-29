@@ -894,6 +894,55 @@ const NODE_TYPES = {
 
 	/* ── triggers ────────────────────────────────────────────────────────────── */
 
+	'trigger.bot.command': {
+		category: 'trigger',
+		description: 'Another bot posts a command for this bot to act on. Locked to one bot, in one channel, behind a prefix.',
+		label: 'Another bot sends a command',
+		outputs: ['out'],
+		params: [
+			{
+				help: 'Enable Developer Mode in Discord, then right-click the other bot and Copy User ID. Nothing else can trigger this.',
+				key: 'botId',
+				label: 'From this bot',
+				required: true,
+				type: 'user',
+			},
+			{
+				help: 'Use a channel only the two bots can post in. Discord\'s channel permissions are the real lock here — the prefix is not a substitute for them.',
+				key: 'channelId',
+				label: 'In this channel',
+				required: true,
+				type: 'channel',
+			},
+			{
+				help: 'The message must start with this, e.g. !dt-. Matched against the message text only, never an embed, so nothing an embed contains can fake it.',
+				key: 'prefix',
+				label: 'Required prefix',
+				maxLength: 32,
+				required: true,
+				type: 'text',
+			},
+			{
+				help: 'Optional, and tested against what follows the prefix. Anything in (brackets) becomes {match1}, {match2}… for later steps.',
+				key: 'pattern',
+				label: 'Then matching',
+				maxLength: 200,
+				type: 'regex',
+			},
+		],
+		provides: ['guild', 'actor', 'member', 'channel', 'message', 'ticket', 'ticketChannel'],
+		validate: (params, push, path) => {
+			// A prefix of whitespace, or one that is just the bot's own name, is
+			// how this stops being a lock and starts being a formality.
+			if (params?.prefix !== undefined && params.prefix !== null && !String(params.prefix).trim()) {
+				push(`${path}.prefix`, 'required', 'The prefix cannot be blank');
+			}
+			if (params?.pattern) {
+				const code = regexError(params.pattern, 'i');
+				if (code) push(`${path}.pattern`, code, `The pattern ${message(code)}`);
+			}
+		},
+	},
 	'trigger.button.pressed': {
 		category: 'trigger',
 		description: 'Someone presses a button you placed on a panel or opening message.',
@@ -1067,7 +1116,7 @@ const NODE_TYPES = {
 				type: 'channels',
 			},
 			{
-				help: 'Leave empty to match every message.',
+				help: 'Leave empty to match every message. Anything in (brackets) becomes {match1}, {match2}… for later steps to use.',
 				key: 'pattern',
 				label: 'Matching',
 				maxLength: 200,
@@ -1075,9 +1124,23 @@ const NODE_TYPES = {
 			},
 			{
 				default: true,
+				help: 'Most bots put their output in an embed rather than in the message text.',
+				key: 'searchEmbeds',
+				label: 'Search embeds too',
+				type: 'boolean',
+			},
+			{
+				default: true,
+				help: 'Turn this off to listen to another bot. This bot\'s own messages never trigger an automation either way.',
 				key: 'ignoreBots',
 				label: 'Ignore bots',
 				type: 'boolean',
+			},
+			{
+				help: 'Only messages from this bot. Enable Developer Mode in Discord, then right-click the bot and Copy User ID.',
+				key: 'botId',
+				label: 'From one bot only',
+				type: 'user',
 			},
 		],
 		provides: ['guild', 'actor', 'member', 'channel', 'message', 'ticket', 'ticketChannel'],
@@ -1088,6 +1151,11 @@ const NODE_TYPES = {
 			if (params?.pattern) {
 				const code = regexError(params.pattern, 'i');
 				if (code) push(`${path}.pattern`, code, `The pattern ${message(code)}`);
+			}
+			// Naming a bot while still ignoring bots matches nothing at all, which
+			// is a support ticket rather than an error anyone would guess at.
+			if (params?.botId && params.ignoreBots !== false) {
+				push(`${path}.ignoreBots`, 'conflict', 'Turn "Ignore bots" off to listen to another bot');
 			}
 		},
 	},

@@ -33,6 +33,50 @@ const store = new AsyncLocalStorage();
 const currentDepth = () => store.getStore()?.depth ?? -1;
 
 /**
+ * An embed flattened into matchable text.
+ *
+ * Another bot's output is usually an embed, not message content — a moderation
+ * bot's "Member banned" is a title, a reason field and a footer, and
+ * `message.content` for it is the empty string. Without this, a message trigger
+ * pointed at another bot can only ever match nothing.
+ *
+ * Built by the listener and only when a message actually carries embeds, so the
+ * hot path pays for it on the small minority of messages that have one.
+ *
+ * @param {import('discord.js').Message} message
+ * @returns {?string}
+ */
+function flattenEmbeds(message) {
+	if (!message.embeds?.length) return null;
+	const parts = [];
+	for (const embed of message.embeds) {
+		if (embed.author?.name) parts.push(embed.author.name);
+		if (embed.title) parts.push(embed.title);
+		if (embed.description) parts.push(embed.description);
+		for (const field of embed.fields ?? []) parts.push(`${field.name}\n${field.value}`);
+		if (embed.footer?.text) parts.push(embed.footer.text);
+	}
+	return parts.join('\n') || null;
+}
+
+/**
+ * The text a message trigger's pattern is tested against.
+ *
+ * Content and embeds are matched as one blob rather than separately: an admin
+ * writing "when it says banned" does not care which half of the message the
+ * word was in.
+ */
+const searchText = (params, payload) => (
+	params.searchEmbeds === false || !payload.embedText
+		? payload.content ?? ''
+		: `${payload.content ?? ''}\n${payload.embedText}`
+);
+
+/** What a bot command carries after its prefix — the part a pattern matches. */
+const commandArgs = (params, payload) =>
+	String(payload.content ?? '').slice(String(params.prefix ?? '').length).trim();
+
+/**
  * Does this automation's trigger actually match what happened?
  *
  * The coarse match is the node's type; this is the per-trigger fine filter,
@@ -65,20 +109,78 @@ function matches(node, payload) {
 	case 'trigger.member.roleRemoved':
 		return params.roleId === payload.roleId;
 
+	case 'trigger.bot.command': {
+		// Fails closed on every axis. A row saved before one of these parameters
+		// existed, or a graph written straight to the API, must not end up
+		// listening to every bot in the server — so a missing parameter is a
+		// non-match rather than a wildcard.
+		if (payload.isSelf || !payload.isBot) return false;
+		// Anyone with Manage Webhooks could otherwise post under any name they
+		// like. A webhook has its own id, so it could never match `botId` anyway;
+		// this says so out loud.
+		if (payload.webhookId) return false;
+		if (!params.botId || String(params.botId) !== String(payload.userId)) return false;
+		if (!params.channelId || String(params.channelId) !== String(payload.channelId)) return false;
+
+		const prefix = String(params.prefix ?? '');
+		if (!prefix.trim()) return false;
+		// Content only, never the embed: an embed is arbitrary text from whoever
+		// posted it, and a prefix that an embed could satisfy locks nothing.
+		if (!String(payload.content ?? '').startsWith(prefix)) return false;
+
+		if (params.pattern && !regex.test(params.pattern, 'i', commandArgs(params, payload))) return false;
+		return true;
+	}
+
 	case 'trigger.message.created': {
+		// Never our own messages, whatever the parameters say. An automation that
+		// answers bots would otherwise answer itself, and — unlike a nested emit —
+		// each reply arrives as a fresh gateway event, so the depth guard, which
+		// only sees one async context, would never see the loop at all.
+		if (payload.isSelf) return false;
 		if (params.ignoreBots !== false && payload.isBot) return false;
+		if (params.botId && String(params.botId) !== String(payload.userId)) return false;
 		if (params.scope === 'ticket' && !payload.ticketId) return false;
 		if (params.scope === 'nonTicket' && payload.ticketId) return false;
 		if (params.scope === 'channels' && !params.channelIds?.includes(payload.channelId)) return false;
 		// Runs for every message in every guild, before any rate limit — see
 		// src/lib/regex.js for why the pattern is not compiled directly.
-		if (params.pattern && !regex.test(params.pattern, 'i', payload.content)) return false;
+		if (params.pattern && !regex.test(params.pattern, 'i', searchText(params, payload))) return false;
 		return true;
 	}
 
 	default:
 		return true;
 	}
+}
+
+/**
+ * Extra substitution variables this trigger node contributes to its own run.
+ *
+ * Per *node*, not per event: two automations watching the same message with
+ * different patterns capture different things, so this cannot be folded into
+ * the payload the listener builds.
+ *
+ * Today that means `{match1}`…`{match9}` from a message pattern, which is what
+ * makes reading another bot's output useful — capture the id out of its embed
+ * and the rest of the graph can act on it.
+ *
+ * @returns {?object} null when there is nothing to add
+ */
+function triggerVars(node, payload) {
+	if (!node?.params?.pattern) return null;
+
+	let text;
+	if (node.type === 'trigger.message.created') text = searchText(node.params, payload);
+	else if (node.type === 'trigger.bot.command') text = commandArgs(node.params, payload);
+	else return null;
+
+	const found = regex.match(node.params.pattern, 'i', text);
+	if (!found) return null;
+
+	const vars = {};
+	for (let i = 1; i < Math.min(found.length, 10); i++) vars['match' + i] = found[i] ?? '';
+	return Object.keys(vars).length ? vars : null;
 }
 
 /** Per-guild sliding window, the same technique the rename command uses. */
@@ -107,13 +209,17 @@ async function rateLimited(client, guildId) {
  * Fire a trigger.
  *
  * @param {import("client")} client
- * @param {string} triggerType
+ * @param {string|string[]} triggerType one event may answer to more than one
+ *   trigger — a message is both "a message is posted" and, if it came from the
+ *   right bot, "another bot sends a command". Passing both here costs one pass
+ *   over the guild's automations instead of two, which matters on messageCreate.
  * @param {object} payload trigger-specific; `guildId` is always required, the
  *   rest are the ids the run context is built from.
  */
 async function emit(client, triggerType, payload) {
 	try {
 		if (!client.automations || !payload?.guildId) return;
+		const triggerTypes = Array.isArray(triggerType) ? triggerType : [triggerType];
 
 		const all = await client.automations.getForGuild(payload.guildId);
 		// The fast path, and the reason this is cheap enough for messageCreate.
@@ -125,7 +231,7 @@ async function emit(client, triggerType, payload) {
 		const candidates = [];
 		for (const automation of all) {
 			for (const node of triggerNodes(automation.graph)) {
-				if (node.type !== triggerType) continue;
+				if (!triggerTypes.includes(node.type)) continue;
 				// A button carries the node it belongs to, so only that one runs —
 				// otherwise pressing button A would also fire button B's branch.
 				if (payload.nodeId && node.id !== payload.nodeId) continue;
@@ -165,8 +271,13 @@ async function emit(client, triggerType, payload) {
 				messageId: payload.messageId ?? null,
 				selection: payload.selection ?? null,
 				ticketId: payload.ticketId ?? null,
-				triggerType,
-				vars: payload.vars ?? {},
+				// The node's own type, not the caller's list: a run log saying
+				// "a message is posted" for a bot command would be a lie.
+				triggerType: node.type,
+				vars: {
+					...payload.vars ?? {},
+					...triggerVars(node, payload) ?? {},
+				},
 			});
 			ctx.interaction = payload.interaction ?? null;
 
@@ -178,13 +289,15 @@ async function emit(client, triggerType, payload) {
 			}, () => client.automations.run(automation, ctx, node.id));
 		}
 	} catch (error) {
-		client.log?.warn('Automation dispatch failed for %s: %s', triggerType, error?.message ?? error);
+		client.log?.warn('Automation dispatch failed for %s: %s', String(triggerType), error?.message ?? error);
 	}
 }
 
 module.exports = {
 	currentDepth,
 	emit,
+	flattenEmbeds,
 	matches,
 	store,
+	triggerVars,
 };

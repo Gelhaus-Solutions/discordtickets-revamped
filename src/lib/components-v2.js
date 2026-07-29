@@ -133,7 +133,11 @@ const substitute = (str, vars = {}) => {
 		.replace(/{+\s?avatar\s?}+/gi, vars.avatar ?? '')
 		.replace(/{+\s?avgResponseTime\s?}+/gi, vars.avgResponseTime ?? '')
 		.replace(/{+\s?avgResolutionTime\s?}+/gi, vars.avgResolutionTime ?? '')
-		.replace(/{+\s?avgRating\s?}+/gi, vars.avgRating ?? '');
+		.replace(/{+\s?avgRating\s?}+/gi, vars.avgRating ?? '')
+		// Capture groups from an automation's message pattern. Numbered rather
+		// than open-ended on purpose: this is the only placeholder whose value is
+		// someone else's message text, so it stays a fixed, known set.
+		.replace(/{+\s?match([1-9])\s?}+/gi, (_, n) => vars['match' + n] ?? '');
 };
 
 /** Does this layout reference any of the stats variables? Replaces the old `needsStats` regex. */

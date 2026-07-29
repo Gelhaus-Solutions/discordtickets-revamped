@@ -31,6 +31,10 @@ const {
 	RUN, STEP, runAutomation, runFrom,
 } = require(path.join(root, 'src', 'lib', 'automations', 'runtime'));
 const { Context } = require(path.join(root, 'src', 'lib', 'automations', 'context'));
+const {
+	matches, triggerVars,
+} = require(path.join(root, 'src', 'lib', 'automations', 'dispatcher'));
+const { substitute } = require(path.join(root, 'src', 'lib', 'components-v2'));
 const { automationCustomId } = require(path.join(root, 'src', 'lib', 'automations', 'discord'));
 
 let pass = 0;
@@ -860,6 +864,160 @@ function stubRunners(overrides = {}) {
 				assert.ok(verbs.has(key), `${path.basename(file)} exports "${key}", which would register as an HTTP method`);
 			}
 		}
+	});
+
+	console.log('\nmessage triggers\n');
+
+	// Reading another bot's messages: the filters that decide whether a message
+	// belongs to a trigger at all, evaluated for every message in every guild.
+	const message = (params, payload) => matches(node('trigger.message.created', params), {
+		channelId: 'c1',
+		content: 'hello',
+		guildId: 'g1',
+		userId: 'u1',
+		...payload,
+	});
+
+	await t('bots are ignored by default and opt-in-able', () => {
+		assert.strictEqual(message({ scope: 'any' }, { isBot: true }), false);
+		assert.strictEqual(message({
+			ignoreBots: false,
+			scope: 'any',
+		}, { isBot: true }), true);
+	});
+
+	await t('this bot\'s own messages never match, whatever the parameters say', () => {
+		assert.strictEqual(message({
+			ignoreBots: false,
+			scope: 'any',
+		}, {
+			isBot: true,
+			isSelf: true,
+		}), false);
+	});
+
+	await t('a named bot excludes every other author', () => {
+		const params = {
+			botId: '999',
+			ignoreBots: false,
+			scope: 'any',
+		};
+		assert.strictEqual(message(params, {
+			isBot: true,
+			userId: '999',
+		}), true);
+		assert.strictEqual(message(params, {
+			isBot: true,
+			userId: '111',
+		}), false);
+	});
+
+	await t('a pattern matches embed text as well as content', () => {
+		const params = {
+			ignoreBots: false,
+			pattern: 'banned',
+			scope: 'any',
+		};
+		const payload = {
+			content: '',
+			embedText: 'Member banned\nReason: spam',
+			isBot: true,
+		};
+		assert.strictEqual(message(params, payload), true);
+		assert.strictEqual(message({
+			...params,
+			searchEmbeds: false,
+		}, payload), false);
+	});
+
+	await t('capture groups become {matchN} for the rest of the run', () => {
+		const trigger = node('trigger.message.created', {
+			ignoreBots: false,
+			pattern: 'banned <@(\\d+)> for (.+)',
+			scope: 'any',
+		});
+		const vars = triggerVars(trigger, {
+			content: '',
+			embedText: 'banned <@1234567890123456> for spam',
+		});
+		assert.deepStrictEqual(vars, {
+			match1: '1234567890123456',
+			match2: 'spam',
+		});
+		assert.strictEqual(
+			substitute('Handled {match2} by {match1}', vars),
+			'Handled spam by 1234567890123456',
+		);
+	});
+
+	await t('a trigger with no pattern contributes no variables', () => {
+		assert.strictEqual(triggerVars(node('trigger.message.created', { scope: 'any' }), { content: 'x' }), null);
+	});
+
+	// Bot-to-bot: every one of these is a way in if it is not checked, so each
+	// gets its own case rather than one happy-path assertion.
+	const BOT_COMMAND = {
+		botId: '999',
+		channelId: 'ops',
+		prefix: '!dt-',
+	};
+	const command = (params, payload) => matches(node('trigger.bot.command', {
+		...BOT_COMMAND,
+		...params,
+	}), {
+		channelId: 'ops',
+		content: '!dt-close 42',
+		guildId: 'g1',
+		isBot: true,
+		userId: '999',
+		...payload,
+	});
+
+	await t('a bot command matches only the nominated bot, channel and prefix', () => {
+		assert.strictEqual(command({}, {}), true);
+		assert.strictEqual(command({}, { userId: '111' }), false, 'another bot');
+		assert.strictEqual(command({}, { channelId: 'general' }), false, 'another channel');
+		assert.strictEqual(command({}, { content: 'close 42' }), false, 'no prefix');
+		assert.strictEqual(command({}, { content: '!dt close 42' }), false, 'near-miss prefix');
+	});
+
+	await t('a bot command refuses humans, webhooks and this bot itself', () => {
+		assert.strictEqual(command({}, { isBot: false }), false, 'a human posting the prefix');
+		assert.strictEqual(command({}, { webhookId: 'w1' }), false, 'a webhook wearing the bot\'s name');
+		assert.strictEqual(command({}, { isSelf: true }), false, 'our own message');
+	});
+
+	await t('a bot command with a parameter missing matches nothing', () => {
+		for (const missing of ['botId', 'channelId', 'prefix']) {
+			assert.strictEqual(command({ [missing]: undefined }, {}), false, `no ${missing}`);
+		}
+		assert.strictEqual(command({ prefix: '   ' }, {}), false, 'whitespace prefix');
+	});
+
+	await t('a bot command\'s embed cannot satisfy its prefix', () => {
+		assert.strictEqual(command({}, {
+			content: '',
+			embedText: '!dt-close 42',
+		}), false);
+	});
+
+	await t('a bot command captures the arguments after its prefix', () => {
+		const trigger = node('trigger.bot.command', {
+			...BOT_COMMAND,
+			pattern: '^close (\\d+)$',
+		});
+		const payload = {
+			channelId: 'ops',
+			content: '!dt-close 42',
+			isBot: true,
+			userId: '999',
+		};
+		assert.strictEqual(matches(trigger, payload), true);
+		assert.deepStrictEqual(triggerVars(trigger, payload), { match1: '42' });
+		assert.strictEqual(matches(node('trigger.bot.command', {
+			...BOT_COMMAND,
+			pattern: '^open (\\d+)$',
+		}), payload), false);
 	});
 
 	console.log('\ndashboard mirror\n');

@@ -98,6 +98,7 @@ export const NODE_ICONS = {
 	'flow.noop': 'fa-arrow-right',
 	'flow.stop': 'fa-ban',
 	'flow.wait': 'fa-stopwatch',
+	'trigger.bot.command': 'fa-robot',
 	'trigger.button.pressed': 'fa-hand-pointer',
 	'trigger.member.joined': 'fa-door-open',
 	'trigger.member.left': 'fa-door-closed',
