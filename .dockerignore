@@ -11,8 +11,14 @@
 !tsconfig.temporal.json
 
 # ...but never ship vendored dependencies or build caches from inside them.
-# The dashboard is served from its committed `build/` output, which
-# adapter-node bundles, so src/dashboard/node_modules is not needed at runtime.
+# adapter-node bundles what the dashboard needs at runtime, so
+# src/dashboard/node_modules is only an input to the `dashboard` build stage,
+# which installs its own.
 **/node_modules
 **/.svelte-kit
+# Built by the `dashboard` stage in the Dockerfile, never taken from the
+# context: a stale local build must not end up in the image, and its
+# content-hashed filenames change on every rebuild, which would invalidate the
+# `COPY --link . .` layer for a change the image does not use.
+src/dashboard/build
 **/*.log

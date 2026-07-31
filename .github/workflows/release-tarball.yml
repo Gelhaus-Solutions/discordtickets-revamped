@@ -26,9 +26,15 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            src/dashboard/package-lock.json
 
       # CI=true stops preinstall from generating an encryption key here.
-      - run: CI=true npm ci --include=dev
+      # DT_SKIP_DASHBOARD_BUILD because postinstall would otherwise build the
+      # dashboard as a side effect of this install, before the explicit,
+      # visible step below.
+      - run: CI=true DT_SKIP_DASHBOARD_BUILD=true npm ci --include=dev
 
       - name: Build the Temporal layer
         run: npm run temporal.build
@@ -36,10 +42,20 @@ jobs:
       - name: Stamp the worker build id
         run: printf '%s' "${GITHUB_SHA:0:6}" > dist/temporal/build-id.txt
 
-      # The dashboard build is committed rather than built here (see the
-      # dashboard-build job in lint.yml). If it is missing, the tarball would
-      # install a bot with no dashboard and no error — so fail loudly.
-      - name: Check the vendored dashboard build is present
+      # The dashboard sources are stripped from the tarball (.tarballignore), so
+      # the bundle has to be built here — an operator extracting the tarball
+      # cannot produce it.
+      # --include=dev: vite and SvelteKit are devDependencies of the dashboard,
+      # so an inherited NODE_ENV=production would omit the whole toolchain.
+      - name: Build the dashboard
+        working-directory: src/dashboard
+        run: |
+          npm ci --include=dev --no-audit --no-fund
+          npm run build
+
+      # If the build produced no handler, the tarball would install a bot with
+      # no dashboard and no error — so fail loudly rather than ship it.
+      - name: Check the dashboard build is present
         run: test -f src/dashboard/build/handler.js
 
       - name: Stage the tree

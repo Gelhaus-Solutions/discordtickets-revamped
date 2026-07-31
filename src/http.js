@@ -308,9 +308,10 @@ module.exports = async client => {
 		})); // register route
 	});
 
-	// The dashboard build is committed and ships alongside this file, so it is
-	// found relative to `src/` — no cwd guessing and no hardcoded `/app`, each of
-	// which was only ever right for one install method.
+	// The dashboard bundle ships alongside this file, so it is found relative to
+	// `src/` — no cwd guessing and no hardcoded `/app`, each of which was only
+	// ever right for one install method. It is build output: `npm install` and
+	// CI produce it, and it is not in git.
 	let handlerModule;
 	const handlerPath = join(__dirname, 'dashboard', 'build', 'handler.js');
 
@@ -318,12 +319,13 @@ module.exports = async client => {
 		try {
 			// A file:// URL so dynamic import resolves correctly from CommonJS.
 			handlerModule = await import(pathToFileURL(handlerPath).href);
-			client.log.info('Using vendored dashboard build from ' + handlerPath);
+			client.log.info('Using dashboard build from ' + handlerPath);
 		} catch (err) {
 			client.log.error('Failed to import the dashboard build at ' + handlerPath, err && err.stack ? err.stack : err);
 		}
 	} else {
 		client.log.warn('Dashboard build not found at ' + handlerPath + '; the dashboard will not be served.');
+		client.log.warn('Build it with `npm run dashboard.build` (it is generated, not committed).');
 	}
 
 	// Only register the dashboard handler if we successfully imported it.

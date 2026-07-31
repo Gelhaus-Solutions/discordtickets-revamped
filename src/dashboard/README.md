@@ -8,15 +8,15 @@ The SvelteKit web app for interacting with the bot via its API. It is the fork's
 
 ## Working on it
 
-This app has its own dependency tree and uses **npm**, unlike the bot (which uses bun).
+This app has its own dependency tree and its own lockfile, separate from the bot's.
 
 ```sh
 npm install
 npm run dev     # vite dev server
-npm run build   # required: `build/` is committed and is what the bot serves
+npm run build   # produces build/, which is what the bot serves
 npm run lint
 ```
 
 > [!IMPORTANT]
 >
-> The Docker image does **not** build the dashboard — `build/` is committed to git. After changing any `.svelte`, CSS or route file you must run `npm run build` and commit the result, or your change will not appear in the running bot.
+> `build/` is generated, not committed — it is gitignored. The bot's `postinstall` builds it when it is missing, CI builds it for the Docker image and the release tarball, and `npm run dashboard.build` from the repository root rebuilds it. After changing any `.svelte`, CSS or route file you must rebuild, or your change will not appear in the running bot.

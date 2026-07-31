@@ -1,10 +1,12 @@
 # Excluded from the release tarball (rsync --exclude-from).
 #
 # What ships is what an operator needs to *run* the bot: src/ (including the
-# committed dashboard build), db/, scripts/, dist/temporal built by CI, and the
-# manifests. Development inputs do not — notably src/dashboard/src, because the
-# dashboard build is committed and served as-is. Customising the dashboard
-# means installing from git.
+# dashboard bundle built by release-tarball.yml), db/, scripts/, dist/temporal
+# built by CI, and the manifests. Development inputs do not — notably
+# src/dashboard/src. Dropping src/dashboard/package.json is also what makes
+# scripts/postinstall skip its dashboard build here: the bundle is already
+# present and there are no sources to rebuild it from. Customising the
+# dashboard means installing from git.
 .git
 .github
 .claude
@@ -26,8 +28,12 @@ src/dashboard/package.json
 src/dashboard/package-lock.json
 src/dashboard/svelte.config.js
 src/dashboard/vite.config.js
-src/dashboard/tailwind.config.cjs
-src/dashboard/postcss.config.cjs
+# .js, not .cjs — the two entries here previously named `.cjs` and so never
+# matched anything.
+src/dashboard/tailwind.config.js
+src/dashboard/postcss.config.js
+src/dashboard/tsconfig.json
+src/dashboard/index.html
 src/dashboard/jsconfig.json
 .env
 .env.local

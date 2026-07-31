@@ -1,1 +1,0 @@
-import{e as n}from"./CFtkVArN.js";const s=/^\d{17,20}$/,i=/^<(a)?:(\w+):(\d{17,20})>$/,o=/^:?[a-z0-9_+-]+:?$/i;function c(r){const t=(r??"").trim();if(!t||i.test(t)||s.test(t))return"";const e=n.get(t.replace(/^:|:$/g,""));return e||(o.test(t)?"":t)}export{c as d};

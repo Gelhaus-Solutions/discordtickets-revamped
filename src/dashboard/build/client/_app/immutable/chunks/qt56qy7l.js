@@ -1,1 +1,0 @@
-import{l as f,k as o,H as u,m as _,o as t,C as g,q as l,v as i,w as d,x as m,y as p}from"./DXUvcUDv.js";function C(n,r){let s=null,y=t;var a;if(t){s=m;for(var e=p(document.head);e!==null&&(e.nodeType!==g||e.data!==n);)e=l(e);if(e===null)i(!1);else{var E=l(e);e.remove(),d(E)}}t||(a=document.head.appendChild(f()));try{o(()=>r(a),u|_)}finally{y&&(i(!0),d(s))}}export{C as h};

@@ -1,5 +1,27 @@
 # syntax=docker/dockerfile:1
 
+# The SvelteKit dashboard, built from source — src/dashboard/build is no longer
+# committed to git.
+#
+# --platform=$BUILDPLATFORM pins this stage to the machine doing the building
+# rather than the image being built. Its output is plain JavaScript with no
+# native code, so it is identical for every target, and without the pin the
+# multi-arch builds in docker.yml would run `vite build` a second time for
+# arm64 under QEMU emulation.
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS dashboard
+
+WORKDIR /dash
+
+# The manifests first, so a change to a .svelte file does not re-run `npm ci`.
+# --include=dev because vite, SvelteKit and Tailwind are all devDependencies:
+# should NODE_ENV=production ever reach this stage, npm would omit the entire
+# toolchain and `vite build` would fail with "vite: not found".
+COPY src/dashboard/package.json src/dashboard/package-lock.json ./
+RUN npm ci --include=dev --no-audit --no-fund
+
+COPY src/dashboard ./
+RUN npm run build
+
 # The builder must share a libc with the runner: Temporal's native
 # @temporalio/core-bridge addon is libc-specific, and there is no musl build.
 # Both stages are therefore Debian (bookworm).
@@ -21,6 +43,11 @@ COPY scripts scripts
 RUN CI=true npm ci --include=dev --no-audit --no-fund
 
 COPY --link . .
+
+# After the copy above, so it cannot be clobbered by the context (which does not
+# carry it anyway — .dockerignore excludes it, so a developer's local build
+# never leaks into the image). src/http.js imports this path directly.
+COPY --link --from=dashboard /dash/build ./src/dashboard/build
 
 RUN chmod +x ./scripts/start.sh
 

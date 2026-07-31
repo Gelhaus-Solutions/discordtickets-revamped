@@ -5,6 +5,12 @@ on: [push, pull_request]
 permissions:
   contents: read
 
+env:
+  # scripts/postinstall builds the dashboard when the bundle is missing, which
+  # every `npm ci` below would otherwise trigger. These jobs check the bot; the
+  # dashboard-build job is what checks the dashboard.
+  DT_SKIP_DASHBOARD_BUILD: 'true'
+
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
   cancel-in-progress: true
@@ -49,32 +55,29 @@ jobs:
       - run: npm run temporal.build
 
   dashboard-build:
-    name: Vendored dashboard build is not stale
+    name: Dashboard builds
     runs-on: ubuntu-latest
-    # src/dashboard/build/ is committed on purpose — src/http.js serves it and
-    # nothing (Dockerfile, CI, start.sh) rebuilds it, so changing the Svelte
-    # source without rebuilding ships a stale bundle that silently ignores the
-    # change.
-    #
-    # This compares commit recency rather than rebuilding and diffing: Rollup's
-    # chunk splitting is not stable between runs, so two builds of identical
-    # source produce different content-hashed chunk filenames and a byte-exact
-    # comparison would fail at random.
+    # src/dashboard/build/ is not committed: the Dockerfile's `dashboard` stage
+    # and release-tarball.yml build it for the two artefacts anyone installs,
+    # and scripts/postinstall builds it on a fresh clone. This job is what
+    # proves the source still compiles before either of those runs for real.
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-      - name: Compare source and build commit times
-        run: |
-          src=$(git log -1 --format=%ct -- src/dashboard/src src/dashboard/package.json)
-          build=$(git log -1 --format=%ct -- src/dashboard/build)
-          if [ -z "$src" ]; then echo "No dashboard source history; nothing to check."; exit 0; fi
-          if [ -z "$build" ] || [ "$src" -gt "$build" ]; then
-            echo "::error::src/dashboard/src changed more recently than src/dashboard/build."
-            echo "Run 'npm run build' in src/dashboard and commit the output, or the dashboard will serve a stale bundle."
-            exit 1
-          fi
-          echo "Vendored dashboard build is at least as recent as its source."
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            src/dashboard/package-lock.json
+      # --include=dev: vite and SvelteKit are devDependencies of the dashboard.
+      - working-directory: src/dashboard
+        run: npm ci --include=dev --no-audit --no-fund
+      - working-directory: src/dashboard
+        run: npm run build
+      # `vite build` can exit 0 having emitted nothing useful if the adapter is
+      # misconfigured, and this path is what src/http.js imports.
+      - run: test -f src/dashboard/build/handler.js
 
   schema-drift:
     name: Prisma schema matches migrations

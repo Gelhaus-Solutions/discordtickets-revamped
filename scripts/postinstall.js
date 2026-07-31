@@ -9,6 +9,7 @@ const fs = require('fs-extra');
 const crypto = require('crypto');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
+const { buildDashboard } = require('./lib/build-dashboard');
 const { short } = require('leeks.js');
 const { join } = require('path');
 
@@ -28,6 +29,18 @@ const REQUIRED = process.argv.includes('--required');
 function log(...strings) {
 	console.log(short('&9[postinstall]&r'), ...strings);
 }
+
+// The dashboard bundle is build output rather than something committed, so a
+// fresh clone has to produce it. See scripts/lib/build-dashboard.js for which
+// installations skip it and why. Deliberately above the DB_PROVIDER check
+// below: a first `npm ci` has no environment yet and exits there.
+//
+// Install time only. scripts/start.sh runs this same file with `--required` on
+// every boot, and a restart must not be able to block for two minutes on `npm
+// ci` — least of all on a host that has lost its route to the registry, where
+// the attempt is doomed and repeats on every restart. A bundle missing at boot
+// is reported by src/http.js instead, with the command to fix it.
+if (!REQUIRED) buildDashboard(log);
 
 async function npx(cmd) {
 	const parts = cmd.split(' ');

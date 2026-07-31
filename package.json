@@ -9,6 +9,7 @@
 		"db.prune": "node scripts/prune.mjs",
 		"db.restore": "node scripts/restore.mjs",
 		"changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
+		"dashboard.build": "npm --prefix src/dashboard ci --include=dev --no-audit --no-fund && npm --prefix src/dashboard run build",
 		"contributors:add": "all-contributors add",
 		"contributors:generate": "all-contributors generate",
 		"keygen": "node scripts/keygen",

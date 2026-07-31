@@ -6,6 +6,11 @@ node_modules/
 /user/
 /dist/
 .idea/
+# Build output, not source: CI builds it (the `dashboard` stage in the
+# Dockerfile, release-tarball.yml) and scripts/postinstall builds it on a
+# fresh clone. It used to be committed, which made every UI change an
+# 8 MiB diff and every upstream merge a conflict.
+/src/dashboard/build/
 # files
 *.env*
 !.env.example

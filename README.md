@@ -88,12 +88,17 @@ the repository and is overridden with `DT_DATA_DIR`. The working directory no
 longer affects anything.
 
 The dashboard is a separate SvelteKit app in [src/dashboard/](src/dashboard/)
-with its own dependencies, and its compiled output in `src/dashboard/build` is
-committed. After changing any `.svelte` file you must rebuild it:
+with its own dependencies. Its compiled output, `src/dashboard/build`, is build
+output rather than source: the install above builds it for you if it is missing.
+After changing any `.svelte` file, rebuild it:
 
 ```sh
-cd src/dashboard && npm install && npm run build
+npm run dashboard.build
 ```
+
+Set `DT_SKIP_DASHBOARD_BUILD=true` to skip the automatic build during install.
+Releases build it in CI, so nothing has to be committed or built on the target
+machine.
 
 ## Security
 

@@ -11,6 +11,11 @@ permissions:
   contents: read
   pull-requests: read
 
+env:
+  # This job reads locale files; it has no use for a SvelteKit bundle, which
+  # scripts/postinstall would otherwise build during `npm ci`.
+  DT_SKIP_DASHBOARD_BUILD: 'true'
+
 concurrency:
   group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
   cancel-in-progress: true

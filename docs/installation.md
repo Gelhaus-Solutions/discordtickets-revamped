@@ -190,9 +190,11 @@ npm run temporal.build
 > run. This is the single most common bare-metal install failure; the bot names
 > it explicitly when it happens.
 
-Changing the dashboard additionally means `cd src/dashboard && npm install &&
-npm run build`, and committing the output — it is served from
-`src/dashboard/build`, and nothing rebuilds it automatically.
+`npm install` also builds the dashboard, which the bot serves from
+`src/dashboard/build` — that directory is generated, not committed. After
+changing the dashboard, rebuild it with `npm run dashboard.build`. Set
+`DT_SKIP_DASHBOARD_BUILD=true` to skip the build during install (the bot then
+starts without a dashboard, and says so).
 
 ---
 
