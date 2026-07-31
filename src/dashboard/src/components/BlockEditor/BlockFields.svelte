@@ -17,11 +17,8 @@
 	/** @type {Props} */
 	let { block = $bindable(), categories, context, automations = [] } = $props();
 
-	// Controls blocks saved before automation buttons existed have no list at all,
-	// and `bind:` needs something to bind to.
-	$effect(() => {
-		if (block.type === 'controls' && !Array.isArray(block.buttons)) block.buttons = [];
-	});
+	// Blocks saved before automation buttons existed have no `buttons` list at
+	// all; ButtonList reads through a fallback and writes one back when needed.
 
 	const addGalleryItem = () => {
 		if (block.items.length >= LIMITS.galleryItems) return;

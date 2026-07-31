@@ -24,18 +24,22 @@
 		automation: 'Automation button'
 	};
 
+	// Blocks saved before they could hold buttons have no list at all, so read
+	// through a fallback and only write a real array back once one is added.
+	const list = $derived(Array.isArray(buttons) ? buttons : []);
+
 	const add = (kind) => {
-		if (buttons.length >= LIMITS.rowButtons) return;
-		buttons = [...buttons, newButton(kind)];
+		if (list.length >= LIMITS.rowButtons) return;
+		buttons = [...list, newButton(kind)];
 	};
 
 	const remove = (i) => {
-		buttons = buttons.filter((_, j) => j !== i);
+		buttons = list.filter((_, j) => j !== i);
 	};
 </script>
 
 <div class="flex flex-col gap-2">
-	{#each buttons as button, i}
+	{#each list as button, i}
 		<div class="rounded-lg bg-white p-2 dark:bg-slate-900/60">
 			<div class="flex items-center justify-between">
 				<span class="text-xs font-semibold uppercase text-gray-500 dark:text-slate-400">
@@ -124,7 +128,7 @@
 		</div>
 	{/each}
 
-	{#if buttons.length >= LIMITS.rowButtons}
+	{#if list.length >= LIMITS.rowButtons}
 		<p class="text-xs text-gray-500 dark:text-slate-400">
 			A row can hold at most {LIMITS.rowButtons} buttons.
 		</p>
