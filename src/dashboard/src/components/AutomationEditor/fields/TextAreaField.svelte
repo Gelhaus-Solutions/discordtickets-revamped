@@ -7,7 +7,11 @@
 
 	// The same placeholders panels and opening messages already use, so an admin
 	// does not have to learn a second syntax.
-	const VARIABLES = ['{name}', '{displayname}', '{num}'];
+	//
+	// `{name}` is whoever set the automation off — on a "button is pressed"
+	// trigger that is the staff member who pressed it — so the `{opener}` family
+	// is here for the far more common "who does this ticket belong to".
+	const VARIABLES = ['{name}', '{displayname}', '{num}', '{opener}', '{openerdisplayname}', '{openermention}'];
 
 	let element = $state();
 

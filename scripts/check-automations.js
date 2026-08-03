@@ -774,6 +774,79 @@ function stubRunners(overrides = {}) {
 		assert.ok(result.error.startsWith('graph_changed'));
 	});
 
+	console.log('\nsubstitution\n');
+
+	/** Just enough client for the ticket placeholders. */
+	const varsClient = ({
+		member = null, user = null,
+	} = {}) => ({
+		guilds: { cache: new Map([['1', { members: { fetch: async id => (member?.id === id ? member : Promise.reject(new Error('unknown'))) } }]]) },
+		tickets: {
+			getTicket: async () => ({
+				createdById: '111',
+				guildId: '1',
+				number: 7,
+			}),
+		},
+		users: { fetch: async () => (user ?? Promise.reject(new Error('unknown'))) },
+	});
+
+	await t('{opener} is the ticket creator, not whoever set the run off', async () => {
+		const member = {
+			displayName: 'Member Nick',
+			id: '111',
+			user: { username: 'member' },
+		};
+		const c = new Context(varsClient({ member }), {
+			actorId: '999',
+			guildId: '1',
+			ticketId: '2',
+			vars: {
+				displayname: 'Staffy',
+				name: 'staff',
+			},
+		});
+		const vars = await c.varsFor('{name} for {opener} ({openerdisplayname}) {openermention} #{num}');
+		assert.strictEqual(vars.name, 'staff', 'the actor still wins {name}');
+		assert.strictEqual(vars.opener, 'member');
+		assert.strictEqual(vars.openerdisplayname, 'Member Nick');
+		assert.strictEqual(vars.openermention, '<@111>');
+		assert.strictEqual(vars.num, 7);
+	});
+
+	await t('an opener who left the guild still resolves', async () => {
+		const c = new Context(varsClient({ user: { username: 'gone' } }), {
+			guildId: '1',
+			ticketId: '2',
+			vars: { name: 'staff' },
+		});
+		const vars = await c.varsFor('{opener} {openermention}');
+		assert.strictEqual(vars.opener, 'gone');
+		assert.strictEqual(vars.openerdisplayname, 'gone', 'falls back to the username, never to the actor');
+		assert.strictEqual(vars.openermention, '<@111>');
+	});
+
+	await t('text with no ticket placeholder costs no lookup', async () => {
+		let looked = false;
+		const client = {
+			...varsClient(),
+			tickets: {
+				getTicket: async () => {
+					looked = true;
+					return null;
+				},
+			},
+		};
+		const c = new Context(client, {
+			guildId: '1',
+			ticketId: '2',
+			vars: { name: 'staff' },
+		});
+		const vars = await c.varsFor('Hello {name}');
+		assert.strictEqual(looked, false, 'a fixed string must not read the ticket');
+		assert.strictEqual(vars.name, 'staff');
+	});
+
 	console.log('\nguards\n');
 
 	await t('the button custom_id fits in Discord\'s 100 characters', () => {

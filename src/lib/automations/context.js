@@ -158,6 +158,53 @@ class Context {
 	}
 
 	/**
+	 * The ticket-derived placeholders: `{opener}`, `{openerdisplayname}`,
+	 * `{openermention}` and `{num}`.
+	 *
+	 * Kept out of `vars` — and out of `serialize()` — because they cost a
+	 * database read and a member fetch, and most graphs never ask for them. A
+	 * parked run resolves them again when it wakes, which is also the right
+	 * answer: the ticket may have been renumbered or the member may have left.
+	 */
+	ticketVars() {
+		return this._once('ticketVars', async () => {
+			const ticket = await this.getTicket();
+			if (!ticket) return {};
+
+			const id = ticket.createdById;
+			// The opener is often gone by the time a closing automation runs, so
+			// fall back to the user — a username still beats an empty string —
+			// and then to the mention, which needs no fetch at all.
+			const member = id ? await this.resolveSubject('ticketCreator') : null;
+			const user = member?.user ?? (id ? await this.client.users.fetch(id).catch(() => null) : null);
+
+			return {
+				num: ticket.number ?? '',
+				opener: user?.username ?? '',
+				openerdisplayname: member?.displayName ?? user?.displayName ?? user?.username ?? '',
+				openermention: id ? `<@${id}>` : '',
+			};
+		});
+	}
+
+	/**
+	 * The variables one string needs, resolved.
+	 *
+	 * Only touches the database when the text actually references a ticket
+	 * placeholder: an automation that posts a fixed string should not pay for a
+	 * ticket lookup to find that out.
+	 */
+	async varsFor(text) {
+		if (!/{+\s?(opener\w*|num(ber)?)\s?}+/i.test(String(text ?? ''))) return this.vars;
+		return {
+			...await this.ticketVars(),
+			// Trigger-supplied values win: `{num}` never comes from a trigger
+			// today, but a trigger that knows better should not be overruled.
+			...this.vars,
+		};
+	}
+
+	/**
 	 * Resolve a `subject` param to a member.
 	 *
 	 * Returns null rather than throwing when the person is gone — a member who

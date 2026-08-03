@@ -598,13 +598,27 @@ const NODE_TYPES = {
 		// 400 at save time.
 		needs: ['interaction'],
 		outputs: ['out'],
-		params: [{
-			key: 'content',
-			label: 'Message',
-			maxLength: LIMITS.messageLength,
-			required: true,
-			type: 'textarea',
-		}],
+		params: [
+			{
+				help: '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.',
+				key: 'content',
+				label: 'Message',
+				maxLength: LIMITS.messageLength,
+				required: true,
+				type: 'textarea',
+			},
+			{
+				// Buttons on a private message are what makes "are you sure?" a
+				// confirmation rather than a public poll: only the person who
+				// pressed the first button ever sees them.
+				help: 'Each button starts a "button is pressed" trigger — in this automation, or another one. Only the person who set this off can see them.',
+				key: 'buttons',
+				label: 'Buttons',
+				maxItems: LIMITS.messageButtons,
+				type: 'buttons',
+			},
+		],
+		validate: (params, push, path, options) => validateButtons(params?.buttons, push, `${path}.buttons`, options),
 	},
 	'action.message.react': {
 		category: 'action',
@@ -675,6 +689,10 @@ const NODE_TYPES = {
 				type: 'channel',
 			},
 			{
+				// The distinction that catches people out: on a button trigger
+				// `{name}` is the staff member who pressed it, not the member the
+				// ticket belongs to.
+				help: '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.',
 				key: 'content',
 				label: 'Message',
 				maxLength: LIMITS.messageLength,

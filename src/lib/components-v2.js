@@ -119,25 +119,63 @@ const resolveColour = (value, fallback = null) => {
 	return null;
 };
 
+/** Every placeholder there is, in one pass. Longest alternatives first. */
+const PLACEHOLDER = /{+\s?(username|name|nickname|displayname|openerdisplayname|openernickname|openermention|openername|opener|number|num|avatar|avgResponseTime|avgResolutionTime|avgRating|match[1-9])\s?}+/gi;
+
+/**
+ * One placeholder to one value.
+ *
+ * The `opener*` family is the ticket's creator rather than whoever set the run
+ * off, which is the difference that matters in an automation: `{name}` on a
+ * "button is pressed" run is the staff member who pressed it.
+ */
+const substituteOne = (token, vars) => {
+	switch (token.toLowerCase()) {
+	case 'name':
+	case 'username':
+		return vars.name ?? '';
+	case 'nickname':
+	case 'displayname':
+		return vars.displayname ?? vars.name ?? '';
+	case 'opener':
+	case 'openername':
+		return vars.opener ?? '';
+	case 'openernickname':
+	case 'openerdisplayname':
+		return vars.openerdisplayname ?? vars.opener ?? '';
+	case 'openermention':
+		return vars.openermention ?? '';
+	case 'num':
+	case 'number':
+		return vars.num ?? '';
+	case 'avatar':
+		return vars.avatar ?? '';
+	case 'avgresponsetime':
+		return vars.avgResponseTime ?? '';
+	case 'avgresolutiontime':
+		return vars.avgResolutionTime ?? '';
+	case 'avgrating':
+		return vars.avgRating ?? '';
+	// Capture groups from an automation's message pattern. Numbered rather
+	// than open-ended on purpose: this is the only placeholder whose value is
+	// someone else's message text, so it stays a fixed, known set.
+	default:
+		return vars[token.toLowerCase()] ?? '';
+	}
+};
+
 /**
  * The variable substitution that `manager.js` used to do inline. Applied to every
  * author-supplied string in a layout: text content, section text, button labels,
  * URLs and media descriptions.
+ *
+ * One pass on purpose: a chain of `.replace()` calls substitutes into text it has
+ * already substituted, so a member nicknamed `{match1}` would pick up whatever a
+ * message pattern captured. Nothing a placeholder expands to is looked at again.
  */
 const substitute = (str, vars = {}) => {
 	if (typeof str !== 'string') return str;
-	return str
-		.replace(/{+\s?(user)?name\s?}+/gi, vars.name ?? '')
-		.replace(/{+\s?(nick|display)name\s?}+/gi, vars.displayname ?? vars.name ?? '')
-		.replace(/{+\s?num(ber)?\s?}+/gi, vars.num ?? '')
-		.replace(/{+\s?avatar\s?}+/gi, vars.avatar ?? '')
-		.replace(/{+\s?avgResponseTime\s?}+/gi, vars.avgResponseTime ?? '')
-		.replace(/{+\s?avgResolutionTime\s?}+/gi, vars.avgResolutionTime ?? '')
-		.replace(/{+\s?avgRating\s?}+/gi, vars.avgRating ?? '')
-		// Capture groups from an automation's message pattern. Numbered rather
-		// than open-ended on purpose: this is the only placeholder whose value is
-		// someone else's message text, so it stays a fixed, known set.
-		.replace(/{+\s?match([1-9])\s?}+/gi, (_, n) => vars['match' + n] ?? '');
+	return str.replace(PLACEHOLDER, (_, token) => String(substituteOne(token, vars)));
 };
 
 /** Does this layout reference any of the stats variables? Replaces the old `needsStats` regex. */

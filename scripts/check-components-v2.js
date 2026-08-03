@@ -603,6 +603,38 @@ expectFail('rejects a future layout version', {
 }, 'panel', 'unsupported');
 
 console.log('\n== forward compat & helpers ==');
+t('the opener family names the ticket creator, not the actor', () => {
+	const vars = {
+		displayname: 'Staffy',
+		name: 'staff',
+		num: 7,
+		opener: 'member',
+		openerdisplayname: 'Member Nick',
+		openermention: '<@111>',
+	};
+	assert.strictEqual(
+		v2.substitute('{name} closed #{num} for {openerdisplayname} ({opener}) {openermention}', vars),
+		'staff closed #7 for Member Nick (member) <@111>',
+	);
+	// The opener has no nickname set: fall back to the username, never to the
+	// person who pressed the button.
+	assert.strictEqual(v2.substitute('{openerdisplayname}', {
+		name: 'staff',
+		opener: 'member',
+	}), 'member');
+	// No ticket in the run, so it renders empty rather than leaking the actor.
+	assert.strictEqual(v2.substitute('[{opener}]', { name: 'staff' }), '[]');
+});
+
+t('substitution does not substitute into its own output', () => {
+	// A member called "{match1}" must not pick up what a message pattern caught.
+	const out = v2.substitute('{displayname} said {match1}', {
+		displayname: '{match1}',
+		match1: 'hello',
+	});
+	assert.strictEqual(out, '{match1} said hello');
+});
+
 t('unknown block types are skipped, not fatal', () => {
 	const out = v2.buildMessage({
 		blocks: [{

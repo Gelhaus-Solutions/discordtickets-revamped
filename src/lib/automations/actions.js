@@ -60,8 +60,16 @@ const skip = reason => ({
  * Reuses the layout substitution rather than inventing a second syntax, so the
  * placeholders an admin already knows from panels and opening messages mean the
  * same thing in an automation.
+ *
+ * Async because `{opener}` and `{num}` come from the ticket rather than from the
+ * trigger — `ctx.varsFor` only reads it when the text asks for them. `{name}` is
+ * whoever set the run off, which on a button press is the staff member who
+ * pressed it; `{opener}` is who the ticket belongs to.
  */
-const render = (content, ctx) => substitute(String(content ?? ''), ctx.vars);
+const render = async (content, ctx) => {
+	const text = String(content ?? '');
+	return substitute(text, await ctx.varsFor(text));
+};
 
 /** What Discord says when an interaction token is past its 15 minutes. */
 const EXPIRED_INTERACTION = [
@@ -86,28 +94,28 @@ const BUTTON_STYLES = {
  * Returns an empty array when there are no buttons, so the caller can spread it
  * into `components` unconditionally.
  */
-function buildButtons(node, ctx) {
+async function buildButtons(node, ctx) {
 	const specs = Array.isArray(node.params?.buttons) ? node.params.buttons : [];
 	if (specs.length === 0) return [];
 
-	const row = new ActionRowBuilder().addComponents(
-		specs.slice(0, LIMITS.messageButtons)
-			.filter(spec => spec.nodeId ? ctx.automationKey : spec.automationKey)
-			.map(spec => {
-			// An in-graph button carries this automation's own key plus the node,
-			// so pressing it comes back to the right branch of the right graph.
-				const button = new ButtonBuilder()
-					.setCustomId(spec.nodeId
-						? automationCustomId(ctx.automationKey, spec.nodeId)
-						: automationCustomId(spec.automationKey))
-					.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
-					.setLabel(render(spec.label, ctx).slice(0, 80));
-				const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
-				if (emoji) button.setEmoji(emoji);
-				return button;
-			}),
-	);
-	return [row];
+	const buttons = [];
+	for (const spec of specs.slice(0, LIMITS.messageButtons)) {
+		if (!(spec.nodeId ? ctx.automationKey : spec.automationKey)) continue;
+		// An in-graph button carries this automation's own key plus the node,
+		// so pressing it comes back to the right branch of the right graph.
+		const button = new ButtonBuilder()
+			.setCustomId(spec.nodeId
+				? automationCustomId(ctx.automationKey, spec.nodeId)
+				: automationCustomId(spec.automationKey))
+			.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
+			.setLabel((await render(spec.label, ctx)).slice(0, 80));
+		const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
+		if (emoji) button.setEmoji(emoji);
+		buttons.push(button);
+	}
+	if (buttons.length === 0) return [];
+
+	return [new ActionRowBuilder().addComponents(buttons)];
 }
 
 /** Resolve where `action.message.send` should post. */
@@ -213,8 +221,8 @@ function makeRunners(client, runNested) {
 			if (!channel?.send) return skip('unknown_channel');
 			await channel.send({
 				allowedMentions: { parse: ['users', 'roles'] },
-				components: buildButtons(node, ctx),
-				content: render(node.params.content, ctx),
+				components: await buildButtons(node, ctx),
+				content: await render(node.params.content, ctx),
 			});
 			return {};
 		}),
@@ -225,12 +233,12 @@ function makeRunners(client, runNested) {
 			if (settings?.disableDMs) return skip('dms_disabled');
 			const member = await ctx.resolveSubject(node.params.subject);
 			if (!member) return skip('unknown_member');
-			await member.send({ content: render(node.params.content, ctx) });
+			await member.send({ content: await render(node.params.content, ctx) });
 			return {};
 		}),
 
 		'action.message.reply': real(async (node, ctx) => {
-			const content = render(node.params.content, ctx);
+			const content = await render(node.params.content, ctx);
 			// A button or menu trigger has already acknowledged the interaction —
 			// the handler must, inside 3 seconds — so this edits that reply.
 			if (ctx.interaction) {
@@ -250,16 +258,23 @@ function makeRunners(client, runNested) {
 			// Never serialized, so a run that parked on a `flow.wait` has lost it —
 			// and the 15-minute token would have expired anyway.
 			if (!ctx.interaction) return skip('no_interaction');
-			const content = render(node.params.content, ctx);
+			const content = await render(node.params.content, ctx);
+			// Buttons here are how a confirmation is built: a private "are you
+			// sure?" whose Yes and No each start their own button trigger.
+			const components = await buildButtons(node, ctx);
 			try {
 				// The trigger handler already opened an ephemeral reply with
 				// `deferReply`, so the first private node fills that in and any
 				// later one follows up. After `ack: 'none'` there is no deferred
 				// reply to fill in — `ephemeral` is false — so it follows up too.
 				if (ctx.interaction.ephemeral && ctx.interaction.deferred && !ctx.interaction.replied) {
-					await ctx.interaction.editReply({ content });
+					await ctx.interaction.editReply({
+						components,
+						content,
+					});
 				} else {
 					await ctx.interaction.followUp({
+						components,
 						content,
 						flags: MessageFlags.Ephemeral,
 					});
@@ -290,7 +305,7 @@ function makeRunners(client, runNested) {
 			await temporal.startCloseTicket({
 				closedBy: null,
 				guildId: ctx.guildId,
-				reason: node.params.reason ? render(node.params.reason, ctx) : null,
+				reason: node.params.reason ? await render(node.params.reason, ctx) : null,
 				ticketId: ticket.id,
 			});
 			return {};
@@ -325,7 +340,7 @@ function makeRunners(client, runNested) {
 		'action.ticket.rename': real(async (node, ctx) => {
 			const result = await renameTicket(client, {
 				actorId: ctx.actorId,
-				name: render(node.params.name, ctx),
+				name: await render(node.params.name, ctx),
 				ticketId: ctx.ticketId,
 			});
 			return result.ok ? { reason: result.reason } : skip(result.reason);
@@ -355,10 +370,11 @@ function makeRunners(client, runNested) {
 
 		'action.ticket.setTopic': real(async (node, ctx) => {
 			if (!ctx.ticketId) return skip('unknown_ticket');
+			const topic = await render(node.params.topic, ctx);
 			await client.prisma.ticket.update({
 				// Topics are encrypted at rest, like every other piece of member
 				// -supplied text in this schema.
-				data: { topic: await pools.crypto.queue(w => w.encrypt(render(node.params.topic, ctx))) },
+				data: { topic: await pools.crypto.queue(w => w.encrypt(topic)) },
 				where: { id: ctx.ticketId },
 			});
 			return {};
@@ -368,7 +384,7 @@ function makeRunners(client, runNested) {
 
 		'action.log': real(async (node, ctx) => {
 			logAutomationEvent(client, {
-				content: render(node.params.content, ctx),
+				content: await render(node.params.content, ctx),
 				guildId: ctx.guildId,
 				userId: ctx.actorId,
 			});
