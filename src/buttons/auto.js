@@ -4,6 +4,32 @@ const { emit } = require('../lib/automations/dispatcher');
 const { triggerNodes } = require('../lib/automations/validate');
 
 /**
+ * The button triggers in a graph that nothing inside the graph points at.
+ *
+ * An in-graph button — the Confirm/Cancel pair on an ephemeral reply, say —
+ * carries the id of the trigger it continues (`spec.nodeId`, see `buildButtons`
+ * in ../lib/automations/actions.js). A trigger named that way is the middle of a
+ * conversation, never its start. Whatever is left is where the graph is entered
+ * from outside: a panel button, or a ticket-controls button.
+ *
+ * @param {Object} graph
+ * @returns {Array<Object>} the entry button triggers
+ */
+const entryButtonTriggers = graph => {
+	const triggers = triggerNodes(graph).filter(n => n.type === 'trigger.button.pressed');
+	if (triggers.length < 2) return triggers;
+
+	const continuations = new Set();
+	for (const node of Array.isArray(graph?.nodes) ? graph.nodes : []) {
+		for (const spec of Array.isArray(node?.params?.buttons) ? node.params.buttons : []) {
+			if (spec?.nodeId) continuations.add(spec.nodeId);
+		}
+	}
+
+	return triggers.filter(n => !continuations.has(n.id));
+};
+
+/**
  * Buttons placed by an admin that set an automation off.
  *
  * The custom_id is `{"action":"auto","k":"<automation key>"}` — 31 characters,
@@ -43,12 +69,26 @@ module.exports = class AutomationButton extends Button {
 		const automation = automations.find(a => a.key === id.k);
 
 		// `id.n` names the trigger node, because one graph may hold several of
-		// them. Buttons posted before that existed carry no `n`, so they fall back
-		// to the graph's only button trigger — which is exactly what they meant.
+		// them. Two kinds of button carry no `n` and must name one themselves:
+		// those posted before `n` existed, and ticket-controls buttons, which
+		// reference an automation by key alone (see `buildButton` in
+		// ../lib/components-v2.js — the editor offers no way to pick a node).
+		//
+		// That fallback used to be "the graph's only button trigger", which broke
+		// the moment anyone added a confirm/cancel step: those add button triggers
+		// of their own, the count stopped being 1, and a working panel button
+		// started answering "no longer connected to anything". Prefer the entry
+		// trigger instead, and only give up when it is genuinely ambiguous.
 		const triggers = automation ? triggerNodes(automation.graph).filter(n => n.type === 'trigger.button.pressed') : [];
-		const node = id.n
-			? triggers.find(n => n.id === id.n)
-			: (triggers.length === 1 ? triggers[0] : null);
+		let node = null;
+		if (id.n) {
+			node = triggers.find(n => n.id === id.n) ?? null;
+		} else if (triggers.length === 1) {
+			node = triggers[0];
+		} else if (automation) {
+			const entries = entryButtonTriggers(automation.graph);
+			if (entries.length === 1) node = entries[0];
+		}
 
 		// The automation was deleted or disabled after the message was posted.
 		// `buildButton` skips unknown keys when rendering, but a live message can

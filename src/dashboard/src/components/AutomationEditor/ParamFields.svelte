@@ -73,7 +73,11 @@
 
 {#if definition}
 	<div class="flex flex-col gap-3">
-		{#each definition.params as field (field.key)}
+		<!-- Keyed by node as well as field: keying on `field.key` alone made
+		     Svelte reuse one field instance across node selections, so any field
+		     holding local state (DurationField's parsed text, EmojiField before
+		     it was rewritten) carried the previous node's value over. -->
+		{#each definition.params as field (node.id + ':' + field.key)}
 			{#if visible(field)}
 				{@const Field = FIELDS[field.type] ?? TextField}
 				{@const problem = problems.find((p) => p.key === field.key)}
@@ -113,7 +117,9 @@
 		{/each}
 
 		{#if definition.params.length === 0}
-			<p class="text-sm text-gray-500 dark:text-slate-400">This step has nothing to configure.</p>
+			<p class="text-sm text-gray-500 dark:text-slate-400">
+				This step has nothing to configure.
+			</p>
 		{/if}
 	</div>
 {/if}
