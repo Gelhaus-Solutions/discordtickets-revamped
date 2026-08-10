@@ -25,6 +25,13 @@ const {
 	categoryNeedsStats,
 	rerenderOpeningMessage,
 } = require('./opening-message');
+const { resolveEmojiSettings } = require('./emoji-settings');
+const {
+	clampName,
+	managedPrefix,
+	renderChannelName,
+} = require('./naming');
+const { syncChannelName } = require('./mutations');
 const {
 	buildQuestionComponents,
 	formatAnswer,
@@ -552,10 +559,28 @@ module.exports = class TicketManager {
 		const getMessage = this.client.i18n.getLocale(category.guild.locale);
 		const creator = await guild.members.fetch(interaction.user.id);
 		const number = await this.getNextNumber(category.guild.id);
-		const channelName = category.channelName
-			.replace(/{+\s?(user)?name\s?}+/gi, creator.user.username)
-			.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator.displayName)
-			.replace(/{+\s?num(ber)?\s?}+/gi, number === 1488 ? '1487b' : number);
+		// The template, plus whatever prefix an unclaimed ticket in this category
+		// carries. Clamped, because a 100-character template plus an emoji is over
+		// Discord's limit and `channels.create` rejects the whole call — the
+		// member's ticket would simply fail to open.
+		//
+		// With nothing configured the prefix is empty and this is byte-identical
+		// to the name the bot produced before any of it was configurable.
+		const emojiSettings = resolveEmojiSettings({
+			category,
+			guild: category.guild,
+		});
+		const channelName = clampName(
+			managedPrefix({
+				claimedById: null,
+				open: true,
+				priority: null,
+			}, emojiSettings) +
+			renderChannelName(category.channelName, {
+				creator,
+				number,
+			}),
+		);
 		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 		const channelMode = category.channelMode || 'CHANNEL';
 
@@ -1039,11 +1064,17 @@ module.exports = class TicketManager {
 			where: { id: channel.id },
 		});
 
-		// Add checkmark to channel name
-		const currentName = channel.name;
-		if (!currentName.startsWith('✅')) {
-			await channel.setName('✅' + currentName, 'Auto-assigned to first staff responder').catch(() => null);
-		}
+		// The claim emoji is configurable, so the name is rebuilt rather than
+		// prefixed by hand — and rebuilt *after* the write above, so the ticket
+		// passed in already reads as claimed.
+		await syncChannelName(this.client, {
+			channel,
+			reason: 'Auto-assigned to first staff responder',
+			ticket: {
+				...ticket,
+				claimedById: userId,
+			},
+		});
 
 		// For private threads: ensure the assigned user is a member
 		if (channel.isThread?.()) {
@@ -1106,11 +1137,15 @@ module.exports = class TicketManager {
 			await interaction.channel.members.add(interaction.user.id).catch(() => null);
 		}
 
-		// Add ✅ prefix to signal the ticket is claimed — all staff can still see it
-		const currentName = interaction.channel.name;
-		if (!currentName.startsWith('✅')) {
-			await interaction.channel.setName('✅' + currentName, claimReason).catch(() => null);
-		}
+		// Signal the claim in the channel name — all staff can still see it.
+		await syncChannelName(this.client, {
+			channel: interaction.channel,
+			reason: claimReason,
+			ticket: {
+				...ticket,
+				claimedById: interaction.user.id,
+			},
+		});
 
 		await this.client.prisma.ticket.update({
 			data: {
@@ -1194,11 +1229,17 @@ module.exports = class TicketManager {
 			await interaction.channel.members.remove(interaction.user.id).catch(() => null);
 		}
 
-		// Strip ✅ prefix from channel name (added when ticket was claimed)
-		const currentName = interaction.channel.name;
-		if (currentName.startsWith('✅')) {
-			await interaction.channel.setName(currentName.slice(1), releaseReason).catch(() => null);
-		}
+		// Drop the claim emoji. `.slice(1)` used to do this, which removed one
+		// UTF-16 code unit — fine for U+2705 by luck, and corrupting for anything
+		// wider the moment the emoji became configurable.
+		await syncChannelName(this.client, {
+			channel: interaction.channel,
+			reason: releaseReason,
+			ticket: {
+				...ticket,
+				claimedById: null,
+			},
+		});
 
 		await this.client.prisma.ticket.update({
 			data: { claimedBy: { disconnect: true } },
@@ -1996,6 +2037,12 @@ module.exports = class TicketManager {
 			closedAt: new Date(),
 			closedById: closedBy || undefined,
 			closedReason: reason && await crypto.queue(w => w.encrypt(reason)),
+			// No trigger fires on a closed ticket, so an override left in place
+			// here could never be cleared — an archived thread wearing 🔥 for ever.
+			// Clearing it on close is also what keeps the precedence table down to
+			// one rule instead of a closed-beats-override special case.
+			emojiOverride: null,
+			emojiOverrideScope: null,
 			messageCount: archivedMessages,
 			open: false,
 			pendingCloseAt: null,
@@ -2061,13 +2108,18 @@ module.exports = class TicketManager {
 			const closeReason = 'Ticket closed' + (member ? ` by ${member.displayName}` : '') + (reason ? `: ${reason}` : '');
 			try {
 				if (channelMode === 'THREAD' || channelMode === 'FORUM' || channel.isThread?.()) {
-					// Strip managed prefixes (✅ claim + priority emoji) from thread name before archiving
-					const cleanName = channel.name
-						.replace(/^✅/, '')                          // remove claim checkmark (U+2705)
-						.replace(/^\p{Emoji_Presentation}/u, '');    // remove leading priority emoji
-					if (cleanName !== channel.name) {
-						await channel.setName(cleanName, closeReason).catch(() => null);
-					}
+					// Repaint the name for the closed state. The two `.replace()` calls
+					// this used to do both matched a single code point, so a ZWJ
+					// sequence or a skin-tone modifier was left half-stripped.
+					await syncChannelName(this.client, {
+						channel,
+						reason: closeReason,
+						ticket: {
+							...ticket,
+							emojiOverride: null,
+							open: false,
+						},
+					});
 
 					// For threads/forum posts: keep the original opening message intact
 					// and just send a new archived message below it.

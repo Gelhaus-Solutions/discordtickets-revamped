@@ -8,9 +8,11 @@ const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
 const { resolveCategory } = require('../../lib/settings/inheritance');
 const {
+	emojiSettingsFor,
 	managedPrefix,
 	renderChannelName,
 } = require('../../lib/tickets/mutations');
+const { clampName } = require('../../lib/tickets/naming');
 
 /**
  * /escalate – Move a ticket to a different (typically higher-tier) category and
@@ -163,12 +165,24 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 		$new.total = ($new.total ?? 0) + 1;
 		$new[ticket.createdById] = ($new[ticket.createdById] ?? 0) + 1;
 
+		// Preserve whatever prefix the *destination* category gives this ticket —
+		// its emoji settings may differ from the old category's, which is a
+		// difference worth repainting for even when nothing else changed.
+		const emojiSettings = await emojiSettingsFor(client, {
+			...ticket,
+			categoryId: newCategory.id,
+		});
+		const fromEmojiSettings = await emojiSettingsFor(client, ticket);
+
 		// Rename channel/thread and move to new Discord category (CHANNEL mode only)
 		if (
 			channelMode === 'CHANNEL' &&
-			(newCategory.staffRoles !== ticket.category.staffRoles ||
+			// `!==` on the two role arrays compared references, so this was always
+			// true and the edit always ran.
+			(JSON.stringify(newCategory.staffRoles) !== JSON.stringify(ticket.category.staffRoles) ||
 			newCategory.channelName !== ticket.category.channelName ||
-			newCategory.discordCategory !== ticket.category.discordCategory)
+			newCategory.discordCategory !== ticket.category.discordCategory ||
+			managedPrefix(ticket, emojiSettings) !== managedPrefix(ticket, fromEmojiSettings))
 		) {
 			const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 			const channelName = renderChannelName(newCategory.channelName, {
@@ -177,8 +191,7 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 				number: ticket.number,
 			});
 
-			// Preserve claim (✅) and priority emoji prefixes
-			const finalName = managedPrefix(ticket) + channelName;
+			const finalName = clampName(managedPrefix(ticket, emojiSettings) + channelName);
 
 			const discordCategory = await interaction.guild.channels.fetch(newCategory.discordCategory).catch(() => null);
 			await interaction.channel.edit({

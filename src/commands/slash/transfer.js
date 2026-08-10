@@ -5,6 +5,12 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { resolveCategory } = require('../../lib/settings/inheritance');
+const {
+	emojiSettingsFor,
+	managedPrefix,
+	renderChannelName,
+} = require('../../lib/tickets/mutations');
+const { clampName } = require('../../lib/tickets/naming');
 const { pools } = require('../../lib/threads');
 
 const { crypto } = pools;
@@ -75,10 +81,17 @@ module.exports = class TransferSlashCommand extends SlashCommand {
 		// the chain has to be resolved before anything calls `.replace` on it.
 		const category = resolveCategory(ticket.category, ticket.guild);
 
-		const channelName = category.channelName
-			.replace(/{+\s?(user)?name\s?}+/gi, member.user.username)
-			.replace(/{+\s?(nick|display)(name)?\s?}+/gi, member.displayName)
-			.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number === 1488 ? '1487b' : ticket.number);
+		// Rebuilt through the shared helpers, which also fixes a long-standing
+		// bug: this used to write the bare template, so transferring a ticket
+		// silently dropped its claim tick and priority emoji.
+		const emojiSettings = await emojiSettingsFor(client, ticket);
+		const channelName = clampName(
+			managedPrefix(ticket, emojiSettings) +
+			renderChannelName(category.channelName, {
+				creator: member,
+				number: ticket.number,
+			}),
+		);
 
 		await Promise.all([
 			client.prisma.ticket.update({

@@ -22,46 +22,134 @@
 const ms = require('ms');
 const { logTicketEvent } = require('../logging');
 const { emit } = require('../automations/dispatcher');
-const { resolveCategory } = require('../settings/inheritance');
-
-/** The channel-name emoji for a priority. Unrecognised values get the neutral one. */
-const getEmoji = priority => {
-	const emojis = {
-		'HIGH': '🔴',
-		'MEDIUM': '🟠',
-		'LOW': '🟢', // eslint-disable-line sort-keys
-	};
-	return emojis[priority?.toUpperCase()] ?? '🔵';
-};
-
-/**
- * The prefix the bot manages on a ticket channel's name: the claim tick, then
- * the priority emoji.
- *
- * This convention was re-implemented in five places (`manager.js` twice,
- * `move.js`, `priority.js`, `rename.js`), which is why a rename used to drop the
- * priority emoji depending on which command you used. One definition now.
- */
-const managedPrefix = ticket => (ticket.claimedById ? '✅' : '') + (ticket.priority ? getEmoji(ticket.priority) : '');
+const {
+	PRIORITY_EMOJI_DEFAULTS,
+	resolveCategory,
+} = require('../settings/inheritance');
+const { resolveEmojiSettings } = require('./emoji-settings');
+const {
+	NAME_LIMIT,
+	clampName,
+	managedName,
+	managedPrefix,
+	priorityEmoji,
+	renderChannelName,
+	stripManagedPrefix,
+} = require('./naming');
 
 /**
- * A category's `channelName` template, filled in for a ticket.
+ * The channel-name emoji for a priority, using the built-in defaults.
  *
- * `fallback` is what stands in for a creator who has left the guild — `escalate`
- * uses their id so the channel is still identifiable, which is worth keeping.
+ * @deprecated Kept because `src/commands/slash/priority.js` re-exports it. New
+ * code takes the resolved map: `priorityEmoji(priority, settings.priorityEmojis)`.
  */
-function renderChannelName(template, {
-	creator, fallback = '', number,
-}) {
-	return template
-		.replace(/{+\s?(user)?name\s?}+/gi, creator?.user?.username ?? fallback)
-		.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator?.displayName ?? fallback)
-		// 1488 is a neo-Nazi numeric symbol; upstream skips it.
-		.replace(/{+\s?num(ber)?\s?}+/gi, number === 1488 ? '1487b' : number);
-}
+const getEmoji = priority => priorityEmoji(priority, PRIORITY_EMOJI_DEFAULTS) || '🔵';
 
 /** The permissions a ticket participant gets. */
 const PARTICIPANT_ALLOW = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
+
+/**
+ * The resolved emoji settings for a ticket.
+ *
+ * `getCategory` is keyv-cached for 12 hours *with the guild embedded*, so the
+ * common path costs no queries and both levels of the chain come from one place.
+ *
+ * @param {import("client")} client
+ * @param {object} ticket a row carrying at least `categoryId` and `guildId`
+ * @returns {Promise<object>} EmojiSettings
+ */
+async function emojiSettingsFor(client, ticket) {
+	const category = ticket?.categoryId
+		? await client.tickets.getRawCategory(ticket.categoryId)
+		: null;
+	const guild = category?.guild ?? ticket?.guild ??
+		(ticket?.guildId
+			? await client.prisma.guild.findUnique({ where: { id: ticket.guildId } })
+			: null);
+	return resolveEmojiSettings({
+		category,
+		guild,
+	});
+}
+
+/**
+ * Take one slot from a channel's rename budget.
+ *
+ * Discord allows two renames per ten minutes per channel and then simply stalls,
+ * so the bot keeps its own count rather than discovering the limit by hanging.
+ *
+ * @returns {Promise<{ok: boolean, freesAt: number}>} `freesAt` is when the
+ *   oldest slot ages out, for a caller that wants to try again later.
+ */
+async function takeRenameBudget(client, ticketId) {
+	const key = `rate-limits/channel-rename:${ticketId}`;
+	const timestamps = (await client.keyv.get(key) ?? []).filter(at => Date.now() - at < RENAME_WINDOW);
+	if (timestamps.length >= RENAME_LIMIT) {
+		return {
+			freesAt: Math.min(...timestamps) + RENAME_WINDOW,
+			ok: false,
+		};
+	}
+	timestamps.push(Date.now());
+	await client.keyv.set(key, timestamps, RENAME_WINDOW);
+	return {
+		freesAt: 0,
+		ok: true,
+	};
+}
+
+/**
+ * Bring a ticket channel's name in line with the ticket's state.
+ *
+ * Every place that used to hand-roll `'✅' + name` or `name.slice(1)` calls this
+ * instead. The name is rebuilt from the *current* channel name rather than from
+ * the category template, so a manual rename survives a claim or a priority
+ * change — which is the behaviour `setPriority` already went out of its way to
+ * preserve, now available everywhere.
+ *
+ * Skips the API call when the name is already right: renames are rate limited,
+ * and spending a slot to write the same string is how a later, real rename ends
+ * up refused.
+ *
+ * @returns {Promise<{ok: boolean, reason?: string, name?: string}>}
+ */
+async function syncChannelName(client, {
+	channel, reason, settings, ticket,
+}) {
+	const resolved = channel ?? await client.channels.fetch(ticket.id).catch(() => null);
+	if (!resolved) {
+		return {
+			ok: false,
+			reason: 'unknown_channel',
+		};
+	}
+	const emoji = settings ?? await emojiSettingsFor(client, ticket);
+	const name = managedName(resolved.name, ticket, emoji);
+	if (name === resolved.name) {
+		return {
+			name,
+			ok: true,
+			reason: 'noop',
+		};
+	}
+
+	const budget = await takeRenameBudget(client, ticket.id);
+	if (!budget.ok) {
+		// The database is already correct; only the visible name lags, and the
+		// next name write repairs it. A caller that cares can say so in its log.
+		return {
+			name,
+			ok: true,
+			reason: 'rate_limited',
+		};
+	}
+
+	await resolved.setName(name, reason).catch(() => null);
+	return {
+		name,
+		ok: true,
+	};
+}
 
 /**
  * Change a ticket's priority, keeping the channel name's emoji in step.
@@ -87,17 +175,13 @@ async function setPriority(client, {
 		};
 	}
 
-	const channel = await client.channels.fetch(ticketId).catch(() => null);
-	if (channel) {
-		// Rewritten from the *current* channel name rather than rebuilt from the
-		// category template, so a manual rename survives a priority change.
-		const claimedPrefix = channel.name.startsWith('✅') ? '✅' : '';
-		const unprefixed = claimedPrefix ? channel.name.slice(1) : channel.name;
-		const name = ticket.priority
-			? claimedPrefix + unprefixed.replace(getEmoji(ticket.priority), getEmoji(priority))
-			: claimedPrefix + getEmoji(priority) + unprefixed;
-		await channel.setName(name).catch(() => null);
-	}
+	await syncChannelName(client, {
+		reason: `Priority set by ${actorId ?? client.user.id}`,
+		ticket: {
+			...ticket,
+			priority,
+		},
+	});
 
 	await client.prisma.ticket.update({
 		data: { priority },
@@ -211,11 +295,20 @@ async function moveTicket(client, {
 	$new[ticket.createdById] ||= 0;
 	$new[ticket.createdById]++;
 
+	// The destination's emoji settings, so a move between two categories that
+	// differ only in their emojis still repaints the channel.
+	const emoji = await emojiSettingsFor(client, {
+		...ticket,
+		categoryId: newCategory.id,
+	});
+	const fromEmoji = await emojiSettingsFor(client, ticket);
+
 	if (
 		channel && discordCategory && (
-			newCategory.staffRoles !== ticket.category.staffRoles ||
+			JSON.stringify(newCategory.staffRoles) !== JSON.stringify(ticket.category.staffRoles) ||
 			newCategory.channelName !== ticket.category.channelName ||
-			newCategory.discordCategory !== ticket.category.discordCategory
+			newCategory.discordCategory !== ticket.category.discordCategory ||
+			managedPrefix(ticket, emoji) !== managedPrefix(ticket, fromEmoji)
 		)
 	) {
 		const creator = await guild.members.fetch(ticket.createdById).catch(() => null);
@@ -223,10 +316,10 @@ async function moveTicket(client, {
 		// sequence: three API requests where one will do.
 		await channel.edit({
 			lockPermissions: false,
-			name: managedPrefix(ticket) + renderChannelName(newCategory.channelName, {
+			name: clampName(managedPrefix(ticket, emoji) + renderChannelName(newCategory.channelName, {
 				creator,
 				number: ticket.number,
-			}),
+			})),
 			parent: discordCategory,
 			permissionOverwrites: [
 				{
@@ -302,17 +395,22 @@ async function renameTicket(client, {
 		};
 	}
 
-	const name = managedPrefix(ticket) + rawName;
-	if (name.length < 1 || name.length > 100) {
+	const settings = await emojiSettingsFor(client, ticket);
+	// Strip first: `/rename ✅foo` should not end up as `✅✅foo`, and a user who
+	// pastes the current name back in should get the same name out.
+	const name = managedPrefix(ticket, settings) + stripManagedPrefix(rawName, ticket, settings);
+	if (name.length < 1 || [...name].length > NAME_LIMIT) {
 		return {
 			ok: false,
 			reason: 'invalid_name',
 		};
 	}
 
-	const key = `rate-limits/channel-rename:${ticketId}`;
-	const timestamps = (await client.keyv.get(key) ?? []).filter(at => Date.now() - at < RENAME_WINDOW);
-	if (timestamps.length >= RENAME_LIMIT) {
+	// A user-chosen name is not stored anywhere, so a deferred rename could not
+	// reproduce it — this one keeps the honest "try again later" answer rather
+	// than queueing (unlike the managed-prefix writes, which recompute).
+	const budget = await takeRenameBudget(client, ticketId);
+	if (!budget.ok) {
 		return {
 			ok: false,
 			reason: 'rate_limited',
@@ -328,8 +426,6 @@ async function renameTicket(client, {
 	}
 
 	const originalName = channel.name;
-	timestamps.push(Date.now());
-	await client.keyv.set(key, timestamps, RENAME_WINDOW);
 	await channel.edit({ name });
 
 	logTicketEvent(client, {
@@ -492,9 +588,13 @@ async function removeTicketMember(client, {
 	};
 }
 
+// `managedPrefix` and `renderChannelName` are re-exported from ./naming so the
+// commands that already import them from here keep working; new code should
+// reach for the module that defines them.
 module.exports = {
 	PARTICIPANT_ALLOW,
 	addTicketMember,
+	emojiSettingsFor,
 	getEmoji,
 	managedPrefix,
 	moveTicket,
@@ -502,4 +602,6 @@ module.exports = {
 	renameTicket,
 	renderChannelName,
 	setPriority,
+	syncChannelName,
+	takeRenameBudget,
 };
