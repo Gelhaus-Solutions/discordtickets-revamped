@@ -83,6 +83,44 @@ commands:
         reason:
           description: The reason for closing the ticket
           name: reason
+    emoji:
+      cleared:
+        description: This ticket's emoji has been cleared.
+        title: ✅ Emoji cleared
+      deferred:
+        description:
+          This channel has been renamed twice in the last 10 minutes, so the new
+          emoji will be applied automatically once the limit resets.
+        title: ⏳ Queued
+      description: Set or clear a ticket's emoji
+      invalid:
+        description:
+          That is not an emoji Discord can show in a channel name. Server emoji
+          cannot be used here.
+        title: ❌ Invalid emoji
+      name: emoji
+      not_staff:
+        description: Only staff members can change a ticket's emoji.
+        title: ❌ Error
+      nothing_to_do:
+        description: "Provide an emoji, or use `clear: True` to remove the current one."
+        title: ❌ Error
+      options:
+        clear:
+          description: Remove the ticket's emoji instead of setting one
+          name: clear
+        emoji:
+          description: The emoji to show at the start of the channel name
+          name: emoji
+        scope:
+          choices:
+            all: Replace the whole prefix
+            state: Keep the priority emoji
+          description: Whether the emoji replaces the priority emoji too
+          name: scope
+      success:
+        description: This ticket's emoji has been set to {emoji}.
+        title: ✅ Emoji set
     escalate:
       description: Escalate a ticket to a different category
       escalated: ⚠️ {by} has escalated this ticket from **{from}** to **{to}**.{reason}

@@ -91,6 +91,7 @@ export const NODE_ICONS = {
 	'action.ticket.move': 'fa-folder-tree',
 	'action.ticket.removeMember': 'fa-user-xmark',
 	'action.ticket.rename': 'fa-i-cursor',
+	'action.ticket.setEmoji': 'fa-icons',
 	'action.ticket.setPriority': 'fa-flag',
 	'action.ticket.setTopic': 'fa-pen',
 	'condition.filter': 'fa-filter',
@@ -136,6 +137,10 @@ export function summarise(node, catalogue) {
 	}
 	if (node.type === 'trigger.schedule.cron')
 		return `${params.cron ?? ''} (${params.timezone ?? 'UTC'})`;
+	if (node.type === 'action.ticket.setEmoji') {
+		if (params.mode === 'clear') return 'clear the emoji';
+		return `${params.emoji ?? ''}${params.mode === 'all' ? ' (whole prefix)' : ''}`;
+	}
 	if (params.content) return String(params.content).slice(0, 60);
 	if (params.name) return String(params.name).slice(0, 60);
 

@@ -808,6 +808,54 @@ const NODE_TYPES = {
 			type: 'text',
 		}],
 	},
+	'action.ticket.setEmoji': {
+		category: 'action',
+		description: 'Pin an emoji to the front of the ticket\'s channel name, or clear it so the claim and priority emoji show again.',
+		label: 'Change the ticket emoji',
+		// `ticket`, not `ticketChannel`: the override is stored on the row and
+		// re-applied by every later name write, so this is still worth doing when
+		// the channel is momentarily unreachable.
+		needs: ['ticket'],
+		// Discord allows two channel renames per ten minutes; being rate limited
+		// is an expected outcome here, not a failure worth stopping the branch for.
+		onError: 'continue',
+		outputs: ['out'],
+		params: [{
+			default: 'state',
+			// One three-way choice rather than a mode plus a separate scope: a
+			// scope means nothing when clearing, so the pair would have an invalid
+			// combination that saves cleanly and only shows up in a run log.
+			key: 'mode',
+			label: 'Action',
+			options: [{
+				label: 'Set an emoji (keep the priority emoji)',
+				value: 'state',
+			}, {
+				label: 'Set an emoji (replace the whole prefix)',
+				value: 'all',
+			}, {
+				label: 'Clear the emoji',
+				value: 'clear',
+			}],
+			required: true,
+			type: 'select',
+		}, {
+			help: 'Shown in place of the claim tick. Server emoji cannot be used in a channel name.',
+			key: 'emoji',
+			label: 'Emoji',
+			type: 'emoji',
+		}],
+		// `emoji` cannot be `required`, because clearing has none — and
+		// `validateParams` collapses undefined, null and '' into one "absent"
+		// branch, so a nullable emoji could not tell "clear it" apart from "the
+		// admin forgot to pick one" and would silently wipe the override.
+		validate: (params, push, path) => {
+			if (params?.mode !== 'clear' && !params?.emoji) {
+				push(`${path}.emoji`, 'required', 'Emoji is required');
+			}
+		},
+	},
+
 	'action.ticket.setPriority': {
 		category: 'action',
 		description: 'Change the ticket\'s priority.',

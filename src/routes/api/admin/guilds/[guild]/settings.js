@@ -9,6 +9,7 @@ const {
 	guildDefaults,
 } = require('../../../../../lib/settings/inheritance');
 const { updateStaffRoles } = require('../../../../../lib/users');
+const { isValidChannelEmoji } = require('../../../../../lib/emoji');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
 // The bot profile fields live behind the customization endpoint. botAvatar and
@@ -95,6 +96,32 @@ function validateJsonFields(data) {
 
 	if ('channelName' in data && data.channelName !== null && typeof data.channelName !== 'string') {
 		throw new Error('channelName must be text, or null for no server default.');
+	}
+
+	// The server-wide emoji defaults. Read on every channel-name write, so junk
+	// here breaks claim/release/priority/close for every category that inherits.
+	for (const field of ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji']) {
+		// null = no server default, '' = deliberately no emoji; both pass.
+		if (!(field in data) || !data[field]) continue;
+		if (!isValidChannelEmoji(data[field])) {
+			throw new Error(`${field} must be an emoji that can appear in a channel name.`);
+		}
+	}
+
+	if ('priorityEmojis' in data && data.priorityEmojis !== null) {
+		const value = data.priorityEmojis;
+		if (typeof value !== 'object' || Array.isArray(value)) {
+			throw new Error('priorityEmojis must be an object.');
+		}
+		for (const [key, v] of Object.entries(value)) {
+			if (!['HIGH', 'LOW', 'MEDIUM', 'NONE'].includes(key)) {
+				throw new Error(`priorityEmojis has an unknown key "${key}".`);
+			}
+			if (v === null || v === '') continue;
+			if (typeof v !== 'string' || !isValidChannelEmoji(v)) {
+				throw new Error(`priorityEmojis.${key} cannot be shown in a channel name.`);
+			}
+		}
 	}
 
 	if ('workingHours' in data) {

@@ -4,7 +4,9 @@ const {
 	LayoutError,
 	validateLayout,
 } = require('../../../../../../../lib/components-v2');
-const { isValidEmoji } = require('../../../../../../../lib/emoji');
+const {
+	isValidChannelEmoji, isValidEmoji,
+} = require('../../../../../../../lib/emoji');
 const {
 	CATEGORY_JSON_NULLABLE,
 	INHERITED_FIELDS,
@@ -17,6 +19,48 @@ const {
 	validateQuestions,
 } = require('../../../../../../../lib/questions-validate');
 const { ApplicationCommandPermissionType } = require('discord.js');
+
+/**
+ * Validate the per-priority emoji map.
+ *
+ * This column is read on every channel-name write, so a string, an array or a
+ * non-emoji value here breaks claim, release, priority and close for every
+ * ticket in the category — long after the admin saved it.
+ *
+ * @param {unknown} value
+ * @returns {?string} a message the dashboard shows verbatim, or null
+ */
+function priorityEmojisError(value) {
+	if (value === null || value === undefined) return null;
+	if (typeof value !== 'object' || Array.isArray(value)) return 'priorityEmojis must be an object';
+	for (const [key, v] of Object.entries(value)) {
+		if (!['HIGH', 'LOW', 'MEDIUM', 'NONE'].includes(key)) return `priorityEmojis has an unknown key "${key}"`;
+		if (v === null) continue;
+		if (typeof v !== 'string') return `priorityEmojis.${key} must be text`;
+		// '' is a deliberate "no emoji for this priority".
+		if (v !== '' && !isValidChannelEmoji(v)) return `priorityEmojis.${key} cannot be shown in a channel name`;
+	}
+	return null;
+}
+
+/**
+ * Validate the three state-emoji columns.
+ *
+ * `null` (inherit) and `''` (deliberately none) both pass untouched; only a
+ * non-empty value has to resolve to something Discord will actually draw.
+ *
+ * @param {Record<string, unknown>} data
+ * @returns {?string}
+ */
+function stateEmojiError(data) {
+	for (const field of ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji']) {
+		if (!data[field]) continue;
+		if (!isValidChannelEmoji(data[field])) {
+			return `${field} must be an emoji that can appear in a channel name`;
+		}
+	}
+	return priorityEmojisError(data.priorityEmojis);
+}
 
 module.exports.delete = fastify => ({
 	handler: async (req, res) => {
@@ -222,6 +266,15 @@ module.exports.patch = fastify => ({
 			});
 		}
 
+		const emojiProblem = stateEmojiError(data);
+		if (emojiProblem) {
+			return res.code(400).send({
+				code: 'invalid_emoji',
+				errors: [{ message: emojiProblem }],
+				statusCode: 400,
+			});
+		}
+
 		// These are JSON columns and `data` is spread straight into the update
 		// below, so whatever arrives is what gets stored. They are read back in
 		// `TicketManager#create` with `.some(...)`, where a string or an object
@@ -329,6 +382,7 @@ module.exports.patch = fastify => ({
 			Promise.all([
 				'Create ticket for user',
 				'claim',
+				'emoji',
 				'force-close',
 				'move',
 				'priority',

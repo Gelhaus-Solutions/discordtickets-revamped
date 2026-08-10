@@ -148,8 +148,22 @@ const displayEmoji = value => {
 	return resolved.name;
 };
 
+/**
+ * Is this an emoji that can appear in a *channel name*?
+ *
+ * Stricter than `isValidEmoji` in one way that matters: a custom server emoji
+ * has no textual form, so `<:urgent:123…>` in a channel-name field renders as
+ * nothing at all. Rejecting it at the API boundary is the difference between an
+ * error an admin can act on and a setting that silently does nothing.
+ *
+ * @param {?string} value
+ * @returns {boolean}
+ */
+const isValidChannelEmoji = value => isValidEmoji(value) && displayEmoji(value) !== '';
+
 module.exports = {
 	displayEmoji,
+	isValidChannelEmoji,
 	isValidEmoji,
 	resolveEmoji,
 };

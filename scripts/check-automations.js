@@ -1097,6 +1097,71 @@ function stubRunners(overrides = {}) {
 
 	// The comment in nodes.js asks people to keep the two in sync; this is what
 	// makes that request enforceable.
+	/* ─────────────────── action.ticket.setEmoji ─────────────────── */
+
+	// `emoji` cannot be marked `required`, because clearing has none — so the
+	// dependency lives in the node's own `validate`. `validateParams` collapses
+	// undefined, null and '' into one "absent" branch, which is why the mode is a
+	// three-way select rather than a nullable emoji: otherwise "clear it" and
+	// "the admin forgot to pick one" would be the same saved graph.
+	const emojiGraph = params => graph(
+		[
+			node('trigger.ticket.created', {}, 'ta'),
+			node('action.ticket.setEmoji', params, 'a'),
+		],
+		[edge('ta', 'a')],
+	);
+
+	await t('setting an emoji without one is rejected', () => {
+		assert.strictEqual(codeOf(emojiGraph({ mode: 'state' })), 'required');
+		assert.strictEqual(codeOf(emojiGraph({ mode: 'all' })), 'required');
+	});
+
+	await t('clearing needs no emoji', () => {
+		assert.strictEqual(codeOf(emojiGraph({ mode: 'clear' })), null);
+	});
+
+	await t('clearing with a stray emoji is still valid', () => {
+		// Harmless: the executor ignores it. Worth pinning so nobody "fixes" it
+		// into an error that breaks graphs saved by an earlier dashboard.
+		assert.strictEqual(codeOf(emojiGraph({
+			emoji: '🔥',
+			mode: 'clear',
+		})), null);
+	});
+
+	await t('both set modes accept an emoji', () => {
+		for (const mode of ['state', 'all']) {
+			assert.strictEqual(codeOf(emojiGraph({
+				emoji: '🔥',
+				mode,
+			})), null, mode);
+		}
+	});
+
+	await t('setEmoji needs a ticket, not a ticket channel', () => {
+		// The override is stored on the row and re-applied by every later name
+		// write, so it is still worth doing when the channel is unreachable.
+		assert.deepStrictEqual(needsOf(node('action.ticket.setEmoji', {
+			emoji: '🔥',
+			mode: 'state',
+		})), ['ticket']);
+	});
+
+	await t('setEmoji is rejected under a trigger with no ticket', () => {
+		const g = graph(
+			[
+				node('trigger.member.joined', {}, 'ta'),
+				node('action.ticket.setEmoji', {
+					emoji: '🔥',
+					mode: 'state',
+				}, 'a'),
+			],
+			[edge('ta', 'a')],
+		);
+		assert.strictEqual(codeOf(g), 'missing_context');
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {

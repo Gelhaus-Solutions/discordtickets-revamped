@@ -1,7 +1,7 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../lib/users');
 const {
-	displayEmoji, isValidEmoji,
+	displayEmoji, isValidChannelEmoji, isValidEmoji,
 } = require('../../../../../../lib/emoji');
 const {
 	CATEGORY_JSON_NULLABLE,
@@ -19,6 +19,48 @@ const ms = require('ms');
 const {
 	getAverageTimes, getAverageRating,
 } = require('../../../../../../lib/stats');
+
+/**
+ * Validate the per-priority emoji map.
+ *
+ * This column is read on every channel-name write, so a string, an array or a
+ * non-emoji value here breaks claim, release, priority and close for every
+ * ticket in the category — long after the admin saved it.
+ *
+ * @param {unknown} value
+ * @returns {?string} a message the dashboard shows verbatim, or null
+ */
+function priorityEmojisError(value) {
+	if (value === null || value === undefined) return null;
+	if (typeof value !== 'object' || Array.isArray(value)) return 'priorityEmojis must be an object';
+	for (const [key, v] of Object.entries(value)) {
+		if (!['HIGH', 'LOW', 'MEDIUM', 'NONE'].includes(key)) return `priorityEmojis has an unknown key "${key}"`;
+		if (v === null) continue;
+		if (typeof v !== 'string') return `priorityEmojis.${key} must be text`;
+		// '' is a deliberate "no emoji for this priority".
+		if (v !== '' && !isValidChannelEmoji(v)) return `priorityEmojis.${key} cannot be shown in a channel name`;
+	}
+	return null;
+}
+
+/**
+ * Validate the three state-emoji columns.
+ *
+ * `null` (inherit) and `''` (deliberately none) both pass untouched; only a
+ * non-empty value has to resolve to something Discord will actually draw.
+ *
+ * @param {Record<string, unknown>} data
+ * @returns {?string}
+ */
+function stateEmojiError(data) {
+	for (const field of ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji']) {
+		if (!data[field]) continue;
+		if (!isValidChannelEmoji(data[field])) {
+			return `${field} must be an emoji that can appear in a channel name`;
+		}
+	}
+	return priorityEmojisError(data.priorityEmojis);
+}
 
 module.exports.get = fastify => ({
 	handler: async req => {
@@ -172,6 +214,13 @@ module.exports.post = fastify => ({
 			throw badRequest;
 		}
 
+		const emojiProblem = stateEmojiError(data);
+		if (emojiProblem) {
+			const badRequest = new Error(emojiProblem);
+			badRequest.statusCode = 400;
+			throw badRequest;
+		}
+
 		// Prepare category data for Prisma
 		const categoryData = { ...data };
 
@@ -226,6 +275,7 @@ module.exports.post = fastify => ({
 			Promise.all([
 				'Create ticket for user',
 				'claim',
+				'emoji',
 				'force-close',
 				'move',
 				'priority',

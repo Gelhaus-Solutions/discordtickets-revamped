@@ -22,6 +22,7 @@
 const ms = require('ms');
 const { logTicketEvent } = require('../logging');
 const { emit } = require('../automations/dispatcher');
+const { isValidChannelEmoji } = require('../emoji');
 const {
 	PRIORITY_EMOJI_DEFAULTS,
 	resolveCategory,
@@ -148,6 +149,99 @@ async function syncChannelName(client, {
 	return {
 		name,
 		ok: true,
+	};
+}
+
+/**
+ * Pin an emoji to a ticket, or clear it.
+ *
+ * The override replaces the state emoji — the claim tick, or whatever the
+ * category configures — and is kept through claims, releases and moves. It is
+ * cleared by an automation, by `/emoji`, or by the ticket closing, and by
+ * nothing else: an automation set it deliberately, and a move is not consent to
+ * undo that.
+ *
+ * `scope` decides how far it reaches. 'state' leaves the priority emoji alone,
+ * because priority answers a different question; 'all' makes the override the
+ * entire prefix, which is what an author wants when the emoji *is* the status.
+ *
+ * @param {import("client")} client
+ * @param {{actorId?: string, emoji: ?string, scope?: 'state'|'all', ticketId: string}} options
+ * @returns {Promise<{ok: boolean, reason?: string, from?: ?string, to?: ?string}>}
+ */
+async function setTicketEmoji(client, {
+	actorId, emoji, scope, ticketId,
+}) {
+	const ticket = await client.prisma.ticket.findUnique({ where: { id: ticketId } });
+	if (!ticket) {
+		return {
+			ok: false,
+			reason: 'unknown_ticket',
+		};
+	}
+
+	// One meaning per value: '' and null both mean "no override".
+	const next = typeof emoji === 'string' && emoji.trim() ? emoji.trim() : null;
+	// Belt and braces — the node's param is validated at save time, but a custom
+	// server emoji passes `isValidEmoji` and would render as nothing at all.
+	if (next !== null && !isValidChannelEmoji(next)) {
+		return {
+			ok: false,
+			reason: 'invalid_emoji',
+		};
+	}
+	const nextScope = next === null ? null : scope === 'all' ? 'all' : 'state';
+
+	if (next === ticket.emojiOverride && nextScope === ticket.emojiOverrideScope) {
+		return {
+			from: ticket.emojiOverride,
+			ok: true,
+			reason: 'noop',
+			to: next,
+		};
+	}
+
+	await client.prisma.ticket.update({
+		data: {
+			emojiOverride: next,
+			emojiOverrideScope: nextScope,
+		},
+		where: { id: ticketId },
+	});
+
+	// The ticket cache is keyed for three minutes and nothing else invalidates
+	// it, so a condition node later in the same run would otherwise branch on the
+	// pre-write ticket.
+	await client.tickets.getTicket(ticketId, true);
+
+	const sync = await syncChannelName(client, {
+		reason: `Emoji set by ${actorId ?? client.user.id}`,
+		ticket: {
+			...ticket,
+			emojiOverride: next,
+			emojiOverrideScope: nextScope,
+		},
+	});
+
+	logTicketEvent(client, {
+		action: 'update',
+		diff: {
+			original: { emoji: ticket.emojiOverride },
+			updated: { emoji: next },
+		},
+		target: {
+			id: ticket.id,
+			name: `<#${ticket.id}>`,
+		},
+		userId: actorId ?? client.user.id,
+	});
+
+	return {
+		from: ticket.emojiOverride,
+		ok: true,
+		// The override is persisted either way; only the visible rename can lag.
+		reason: sync.reason === 'rate_limited' ? 'rename_deferred' : undefined,
+		to: next,
 	};
 }
 
@@ -602,6 +696,7 @@ module.exports = {
 	renameTicket,
 	renderChannelName,
 	setPriority,
+	setTicketEmoji,
 	syncChannelName,
 	takeRenameBudget,
 };

@@ -68,7 +68,9 @@
 	/** Hide the channel picker unless "a specific channel" is actually chosen. */
 	const visible = (field) =>
 		!(field.key === 'channelId' && params.target !== 'channel') &&
-		!(field.key === 'channelIds' && params.scope !== 'channels');
+		!(field.key === 'channelIds' && params.scope !== 'channels') &&
+		// "Clear the emoji" has no emoji to pick.
+		!(field.key === 'emoji' && params.mode === 'clear');
 </script>
 
 {#if definition}

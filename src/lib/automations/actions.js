@@ -46,6 +46,7 @@ const {
 	removeTicketMember,
 	renameTicket,
 	setPriority,
+	setTicketEmoji,
 } = require('../tickets/mutations');
 const { evaluateClauses } = require('./conditions');
 
@@ -317,6 +318,19 @@ function makeRunners(client, runNested) {
 			if (!member || !channel) return skip('unavailable');
 			await client.tickets.autoClaim(channel, member.id);
 			return {};
+		}),
+
+		'action.ticket.setEmoji': real(async (node, ctx) => {
+			const clear = node.params.mode === 'clear';
+			const result = await setTicketEmoji(client, {
+				actorId: ctx.actorId,
+				emoji: clear ? null : node.params.emoji,
+				scope: clear ? null : node.params.mode,
+				ticketId: ctx.ticketId,
+			});
+			// `rename_deferred` rides back as an ok-with-reason: the override is
+			// persisted the moment this returns, and only the channel name lags.
+			return result.ok ? { reason: result.reason } : skip(result.reason);
 		}),
 
 		'action.ticket.setPriority': real(async (node, ctx) => {
