@@ -124,6 +124,38 @@
 		{ key: 'priorityEmojis', label: 'Priority emojis' }
 	];
 
+	/**
+	 * The values this page loaded with, for the bulk action's dirty check.
+	 *
+	 * Deep-cloned on purpose: `settings` is a proxy over the very object
+	 * `data.settings` points at, so comparing the two would compare a thing with
+	 * itself and never report a change.
+	 */
+	const loadedApplicable = JSON.parse(
+		JSON.stringify(Object.fromEntries(APPLICABLE.map(({ key }) => [key, settings[key] ?? null])))
+	);
+
+	/**
+	 * Has the one field the bulk action is about been edited since it loaded?
+	 *
+	 * Deliberately per-field rather than the page-wide `modified` flag. The
+	 * field selector below sits inside the form, so merely choosing which field
+	 * to apply fires the form's `onchange` and marks the whole page dirty —
+	 * which made the bulk action refuse for every field except the default.
+	 *
+	 * Cooldown is the one field whose input does not write straight back to
+	 * `settings`, so it is compared through the same conversion `submit()` uses.
+	 */
+	const applyFieldIsDirty = () => {
+		const current =
+			applyField === 'cooldown'
+				? String(defaultCooldown ?? '').trim() === ''
+					? null
+					: ms(String(defaultCooldown).trim()) || 0
+				: (settings[applyField] ?? null);
+		return JSON.stringify(current) !== JSON.stringify(loadedApplicable[applyField] ?? null);
+	};
+
 	// Three states again: empty means "no server default", `0` means "no
 	// cooldown", anything else is a duration.
 	let defaultCooldown = $state(
@@ -151,11 +183,11 @@
 
 		// Clearing a category makes it inherit from this page, and the category
 		// route validates that against the *saved* server default — it has no way
-		// to see what is on screen. Running this with the form dirty therefore
-		// judges the categories against the old value, which for staff roles
-		// comes back as "a category needs at least one staff role" while the role
-		// you just picked is visible right above the button. Refuse instead.
-		if (modified) {
+		// to see what is on screen. Running this with an edited value therefore
+		// judges the categories against the old one, which for staff roles comes
+		// back as "a category needs at least one staff role" while the role you
+		// just picked is visible right above the button. Refuse instead.
+		if (applyFieldIsDirty()) {
 			error = {
 				code: 'unsaved_changes',
 				errors: [
@@ -741,7 +773,18 @@
 					setting back to this page everywhere, clear it on every category:
 				</p>
 				<div class="mt-2 flex flex-wrap items-center gap-2">
-					<select class="input form-multiselect font-normal" bind:value={applyField}>
+					<!--
+						`change` is stopped here so it never reaches the form's own
+						handler. This select chooses which field the bulk action acts
+						on; it edits nothing, so letting it mark the page dirty would
+						both nag on navigation and — before the check above became
+						per-field — block the action it exists to configure.
+					-->
+					<select
+						class="input form-multiselect font-normal"
+						bind:value={applyField}
+						onchange={(e) => e.stopPropagation()}
+					>
 						{#each APPLICABLE as { key, label } (key)}
 							<option value={key}>{label}</option>
 						{/each}
