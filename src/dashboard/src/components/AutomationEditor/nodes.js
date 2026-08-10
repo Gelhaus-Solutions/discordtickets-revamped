@@ -159,9 +159,12 @@ export function summarise(node, catalogue) {
 		if (params.mode === 'clear') return 'clear the emoji';
 		return `${params.emoji ?? ''}${params.mode === 'all' ? ' (whole prefix)' : ''}`;
 	}
-	// A message node's text lives in its layout. Showing the first text block is
-	// what makes two "Send a message" cards on the canvas tell each other apart.
-	if (params.layout) return firstText(params.layout) ?? summariseLayout(params.layout);
+	// A rich message keeps its text in blocks. Showing the first one is what makes
+	// two "Send a message" cards on the canvas tell each other apart. A node in
+	// the plain-text format still carries an unused default layout, so this has
+	// to key off the format rather than off the layout being present.
+	if (params.format === 'layout')
+		return firstText(params.layout) ?? summariseLayout(params.layout);
 	if (params.content) return String(params.content).slice(0, 60);
 	if (params.name) return String(params.name).slice(0, 60);
 

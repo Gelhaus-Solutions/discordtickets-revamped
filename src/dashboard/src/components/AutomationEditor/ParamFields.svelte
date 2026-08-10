@@ -5,6 +5,7 @@
 	import BooleanField from './fields/BooleanField.svelte';
 	import ChannelField from './fields/ChannelField.svelte';
 	import DurationField from './fields/DurationField.svelte';
+	import ButtonsField from './fields/ButtonsField.svelte';
 	import EmojiField from './fields/EmojiField.svelte';
 	import LayoutField from './fields/LayoutField.svelte';
 	import NumberField from './fields/NumberField.svelte';
@@ -31,6 +32,7 @@
 
 	const FIELDS = {
 		boolean: BooleanField,
+		buttons: ButtonsField,
 		categories: TicketCategoryField,
 		category: TicketCategoryField,
 		channel: ChannelField,
@@ -65,12 +67,24 @@
 	const optionsFor = (field) =>
 		field.type === 'subject' ? (editor.catalogue?.subjects ?? []) : (field.options ?? []);
 
-	/** Hide the channel picker unless "a specific channel" is actually chosen. */
-	const visible = (field) =>
-		!(field.key === 'channelId' && params.target !== 'channel') &&
-		!(field.key === 'channelIds' && params.scope !== 'channels') &&
-		// "Clear the emoji" has no emoji to pick.
-		!(field.key === 'emoji' && params.mode === 'clear');
+	/**
+	 * Whether a field applies right now, from the server's own `showWhen`.
+	 *
+	 * Declared in the registry rather than hardcoded here, so the rule that hides
+	 * a field is the same one that stops the server validating it — a field the
+	 * editor never showed must never be a reason a save is refused.
+	 *
+	 * `null` in the list means "absent", which is how a stored node from before a
+	 * switch existed still matches the branch it has always been on.
+	 */
+	const visible = (field) => {
+		const rule = field.showWhen;
+		if (!rule) return true;
+		const value = params[rule.key];
+		return rule.in.some((allowed) =>
+			allowed === null ? value === undefined || value === null || value === '' : allowed === value
+		);
+	};
 </script>
 
 {#if definition}

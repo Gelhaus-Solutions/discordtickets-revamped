@@ -23,9 +23,8 @@
  */
 
 const { GRAPH_VERSION } = require('./errors');
-const { defaultMessageLayout } = require('../components-v2');
 
-/** The node types that carried `content` (and, for two of them, `buttons`) at v1. */
+/** The node types whose message can be written in either format. */
 const V1_MESSAGE_NODES = [
 	'action.message.dm',
 	'action.message.ephemeral',
@@ -34,49 +33,32 @@ const V1_MESSAGE_NODES = [
 ];
 
 /**
- * v1 → v2: `content` + `buttons` become one Components v2 `layout`.
+ * v1 → v2: every message node says which format it is in.
  *
- * All four node types at once rather than staged, because `send` and `ephemeral`
- * share the legacy button shape — doing them separately would mean writing the
- * button conversion twice and keeping two button models alive in between.
+ * **Nothing is converted.** A node that was posting plain text is stamped
+ * `format: 'text'` and goes on posting exactly the same message; the rich
+ * Components v2 layout is something an admin opts into per node, from the
+ * dashboard, when they want it. That is what makes this step safe to run
+ * unattended over `action.message.send` nodes that post publicly in thousands
+ * of servers: the only thing that changes is a field nobody sees.
  *
- * The conversion is deliberately shape-only: one bare text block and one bare
- * button row, with no container, separator or footer, so the message Discord
- * receives is identical to the one the old renderer produced. `action.message.send`
- * posts publicly in every guild that uses it, so "nothing looks different" is the
- * property this whole step is judged on.
+ * The one exception is a node that somehow already carries a `layout` — hand
+ * -written, imported, or saved by a newer dashboard against an older row. That
+ * is stamped `layout`, because overwriting it with `text` would silently
+ * discard the message it is actually meant to post.
  */
 function toV2(graph) {
 	return {
 		...graph,
 		nodes: (graph.nodes ?? []).map(node => {
 			if (!V1_MESSAGE_NODES.includes(node?.type)) return node;
-
-			const params = { ...(node.params ?? {}) };
-			// Already converted by hand, or by a newer dashboard writing into an
-			// older row: leave it be rather than overwriting real work.
-			if (params.layout) {
-				delete params.content;
-				delete params.buttons;
-				return {
-					...node,
-					params,
-				};
-			}
-
-			// Block ids are derived from the node id rather than generated, so
-			// reading the same stored row twice produces the same layout — a fresh
-			// uuid each time would make the dashboard's unsaved-changes guard fire
-			// on a page it had only just loaded.
-			const layout = defaultMessageLayout(params.content, params.buttons, { idPrefix: String(node.id) });
-			delete params.content;
-			delete params.buttons;
-
+			const params = node.params ?? {};
+			if (params.format === 'text' || params.format === 'layout') return node;
 			return {
 				...node,
 				params: {
 					...params,
-					layout,
+					format: params.layout ? 'layout' : 'text',
 				},
 			};
 		}),

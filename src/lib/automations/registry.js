@@ -18,6 +18,10 @@
  * @property {number} [min] @property {number} [max]
  * @property {number} [maxLength]
  * @property {{value: *, label: string}[]} [options]  for `select`
+ * @property {{key: string, in: *[]}} [showWhen]  only offer this field while
+ *   another param holds one of these values; `null` in the list means "absent".
+ *   Read by the editor to hide the field and to skip validating it — a hidden
+ *   field is never a reason to block a save.
  * @property {string} [help]
  *
  * @typedef {object} NodeType
@@ -426,6 +430,71 @@ function validateClauses(clauses, push, path) {
 }
 
 /**
+ * Validate the buttons attached to a legacy-format message.
+ *
+ * Each one points at a "button is pressed" trigger in *this* graph — the common
+ * case, and why one automation can own several buttons — or at another
+ * automation entirely, which must exist in this guild *and* be triggered by a
+ * button press. Pointing a button at a ticket-closed automation would render
+ * fine and then do nothing when pressed, which is the worst kind of broken.
+ */
+function validateButtons(buttons, push, path, options = {}) {
+	if (buttons === undefined || buttons === null) return;
+	if (!Array.isArray(buttons)) {
+		push(path, 'not_a_list', 'Buttons must be a list');
+		return;
+	}
+	if (buttons.length > LIMITS.messageButtons) {
+		push(path, 'too_many', `Too many buttons (max ${LIMITS.messageButtons})`);
+		return;
+	}
+
+	buttons.forEach((button, i) => {
+		const at = `${path}[${i}]`;
+		if (!button || typeof button !== 'object') {
+			push(at, 'not_an_object', 'This button is not valid');
+			return;
+		}
+		if (typeof button.label !== 'string' || !button.label.trim()) {
+			push(`${at}.label`, 'required', 'Buttons need a label');
+		} else if (button.label.length > 80) {
+			push(`${at}.label`, 'too_long', 'The label is too long (max 80)');
+		}
+		if (button.style && !['primary', 'secondary', 'success', 'danger'].includes(button.style)) {
+			push(`${at}.style`, 'unknown_option', 'That is not a button style');
+		}
+
+		const hasNode = typeof button.nodeId === 'string' && button.nodeId;
+		const hasKey = typeof button.automationKey === 'string' && button.automationKey;
+
+		if (!hasNode && !hasKey) {
+			push(`${at}.nodeId`, 'required', 'Pick what this button does');
+			return;
+		}
+		if (hasNode && hasKey) {
+			push(`${at}.nodeId`, 'ambiguous_target', 'A button runs one thing, not two');
+			return;
+		}
+
+		if (hasNode) {
+			// `buttonNodeIds` is supplied by the caller from the graph being saved.
+			if (options.buttonNodeIds && !options.buttonNodeIds.includes(button.nodeId)) {
+				push(`${at}.nodeId`, 'unknown_trigger', 'That step is not a "button is pressed" trigger in this automation');
+			}
+			return;
+		}
+
+		// `buttonAutomationKeys` is only supplied by the routes; the tests and the
+		// catalogue endpoint validate the shape without the guild's data.
+		if (options.automationKeys && !options.automationKeys.includes(button.automationKey)) {
+			push(`${at}.automationKey`, 'unknown_automation', 'That automation no longer exists');
+		} else if (options.buttonAutomationKeys && !options.buttonAutomationKeys.includes(button.automationKey)) {
+			push(`${at}.automationKey`, 'not_a_button_automation', 'That automation is not started by a button press');
+		}
+	});
+}
+
+/**
  * Validate the Components v2 layout attached to an `action.message.*` node.
  *
  * The whole document is checked by `components-v2.js#validateLayout` — the same
@@ -478,11 +547,69 @@ function validateMessageLayout(kind) {
 }
 
 /**
- * The `layout` param every `action.message.*` node carries.
+ * How an `action.message.*` node writes its message.
+ *
+ * Per node, not per bot: a one-line "thanks, we'll be with you shortly" wants a
+ * textarea, and the confirmation dialog three steps later wants containers,
+ * images and a button row. Forcing either into the other's editor is the wrong
+ * trade for somebody.
+ *
+ * **Absent means `text`.** Every node stored before this existed keeps posting
+ * exactly what it posted before; `upgrade.js` stamps the format it was already
+ * using rather than converting anything.
+ */
+const MESSAGE_FORMATS = [
+	{
+		label: 'Plain text',
+		value: 'text',
+	},
+	{
+		label: 'Rich message (blocks, images, buttons)',
+		value: 'layout',
+	},
+];
+
+const formatField = {
+	default: 'text',
+	help: 'A rich message can hold containers, images and sections. You can switch back — the two are kept separately.',
+	key: 'format',
+	label: 'Message style',
+	options: MESSAGE_FORMATS,
+	type: 'select',
+};
+
+/** Shown only while `format` is the legacy one. Absent counts as legacy. */
+const legacyWhen = {
+	in: ['text', null],
+	key: 'format',
+};
+
+const contentField = help => ({
+	help,
+	key: 'content',
+	label: 'Message',
+	maxLength: LIMITS.messageLength,
+	// Not `required`: it only applies in the legacy format, and `validateParams`
+	// has no idea which format is selected. The node's own `validate` enforces it.
+	showWhen: legacyWhen,
+	type: 'textarea',
+});
+
+const legacyButtonsField = help => ({
+	help,
+	key: 'buttons',
+	label: 'Buttons',
+	maxItems: LIMITS.messageButtons,
+	showWhen: legacyWhen,
+	type: 'buttons',
+});
+
+/**
+ * The `layout` param, shown only while the rich format is selected.
  *
  * `default` matters: the dashboard seeds a new node's params from the schema, so
- * without it a freshly dropped message node would have no layout at all and the
- * editor would have to invent one — which is how the two ends of this stop
+ * without it a node switched to the rich format would have no layout at all and
+ * the editor would have to invent one — which is how the two ends of this stop
  * agreeing about what a new message looks like.
  */
 const layoutField = (kind, help) => ({
@@ -493,9 +620,30 @@ const layoutField = (kind, help) => ({
 	// offers, so the two cannot disagree about what will be accepted.
 	kind,
 	label: 'Message',
-	required: true,
+	showWhen: {
+		in: ['layout'],
+		key: 'format',
+	},
 	type: 'layout',
 });
+
+/** Is a node using the Components v2 layout rather than plain text? */
+const usesLayout = params => params?.format === 'layout';
+
+/**
+ * The whole validation for one message node's message, whichever format it is in.
+ *
+ * @param {'message'|'ephemeral'|'dm'} kind
+ * @param {{buttons?: boolean}} [legacy] whether the legacy format offers buttons
+ */
+function validateMessage(kind, { buttons = false } = {}) {
+	const layout = validateMessageLayout(kind);
+	return (params, push, path, options = {}) => {
+		if (usesLayout(params)) return layout(params, push, path, options);
+		if (!params?.content) push(`${path}.content`, 'required', `Message ${message('required')}`);
+		if (buttons) validateButtons(params?.buttons, push, `${path}.buttons`, options);
+	};
+}
 
 /** The placeholder note every message node shows, in one place. */
 const PLACEHOLDER_HELP = '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.';
@@ -599,9 +747,11 @@ const NODE_TYPES = {
 		outputs: ['out'],
 		params: [
 			subjectField('Send to'),
+			formatField,
+			contentField(PLACEHOLDER_HELP),
 			layoutField('dm', `${PLACEHOLDER_HELP} A DM is not in any server, so only link buttons work here.`),
 		],
-		validate: validateMessageLayout('dm'),
+		validate: validateMessage('dm'),
 	},
 	'action.message.ephemeral': {
 		category: 'action',
@@ -612,11 +762,16 @@ const NODE_TYPES = {
 		// 400 at save time.
 		needs: ['interaction'],
 		outputs: ['out'],
-		// Buttons on a private message are what makes "are you sure?" a
-		// confirmation rather than a public poll: only the person who pressed the
-		// first button ever sees them.
-		params: [layoutField('ephemeral', `${PLACEHOLDER_HELP} Only the person who set this off can see it.`)],
-		validate: validateMessageLayout('ephemeral'),
+		params: [
+			formatField,
+			contentField(`${PLACEHOLDER_HELP} Only the person who set this off can see it.`),
+			// Buttons on a private message are what makes "are you sure?" a
+			// confirmation rather than a public poll: only the person who pressed
+			// the first button ever sees them.
+			legacyButtonsField('Each button starts a "button is pressed" trigger — in this automation, or another one. Only the person who set this off can see them.'),
+			layoutField('ephemeral', `${PLACEHOLDER_HELP} Only the person who set this off can see it.`),
+		],
+		validate: validateMessage('ephemeral', { buttons: true }),
 	},
 	'action.message.react': {
 		category: 'action',
@@ -639,6 +794,8 @@ const NODE_TYPES = {
 		needs: ['actor'],
 		outputs: ['out'],
 		params: [
+			formatField,
+			contentField(PLACEHOLDER_HELP),
 			layoutField('message', PLACEHOLDER_HELP),
 			{
 				default: true,
@@ -648,7 +805,7 @@ const NODE_TYPES = {
 				type: 'boolean',
 			},
 		],
-		validate: validateMessageLayout('message'),
+		validate: validateMessage('message'),
 	},
 	'action.message.send': {
 		category: 'action',
@@ -680,18 +837,25 @@ const NODE_TYPES = {
 			{
 				key: 'channelId',
 				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'target',
+				},
 				type: 'channel',
 			},
+			formatField,
 			// The distinction that catches people out: on a button trigger
 			// `{name}` is the staff member who pressed it, not the member the
 			// ticket belongs to.
+			contentField(PLACEHOLDER_HELP),
+			legacyButtonsField('Each button starts a "button is pressed" trigger — in this automation, or another one.'),
 			layoutField('message', PLACEHOLDER_HELP),
 		],
 		validate: (params, push, path, options) => {
 			if (params?.target === 'channel' && !params.channelId) {
 				push(`${path}.channelId`, 'required', 'Pick a channel to send to');
 			}
-			validateMessageLayout('message')(params, push, path, options);
+			validateMessage('message', { buttons: true })(params, push, path, options);
 		},
 	},
 	'action.role.add': {
@@ -823,6 +987,10 @@ const NODE_TYPES = {
 			help: 'Shown in place of the claim tick. Server emoji cannot be used in a channel name.',
 			key: 'emoji',
 			label: 'Emoji',
+			showWhen: {
+				in: ['state', 'all'],
+				key: 'mode',
+			},
 			type: 'emoji',
 		}],
 		// `emoji` cannot be `required`, because clearing has none — and
@@ -1159,6 +1327,10 @@ const NODE_TYPES = {
 			{
 				key: 'channelIds',
 				label: 'Channels',
+				showWhen: {
+					in: ['channels'],
+					key: 'scope',
+				},
 				type: 'channels',
 			},
 			{
@@ -1412,7 +1584,10 @@ module.exports = {
 	isValidTimezone,
 	regexError,
 	needsOf,
+	usesLayout,
+	validateButtons,
 	validateClauses,
+	validateMessage,
 	validateMessageLayout,
 	validateParams,
 };

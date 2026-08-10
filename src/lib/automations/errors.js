@@ -14,11 +14,10 @@
 /**
  * The stored graph format.
  *
- * 2 — the four `action.message.*` nodes hold a Components v2 `layout` instead of
- *     `content` + `buttons`. Stored graphs are upgraded on read by
- *     `upgrade.js` and written back the next time the automation is saved, so a
- *     rollback leaves untouched rows readable — right up until a guild saves in
- *     the new dashboard, at which point that row is v2 for good.
+ * 2 — the four `action.message.*` nodes gained a `format`, choosing between the
+ *     plain `content` + `buttons` they have always had and a Components v2
+ *     `layout`. The upgrade only stamps the format they were already using; it
+ *     never rewrites a message, so what those nodes post is unchanged.
  */
 const GRAPH_VERSION = 2;
 
@@ -46,6 +45,9 @@ const PUBLIC_LIMITS = {
 	inlineMs: 10_000,
 	/** A wait this short is done with setTimeout if Temporal is unreachable. */
 	inlineWaitMs: 15_000,
+	/** Buttons on one legacy-format message. Discord's action-row cap. */
+	messageButtons: 5,
+	messageLength: 2000,
 	nameLength: 100,
 	nodes: 40,
 	perGuild: 25,

@@ -35,6 +35,21 @@ const SUBJECT_NEEDS = {
 
 const definitionOf = (catalogue, type) => catalogue?.types?.find((t) => t.type === type);
 
+/**
+ * Does a field apply, given the rest of the node's params?
+ *
+ * Mirrors `visible()` in ParamFields.svelte, from the same `showWhen` the
+ * server declares. `null` in the list means "absent".
+ */
+function applies(field, params) {
+	const rule = field.showWhen;
+	if (!rule) return true;
+	const value = params?.[rule.key];
+	return rule.in.some((allowed) =>
+		allowed === null ? value === undefined || value === null || value === '' : allowed === value
+	);
+}
+
 /** Everything a node depends on, including the dynamic cases the server also checks. */
 function needsOf(node, catalogue) {
 	const definition = definitionOf(catalogue, node.type);
@@ -103,12 +118,24 @@ export function validate(graph, catalogue) {
 		for (const field of definition.params ?? []) {
 			const value = node.params?.[field.key];
 
+			// A field the editor is not showing must never block a save — the
+			// server skips it for the same reason, from the same declaration.
+			if (!applies(field, node.params)) continue;
+
 			// A layout is an object, so it is never "missing" in the sense below —
 			// an empty one has to be described in its own terms or the canvas would
 			// call a blank message complete and let the server reject it.
 			if (field.type === 'layout') {
 				const problem = describeLayout(value);
 				if (problem) add(node.id, problem, 'error', field.key);
+				continue;
+			}
+
+			// A message node's `content` is only required in the plain-text format,
+			// which the schema cannot express as `required` — the same reason the
+			// server enforces it in the node's own validator.
+			if (field.key === 'content' && field.showWhen && !value?.trim()) {
+				add(node.id, `${field.label} is required.`, 'error', field.key);
 				continue;
 			}
 
