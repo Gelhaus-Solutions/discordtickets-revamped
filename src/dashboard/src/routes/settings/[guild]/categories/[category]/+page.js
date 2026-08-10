@@ -1,21 +1,5 @@
 import { error } from '@sveltejs/kit';
 
-/**
- * Rendered on the client only, like the automation canvas next door.
- *
- * This page is a live editor: a block editor, a question list, an emoji picker
- * and a dozen inherit-or-override controls, none of which are useful as static
- * HTML. What it *was* getting from SSR was a hydration pass over a deeply
- * nested form — and when that pass went wrong the grid wrappers stopped
- * participating in layout, so the fields promoted into the outer two-column
- * grid and drew on top of each other. Svelte only reports a hydration mismatch
- * in dev builds, so in a production image the page simply came apart in silence.
- *
- * Turning SSR off removes the hydration step entirely rather than guessing at
- * which node diverged.
- */
-export const ssr = false;
-
 /** @type {import('./$types').PageLoad} */
 export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };

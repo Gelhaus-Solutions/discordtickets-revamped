@@ -9,15 +9,12 @@
 	 * shows the ones that work *here*, greys out the ones that do not with the
 	 * reason, and inserts at the caret.
 	 *
-	 * ## Two things this must not do
+	 * ## Two things worth keeping
 	 *
 	 * **Nothing is rendered until it is opened.** The first version left the panel
-	 * in the markup and hid it with the native `popover` attribute, keyed by a
-	 * `Math.random()` id. That id differs between the server render and hydration,
-	 * and a page with seven of these hydrates into a scrambled form — overlapping
-	 * labels, columns drawn on top of each other. Nothing here may depend on a
-	 * value that is not identical on both sides, and the cheapest way to
-	 * guarantee that is to emit nothing at all until a click.
+	 * in the markup, hidden by the native `popover` attribute and keyed by a
+	 * `Math.random()` id — a value that differs between the server render and
+	 * hydration. Emitting nothing until a click costs less and cannot diverge.
 	 *
 	 * **The panel is `fixed`, not `absolute`.** It has to escape the nested cards
 	 * on the category page, the block editor's rows and the 20rem Svelte Flow

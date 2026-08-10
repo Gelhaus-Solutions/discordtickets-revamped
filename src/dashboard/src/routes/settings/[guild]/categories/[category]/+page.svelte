@@ -525,7 +525,14 @@
 						/>
 					</label>
 				</div>
-				<div class="md:col-span-2">
+				<!-- No `md:col-span-2` here. This sits inside the left `grid-cols-1`
+				     column, not the outer two-column grid, so spanning two columns
+				     forces the browser to invent a second, content-sized implicit
+				     column. That column overflows the wrapper, `1fr` for the first
+				     one collapses to 0px, and every field from here on alternates
+				     between a zero-width column and an overflowing one — which is
+				     what made the whole form draw on top of itself. -->
+				<div>
 					<h3 class="mt-2 text-xl font-bold">Channel name emojis</h3>
 					<p class="mb-2 text-base text-gray-500 dark:text-slate-400">
 						Shown at the start of the ticket channel's name. Leave a field empty to use
