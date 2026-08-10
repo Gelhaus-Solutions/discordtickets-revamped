@@ -584,6 +584,22 @@
 						</Inheritable>
 
 						<Inheritable
+							label="Waiting on staff"
+							title="Shown while the last message is from the ticket author. Takes precedence over Open and Claimed. Leave empty to not use this at all — tickets then keep showing Open or Claimed as before."
+							bind:value={category.awaitingStaffEmoji}
+							inherited={inherited.awaitingStaffEmoji}
+							format={emojiLabel}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<EmojiPicker
+									value={value ?? ''}
+									{placeholder}
+									onchange={(v) => setValue(v ?? '')}
+								/>
+							{/snippet}
+						</Inheritable>
+
+						<Inheritable
 							label="Closed"
 							title="Shown on an archived thread once the ticket is closed."
 							bind:value={category.closedEmoji}

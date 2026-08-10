@@ -96,6 +96,12 @@
 			key: 'closedEmoji',
 			label: 'Closed',
 			title: 'Thread and Forum categories only — a channel-mode ticket is deleted on close.'
+		},
+		{
+			key: 'awaitingStaffEmoji',
+			label: 'Waiting on staff',
+			title:
+				'Shown while the last message is from the ticket author. Takes precedence over Open and Claimed. Leave empty to not use this at all — tickets then keep showing Open or Claimed as before.'
 		}
 	];
 
@@ -125,6 +131,7 @@
 		{ key: 'cooldown', label: 'Cooldown' },
 		{ key: 'ratelimit', label: 'Slow mode' },
 		...ROLE_DEFAULTS.map(({ key, label }) => ({ key, label })),
+		{ key: 'awaitingStaffEmoji', label: 'Waiting-on-staff emoji' },
 		{ key: 'claimedEmoji', label: 'Claimed emoji' },
 		{ key: 'closedEmoji', label: 'Closed emoji' },
 		{ key: 'unclaimedEmoji', label: 'Open emoji' },
@@ -714,7 +721,7 @@
 						Shown at the start of a ticket channel's name. "None" means no emoji;
 						leave a field untouched for the built-in default.
 					</p>
-					<div class="grid gap-4 md:grid-cols-3">
+					<div class="grid gap-4 md:grid-cols-2">
 						{#each STATE_EMOJI_FIELDS as { key, label, title } (key)}
 							<label class="font-medium">
 								{label}
