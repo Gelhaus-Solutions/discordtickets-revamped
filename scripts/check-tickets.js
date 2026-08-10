@@ -314,6 +314,169 @@ const ticket = (over = {}) => ({
 		}
 	});
 
+	/* ───────────────────── the waiting-on-staff state ────────────────────── */
+
+	// `awaitingResponseFrom` outranks the claim states but loses to `closed`.
+	// The case that matters most is the second one: an install that never
+	// configures `awaitingStaffEmoji` must behave exactly as it did before the
+	// state existed, because the migration backfills nothing and every open
+	// ticket starts flipping this column the moment the feature ships.
+
+	const awaiting = over => ticket({
+		awaitingResponseFrom: 'STAFF',
+		...over,
+	});
+
+	await t('a configured awaiting emoji beats the claim tick', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(N.managedName('ticket-1', awaiting({ claimedById: '1' }), settings), '⏳ticket-1');
+		assert.strictEqual(N.managedName('ticket-1', awaiting(), settings), '⏳ticket-1');
+	});
+
+	await t('an unconfigured awaiting emoji falls back to what the ticket showed before', () => {
+		const settings = defaults();
+		// Claimed and waiting: still the claim tick, NOT nothing.
+		assert.strictEqual(N.managedName('ticket-1', awaiting({ claimedById: '1' }), settings), '✅ticket-1');
+		// Unclaimed and waiting: still nothing, as an unclaimed ticket always was.
+		assert.strictEqual(N.managedName('ticket-1', awaiting(), settings), 'ticket-1');
+		// And the priority slot is untouched by any of it.
+		assert.strictEqual(
+			N.managedName('ticket-1', awaiting({
+				claimedById: '1',
+				priority: 'HIGH',
+			}), settings),
+			'✅🔴ticket-1',
+		);
+	});
+
+	await t('an explicitly emptied claim tick stays empty while waiting', () => {
+		// '' on claimedEmoji is still a deliberate "no emoji": the awaiting
+		// fallback defers to the claim setting, it does not resurrect a default.
+		const settings = settingsFor({}, { claimedEmoji: '' });
+		assert.strictEqual(N.managedName('ticket-1', awaiting({ claimedById: '1' }), settings), 'ticket-1');
+	});
+
+	await t('closed still beats awaiting', () => {
+		const settings = settingsFor({
+			awaitingStaffEmoji: '⏳',
+			closedEmoji: '🔒',
+		});
+		assert.strictEqual(
+			N.managedName('ticket-1', awaiting({
+				claimedById: '1',
+				open: false,
+			}), settings),
+			'🔒ticket-1',
+		);
+	});
+
+	await t('an emoji override still beats awaiting, in both scopes', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(
+			N.managedName('ticket-1', awaiting({
+				emojiOverride: '🚨',
+				emojiOverrideScope: 'state',
+				priority: 'HIGH',
+			}), settings),
+			'🚨🔴ticket-1',
+		);
+		assert.strictEqual(
+			N.managedName('ticket-1', awaiting({
+				emojiOverride: '🚨',
+				emojiOverrideScope: 'all',
+				priority: 'HIGH',
+			}), settings),
+			'🚨ticket-1',
+		);
+	});
+
+	await t('the prefix is still exactly two slots while awaiting', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(
+			N.managedName('ticket-1', awaiting({
+				claimedById: '1',
+				priority: 'HIGH',
+			}), settings),
+			'⏳🔴ticket-1',
+		);
+	});
+
+	await t('waiting on the user is indistinguishable from the old behaviour', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		for (const value of ['USER', null, undefined]) {
+			assert.strictEqual(
+				N.managedName('ticket-1', ticket({
+					awaitingResponseFrom: value,
+					claimedById: '1',
+				}), settings),
+				'✅ticket-1',
+				String(value),
+			);
+		}
+	});
+
+	await t('a lowercase value from an import or a hand edit still reads as awaiting', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(N.managedName('ticket-1', ticket({ awaitingResponseFrom: 'staff' }), settings), '⏳ticket-1');
+		// Anything else is "not waiting on us", which is the safe direction.
+		assert.strictEqual(N.managedName('ticket-1', ticket({ awaitingResponseFrom: 'nonsense' }), settings), 'ticket-1');
+	});
+
+	await t('an awaiting emoji strips when a category overrides the guild default', () => {
+		// The channel is wearing the guild's value and the category now overrides
+		// it. Strippable only because `historicalEmojis` keeps the raw value at
+		// every level, not just the one currently in force.
+		const overridden = settingsFor({ awaitingStaffEmoji: '⌛' }, { awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(N.managedName('⏳ticket-1', awaiting(), overridden), '⌛ticket-1');
+
+		// And the other direction: the category drops its override, so the
+		// guild's value takes over and the category's old one still strips.
+		const inherited = settingsFor({ awaitingStaffEmoji: null }, { awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(N.managedName('⏳ticket-1', awaiting(), inherited), '⏳ticket-1');
+	});
+
+	await t('an awaiting emoji cleared at every level is left on the channel', () => {
+		// Not a regression, and not new: no level records what an emoji *used to*
+		// be, so once '⏳' is gone from both the category and the guild there is
+		// nothing to match it against. Exactly how claimedEmoji, unclaimedEmoji
+		// and priorityEmojis have always behaved. Pinned here so that if someone
+		// ever adds previous-value tracking, this test tells them where to look.
+		const cleared = settingsFor({ awaitingStaffEmoji: null }, { awaitingStaffEmoji: null });
+		assert.strictEqual(N.managedName('⏳ticket-1', awaiting(), cleared), '⏳ticket-1');
+	});
+
+	await t('managedName is idempotent across a STAFF -> USER -> STAFF flip', () => {
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		const claimed = { claimedById: '1' };
+
+		let name = N.managedName('ticket-1', ticket({
+			...claimed,
+			awaitingResponseFrom: 'STAFF',
+		}), settings);
+		assert.strictEqual(name, '⏳ticket-1');
+
+		name = N.managedName(name, ticket({
+			...claimed,
+			awaitingResponseFrom: 'USER',
+		}), settings);
+		assert.strictEqual(name, '✅ticket-1');
+
+		name = N.managedName(name, ticket({
+			...claimed,
+			awaitingResponseFrom: 'STAFF',
+		}), settings);
+		assert.strictEqual(name, '⏳ticket-1');
+
+		// Running the same rebuild twice must not double the prefix.
+		assert.strictEqual(
+			N.managedName(name, ticket({
+				...claimed,
+				awaitingResponseFrom: 'STAFF',
+			}), settings),
+			'⏳ticket-1',
+		);
+	});
+
 	/* ────────────────────────── the deferred rename ──────────────────────── */
 
 	// `syncChannelName` lives in `mutations.js`, which reaches the Temporal layer.

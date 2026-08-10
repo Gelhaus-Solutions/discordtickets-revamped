@@ -31,11 +31,23 @@ const NAME_LIMIT = 100;
 /**
  * The ticket's state, as far as the channel name is concerned.
  *
+ * `awaitingStaff` outranks both claim states: a claimed ticket whose author has
+ * since replied is still one nobody has answered, and that is the thing worth
+ * seeing in a channel list. It loses to `closed`, which is terminal.
+ *
+ * The comparison is case-insensitive because `awaitingResponseFrom` is a
+ * free-form column (like `priority`) rather than an enum — a hand-edited or
+ * imported `'staff'` should not silently read as "not waiting".
+ *
  * @param {object} ticket
- * @returns {'closed'|'claimed'|'unclaimed'}
+ * @returns {'closed'|'awaitingStaff'|'claimed'|'unclaimed'}
  */
 const ticketState = ticket =>
-	ticket?.open === false ? 'closed' : ticket?.claimedById ? 'claimed' : 'unclaimed';
+	ticket?.open === false
+		? 'closed'
+		: String(ticket?.awaitingResponseFrom ?? '').toUpperCase() === 'STAFF'
+			? 'awaitingStaff'
+			: ticket?.claimedById ? 'claimed' : 'unclaimed';
 
 /**
  * The emoji for a ticket's current state, from already-resolved settings.
@@ -50,6 +62,26 @@ const ticketState = ticket =>
  */
 function stateEmoji(ticket, settings) {
 	const state = ticketState(ticket);
+
+	// The one place an empty value does *not* mean "no emoji". Everywhere else
+	// '' is a deliberate choice a guild made, distinct from NULL — but
+	// `awaitingStaffEmoji` has a built-in of '', so "unset" and "turned off"
+	// have already collapsed into the same '' by the time the resolver hands
+	// them over, and there is no third value left to tell them apart.
+	//
+	// Reading that '' as "no emoji" would mean every install that never touches
+	// this setting silently loses its claim tick the first time a member
+	// replies — a visible regression from a migration that adds a nullable
+	// column and backfills nothing. So an empty value here means "this guild
+	// does not use the feature", and the ticket shows what it would have shown
+	// before the state existed. The alternative reading — "hide the claim tick,
+	// but only while waiting on staff" — is not something anyone would ask for.
+	if (state === 'awaitingStaff') {
+		const awaiting = displayEmoji(settings?.awaitingStaffEmoji ?? '');
+		if (awaiting) return awaiting;
+		return displayEmoji(settings?.[ticket?.claimedById ? 'claimedEmoji' : 'unclaimedEmoji'] ?? '');
+	}
+
 	const configured = settings?.[`${state}Emoji`];
 	return displayEmoji(configured ?? '');
 }
