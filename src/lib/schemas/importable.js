@@ -32,6 +32,7 @@ const GUILD_SETTINGS_FIELDS = [
 	'archive',
 	'autoClose',
 	'autoTag',
+	'awaitingStaffEmoji',
 	'blockedRoles',
 	'blocklist',
 	'channelName',
@@ -73,6 +74,7 @@ const GUILD_FIELDS = [
 
 const CATEGORY_FIELDS = [
 	'autoAssign',
+	'awaitingStaffEmoji',
 	'blockedRoles',
 	'channelMode',
 	'channelName',
@@ -131,6 +133,7 @@ const TAG_FIELDS = [
 // chose it would be an arbitrary file read. Transcripts are regenerated on
 // demand anyway.
 const TICKET_FIELDS = [
+	'awaitingResponseFrom',
 	'claimedById',
 	'closedAt',
 	'closedById',

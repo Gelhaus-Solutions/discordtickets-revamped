@@ -73,6 +73,15 @@ const mergePriorityEmojis = (...levels) => {
  * see `priorityEmojis`.
  */
 const INHERITED = {
+	// Wins over the claimed/unclaimed emoji while the last message is from the
+	// ticket author. The built-in is '' — i.e. off — and `naming.js#stateEmoji`
+	// reads an unconfigured value as "this guild does not use the feature" and
+	// falls back to what the ticket would otherwise have shown, rather than
+	// stripping the claim tick from every install that never sets this.
+	awaitingStaffEmoji: {
+		builtin: () => '',
+		guild: 'awaitingStaffEmoji',
+	},
 	blockedRoles: {
 		builtin: () => [],
 		guild: 'blockedRoles',
