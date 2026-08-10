@@ -1,0 +1,11 @@
+allowBuilds:
+  '@prisma/client': set this to true or false
+  '@prisma/engines': set this to true or false
+  '@sentry/node-cpu-profiler': set this to true or false
+  '@swc/core': set this to true or false
+  bufferutil: set this to true or false
+  erlpack@https://codeload.github.com/discord/erlpack/tar.gz/2a4c0e832f3cd4e07c92d4baec326a631ed50f59: set this to true or false
+  prisma: set this to true or false
+  protobufjs: set this to true or false
+  utf-8-validate: set this to true or false
+  zlib-sync: set this to true or false
