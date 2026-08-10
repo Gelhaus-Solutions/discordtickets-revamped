@@ -21,10 +21,18 @@
 	 * @property {?string} value the stored emoji string
 	 * @property {boolean} [required]
 	 * @property {?string} [placeholder] shown when nothing is picked
+	 * @property {?(value: ?string) => void} [onchange] called with every pick,
+	 *   for a caller that needs to distinguish "cleared" from "never set" and so
+	 *   cannot express itself with `bind:value` alone
 	 */
 
 	/** @type {Props} */
-	let { value = $bindable(), required = false, placeholder = 'None' } = $props();
+	let {
+		value = $bindable(),
+		required = false,
+		placeholder = 'None',
+		onchange = null
+	} = $props();
 
 	let open = $state(false);
 	let search = $state('');
@@ -77,6 +85,7 @@
 
 	const pick = (emoji) => {
 		value = emoji;
+		onchange?.(emoji);
 		open = false;
 		search = '';
 	};

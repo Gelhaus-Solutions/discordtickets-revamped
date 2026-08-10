@@ -6,6 +6,7 @@
 	import ms from 'ms';
 	import { fade } from 'svelte/transition';
 	import Required from '$components/Required.svelte';
+	import EmojiPicker from '$components/EmojiPicker.svelte';
 	import { onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import ErrorBox from '$components/ErrorBox.svelte';
@@ -73,6 +74,42 @@
 		}
 	];
 
+	const STATE_EMOJI_FIELDS = [
+		{
+			key: 'unclaimedEmoji',
+			label: 'Open',
+			title: 'Shown while a ticket is open and unclaimed.'
+		},
+		{
+			key: 'claimedEmoji',
+			label: 'Claimed',
+			title: 'Shown once a staff member has claimed the ticket.'
+		},
+		{
+			key: 'closedEmoji',
+			label: 'Closed',
+			title: 'Thread and Forum categories only — a channel-mode ticket is deleted on close.'
+		}
+	];
+
+	const PRIORITY_EMOJI_FIELDS = [
+		{ key: 'HIGH', label: 'High' },
+		{ key: 'MEDIUM', label: 'Medium' },
+		{ key: 'LOW', label: 'Low' },
+		{ key: 'NONE', label: 'None set' }
+	];
+
+	/** An emoji, or a word, for the "Default: …" placeholders. */
+	const emojiLabel = (value) => (value === '' || value == null ? 'no emoji' : value);
+
+	/** Set one priority without detaching the other three from the built-ins. */
+	const setPriorityEmoji = (key, value) => {
+		const next = { ...(settings.priorityEmojis ?? {}) };
+		if (value == null) delete next[key];
+		else next[key] = value;
+		settings.priorityEmojis = Object.keys(next).length ? next : null;
+	};
+
 	/** Fields the bulk action can hand back to this page. */
 	const APPLICABLE = [
 		{ key: 'channelName', label: 'Channel name' },
@@ -80,7 +117,11 @@
 		{ key: 'totalLimit', label: 'Total limit' },
 		{ key: 'cooldown', label: 'Cooldown' },
 		{ key: 'ratelimit', label: 'Slow mode' },
-		...ROLE_DEFAULTS.map(({ key, label }) => ({ key, label }))
+		...ROLE_DEFAULTS.map(({ key, label }) => ({ key, label })),
+		{ key: 'claimedEmoji', label: 'Claimed emoji' },
+		{ key: 'closedEmoji', label: 'Closed emoji' },
+		{ key: 'unclaimedEmoji', label: 'Open emoji' },
+		{ key: 'priorityEmojis', label: 'Priority emojis' }
 	];
 
 	// Three states again: empty means "no server default", `0` means "no
@@ -603,6 +644,44 @@
 							{/each}
 						</select>
 					</label>
+				</div>
+
+			<div class="md:col-span-2">
+					<p class="mb-1 font-medium">Channel name emojis</p>
+					<p class="mb-2 text-base text-gray-500 dark:text-slate-400">
+						Shown at the start of a ticket channel's name. "None" means no emoji;
+						leave a field untouched for the built-in default.
+					</p>
+					<div class="grid gap-4 md:grid-cols-3">
+						{#each STATE_EMOJI_FIELDS as { key, label, title } (key)}
+							<label class="font-medium">
+								{label}
+								<i
+									class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+									{title}
+								></i>
+								<EmojiPicker
+									value={settings[key] ?? ''}
+									placeholder={`Default: ${emojiLabel(data.settings.inherited?.[key])}`}
+									onchange={(v) => (settings[key] = v ?? '')}
+								/>
+							</label>
+						{/each}
+					</div>
+
+					<p class="mb-1 mt-4 font-medium">Priority</p>
+					<div class="grid gap-4 md:grid-cols-4">
+						{#each PRIORITY_EMOJI_FIELDS as { key, label } (key)}
+							<label class="font-medium">
+								{label}
+								<EmojiPicker
+									value={settings.priorityEmojis?.[key] ?? ''}
+									placeholder={`Default: ${emojiLabel(data.settings.inherited?.priorityEmojis?.[key])}`}
+									onchange={(v) => setPriorityEmoji(key, v)}
+								/>
+							</label>
+						{/each}
+					</div>
 				</div>
 
 				{#each ROLE_DEFAULTS as { key, label, title } (key)}

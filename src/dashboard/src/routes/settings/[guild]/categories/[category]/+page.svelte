@@ -110,6 +110,30 @@
 	 */
 	const inherited = $derived(data.category.inherited ?? data.settings.inherited ?? {});
 
+	const PRIORITY_EMOJI_FIELDS = [
+		{ key: 'HIGH', label: 'High' },
+		{ key: 'MEDIUM', label: 'Medium' },
+		{ key: 'LOW', label: 'Low' },
+		{ key: 'NONE', label: 'None set' }
+	];
+
+	/** An emoji, or a word, for the "Inherited: …" placeholders. */
+	const emojiLabel = (value) => (value === '' || value == null ? 'no emoji' : value);
+
+	/**
+	 * Set one priority's emoji without detaching the other three.
+	 *
+	 * The map merges per key on the server, so only the keys this category
+	 * actually overrides are sent; clearing one deletes it rather than storing an
+	 * empty string, which would mean "no emoji" instead of "inherit".
+	 */
+	const setPriorityEmoji = (key, value) => {
+		const next = { ...(category.priorityEmojis ?? {}) };
+		if (value === '' || value == null) delete next[key];
+		else next[key] = value;
+		category.priorityEmojis = Object.keys(next).length ? next : null;
+	};
+
 	/** Role IDs as names, for the greyed "this is what you'd inherit" lists. */
 	const roleNames = (ids) =>
 		(ids ?? []).map((id) => roles.find((r) => r.id === id)?.name ?? id).join(', ');
@@ -497,6 +521,83 @@
 							placeholder="Choose an emoji"
 						/>
 					</label>
+				</div>
+				<div class="md:col-span-2">
+					<h3 class="mt-2 text-xl font-bold">Channel name emojis</h3>
+					<p class="mb-2 text-base text-gray-500 dark:text-slate-400">
+						Shown at the start of the ticket channel's name. Leave a field empty to use
+						the server default, or pick "None" to show no emoji at all.
+					</p>
+					<div class="grid gap-4 md:grid-cols-2">
+						<Inheritable
+							label="Open"
+							title="Shown while the ticket is open and unclaimed."
+							bind:value={category.unclaimedEmoji}
+							inherited={inherited.unclaimedEmoji}
+							format={emojiLabel}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<EmojiPicker
+									value={value ?? ''}
+									{placeholder}
+									onchange={(v) => setValue(v ?? '')}
+								/>
+							{/snippet}
+						</Inheritable>
+
+						<Inheritable
+							label="Claimed"
+							title="Shown once a staff member has claimed the ticket."
+							bind:value={category.claimedEmoji}
+							inherited={inherited.claimedEmoji}
+							format={emojiLabel}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<EmojiPicker
+									value={value ?? ''}
+									{placeholder}
+									onchange={(v) => setValue(v ?? '')}
+								/>
+							{/snippet}
+						</Inheritable>
+
+						<Inheritable
+							label="Closed"
+							title="Shown on an archived thread once the ticket is closed."
+							bind:value={category.closedEmoji}
+							inherited={inherited.closedEmoji}
+							format={emojiLabel}
+							disabled={category.channelMode === 'CHANNEL'}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<EmojiPicker
+									value={value ?? ''}
+									{placeholder}
+									onchange={(v) => setValue(v ?? '')}
+								/>
+							{/snippet}
+							{#snippet help()}
+								{#if category.channelMode === 'CHANNEL'}
+									A channel-mode ticket's channel is deleted when it closes, so there is
+									no name left to show this on. It applies to Thread and Forum categories.
+								{/if}
+							{/snippet}
+						</Inheritable>
+					</div>
+
+					<p class="mb-1 mt-4 font-medium">Priority</p>
+					<div class="grid gap-4 md:grid-cols-4">
+						{#each PRIORITY_EMOJI_FIELDS as { key, label } (key)}
+							<label class="font-medium">
+								{label}
+								<EmojiPicker
+									value={category.priorityEmojis?.[key] ?? ''}
+									placeholder={`Inherited: ${emojiLabel(inherited.priorityEmojis?.[key])}`}
+									onchange={(v) => setPriorityEmoji(key, v)}
+								/>
+							</label>
+						{/each}
+					</div>
 				</div>
 				<div>
 					<label for="enableFeedback" class="font-medium">
