@@ -10,6 +10,7 @@ const {
 } = require('../../lib/stats');
 const { saveHtmlTranscript } = require('../../lib/tickets/transcript-html');
 const { reconcileCustomization } = require('../../lib/customization');
+const { sampleGauges } = require('../../lib/metrics');
 const temporal = require('../../lib/temporal');
 
 /**
@@ -188,14 +189,28 @@ module.exports = class extends Listener {
 				next++;
 				if (next === client.config.presence.activities.length) next = 0;
 			};
-			setPresence();
-			if (client.config.presence.activities.length > 1) setInterval(() => setPresence(), client.config.presence.interval * 1000);
+			// `setPresence` is async and queries the database for the ticket
+			// counts it interpolates, so a transient database problem rejected
+			// here — unhandled, on a timer, forever. Nothing about the presence
+			// text is worth more than a warning.
+			const updatePresence = () => setPresence().catch(error => client.log.warn('Could not update presence: %s', error?.message ?? error));
+			updatePresence();
+			if (client.config.presence.activities.length > 1) setInterval(updatePresence, client.config.presence.interval * 1000);
 		} else {
 			client.log.info('Presence activities are disabled');
 		}
 
 		// Stats posting (Houston) and update checks are now Temporal Schedules
 		// (see temporal.ensureSchedules above), replacing the old setInterval loops.
+
+		// Gauges describe a level rather than an event, so they have to be
+		// sampled on a timer — nothing else would ever report "how many tickets
+		// are open right now". Only started when Sentry is configured, and
+		// unref'd so it can never hold the process open during shutdown.
+		if (process.env.SENTRY_DSN) {
+			sampleGauges(client);
+			setInterval(() => sampleGauges(client), ms('1m')).unref();
+		}
 
 		if (process.env.PUBLIC_BOT === 'true') {
 			client.log.notice('Inactivity warnings and auto-close features are disabled');

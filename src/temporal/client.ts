@@ -1,6 +1,7 @@
 import { Client } from '@temporalio/client';
 import { createClientConnection } from './connection';
 import { getTemporalConfig } from './config';
+import { sentryWorkflowClientInterceptor } from './sentry';
 
 let _client: Client | null = null;
 
@@ -11,6 +12,11 @@ export async function initTemporalClient(): Promise<Client> {
 	const { namespace } = getTemporalConfig();
 	_client = new Client({
 		connection,
+		// Writes the caller's trace into workflow headers, so the activities
+		// that run later attach to it instead of starting traces of their own.
+		// Harmless when Sentry is not configured: `getTraceData()` simply has
+		// nothing to contribute.
+		interceptors: { workflow: [sentryWorkflowClientInterceptor()] },
 		namespace,
 	});
 	return _client;

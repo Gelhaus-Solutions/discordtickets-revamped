@@ -1,8 +1,48 @@
 const { getSUID } = require('./logging');
+const Sentry = require('@sentry/node');
 const {
 	EmbedBuilder,
 	codeBlock,
 } = require('discord.js');
+
+/**
+ * Report an interaction failure to Sentry, tagged with the same short id the
+ * user is shown. A support ticket quoting that code then resolves directly to
+ * an issue instead of a log search.
+ *
+ * The log bridge in src/lib/logger.js cannot do this: leekslazylogger runs
+ * `util.format` over log content before any transport sees it, so the real
+ * Error — with its stack and `code` — never survives that far.
+ *
+ * @param {Error} error
+ * @param {import("discord.js").Interaction} interaction
+ * @param {string} ref
+ * @param {string} kind
+ * @param {string} name
+ */
+const report = (error, interaction, ref, kind, name) => {
+	try {
+		Sentry.withScope(scope => {
+			scope.setTag('ref', ref);
+			scope.setTag('interaction.type', kind);
+			scope.setTag('interaction.name', name);
+			// IDs only — no usernames or message content, and only when the
+			// operator has opted into PII.
+			if (interaction.guild) scope.setTag('guild', interaction.guild.id);
+			scope.setContext('interaction', {
+				channel: interaction.channel?.id ?? null,
+				guild: interaction.guild?.id ?? null,
+				locale: interaction.locale ?? null,
+				name,
+				type: kind,
+			});
+			Sentry.captureException(error);
+		});
+	} catch {
+		// Reporting a failure must never itself become a failure: this runs on
+		// the path that tells the user something went wrong.
+	}
+};
 
 /**
  *
@@ -19,17 +59,31 @@ module.exports.handleInteractionError = async event => {
 	const { client } = interaction;
 
 	const ref = getSUID();
-	client.log.error.buttons(ref);
+
+	let kind = 'unknown';
+	let name = 'unknown';
 
 	if (interaction.isAnySelectMenu()) {
-		client.log.error.menus(`"${event.menu.id}" menu execution error:`, error);
+		kind = 'menu';
+		name = event.menu.id;
+		client.log.error.menus(`[${ref}] "${name}" menu execution error:`, error);
 	} else if (interaction.isButton()) {
-		client.log.error.buttons(`"${event.button.id}" button execution error:`, error);
+		kind = 'button';
+		name = event.button.id;
+		client.log.error.buttons(`[${ref}] "${name}" button execution error:`, error);
 	} else if (interaction.isModalSubmit()) {
-		client.log.error.modals(`"${event.modal.id}" modal execution error:`, error);
+		kind = 'modal';
+		name = event.modal.id;
+		client.log.error.modals(`[${ref}] "${name}" modal execution error:`, error);
 	} else if (interaction.isCommand()) {
-		client.log.error.commands(`"${event.command.name}" command execution error:`, error);
+		kind = 'command';
+		name = event.command.name;
+		client.log.error.commands(`[${ref}] "${name}" command execution error:`, error);
+	} else {
+		client.log.error.listeners(`[${ref}] interaction execution error:`, error);
 	}
+
+	report(error, interaction, ref, kind, name);
 
 
 	let locale = null;

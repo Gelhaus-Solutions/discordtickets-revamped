@@ -6,7 +6,11 @@ const {
 const logger = require('./lib/logger');
 const { dataPath } = require('./lib/paths');
 const { setLogger: setThreadsLogger } = require('./lib/threads');
+const {
+	guardListeners, instrumentInteractions,
+} = require('./lib/sentry-interactions');
 const { PrismaClient } = require('@prisma/client');
+const Sentry = require('@sentry/node');
 const Keyv = require('keyv');
 const I18n = require('@eartharoid/i18n');
 const fs = require('fs');
@@ -47,6 +51,14 @@ module.exports = class Client extends FrameworkClient {
 		this.config = {};
 		this.log = {};
 		this.init();
+
+		// After `super()`, so every module's `loadAll()` has already run and the
+		// components exist to be wrapped.
+		//
+		// Listener guarding is unconditional — it is a robustness fix, not
+		// telemetry. Interaction spans only make sense with a DSN configured.
+		guardListeners(this);
+		if (process.env.SENTRY_DSN) instrumentInteractions(this);
 	}
 
 	async init(reload = false) {
@@ -133,12 +145,45 @@ module.exports = class Client extends FrameworkClient {
 		};
 
 		/** @type {PrismaClient} */
-		this.prisma = new PrismaClient(prisma_options);
+		const prisma = new PrismaClient(prisma_options);
 
-		this.prisma.$on('error', e => this.log.error.prisma(`${e.target} ${e.message}`));
-		this.prisma.$on('info', e => this.log.info.prisma(`${e.target} ${e.message}`));
-		this.prisma.$on('warn', e => this.log.warn.prisma(`${e.target} ${e.message}`));
-		this.prisma.$on('query', e => this.log.debug.prisma(e));
+		// Attached before `$extends` below: an extended client has no `$on`.
+		prisma.$on('error', e => this.log.error.prisma(`${e.target} ${e.message}`));
+		prisma.$on('info', e => this.log.info.prisma(`${e.target} ${e.message}`));
+		prisma.$on('warn', e => this.log.warn.prisma(`${e.target} ${e.message}`));
+		prisma.$on('query', e => this.log.debug.prisma(e));
+
+		// Name each query in traces. This complements the engine-level spans from
+		// Sentry's prismaIntegration, which time the actual SQL but cannot say
+		// which model/operation asked for it.
+		//
+		// Only extended when Sentry is on: an extended client drops `$on`, and
+		// there is no reason to hand that difference to the majority of installs
+		// that never set a DSN.
+		this.prisma = process.env.SENTRY_DSN
+			? prisma.$extends({
+				query: {
+					async $allOperations({
+						args, model, operation, query,
+					}) {
+						// Only nest inside an existing trace. Without this every
+						// background query — cache warming, the stats schedule,
+						// automation retention — would start a transaction of its
+						// own and bury the requests that actually matter.
+						if (!Sentry.getActiveSpan()) return query(args);
+						return Sentry.startSpan({
+							attributes: {
+								'db.operation.name': operation,
+								'db.system.name': 'prisma',
+								...(model ? { 'db.collection.name': model } : {}),
+							},
+							name: model ? `${model}.${operation}` : operation,
+							op: 'db',
+						}, () => query(args));
+					},
+				},
+			})
+			: prisma;
 
 		// Migrations are applied by scripts/postinstall.js before the process
 		// starts, which fails the boot if they don't succeed. There used to be a

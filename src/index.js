@@ -50,6 +50,13 @@ require('./env').load(); // load and check environment variables
 console.log(colours.gray(`  app: ${APP_DIR}`));
 console.log(colours.gray(` data: ${DATA_DIR}  (env: ${ENV_FILE})`));
 
+// Sentry has to be initialised before anything it auto-instruments is required
+// — that includes the logger (leekslazylogger), Prisma, discord.js and Fastify.
+// It only needs the environment, which is loaded above, so it goes here rather
+// than further down where a logger would be available to announce it.
+const { isEnabled: sentryEnabled } = require('./sentry-init.js');
+if (sentryEnabled()) console.log(colours.gray(' sentry: enabled'));
+
 const fs = require('fs');
 const YAML = require('yaml');
 const logger = require('./lib/logger');
@@ -80,6 +87,11 @@ async function exit(signal) {
 	} catch (error) {
 		log.error(error);
 	}
+	// After the catch, so anything client.destroy() logged on its way out is
+	// included. Bounded, because the shutdown budget is already tight: docker
+	// stop allows 10s by default (docker-compose.yml raises it), and this runs
+	// after the race above.
+	if (sentryEnabled()) await require('@sentry/node').flush(2000).catch(() => {});
 	process.exit(0);
 }
 
@@ -89,18 +101,23 @@ process.on('SIGINT', () => exit('SIGINT'));
 
 process.on('uncaughtException', (error, origin) => {
 	log.notice(`Discord Tickets v${pkg.version} on Node.js ${process.version} (${process.platform})`);
-	log.warn(origin === 'uncaughtException' ? 'Uncaught exception' : 'Unhandled promise rejection' + ` (${error.name})`);
+	log.warn(`Uncaught exception (${origin})`);
 	log.error(error);
+	// No Sentry.flush() here: onUncaughtExceptionIntegration captures this
+	// automatically, and because this listener is registered the SDK does not
+	// force-exit, so the event drains normally.
+});
+
+// This used to be conflated with the handler above, whose message claimed to
+// cover rejections while nothing actually listened for them. Sentry's
+// onUnhandledRejection integration reports these from v10 onwards, so they may
+// as well be logged too.
+process.on('unhandledRejection', reason => {
+	log.warn('Unhandled promise rejection');
+	log.error(reason);
 });
 
 process.on('warning', warning => log.warn(warning.stack || warning));
-
-// INIT Sentry if required ENV vars are set
-const sentryEnabled = !!process.env.SENTRY_DSN;
-if(sentryEnabled) {
-	log.info('Enabling Sentry');
-	require('./sentry-init.js');
-}
 
 const Client = require('./client');
 const http = require('./http');

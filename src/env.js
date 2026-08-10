@@ -75,6 +75,19 @@ const env = {
 	OVERRIDE_ARCHIVE: () => true, // optional
 	PUBLIC_BOT: () => true, // optional
 	PUBLISH_COMMANDS: () => true, // optional
+	// Sentry — all optional; nothing is sent unless SENTRY_DSN is set.
+	// Deliberately not validated beyond existence: the rates are parsed
+	// defensively in src/sentry-init.js, because a typo'd sample rate must
+	// degrade to the default rather than refuse to boot the bot.
+	SENTRY_DSN: () => true, // optional (enables Sentry when set)
+	SENTRY_ENVIRONMENT: () => true, // optional (default: NODE_ENV)
+	SENTRY_LOGGING: () => true, // optional (default false; required for the log bridge)
+	SENTRY_LOG_LEVEL: () => true, // optional (minimum level forwarded to Sentry Logs, default "info")
+	SENTRY_METRICS: () => true, // optional (default true)
+	SENTRY_PROFILING_RATE: () => true, // optional (default 1.0)
+	SENTRY_RELEASE: () => true, // optional (default: version+build id)
+	SENTRY_SAMPLE_RATE: () => true, // optional (traces, default 0.1)
+	SENTRY_SEND_PII: () => true, // optional (default false)
 	STATS_URL: () => true, // optional (Houston-compatible endpoint; stats are not reported when unset)
 	SUPER: () => true, // optional
 	// Temporal — required (durable execution backs all async/scheduled work)

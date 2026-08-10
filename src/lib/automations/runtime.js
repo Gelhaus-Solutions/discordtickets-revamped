@@ -30,6 +30,8 @@
  *    sleep" (already durable) — the interpreter behaves identically either way.
  */
 
+const Sentry = require('@sentry/node');
+const { recordAutomationRun } = require('../metrics');
 const { LIMITS } = require('./errors');
 const { NODE_TYPES } = require('./registry');
 const { triggerNodes } = require('./validate');
@@ -74,7 +76,30 @@ function successors(graph, nodeId, handle) {
  * @param {() => number} [options.clock] injectable, so the wall-clock guard is testable
  * @returns {Promise<{status: string, steps: object[], error?: string, waitMs?: number, state?: object}>}
  */
-async function runFrom(graph, ctx, queue, {
+async function runFrom(graph, ctx, queue, options) {
+	// One span per run, with a child per node (below). When an automation is
+	// reached from an interaction or a Temporal activity this nests under it;
+	// for a cron-triggered run it becomes the root, which is what you want to
+	// see when a scheduled automation misbehaves.
+	return Sentry.startSpan({
+		attributes: {
+			'automation.key': ctx.automationKey ?? undefined,
+			'automation.queued_nodes': queue.length,
+		},
+		name: `automation ${ctx.automationKey ?? 'run'}`,
+		op: 'automation.run',
+	}, async () => {
+		const result = await runGraph(graph, ctx, queue, options);
+		// `status` is a small closed set (ok/failed/cancelled/suspended), so it
+		// is safe as an attribute — unlike the automation key, which is one
+		// value per automation per guild.
+		recordAutomationRun(result?.status ?? 'unknown');
+		return result;
+	});
+}
+
+/** The state machine itself. Separated only so `runFrom` can wrap it in a span. */
+async function runGraph(graph, ctx, queue, {
 	clock = Date.now,
 	runners,
 }) {
@@ -157,7 +182,11 @@ async function runFrom(graph, ctx, queue, {
 		const at = clock();
 		let result;
 		try {
-			result = (await runners[node.type]?.(node, ctx)) ?? {};
+			result = (await Sentry.startSpan({
+				attributes: { 'automation.node_id': nodeId },
+				name: node.type,
+				op: 'automation.node',
+			}, () => runners[node.type]?.(node, ctx))) ?? {};
 		} catch (error) {
 			failure ??= `${error?.code ?? 'error'}:${nodeId}`;
 			trace.push({

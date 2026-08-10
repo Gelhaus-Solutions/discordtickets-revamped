@@ -309,11 +309,37 @@ fork adds or changes:
 | `JWT_SECRET` | no | derived | Derived from `ENCRYPTION_KEY` via HKDF when unset. Set it to your old `ENCRYPTION_KEY` when upgrading from upstream to keep sessions valid. |
 | `SUPER` | no | — | Comma-separated operator IDs. Also gates service API keys. |
 | `STATS_URL` | no | — | Nothing is reported unless you set this. |
-| `SENTRY_DSN` | no | — | Enables Sentry. |
+| `SENTRY_DSN` | no | — | Enables Sentry. Nothing is sent anywhere while this is unset. |
+| `SENTRY_ENVIRONMENT` | no | `NODE_ENV` | Labels events, e.g. `production` / `staging`. |
+| `SENTRY_RELEASE` | no | `discord-tickets@<version>+<build id>` | Must match uploaded source maps if you upload your own. |
+| `SENTRY_SAMPLE_RATE` | no | `0.1` | Fraction of requests and interactions traced, 0–1. |
+| `SENTRY_PROFILING_RATE` | no | `1.0` | Fraction of traced transactions profiled, 0–1. |
+| `SENTRY_LOGGING` | no | `false` | Forwards the bot's own log output to Sentry Logs. |
+| `SENTRY_LOG_LEVEL` | no | `info` | Minimum level forwarded. `debug` includes every database query. |
+| `SENTRY_METRICS` | no | `true` | Application metrics (tickets opened/closed, latencies). |
+| `SENTRY_SEND_PII` | no | `false` | Sends Discord user IDs and IP addresses. These identify *your members*, not you. |
+| `PUBLIC_SENTRY_DSN` | no | — | Browser error reporting for the dashboard. Served to every visitor, so use a project separate from `SENTRY_DSN`. |
+| `PUBLIC_SENTRY_TRACES_RATE` | no | `0` | Browser performance tracing, 0–1. |
+| `PUBLIC_SENTRY_REPLAY_SESSION_RATE` | no | `0` | Session Replay sampling, 0–1. See the note below. |
+| `PUBLIC_SENTRY_REPLAY_ERROR_RATE` | no | `0` | Session Replay sampling for sessions that hit an error, 0–1. |
 | `DT_DATA_DIR` | no | app directory | Where `.env`, `user/` and `logs/` live. |
 | `DT_APP_DIR` | no | auto-detected | Where the code lives. |
 | `DT_ENV_FILE` | no | `<data dir>/.env` | |
 | `DT_SKIP_MIGRATIONS` | no | — | `true` skips `prisma migrate deploy` at boot. Use when you migrate out of band or run several replicas — `migrate deploy` is not concurrency-safe. |
+
+### A note on Sentry and your members' data
+
+Sentry is entirely opt-in: with `SENTRY_DSN` unset, none of it runs.
+
+If you do enable it, two settings decide whether other people's data leaves your
+server. `SENTRY_SEND_PII` is `false` by default, so Discord user IDs and IP
+addresses are not attached to events. And Session Replay is off by default,
+because the dashboard renders ticket transcripts — recordings mask every text
+node and block every image, but they still capture which pages your staff opened
+and what they clicked. Turn both on deliberately, and tell your staff if you do.
+
+`PUBLIC_SENTRY_DSN` is embedded in the pages the dashboard serves, so treat it as
+public and point it at a different Sentry project from the bot's.
 
 Everything else is documented upstream at
 <https://discordtickets.app/self-hosting/configuration/#environment-variables>.

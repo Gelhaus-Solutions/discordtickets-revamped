@@ -11,6 +11,7 @@ const { existsSync } = require('fs');
 const { pathToFileURL } = require('url');
 const { collectRouteFiles } = require('./lib/routes');
 const { getPrivilegeLevel } = require('./lib/users');
+const { recordRequest } = require('./lib/metrics');
 const { format } = require('util');
 const { hkdfSync } = require('crypto');
 
@@ -257,7 +258,9 @@ module.exports = async client => {
 
 	// logging
 	fastify.addHook('onResponse', (req, res, done) => {
-		done();
+		// `done()` used to be called here *and* at the end of this hook, which
+		// advanced Fastify's hook chain twice. Called once, at the end.
+		recordRequest(req, res);
 		const status = (res.statusCode >= 500
 			? '&4'
 			: res.statusCode >= 400

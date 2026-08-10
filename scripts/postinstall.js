@@ -94,6 +94,13 @@ log(`provider=${provider}`);
  * does not re-copy the tree and re-run `prisma generate` on every boot. That
  * matters on panels and bare metal, where the app directory may be read-only
  * after the first run and where boot time is visible to the operator.
+ *
+ * It hashes file *contents*, so a change to the generator block counts too —
+ * not just migrations. That is what makes `previewFeatures` edits (which have
+ * no migration of their own) reach an existing install: without a regenerate
+ * the client is silently built without them. `npm start` runs this via
+ * `prestart` for exactly that reason, mirroring what scripts/start.sh does in
+ * containers.
  */
 function fingerprint(dir) {
 	const hash = crypto.createHash('sha256');

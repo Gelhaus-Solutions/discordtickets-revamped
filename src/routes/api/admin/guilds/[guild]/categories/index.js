@@ -27,6 +27,7 @@ module.exports.get = fastify => ({
 					select: {
 						autoAssign: true,
 						backupCategoryId: true,
+						blockedRoles: true,
 						channelMode: true,
 						createdAt: true,
 						description: true,

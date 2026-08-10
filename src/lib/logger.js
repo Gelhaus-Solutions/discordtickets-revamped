@@ -4,6 +4,7 @@ const {
 	Logger,
 } = require('leekslazylogger');
 const DTF = require('@eartharoid/dtf');
+const SentryTransport = require('./sentry-transport');
 const { short } = require('leeks.js');
 const { format } = require('util');
 const { isAbsolute } = require('path');
@@ -54,6 +55,15 @@ module.exports = config => {
 				timestamp: 'YYYY-MM-DD HH:mm:ss',
 			}),
 		);
+	}
+
+	// Forwards to Sentry Logs. Inert unless SENTRY_DSN is set *and*
+	// SENTRY_LOGGING=true (which is what turns on `enableLogs`), so adding it
+	// unconditionally costs nothing when Sentry is off. Defaults to `info`
+	// rather than the console's level: at `debug` this would ship every Prisma
+	// query to Sentry.
+	if (process.env.SENTRY_DSN) {
+		transports.push(new SentryTransport({ level: process.env.SENTRY_LOG_LEVEL || 'info' }));
 	}
 
 	return new Logger({

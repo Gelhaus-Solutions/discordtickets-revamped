@@ -383,6 +383,10 @@ misc:
   blocked:
     description: You are not allowed to create tickets.
     title: ❌ Blocked
+  blocked_roles:
+    description: >-
+      One of your roles prevents you from creating a ticket in this category.
+    title: ❌ Blocked
   category_full:
     description: |
       The category has reached its maximum capacity.

@@ -510,6 +510,171 @@
             ],
             "field_type": "text",
             "sort": 31
+        },
+        {
+            "name": "Sentry environment",
+            "description": "Optional. Labels events in Sentry (e.g. production, staging). Defaults to the app's NODE_ENV.",
+            "env_variable": "SENTRY_ENVIRONMENT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:64"
+            ],
+            "field_type": "text",
+            "sort": 32
+        },
+        {
+            "name": "Sentry trace sample rate",
+            "description": "Optional. Fraction of requests and interactions traced, 0-1. Empty means 0.1.",
+            "env_variable": "SENTRY_SAMPLE_RATE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:8"
+            ],
+            "field_type": "text",
+            "sort": 33
+        },
+        {
+            "name": "Sentry profiling rate",
+            "description": "Optional. Fraction of traced transactions profiled, 0-1. Empty means 1.0.",
+            "env_variable": "SENTRY_PROFILING_RATE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:8"
+            ],
+            "field_type": "text",
+            "sort": 34
+        },
+        {
+            "name": "Sentry logs",
+            "description": "Optional. Forward the bot's log output to Sentry Logs. true or false.",
+            "env_variable": "SENTRY_LOGGING",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 35
+        },
+        {
+            "name": "Sentry log level",
+            "description": "Optional. Minimum level forwarded when Sentry logs are on. 'debug' includes every database query.",
+            "env_variable": "SENTRY_LOG_LEVEL",
+            "default_value": "info",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:16"
+            ],
+            "field_type": "text",
+            "sort": 36
+        },
+        {
+            "name": "Sentry metrics",
+            "description": "Optional. Application metrics such as tickets opened/closed and latencies. true or false.",
+            "env_variable": "SENTRY_METRICS",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 37
+        },
+        {
+            "name": "Sentry send PII",
+            "description": "Optional. Sends Discord user IDs and IP addresses. These belong to your members, not to you - leave false unless you need them.",
+            "env_variable": "SENTRY_SEND_PII",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "in:true,false"
+            ],
+            "field_type": "text",
+            "sort": 38
+        },
+        {
+            "name": "Dashboard Sentry DSN",
+            "description": "Optional. Browser error reporting for the web dashboard. This DSN is served to every visitor, so use a separate project from the bot's.",
+            "env_variable": "PUBLIC_SENTRY_DSN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:250"
+            ],
+            "field_type": "text",
+            "sort": 39
+        },
+        {
+            "name": "Dashboard trace rate",
+            "description": "Optional. Browser performance tracing, 0-1. Empty means off.",
+            "env_variable": "PUBLIC_SENTRY_TRACES_RATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:8"
+            ],
+            "field_type": "text",
+            "sort": 40
+        },
+        {
+            "name": "Dashboard replay rate",
+            "description": "Optional. Session Replay sampling, 0-1. Recordings mask all text and block all media, but still capture staff activity on pages showing ticket transcripts. Empty means off.",
+            "env_variable": "PUBLIC_SENTRY_REPLAY_SESSION_RATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:8"
+            ],
+            "field_type": "text",
+            "sort": 41
+        },
+        {
+            "name": "Dashboard replay-on-error rate",
+            "description": "Optional. Session Replay sampling for sessions that hit an error, 0-1. Empty means off.",
+            "env_variable": "PUBLIC_SENTRY_REPLAY_ERROR_RATE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": [
+                "nullable",
+                "string",
+                "max:8"
+            ],
+            "field_type": "text",
+            "sort": 42
         }
     ]
 }

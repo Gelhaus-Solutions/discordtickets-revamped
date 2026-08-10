@@ -1,5 +1,10 @@
 generator client {
-    provider = "prisma-client-js"
+    provider        = "prisma-client-js"
+    // Engine-level query spans for Sentry's prismaIntegration. Without this
+    // the integration installs and silently produces nothing: tracing is a
+    // preview feature on Prisma 5, and the engine never emits spans unless it
+    // is turned on here.
+    previewFeatures = ["tracing"]
 }
 
 datasource db {
@@ -129,6 +134,9 @@ model Category {
     autoAssign       Boolean      @default(false)
     backupCategory   Category?    @relation(name: "CategoryBackup", fields: [backupCategoryId], references: [id], onDelete: SetNull)
     backupCategoryId Int?
+    // Roles that prevent a member using this category. Checked before
+    // `requiredRoles` and not bypassed by staff, matching `Guild.blocklist`.
+    blockedRoles     Json         @default("[]")
     channelMode      ChannelMode @default(CHANNEL)
     channelName      String
     claiming         Boolean     @default(false)

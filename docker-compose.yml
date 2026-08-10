@@ -153,10 +153,25 @@ services:
       # report nothing (this fork does not post to upstream's stats server).
       STATS_URL:
       # --- Sentry (optional) ---
+      # Nothing is sent anywhere unless SENTRY_DSN is set. Every rate below
+      # tolerates an empty value and falls back to its default.
       SENTRY_DSN: # leave empty to disable error reporting entirely
-      SENTRY_LOGGING: "false"
+      SENTRY_ENVIRONMENT: # defaults to NODE_ENV
+      SENTRY_RELEASE: # defaults to discord-tickets@<version>+<build id>
       SENTRY_SAMPLE_RATE: "0.1"
       SENTRY_PROFILING_RATE: "1.0"
+      SENTRY_LOGGING: "false"
+      SENTRY_LOG_LEVEL: info
+      SENTRY_METRICS: "true"
+      # Discord user IDs and IPs belong to your members, not to you.
+      SENTRY_SEND_PII: "false"
+      # Dashboard (browser). Served to every visitor, so it is a separate DSN.
+      # Replay masks all text and blocks all media, but still records staff
+      # activity on pages that show ticket transcripts — enable deliberately.
+      PUBLIC_SENTRY_DSN:
+      PUBLIC_SENTRY_TRACES_RATE: "0"
+      PUBLIC_SENTRY_REPLAY_SESSION_RATE: "0"
+      PUBLIC_SENTRY_REPLAY_ERROR_RATE: "0"
       # --- Temporal ---
       TEMPORAL_ADDRESS: temporal # host/IP of the Temporal frontend
       TEMPORAL_PORT: 7233

@@ -89,6 +89,7 @@ module.exports.patch = fastify => ({
 		const select = {
 			autoAssign: true,
 			backupCategoryId: true,
+			blockedRoles: true,
 			channelMode: true,
 			channelName: true,
 			claiming: true,
@@ -192,6 +193,24 @@ module.exports.patch = fastify => ({
 				errors: [{ message: 'emoji must be a Unicode emoji, a custom emoji ID, or a <:name:id> tag' }],
 				statusCode: 400,
 			});
+		}
+
+		// These are JSON columns and `data` is spread straight into the update
+		// below, so whatever arrives is what gets stored. Both are read back in
+		// `TicketManager#create` with `.some(...)`, where a string or an object
+		// would throw — breaking ticket creation for the whole category, for
+		// members, long after the admin saved it.
+		for (const field of ['blockedRoles', 'requiredRoles']) {
+			if (data[field] === undefined) continue;
+			const valid = Array.isArray(data[field]) &&
+				data[field].every(id => typeof id === 'string' && /^\d{17,20}$/.test(id));
+			if (!valid) {
+				return res.code(400).send({
+					code: 'invalid_roles',
+					errors: [{ message: `${field} must be an array of role IDs` }],
+					statusCode: 400,
+				});
+			}
 		}
 
 		// For THREAD and FORUM modes, don't send totalLimit (it's not applicable)

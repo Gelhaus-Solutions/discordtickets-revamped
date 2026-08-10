@@ -20,7 +20,24 @@ COPY src/dashboard/package.json src/dashboard/package-lock.json ./
 RUN npm ci --include=dev --no-audit --no-fund
 
 COPY src/dashboard ./
-RUN npm run build
+
+# Browser source maps are uploaded to Sentry only when a token is supplied, so
+# a normal `docker build` (and every self-hoster's build) produces none — see
+# the comment in src/dashboard/vite.config.js for why emitting them unuploaded
+# would be a leak. The release name must match the bot's, which is derived from
+# the same GIT_SHA in src/sentry-init.js.
+#
+# Passed as BuildKit secrets rather than ARGs: a build-arg is recorded in the
+# image history, so the token would ship inside the published image.
+ARG GIT_SHA=dev
+RUN --mount=type=secret,id=sentry_auth_token \
+	--mount=type=secret,id=sentry_org \
+	--mount=type=secret,id=sentry_project \
+	SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+	SENTRY_ORG="$(cat /run/secrets/sentry_org 2>/dev/null || true)" \
+	SENTRY_PROJECT="$(cat /run/secrets/sentry_project 2>/dev/null || true)" \
+	SENTRY_RELEASE="discord-tickets@$(node -p "require('/dash/package.json').version")+$(printf '%s' "${GIT_SHA}" | cut -c1-6)" \
+	npm run build
 
 # The builder must share a libc with the runner: Temporal's native
 # @temporalio/core-bridge addon is libc-specific, and there is no musl build.

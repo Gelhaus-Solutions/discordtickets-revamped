@@ -65,6 +65,44 @@ requires, so those need reissuing regardless.
 
 ---
 
+## If you already use Sentry: PII is no longer sent by default
+
+Only relevant if you set `SENTRY_DSN`. Skip this section otherwise.
+
+Sentry previously ran with `sendDefaultPii: true` hardcoded, which attached
+Discord user IDs and IP addresses to every event. That data identifies **your
+members**, not you, and nothing in the UI ever said it was being collected — so
+it is now off unless you ask for it:
+
+```yaml
+SENTRY_SEND_PII: "true"   # only if you actually want it back
+```
+
+Leaving it off means events no longer carry a user, which mostly affects
+"how many people did this affect" style queries. Errors, traces and stack traces
+are unchanged.
+
+Two other things changed at the same time:
+
+- **Sample rates now tolerate empty values.** `SENTRY_SAMPLE_RATE=""` used to
+  parse to `NaN` and silently disable tracing altogether — which was the default
+  on Docker and Pterodactyl/Pelican, so most installs were not tracing at all
+  despite appearing configured. Empty now means the documented default.
+- **Unhandled promise rejections are reported.** They never were before. The
+  known sources have been fixed rather than left to flood your inbox: event
+  listeners are now wrapped so a rejecting `async run()` is logged and attributed
+  to its event instead of escaping to the process, and the presence updater and
+  Temporal deployment promotion both catch their own failures. Anything that
+  still arrives is a real pre-existing bug that was previously invisible, not a
+  new one.
+
+Everything added since — the log bridge (`SENTRY_LOGGING`), metrics
+(`SENTRY_METRICS`) and dashboard replay (`PUBLIC_SENTRY_*`) — is off or
+conservative by default and needs no action. See
+[docs/installation.md](docs/installation.md#a-note-on-sentry-and-your-members-data).
+
+---
+
 ## From upstream Discord Tickets on MySQL or PostgreSQL
 
 Your existing database is migrated in place. No dump/restore is needed.

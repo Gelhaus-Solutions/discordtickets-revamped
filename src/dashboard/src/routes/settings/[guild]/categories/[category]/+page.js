@@ -11,6 +11,7 @@ export async function load({ fetch, params }) {
 			description: '',
 			discordCategory: 'new',
 			enableFeedback: false,
+			blockedRoles: [],
 			emoji: '',
 			image: '',
 			memberLimit: 1,

@@ -1,5 +1,24 @@
 import { dev } from '$app/environment';
 
+/**
+ * The bot's own Sentry client, or null when it is not configured.
+ *
+ * Deliberately reached through a global rather than `import * as Sentry`. This
+ * file is bundled by adapter-node into src/dashboard/build/server/, and the
+ * runtime image ships that build *without* the dashboard's node_modules. A bare
+ * import of `@sentry/sveltekit` here would either be inlined — dragging
+ * `@sentry/node`'s module-loader hooks into an ESM chunk — or left external and
+ * unresolvable, and the `catch` around the handler import in src/http.js would
+ * swallow the failure and stop serving the dashboard entirely.
+ *
+ * The SvelteKit handler runs inside the bot's own process, so the SDK is
+ * already initialised right there. `src/sentry-init.js` publishes it on this
+ * global for exactly this purpose (a plain global, not `__SENTRY__`, which is
+ * keyed by exact SDK version and would silently disconnect on an upgrade).
+ */
+/* global globalThis */
+const sentry = () => globalThis.__DT_SENTRY__ ?? null;
+
 /** @type {import('@sveltejs/kit').Reroute} */
 export function reroute({ url }) {
 	// Redirect old URL format (e.g., /1234567890/feedback) to new format (e.g., /settings/1234567890/feedback)
@@ -14,10 +33,24 @@ export function reroute({ url }) {
 
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handle({ event, resolve }) {
-	const response = await resolve(event, {
-		filterSerializedResponseHeaders: () => true
-	});
-	return response;
+	const Sentry = sentry();
+	if (!Sentry) {
+		return await resolve(event, { filterSerializedResponseHeaders: () => true });
+	}
+
+	// Named by route id rather than pathname, so `/settings/[guild]/tags` is one
+	// transaction instead of one per guild.
+	return await Sentry.startSpan(
+		{
+			attributes: {
+				'http.request.method': event.request.method,
+				'sveltekit.route_id': event.route?.id ?? 'unknown'
+			},
+			name: `${event.request.method} ${event.route?.id ?? event.url.pathname}`,
+			op: 'http.server.sveltekit'
+		},
+		() => resolve(event, { filterSerializedResponseHeaders: () => true })
+	);
 }
 
 /**
@@ -83,6 +116,28 @@ export async function handleFetch({ event, request, fetch }) {
 export function handleError({ error, event }) {
 	const errorId = Date.now().toString(16);
 	if (dev || process?.env.NODE_ENV === 'development') console.error(error);
+
+	// Reported here rather than left to the `sveltekit:error` bridge in
+	// src/http.js, which only logs. Tagging with the same `errorId` the user is
+	// shown means a screenshot of the error page resolves to a Sentry issue.
+	// SvelteKit routes 404s through here too, so those are filtered out.
+	const Sentry = sentry();
+	if (Sentry && (event.route?.id || error?.status === undefined || error.status >= 500)) {
+		try {
+			Sentry.withScope((scope) => {
+				scope.setTag('errorId', errorId);
+				scope.setTag('sveltekit.route_id', event.route?.id ?? 'unknown');
+				scope.setContext('sveltekit', {
+					method: event.request.method,
+					routeId: event.route?.id ?? null
+				});
+				Sentry.captureException(error);
+			});
+		} catch {
+			// An error page must still render if reporting fails.
+		}
+	}
+
 	process?.emit('sveltekit:error', {
 		error,
 		errorId,

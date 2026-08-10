@@ -56,6 +56,7 @@ const GUILD_FIELDS = [
 
 const CATEGORY_FIELDS = [
 	'autoAssign',
+	'blockedRoles',
 	'channelMode',
 	'channelName',
 	'claiming',

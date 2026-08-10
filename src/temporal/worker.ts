@@ -8,6 +8,7 @@ import { createWorkerConnection } from './connection';
 import { getTemporalConfig, type TemporalConfig } from './config';
 import { getTemporalClient } from './client';
 import { type ActivityDeps, makeActivities } from './activities';
+import { sentryActivityInterceptors } from './sentry';
 
 let _worker: Worker | null = null;
 let _connection: NativeConnection | null = null;
@@ -79,6 +80,10 @@ export async function startWorker(deps: ActivityDeps): Promise<Worker> {
 	const options: WorkerOptions = {
 		activities: makeActivities(deps),
 		connection: _connection,
+		// Activity-side half of the trace propagation set up in ./sentry.ts.
+		// Only `activity` — workflow interceptors would have to live inside the
+		// sandboxed bundle, where calling Sentry breaks determinism.
+		interceptors: { activity: [sentryActivityInterceptors] },
 		namespace: cfg.namespace,
 		taskQueue: cfg.taskQueue,
 		workflowBundle: { codePath: join(__dirname, 'workflow-bundle.js') },
@@ -108,8 +113,13 @@ export async function startWorker(deps: ActivityDeps): Promise<Worker> {
 	_runPromise.catch((err: unknown) => deps.client.log?.error?.(err));
 
 	// Promote this build to Current once its pollers are up (fire-and-forget).
+	// The catch is not decoration: `getTemporalClient()` throws when the client
+	// has not been initialised, which rejects this promise before the loop's own
+	// error handling is ever reached. Routing failures is not worth a crash.
 	if (cfg.setCurrentOnStart) {
-		void setCurrentDeploymentVersion(cfg, deps);
+		void setCurrentDeploymentVersion(cfg, deps).catch((err: unknown) =>
+			deps.client.log?.warn?.('Could not set the current Temporal deployment version: %s', (err as Error)?.message ?? err),
+		);
 	}
 
 	return _worker;

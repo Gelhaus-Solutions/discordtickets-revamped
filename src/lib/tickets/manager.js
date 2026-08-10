@@ -33,6 +33,7 @@ const {
 const ms = require('ms');
 const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
+const { recordTicket } = require('../metrics');
 const { isStaff } = require('../users');
 const { getWorkingHours } = require('../working-hours');
 const { emit } = require('../automations/dispatcher');
@@ -268,6 +269,19 @@ module.exports = class TicketManager {
 		if (category.guild.blocklist.length !== 0) {
 			const blocked = category.guild.blocklist.some(r => member.roles.cache.has(r));
 			if (blocked) return await sendError('blocked');
+		}
+
+		// The per-category deny list, alongside the guild-wide one above and for
+		// the same reason: it is checked *before* the staff bypass and before
+		// `requiredRoles`, so holding a blocked role loses you the category even
+		// if you also hold every role it requires. That precedence is the whole
+		// point — an allow list you cannot be excluded from is not a deny list.
+		// `Array.isArray` rather than a truthy length check: this is a JSON column,
+		// so a category imported from a hand-edited export could hold anything,
+		// and a deny list that throws would take the category down for everyone.
+		if (Array.isArray(category.blockedRoles) && category.blockedRoles.length !== 0) {
+			const blocked = category.blockedRoles.some(r => member.roles.cache.has(r));
+			if (blocked) return await sendError('blocked_roles');
 		}
 
 		// Don't let timed out users open tickets, they won't be able to write anything inside
@@ -869,6 +883,8 @@ module.exports = class TicketManager {
 					});
 				}
 			}
+
+			recordTicket('created');
 
 			logTicketEvent(this.client, {
 				action: 'create',
@@ -2194,6 +2210,8 @@ module.exports = class TicketManager {
 				});
 		}
 		if (reason) fieldsArray.push(fields.reason);
+
+		recordTicket('closed');
 
 		logTicketEvent(this.client, {
 			action: 'close',

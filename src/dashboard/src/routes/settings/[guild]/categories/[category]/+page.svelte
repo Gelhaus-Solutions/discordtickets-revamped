@@ -39,9 +39,8 @@
 	});
 
 	onMount(async () => {
-		const { applyPolyfills, defineCustomElements } = await import(
-			'@skyra/discord-components-core/loader'
-		);
+		const { applyPolyfills, defineCustomElements } =
+			await import('@skyra/discord-components-core/loader');
 		applyPolyfills().then(() => {
 			defineCustomElements();
 		});
@@ -92,7 +91,9 @@
 			return channels.filter((c) => c.type === 4);
 		}
 	});
-	roles = roles.filter((r) => r.name !== '@everyone').sort((a, b) => b.rawPosition - a.rawPosition);
+	roles = roles
+		.filter((r) => r.name !== '@everyone')
+		.sort((a, b) => b.rawPosition - a.rawPosition);
 	roles.forEach((r) => {
 		r._hexColor = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
 		r._style = r._hexColor ? `color: ${r._hexColor}` : '';
@@ -118,7 +119,8 @@
 				json.totalLimit = null;
 			}
 
-			if (json.name.length > 30) throw new Error(`The name is too long (${json.name.length}>30).`);
+			if (json.name.length > 30)
+				throw new Error(`The name is too long (${json.name.length}>30).`);
 
 			if (json.description.length > 100)
 				throw new Error(`The description is too long (${json.description.length}>100).`);
@@ -133,7 +135,8 @@
 			// Only a text question can supply the topic — every other type stores
 			// JSON, and a channel topic of `["urgent"]` helps nobody.
 			const topicQuestion = json.questions.find((q) => q.id === json.customTopic);
-			if (topicQuestion === undefined || topicQuestion.type !== 'TEXT') json.customTopic = null;
+			if (topicQuestion === undefined || topicQuestion.type !== 'TEXT')
+				json.customTopic = null;
 
 			const response = await fetch(url, {
 				method: category.id ? 'PATCH' : 'POST',
@@ -231,7 +234,12 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="The name of the category"
 						></i>
-						<input type="text" class="input form-input" required bind:value={category.name} />
+						<input
+							type="text"
+							class="input form-input"
+							required
+							bind:value={category.name}
+						/>
 					</label>
 				</div>
 				<div>
@@ -262,8 +270,14 @@
 								{@html marked
 									.parse(category.channelName.replace(/\n/g, '\n\n'))
 									.replace(/{+\s?num(ber)?\s?}+/gi, 1)
-									.replace(/{+\s?(nick|display)(name)?\s?}+/gi, getContext('user').username)
-									.replace(/{+\s?(user)?name\s?}+/gi, getContext('user').username)}
+									.replace(
+										/{+\s?(nick|display)(name)?\s?}+/gi,
+										getContext('user').username
+									)
+									.replace(
+										/{+\s?(user)?name\s?}+/gi,
+										getContext('user').username
+									)}
 							</span>
 						</div>
 					{/if}
@@ -307,7 +321,11 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="How long should members have to wait before creating another ticket?"
 						></i>
-						<input type="text" class="input form-input" bind:value={category.cooldown} />
+						<input
+							type="text"
+							class="input form-input"
+							bind:value={category.cooldown}
+						/>
 					</label>
 				</div>
 				<div>
@@ -336,13 +354,21 @@
 						<Required />
 						<i
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title={category.channelMode === 'FORUM' 
-								? 'Which forum channel should tickets be created in?' 
+							title={category.channelMode === 'FORUM'
+								? 'Which forum channel should tickets be created in?'
 								: 'Which category channel should ticket channels be created under?'}
 						></i>
-						<select class="input form-multiselect" required bind:value={category.discordCategory}>
+						<select
+							class="input form-multiselect"
+							required
+							bind:value={category.discordCategory}
+						>
 							{#if !category.discordCategory || category.discordCategory === 'new'}
-								<option value="new">Create a new {category.channelMode === 'FORUM' ? 'forum' : 'category'}</option>
+								<option value="new"
+									>Create a new {category.channelMode === 'FORUM'
+										? 'forum'
+										: 'category'}</option
+								>
 								<hr />
 							{/if}
 							{#each filteredChannels as channel}
@@ -378,15 +404,17 @@
 								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 								title="Alternative category to use when primary is full"
 							></i>
-							<select class="input form-multiselect" bind:value={category.backupCategoryId}>
-								<option value={null} class="p-1">
-									None
-								</option>
+							<select
+								class="input form-multiselect"
+								bind:value={category.backupCategoryId}
+							>
+								<option value={null} class="p-1"> None </option>
 								<hr />
 								{#each categories as cat}
 									{#if cat.id !== category.id}
 										<option value={cat.id} class="p-1">
-											{displayEmoji(cat.emoji)} {cat.name}
+											{displayEmoji(cat.emoji)}
+											{cat.name}
 										</option>
 									{/if}
 								{/each}
@@ -399,7 +427,10 @@
 								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 								title="Not available for Thread or Forum modes"
 							></i>
-							<select class="input form-multiselect opacity-50 cursor-not-allowed" disabled>
+							<select
+								class="input form-multiselect opacity-50 cursor-not-allowed"
+								disabled
+							>
 								<option>Not available for this mode</option>
 							</select>
 						</label>
@@ -413,7 +444,11 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="Emoji used for buttons & dropdowns"
 						></i>
-						<EmojiPicker bind:value={category.emoji} required placeholder="Choose an emoji" />
+						<EmojiPicker
+							bind:value={category.emoji}
+							required
+							placeholder="Choose an emoji"
+						/>
 					</label>
 				</div>
 				<div>
@@ -470,8 +505,8 @@
 
 					{#if useBlockEditor}
 						<p class="mb-2 mt-1 text-sm text-gray-500 dark:text-slate-400">
-							Drag blocks to reorder them. Mentions, answers and the ticket controls are filled in
-							for each ticket.
+							Drag blocks to reorder them. Mentions, answers and the ticket controls
+							are filled in for each ticket.
 						</p>
 						<BlockEditor
 							bind:blocks={category.messageLayout.blocks}
@@ -507,9 +542,12 @@
 							type="button"
 							class="mt-2 text-sm text-blurple underline"
 							onclick={() => {
-								category.messageLayout = defaultOpeningLayout(category.openingMessage, {
-									image: category.image
-								});
+								category.messageLayout = defaultOpeningLayout(
+									category.openingMessage,
+									{
+										image: category.image
+									}
+								);
 								useBlockEditor = true;
 							}}
 						>
@@ -542,10 +580,13 @@
 										author={data.client.username}
 										avatar={data.client.avatar}
 										bot={true}
-										timestamp={`Today at ${new Date().toLocaleTimeString('default', {
-											hour: 'numeric',
-											minute: 'numeric'
-										})}`}
+										timestamp={`Today at ${new Date().toLocaleTimeString(
+											'default',
+											{
+												hour: 'numeric',
+												minute: 'numeric'
+											}
+										)}`}
 										class="py-2"
 										highlight
 									>
@@ -556,14 +597,19 @@
 													{#if index > 0}
 														{' '}
 													{/if}
-													<discord-mention color={role?._hexColor} type="role">
+													<discord-mention
+														color={role?._hexColor}
+														type="role"
+													>
 														{role?.name}
 													</discord-mention>
 												{/if}
 											{/each}
 											, <br />
 										{/if}
-										<discord-mention highlight>{data.user.username}</discord-mention>
+										<discord-mention highlight
+											>{data.user.username}</discord-mention
+										>
 										has created a new ticket
 										<discord-embed
 											slot="embeds"
@@ -572,14 +618,20 @@
 											author-name={data.user.username}
 											image={category.image}
 										>
-											<discord-embed-description slot="description" class="break-words prose prose-slate prose-sm dark:prose-invert prose-a:text-blurple">
+											<discord-embed-description
+												slot="description"
+												class="break-words prose prose-slate prose-sm dark:prose-invert prose-a:text-blurple"
+											>
 												{@html marked
 													.parse(category.openingMessage)
 													.replace(
 														/{+\s?(user)?name\s?}+/gi,
 														`<discord-mention>${data.user.username}</discord-mention>`
 													)
-													.replace(/{+\s?avgResponseTime\s?}+/gi, data.guild.stats.avgResponseTime)
+													.replace(
+														/{+\s?avgResponseTime\s?}+/gi,
+														data.guild.stats.avgResponseTime
+													)
 													.replace(
 														/{+\s?avgResolutionTime\s?}+/gi,
 														data.guild.stats.avgResolutionTime
@@ -593,7 +645,10 @@
 												</discord-embed-fields>
 											{/if}
 											{#if data.settings.footer}
-												<discord-embed-footer slot="footer" footer-image={data.client.avatar}>
+												<discord-embed-footer
+													slot="footer"
+													footer-image={data.client.avatar}
+												>
 													{data.settings.footer}
 												</discord-embed-footer>
 											{/if}
@@ -601,13 +656,19 @@
 										<discord-attachments slot="components">
 											<discord-action-row>
 												{#if category.requireTopic || qS.questions.length > 0}
-													<discord-button type="secondary">✏️ Edit</discord-button>
+													<discord-button type="secondary"
+														>✏️ Edit</discord-button
+													>
 												{/if}
 												{#if category.claiming && data.settings.claimButton}
-													<discord-button type="secondary">🙌 Claim</discord-button>
+													<discord-button type="secondary"
+														>🙌 Claim</discord-button
+													>
 												{/if}
 												{#if data.settings.closeButton}
-													<discord-button type="destructive">✖️ Close</discord-button>
+													<discord-button type="destructive"
+														>✖️ Close</discord-button
+													>
 												{/if}
 											</discord-action-row>
 										</discord-attachments>
@@ -646,7 +707,10 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="Should slow mode be enabled?"
 						></i>
-						<select class="input form-multiselect font-normal" bind:value={category.ratelimit}>
+						<select
+							class="input form-multiselect font-normal"
+							bind:value={category.ratelimit}
+						>
 							<option value={null} class="p-1">
 								<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" /> -->
 								Off
@@ -681,6 +745,31 @@
 							{/each}
 						</select>
 					</label>
+				</div>
+				<div>
+					<label class="font-medium">
+						Blocked roles
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="Roles that stop a user creating a ticket here. This wins over required roles and applies to staff too."
+						></i>
+						<select
+							multiple
+							class="input form-multiselect h-44 font-normal"
+							bind:value={category.blockedRoles}
+						>
+							{#each roles as role}
+								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+									{role.unicodeEmoji || ''}
+									{role.name}
+								</option>
+							{/each}
+						</select>
+					</label>
+					<p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
+						Anyone with one of these roles is turned away even if they also have every
+						required role. Unlike the limits above, staff are not exempt.
+					</p>
 				</div>
 				<div>
 					<label for="requireTopic" class="font-medium">

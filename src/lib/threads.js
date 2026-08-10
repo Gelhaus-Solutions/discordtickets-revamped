@@ -4,6 +4,7 @@ const {
 	Thread,
 	Worker,
 } = require('threads');
+const Sentry = require('@sentry/node');
 const { cpus } = require('node:os');
 
 /**
@@ -99,43 +100,64 @@ function isPoolFailure(err) {
 
 function lazyPool(num, name, options) {
 	let _pool = null;
+	/** The real queue call, with its retry and crypto fallback. */
+	const run = async fn => {
+		if (!_pool) _pool = reusablePool(num, name, options);
+		try {
+			return await _pool.queue(fn);
+		} catch (err) {
+			// Only infrastructure failures are retried. An error thrown by the
+			// caller's own callback is real and must surface immediately.
+			if (!isPoolFailure(err)) throw err;
+			// Retry once quickly, in case the worker spawn timed out transiently
+			try {
+				await new Promise(r => setTimeout(r, 100));
+				return await _pool.queue(fn);
+			} catch (err2) {
+				if (!isPoolFailure(err2)) throw err2;
+				// If this is the crypto pool, fall back to in-process crypto
+				if (name === 'crypto') {
+					try {
+						// Lazy-require local crypto implementation
+						const {
+							decrypt, encrypt,
+						} = require('./crypto');
+						const pseudo = {
+							decrypt: data => decrypt(data),
+							encrypt: data => encrypt(data),
+						};
+						log.warn('[threads] crypto pool unavailable — falling back to in-process crypto');
+						return await Promise.resolve(fn(pseudo));
+					} catch (fallErr) {
+						log.error('[threads] crypto fallback failed', fallErr);
+						throw fallErr;
+					}
+				}
+				log.error('[threads] pool.queue failed for', name, err2 || err);
+				throw err2;
+			}
+		}
+	};
+
 	return {
 		async queue(fn) {
-			if (!_pool) _pool = reusablePool(num, name, options);
-			try {
-				return await _pool.queue(fn);
-			} catch (err) {
-				// Only infrastructure failures are retried. An error thrown by the
-				// caller's own callback is real and must surface immediately.
-				if (!isPoolFailure(err)) throw err;
-				// Retry once quickly, in case the worker spawn timed out transiently
-				try {
-					await new Promise(r => setTimeout(r, 100));
-					return await _pool.queue(fn);
-				} catch (err2) {
-					if (!isPoolFailure(err2)) throw err2;
-					// If this is the crypto pool, fall back to in-process crypto
-					if (name === 'crypto') {
-						try {
-							// Lazy-require local crypto implementation
-							const {
-								decrypt, encrypt,
-							} = require('./crypto');
-							const pseudo = {
-								decrypt: data => decrypt(data),
-								encrypt: data => encrypt(data),
-							};
-							log.warn('[threads] crypto pool unavailable — falling back to in-process crypto');
-							return await Promise.resolve(fn(pseudo));
-						} catch (fallErr) {
-							log.error('[threads] crypto fallback failed', fallErr);
-							throw fallErr;
-						}
-					}
-					log.error('[threads] pool.queue failed for', name, err2 || err);
-					throw err2;
-				}
+			// Measured from the parent thread. The `threads` RPC carries no
+			// trace context, so a span started inside a worker would be an
+			// orphan — while from here the duration and failure rate, including
+			// the retry and crypto fallback above, land in the right trace.
+			//
+			// `crypto` is exempt on volume: it runs per encrypted field, so one
+			// transcript would bury its own transaction under thousands of
+			// spans. Only the coarse, genuinely slow pools are worth tracing.
+			// Skipped outside a trace too, so background work does not become a
+			// transaction per call.
+			if (name !== 'crypto' && Sentry.getActiveSpan()) {
+				return Sentry.startSpan({
+					name: `thread ${name}`,
+					op: 'thread.queue',
+				}, () => run(fn));
 			}
+			return run(fn);
 		},
 		settled() {
 			return _pool ? _pool.settled() : Promise.resolve();
