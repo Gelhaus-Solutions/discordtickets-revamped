@@ -5,25 +5,30 @@ export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 	let body;
 	if (params.category === 'new') {
+		// Every inheritable field starts as `null`, which means "use the server
+		// default". Seeding them with the old hard-coded values would make each
+		// new category an override from birth, so a server-wide setting could
+		// never reach it — which is the whole point of having one.
 		body = {
-			channelName: '',
+			channelName: null,
 			claiming: false,
+			cooldown: null,
 			description: '',
 			discordCategory: 'new',
 			enableFeedback: false,
-			blockedRoles: [],
+			blockedRoles: null,
 			emoji: '',
 			image: '',
-			memberLimit: 1,
+			memberLimit: null,
 			name: '',
 			openingMessage: '',
-			pingRoles: [],
+			pingRoles: null,
 			questions: [],
 			ratelimit: null,
-			requiredRoles: [],
+			requiredRoles: null,
 			requireTopic: false,
-			staffRoles: [],
-			totalLimit: 50,
+			staffRoles: null,
+			totalLimit: null,
 			channelMode: 'CHANNEL',
 			backupCategoryId: null
 		};

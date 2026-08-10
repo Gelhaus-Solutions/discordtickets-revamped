@@ -54,6 +54,93 @@
 	let error = $state(null);
 	let loading = $state(false);
 
+	// The same options the category form offers, so a server default and a
+	// category override are picked from one list.
+	const slowmodes = ['5s', '10s', '15s', '30s', '1m', '2m', '5m', '10m', '15m', '30m', '1h', '2h', '6h'];
+
+	const ROLE_DEFAULTS = [
+		{ key: 'staffRoles', label: 'Staff roles', title: 'Roles that will be able to view tickets.' },
+		{ key: 'pingRoles', label: 'Ping roles', title: 'Roles pinged when a ticket is created.' },
+		{
+			key: 'requiredRoles',
+			label: 'Required roles',
+			title: 'Roles a member needs to create a ticket.'
+		},
+		{
+			key: 'blockedRoles',
+			label: 'Blocked roles',
+			title: 'Roles that prevent a member creating a ticket.'
+		}
+	];
+
+	/** Fields the bulk action can hand back to this page. */
+	const APPLICABLE = [
+		{ key: 'channelName', label: 'Channel name' },
+		{ key: 'memberLimit', label: 'Member limit' },
+		{ key: 'totalLimit', label: 'Total limit' },
+		{ key: 'cooldown', label: 'Cooldown' },
+		{ key: 'ratelimit', label: 'Slow mode' },
+		...ROLE_DEFAULTS.map(({ key, label }) => ({ key, label }))
+	];
+
+	// Three states again: empty means "no server default", `0` means "no
+	// cooldown", anything else is a duration.
+	let defaultCooldown = $state(
+		settings.cooldown === null || settings.cooldown === undefined
+			? ''
+			: settings.cooldown === 0
+				? '0'
+				: ms(settings.cooldown)
+	);
+
+	let applyField = $state('staffRoles');
+	let applying = $state(false);
+	let applyResult = $state(null);
+
+	/**
+	 * Clear one field on every category, so they all fall back to this page.
+	 *
+	 * Done from the client with the existing per-category PATCH rather than a new
+	 * bulk endpoint: each one still goes through the same validation, the same
+	 * audit-log entry and the same cache refresh, which a bulk `updateMany` would
+	 * have quietly skipped.
+	 */
+	const applyToAll = async () => {
+		const field = APPLICABLE.find((f) => f.key === applyField);
+		if (
+			!confirm(
+				`Clear "${field.label}" on every category in this server?\n\n` +
+					'They will all use the server default instead. This cannot be undone.'
+			)
+		)
+			return;
+		applying = true;
+		applyResult = null;
+		try {
+			const guild = $page.params.guild;
+			const categories = await (
+				await fetch(`/api/admin/guilds/${guild}/categories`, { credentials: 'include' })
+			).json();
+			let changed = 0;
+			for (const category of categories) {
+				const response = await fetch(`/api/admin/guilds/${guild}/categories/${category.id}`, {
+					method: 'PATCH',
+					body: JSON.stringify({ [applyField]: null }),
+					credentials: 'include',
+					headers: { 'Content-Type': 'application/json; charset=UTF-8' }
+				});
+				if (!response.ok) throw await response.json();
+				changed++;
+			}
+			applyResult = `Cleared "${field.label}" on ${changed} categor${changed === 1 ? 'y' : 'ies'}.`;
+		} catch (err) {
+			error = err;
+			window.scroll({ top: 0, behavior: 'smooth' });
+		} finally {
+			applying = false;
+		}
+	};
+
 	const submit = async () => {
 		try {
 			// error = null;
@@ -67,6 +154,13 @@
 			else if (!Array.isArray(settings.autoTag)) json.autoTag = []; // it only updates if you select (and optionally deselect) a channel
 			if (settings.logChannel === '') json.logChannel = null;
 			json.workingHours = settings.workingHours.map((v) => (v.length === 0 ? null : v));
+			// Empty means "no server default", so it goes back as null rather than 0.
+			const cooldown = String(defaultCooldown ?? '').trim();
+			json.cooldown = cooldown === '' ? null : ms(cooldown) || 0;
+			// Derived sidecars from the GET; the API ignores them, but they have no
+			// business in the request or in the audit-log diff.
+			delete json.inherited;
+			delete json.inheritable;
 
 			const response = await fetch(`/api/admin/guilds/${$page.params.guild}/settings`, {
 				method: 'PATCH',
@@ -419,6 +513,155 @@
 				</div>
 			</div>
 		</div>
+
+		<!--
+			Category defaults.
+
+			These are the values a category uses for any field it leaves empty.
+			Changing one here reaches every category that has not overridden it —
+			and, deliberately, no category that has: an upgrade must not rewrite a
+			setting somebody chose. "Apply to all categories" below is the escape
+			hatch for exactly that.
+		-->
+		<h2 class="mt-8 text-2xl font-bold">Category defaults</h2>
+		<p class="mb-2 text-base text-gray-500 dark:text-slate-400">
+			Used by any category that leaves the matching field empty. Categories that already
+			have their own value keep it.
+		</p>
+		<div class="rounded-lg bg-gray-100 p-4 dark:bg-slate-800">
+			<div class="grid gap-4">
+				<label class="font-medium">
+					Channel name
+					<i
+						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+						title="The default name of ticket channels."
+					></i>
+					<input
+						type="text"
+						class="input form-input"
+						placeholder={data.settings.inherited?.channelName ?? 'ticket-{num}'}
+						value={settings.channelName ?? ''}
+						oninput={(e) => (settings.channelName = e.target.value === '' ? null : e.target.value)}
+					/>
+				</label>
+
+				<div class="grid grid-cols-2 gap-4">
+					<label class="font-medium">
+						Member limit
+						<input
+							type="number"
+							min="1"
+							max="10"
+							class="input form-input"
+							placeholder="1"
+							value={settings.memberLimit ?? ''}
+							oninput={(e) =>
+								(settings.memberLimit = e.target.value === '' ? null : Number(e.target.value))}
+						/>
+					</label>
+					<label class="font-medium">
+						Total limit
+						<input
+							type="number"
+							min="1"
+							max="50"
+							class="input form-input"
+							placeholder="50"
+							value={settings.totalLimit ?? ''}
+							oninput={(e) =>
+								(settings.totalLimit = e.target.value === '' ? null : Number(e.target.value))}
+						/>
+					</label>
+				</div>
+
+				<div class="grid grid-cols-2 gap-4">
+					<label class="font-medium">
+						Cooldown
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="How long members wait before creating another ticket. 0 for none."
+						></i>
+						<input
+							type="text"
+							class="input form-input"
+							placeholder="none"
+							bind:value={defaultCooldown}
+						/>
+					</label>
+					<label class="font-medium">
+						Slow mode
+						<select
+							class="input form-multiselect font-normal"
+							value={settings.ratelimit ?? ''}
+							onchange={(e) =>
+								(settings.ratelimit = e.target.value === '' ? null : Number(e.target.value))}
+						>
+							<option value="">No default</option>
+							<option value={0}>Off</option>
+							{#each slowmodes as slowmode}
+								<option value={ms(slowmode) / 1000}>{slowmode}</option>
+							{/each}
+						</select>
+					</label>
+				</div>
+
+				{#each ROLE_DEFAULTS as { key, label, title } (key)}
+					<label class="font-medium">
+						{label}
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							{title}
+						></i>
+						<select
+							multiple
+							class="input form-multiselect h-32 font-normal"
+							value={settings[key] ?? []}
+							onchange={(e) =>
+								(settings[key] =
+									[...e.target.selectedOptions].map((o) => o.value).length === 0
+										? null
+										: [...e.target.selectedOptions].map((o) => o.value))}
+						>
+							{#each roles as role}
+								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+									{role.unicodeEmoji || ''}
+									{role.name}
+								</option>
+							{/each}
+						</select>
+					</label>
+				{/each}
+			</div>
+
+			<div class="mt-4 border-t border-gray-300 pt-4 dark:border-slate-600">
+				<p class="text-base text-gray-500 dark:text-slate-400">
+					A default only reaches categories that have not set their own value. To hand a
+					setting back to this page everywhere, clear it on every category:
+				</p>
+				<div class="mt-2 flex flex-wrap items-center gap-2">
+					<select class="input form-multiselect font-normal" bind:value={applyField}>
+						{#each APPLICABLE as { key, label } (key)}
+							<option value={key}>{label}</option>
+						{/each}
+					</select>
+					<button
+						type="button"
+						disabled={applying}
+						class="rounded-lg bg-orange-300 p-2 px-4 font-medium transition duration-300 hover:bg-orange-500 hover:text-white disabled:cursor-not-allowed dark:bg-orange-500/50 dark:hover:bg-orange-500"
+						onclick={applyToAll}
+					>
+						{#if applying}
+							<i class="fa-solid fa-spinner animate-spin"></i>
+						{/if}
+						Apply to all categories
+					</button>
+				</div>
+				{#if applyResult}
+					<p class="mt-2 text-base text-green-700 dark:text-green-400">{applyResult}</p>
+				{/if}
+			</div>
+		</div>
+
 		<button
 			type="submit"
 			disabled={loading}

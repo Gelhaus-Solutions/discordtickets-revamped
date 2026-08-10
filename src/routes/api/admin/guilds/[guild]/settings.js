@@ -4,7 +4,9 @@ const temporal = require('../../../../../lib/temporal');
 const { GUILD_SETTINGS_FIELDS } = require('../../../../../lib/schemas/importable');
 const {
 	GUILD_JSON_NULLABLE,
+	INHERITED_FIELDS,
 	dbNulls,
+	guildDefaults,
 } = require('../../../../../lib/settings/inheritance');
 const { updateStaffRoles } = require('../../../../../lib/users');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
@@ -24,7 +26,17 @@ module.exports.get = fastify => ({
 
 		for (const field of CUSTOMIZATION_FIELDS) delete settings[field];
 
-		return settings;
+		// What a category inherits when it overrides nothing — the guild's own
+		// values, falling back to the built-ins. The dashboard needs these to show
+		// its "Inherited: …" placeholders on a category that does not exist yet,
+		// and serving them keeps the built-in defaults defined in one place
+		// instead of mirrored into the SvelteKit app where nothing would catch
+		// them drifting.
+		return {
+			...settings,
+			inheritable: INHERITED_FIELDS,
+			inherited: guildDefaults(settings),
+		};
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],
 });

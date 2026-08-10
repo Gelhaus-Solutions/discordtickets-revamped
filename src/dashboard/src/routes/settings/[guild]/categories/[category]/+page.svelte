@@ -10,6 +10,7 @@
 	import { questionsState as qS } from '$components/state.svelte';
 	import { validateQuestion } from '$components/CategoryQuestions/validate.js';
 	import Required from '$components/Required.svelte';
+	import Inheritable from '$components/Inheritable.svelte';
 	import { getContext, onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import ErrorBox from '$components/ErrorBox.svelte';
@@ -99,7 +100,30 @@
 		r._style = r._hexColor ? `color: ${r._hexColor}` : '';
 	});
 
-	category.cooldown = category.cooldown ? ms(category.cooldown) : '';
+	/**
+	 * What each inheritable field falls back to when this category leaves it
+	 * unset. Served by the API rather than mirrored here, so the built-in
+	 * defaults stay defined once, in `src/lib/settings/inheritance.js`.
+	 *
+	 * A category being created has no row to ask, so the guild's own sidecar
+	 * stands in — it answers the same question.
+	 */
+	const inherited = $derived(data.category.inherited ?? data.settings.inherited ?? {});
+
+	/** Role IDs as names, for the greyed "this is what you'd inherit" lists. */
+	const roleNames = (ids) =>
+		(ids ?? []).map((id) => roles.find((r) => r.id === id)?.name ?? id).join(', ');
+
+	// Three states, not two. `null` inherits, `0` is a deliberate "no cooldown",
+	// and anything else is a duration — and the old `? :` round-trip collapsed
+	// the first two into the same empty string, so "off" was indistinguishable
+	// from "ask the server".
+	category.cooldown =
+		category.cooldown === null || category.cooldown === undefined
+			? ''
+			: category.cooldown === 0
+				? '0'
+				: ms(category.cooldown);
 
 	let error = $state(null);
 	let loadingSubmit = $state(false);
@@ -112,7 +136,14 @@
 			const json = { ...category };
 
 			if (category.discordCategory === 'new') json.discordCategory = null;
-			json.cooldown = category.cooldown ? ms(category.cooldown) : null;
+			// Empty means inherit, so it goes back as null rather than 0.
+			const cooldown = String(category.cooldown ?? '').trim();
+			json.cooldown = cooldown === '' ? null : ms(cooldown) || 0;
+
+			// Derived, read-only sidecars from the GET. The API strips them too,
+			// but sending them back is noise at best and confusing in a diff.
+			delete json.inherited;
+			delete json.inheritable;
 
 			// For THREAD and FORUM modes, don't send totalLimit
 			if (json.channelMode === 'THREAD' || json.channelMode === 'FORUM') {
@@ -243,24 +274,23 @@
 					</label>
 				</div>
 				<div>
-					<label class="font-medium">
-						Channel name
-						{#if category.id}
-							<Required />
-						{/if}
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="The name of ticket channels"
-						></i>
-						<input
-							type="text"
-							class="input form-input"
-							placeholder="ticket-{'{'}num{'}'}"
-							required={!!category.id}
-							bind:value={category.channelName}
-						/>
-					</label>
-					{#if category.channelName}
+					<Inheritable
+						label="Channel name"
+						title="The name of ticket channels"
+						bind:value={category.channelName}
+						inherited={inherited.channelName}
+					>
+						{#snippet control({ value, setValue, placeholder })}
+							<input
+								type="text"
+								class="input form-input"
+								{placeholder}
+								value={value ?? ''}
+								oninput={(e) => setValue(e.target.value === '' ? null : e.target.value)}
+							/>
+						{/snippet}
+					</Inheritable>
+					{#if category.channelName ?? inherited.channelName}
 						<p class="mb-1 mt-2 text-sm font-semibold">Preview</p>
 						<div
 							class="block w-full break-words rounded-md bg-blurple/20 p-3 font-mono text-sm shadow-sm dark:bg-blurple/20"
@@ -268,7 +298,12 @@
 							<i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400"></i>
 							<span class="marked">
 								{@html marked
-									.parse(category.channelName.replace(/\n/g, '\n\n'))
+									.parse(
+										(category.channelName ?? inherited.channelName ?? '').replace(
+											/\n/g,
+											'\n\n'
+										)
+									)
 									.replace(/{+\s?num(ber)?\s?}+/gi, 1)
 									.replace(
 										/{+\s?(nick|display)(name)?\s?}+/gi,
@@ -315,18 +350,30 @@
 					</label>
 				</div>
 				<div>
-					<label class="font-medium">
-						Cooldown
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="How long should members have to wait before creating another ticket?"
-						></i>
-						<input
-							type="text"
-							class="input form-input"
-							bind:value={category.cooldown}
-						/>
-					</label>
+					<Inheritable
+						label="Cooldown"
+						title="How long should members have to wait before creating another ticket?"
+						bind:value={category.cooldown}
+						inherited={inherited.cooldown === null || inherited.cooldown === undefined
+							? 'no cooldown'
+							: inherited.cooldown === 0
+								? 'no cooldown'
+								: ms(inherited.cooldown)}
+					>
+						{#snippet control({ value, setValue, placeholder })}
+							<input
+								type="text"
+								class="input form-input"
+								{placeholder}
+								value={value ?? ''}
+								oninput={(e) =>
+									setValue(e.target.value.trim() === '' ? null : e.target.value)}
+							/>
+						{/snippet}
+						{#snippet help()}
+							Enter <code>0</code> for no cooldown at all.
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
 					<label class="font-medium">
@@ -478,20 +525,25 @@
 					</label>
 				</div>
 				<div>
-					<label class="font-medium">
-						Member limit
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="How many tickets in this category can each member have open?"
-						></i>
-						<input
-							type="number"
-							min="1"
-							max="10"
-							class="input form-input"
-							bind:value={category.memberLimit}
-						/>
-					</label>
+					<Inheritable
+						label="Member limit"
+						title="How many tickets in this category can each member have open?"
+						bind:value={category.memberLimit}
+						inherited={inherited.memberLimit}
+					>
+						{#snippet control({ value, setValue, placeholder })}
+							<input
+								type="number"
+								min="1"
+								max="10"
+								class="input form-input"
+								{placeholder}
+								value={value ?? ''}
+								oninput={(e) =>
+									setValue(e.target.value === '' ? null : Number(e.target.value))}
+							/>
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
 					<div class="font-medium">
@@ -679,93 +731,109 @@
 					{/key}
 				</div>
 				<div>
-					<label class="font-medium">
-						Ping roles
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Roles that should be pinged upon ticket creation."
-						></i>
-						<select
-							multiple
-							class="input form-multiselect h-44 font-normal"
-							bind:value={category.pingRoles}
-						>
-							{#each roles as role}
-								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
-									<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" style={role._style} /> -->
-									{role.unicodeEmoji || ''}
-									{role.name}
-								</option>
-							{/each}
-						</select>
-					</label>
+					<Inheritable
+						label="Ping roles"
+						title="Roles that should be pinged upon ticket creation."
+						mode="preview"
+						bind:value={category.pingRoles}
+						inherited={inherited.pingRoles}
+						format={roleNames}
+					>
+						{#snippet control({ value, setValue })}
+							<select
+								multiple
+								class="input form-multiselect h-44 font-normal"
+								value={value ?? []}
+								onchange={(e) => setValue([...e.target.selectedOptions].map((o) => o.value))}
+							>
+								{#each roles as role}
+									<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+										<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" style={role._style} /> -->
+										{role.unicodeEmoji || ''}
+										{role.name}
+									</option>
+								{/each}
+							</select>
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
-					<label class="font-medium">
-						Slow mode
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Should slow mode be enabled?"
-						></i>
-						<select
-							class="input form-multiselect font-normal"
-							bind:value={category.ratelimit}
-						>
-							<option value={null} class="p-1">
-								<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" /> -->
-								Off
-							</option>
-							{#each slowmodes as slowmode}
-								<option value={ms(slowmode) / 1000} class="p-1">
-									<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" /> -->
-									{slowmode}
-								</option>
-							{/each}
-						</select>
-					</label>
+					<Inheritable
+						label="Slow mode"
+						title="Should slow mode be enabled?"
+						bind:value={category.ratelimit}
+						inherited={inherited.ratelimit ? ms(inherited.ratelimit * 1000, { long: true }) : 'off'}
+					>
+						{#snippet control({ value, setValue })}
+							<select
+								class="input form-multiselect font-normal"
+								value={value ?? ''}
+								onchange={(e) =>
+									setValue(e.target.value === '' ? null : Number(e.target.value))}
+							>
+								<option value="" class="p-1">Use the server default</option>
+								<option value={0} class="p-1">Off</option>
+								{#each slowmodes as slowmode}
+									<option value={ms(slowmode) / 1000} class="p-1">
+										{slowmode}
+									</option>
+								{/each}
+							</select>
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
-					<label class="font-medium">
-						Required roles
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Roles that a user needs to create a ticket."
-						></i>
-						<select
-							multiple
-							class="input form-multiselect h-44 font-normal"
-							bind:value={category.requiredRoles}
-						>
-							{#each roles as role}
-								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
-									<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" style={role._style} /> -->
-									{role.unicodeEmoji || ''}
-									{role.name}
-								</option>
-							{/each}
-						</select>
-					</label>
+					<Inheritable
+						label="Required roles"
+						title="Roles that a user needs to create a ticket."
+						mode="preview"
+						bind:value={category.requiredRoles}
+						inherited={inherited.requiredRoles}
+						format={roleNames}
+					>
+						{#snippet control({ value, setValue })}
+							<select
+								multiple
+								class="input form-multiselect h-44 font-normal"
+								value={value ?? []}
+								onchange={(e) => setValue([...e.target.selectedOptions].map((o) => o.value))}
+							>
+								{#each roles as role}
+									<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+										<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" style={role._style} /> -->
+										{role.unicodeEmoji || ''}
+										{role.name}
+									</option>
+								{/each}
+							</select>
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
-					<label class="font-medium">
-						Blocked roles
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Roles that stop a user creating a ticket here. This wins over required roles and applies to staff too."
-						></i>
-						<select
-							multiple
-							class="input form-multiselect h-44 font-normal"
-							bind:value={category.blockedRoles}
-						>
-							{#each roles as role}
-								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
-									{role.unicodeEmoji || ''}
-									{role.name}
-								</option>
-							{/each}
-						</select>
-					</label>
+					<Inheritable
+						label="Blocked roles"
+						title="Roles that stop a user creating a ticket here. This wins over required roles and applies to staff too."
+						mode="preview"
+						bind:value={category.blockedRoles}
+						inherited={inherited.blockedRoles}
+						format={roleNames}
+					>
+						{#snippet control({ value, setValue })}
+							<select
+								multiple
+								class="input form-multiselect h-44 font-normal"
+								value={value ?? []}
+								onchange={(e) => setValue([...e.target.selectedOptions].map((o) => o.value))}
+							>
+								{#each roles as role}
+									<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+										{role.unicodeEmoji || ''}
+										{role.name}
+									</option>
+								{/each}
+							</select>
+						{/snippet}
+					</Inheritable>
 					<p class="mt-1 text-xs text-gray-500 dark:text-slate-400">
 						Anyone with one of these roles is turned away even if they also have every
 						required role. Unlike the limits above, staff are not exempt.
@@ -789,45 +857,55 @@
 					</label>
 				</div>
 				<div>
-					<label class="font-medium">
-						Staff roles
-						<Required />
-						<i
-							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-							title="Roles that will be able to view tickets."
-						></i>
-						<select
-							multiple
-							required
-							class="input form-multiselect h-44 font-normal"
-							bind:value={category.staffRoles}
-						>
-							{#each roles as role}
-								<option value={role.id} class="m-1 rounded p-1" style={role._style}>
-									<!-- <i class="fa-solid fa-at text-gray-500 dark:text-slate-400" style={role._style} /> -->
-									{role.unicodeEmoji || ''}
-									{role.name}
-								</option>
-							{/each}
-						</select>
-					</label>
+					<Inheritable
+						label="Staff roles"
+						title="Roles that will be able to view tickets."
+						mode="preview"
+						bind:value={category.staffRoles}
+						inherited={inherited.staffRoles}
+						format={roleNames}
+					>
+						{#snippet control({ value, setValue })}
+							<select
+								multiple
+								class="input form-multiselect h-44 font-normal"
+								value={value ?? []}
+								onchange={(e) => setValue([...e.target.selectedOptions].map((o) => o.value))}
+							>
+								{#each roles as role}
+									<option value={role.id} class="m-1 rounded p-1" style={role._style}>
+										{role.unicodeEmoji || ''}
+										{role.name}
+									</option>
+								{/each}
+							</select>
+						{/snippet}
+						{#snippet help()}
+							A category needs staff from somewhere — leaving this empty with no
+							server default is rejected.
+						{/snippet}
+					</Inheritable>
 				</div>
 				{#if category.channelMode === 'CHANNEL'}
 					<div>
-						<label class="font-medium">
-							Total limit
-							<i
-								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
-								title="The total number of tickets that can be open at once."
-							></i>
-							<input
-								type="number"
-								min="1"
-								max="50"
-								class="input form-input"
-								bind:value={category.totalLimit}
+						<Inheritable
+							label="Total limit"
+							title="The total number of tickets that can be open at once."
+							bind:value={category.totalLimit}
+							inherited={inherited.totalLimit}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<input
+									type="number"
+									min="1"
+									max="50"
+									class="input form-input"
+									{placeholder}
+									value={value ?? ''}
+									oninput={(e) => setValue(e.target.value === '' ? null : Number(e.target.value))}
 							/>
-						</label>
+							{/snippet}
+						</Inheritable>
 					</div>
 				{:else}
 					<div>
