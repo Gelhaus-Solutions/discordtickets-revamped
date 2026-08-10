@@ -572,6 +572,11 @@ module.exports = class TicketManager {
 		});
 		const channelName = clampName(
 			managedPrefix({
+				// A ticket nobody has answered is waiting on staff, and the row
+				// below is created saying so. This literal has to agree with it,
+				// or the channel is created without the waiting emoji and the
+				// first message pays a rename to add it.
+				awaitingResponseFrom: 'STAFF',
 				claimedById: null,
 				open: true,
 				priority: null,
@@ -875,6 +880,11 @@ module.exports = class TicketManager {
 		}
 
 		const data = {
+			// Nobody has replied yet, so the ticket starts out waiting on staff.
+			// The migration backfills nothing, but a ticket opened from here on
+			// reads correctly in the dashboard from the moment it exists rather
+			// than looking the same as one that has already been answered.
+			awaitingResponseFrom: 'STAFF',
 			category: { connect: { id: categoryId } },
 			createdBy: {
 				connectOrCreate: {
@@ -2029,6 +2039,38 @@ module.exports = class TicketManager {
 		return result.freesAt ?? Date.now() + ms('1m');
 	}
 
+	/**
+	 * Apply the rename owed to a ticket's waiting-on-staff status changing.
+	 *
+	 * The entry point for `awaitingRenameWorkflow`. Like the deferred rename it
+	 * recomputes from the row as it is now rather than being told a name, so a
+	 * status that flipped back while the debounce was counting down costs one
+	 * query and a `noop` instead of a wrong rename.
+	 *
+	 * Unlike the deferred rename it passes `defer: true` and ignores the result:
+	 * this path decides *when* to try, and an exhausted budget hands off to the
+	 * deferral ladder, which is the thing that knows how to wait for a slot.
+	 *
+	 * @param {string} ticketId
+	 * @returns {Promise<void>}
+	 */
+	async applyAwaitingRename(ticketId) {
+		const ticket = await this.client.prisma.ticket.findUnique({ where: { id: ticketId } });
+		// A closed ticket waits on nobody, and `finallyClose` has already written
+		// the name it should end up with.
+		if (!ticket || !ticket.open) return;
+
+		const channel = await this.client.channels.fetch(ticketId).catch(() => null);
+		if (!channel) return;
+
+		await syncChannelName(this.client, {
+			channel,
+			defer: true,
+			reason: 'Waiting-on-staff status changed',
+			ticket,
+		});
+	}
+
 	async finallyClose(ticketId, {
 		closedBy = null,
 		lock = false,
@@ -2068,6 +2110,12 @@ module.exports = class TicketManager {
 
 		/** @type {import("@prisma/client").Ticket} */
 		const data = {
+			// A closed ticket waits on nobody. Left set, it would also outrank the
+			// closed emoji in `ticketState`, so an archived thread would sit there
+			// wearing the waiting badge for ever — the same trap as the override
+			// below, for the same reason: nothing fires on a closed ticket to
+			// clear it later.
+			awaitingResponseFrom: null,
 			closedAt: new Date(),
 			closedById: closedBy || undefined,
 			closedReason: reason && await crypto.queue(w => w.encrypt(reason)),
@@ -2122,6 +2170,13 @@ module.exports = class TicketManager {
 			this.$closeRequests.delete(ticketId);
 			// Terminal close: stop the durable inactivity workflow for this ticket.
 			temporal.cancelStaleWorkflow(ticketId).catch(() => {});
+			// And any waiting-status rename still counting down. Unlike the
+			// deferred rename below this is not load-bearing — the activity reads
+			// a row that now says closed and no-ops — but it saves a pointless
+			// wake-up and a channel fetch, and it belongs here rather than in the
+			// thread/forum branch because the debounce is dead in both channel
+			// modes the moment the compare-and-swap above wins.
+			temporal.cancelAwaitingRename(ticketId).catch(() => {});
 			// Clamped: a count that went negative is never treated as a cache miss
 			// (`-1` is truthy), so it would stick forever and permanently disable
 			// the category's ticket limit.
@@ -2157,6 +2212,7 @@ module.exports = class TicketManager {
 						reason: closeReason,
 						ticket: {
 							...ticket,
+							awaitingResponseFrom: null,
 							emojiOverride: null,
 							open: false,
 						},

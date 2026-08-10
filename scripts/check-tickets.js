@@ -422,6 +422,33 @@ const ticket = (over = {}) => ({
 		assert.strictEqual(N.managedName('ticket-1', ticket({ awaitingResponseFrom: 'nonsense' }), settings), 'ticket-1');
 	});
 
+	await t('a newly created ticket names itself the same way it always did', () => {
+		// `manager.js#create` composes the name from a hand-built literal rather
+		// than a row, because the channel does not exist yet. That literal now
+		// says `awaitingResponseFrom: 'STAFF'` to match the row it is about to
+		// write, so this pins the two things that could go wrong: with nothing
+		// configured the prefix must still be empty, and with an emoji set the
+		// channel must be created already wearing it rather than paying a rename
+		// on the first message.
+		const atCreation = {
+			awaitingResponseFrom: 'STAFF',
+			claimedById: null,
+			open: true,
+			priority: null,
+		};
+
+		assert.strictEqual(N.managedPrefix(atCreation, defaults()), '');
+		assert.strictEqual(N.managedPrefix(atCreation, settingsFor({ awaitingStaffEmoji: '⏳' })), '⏳');
+
+		// And the literal must agree with what the row produces a moment later,
+		// or the first message renames a channel that was already correct.
+		const settings = settingsFor({ awaitingStaffEmoji: '⏳' });
+		assert.strictEqual(
+			N.managedPrefix(atCreation, settings),
+			N.managedPrefix(ticket({ awaitingResponseFrom: 'STAFF' }), settings),
+		);
+	});
+
 	await t('an awaiting emoji strips when a category overrides the guild default', () => {
 		// The channel is wearing the guild's value and the category now overrides
 		// it. Strippable only because `historicalEmojis` keeps the raw value at
