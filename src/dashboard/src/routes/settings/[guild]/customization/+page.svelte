@@ -43,13 +43,17 @@
 		}
 	});
 
+	// Removed on destroy — see the note on the general settings page: a handler
+	// left on `window` after a client-side navigation keeps answering for a
+	// component the user has already left.
 	onMount(() => {
-		window.addEventListener('beforeunload', (event) => {
-			if (modified) {
-				event.preventDefault();
-				event.returnValue = '';
-			}
-		});
+		const handler = (event) => {
+			if (!modified) return;
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener('beforeunload', handler);
+		return () => window.removeEventListener('beforeunload', handler);
 	});
 
 	const handleImageUpload = (event, field) => {

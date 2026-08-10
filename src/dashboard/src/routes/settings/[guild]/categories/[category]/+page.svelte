@@ -53,13 +53,25 @@
 		applyPolyfills().then(() => {
 			defineCustomElements();
 		});
+	});
 
-		window.addEventListener('beforeunload', (event) => {
-			if (modified) {
-				event.preventDefault();
-				event.returnValue = '';
-			}
-		});
+	// Its own `onMount`, and deliberately not the async one above: Svelte only
+	// honours a teardown returned from a *synchronous* mount callback, so an
+	// async one would return a Promise and the listener would never come off.
+	//
+	// It has to come off. `beforeunload` lives on `window`, which outlives the
+	// component, so a client-side navigation to another settings page left this
+	// handler attached — still closing over *this* component's `modified`.
+	// Submitting on the next page then raised the browser's "Leave site?" dialog
+	// on behalf of a page the user had already left.
+	onMount(() => {
+		const handler = (event) => {
+			if (!modified) return;
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener('beforeunload', handler);
+		return () => window.removeEventListener('beforeunload', handler);
 	});
 
 	let { category, channels, roles, categories, url } = $state(data);

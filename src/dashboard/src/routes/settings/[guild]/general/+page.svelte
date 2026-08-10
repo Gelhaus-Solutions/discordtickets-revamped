@@ -26,13 +26,20 @@
 		}
 	});
 
+	// The listener has to come back off on destroy. `beforeunload` is registered
+	// on `window`, which outlives the component, so a client-side navigation to
+	// another settings page left this one's handler attached — still closing over
+	// *this* component's `modified`. Submitting on the next page then tripped the
+	// browser's "Leave site?" dialog on behalf of a page the user had already
+	// left, with no way to tell where it came from.
 	onMount(() => {
-		window.addEventListener('beforeunload', (event) => {
-			if (modified) {
-				event.preventDefault();
-				event.returnValue = '';
-			}
-		});
+		const handler = (event) => {
+			if (!modified) return;
+			event.preventDefault();
+			event.returnValue = '';
+		};
+		window.addEventListener('beforeunload', handler);
+		return () => window.removeEventListener('beforeunload', handler);
 	});
 
 	let { settings, channels, locales, roles } = $state(data);
