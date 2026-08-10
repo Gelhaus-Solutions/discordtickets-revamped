@@ -164,3 +164,25 @@ export interface DeferredRenameInput {
 	/** Epoch ms: the earliest the rename budget will have a slot. */
 	notBefore: number;
 }
+
+/**
+ * A rename owed to the waiting-on-staff status having flipped.
+ *
+ * Separate from `DeferredRenameInput` because the two wait for different
+ * things: a deferral waits for the *rate limit* to free a slot, this waits out
+ * a conversation. Keeping them apart is not tidiness — they must not share a
+ * workflow id, because `deferredRenameWorkflow`'s signal handler only ever
+ * pulls its deadline *earlier*, so a debounce arriving while a deferral is
+ * parked would be silently dropped, and vice versa.
+ *
+ * Carries no status, for the same reason `DeferredRenameInput` carries no name:
+ * the activity recomputes from the row when it fires, so a debounce and a
+ * deferral racing over one channel cannot disagree — whichever lands first
+ * makes the other a no-op.
+ */
+export interface AwaitingRenameInput {
+	ticketId: string;
+	guildId: string;
+	/** Epoch ms: when the conversation is assumed to have settled. */
+	notBefore: number;
+}

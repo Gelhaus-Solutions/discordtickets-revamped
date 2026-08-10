@@ -53,6 +53,20 @@ export function makeActivities(deps: ActivityDeps) {
 			return await client.tickets.applyDeferredRename(ticketId);
 		},
 
+		/**
+		 * Rename a channel because its waiting-on-staff status changed.
+		 *
+		 * Returns nothing, unlike `applyDeferredRename`: this one passes
+		 * `defer: true`, so an exhausted rename budget parks a
+		 * `deferredRenameWorkflow` instead of coming back with a retry epoch.
+		 * The debounce decides *when to try*; the deferral ladder owns what
+		 * happens when the rate limit says no. A missing ticket or channel is a
+		 * normal outcome and returns quietly rather than burning retries.
+		 */
+		async applyAwaitingRename(ticketId: string): Promise<void> {
+			await client.tickets.applyAwaitingRename(ticketId);
+		},
+
 		async isTicketOpen(ticketId: string): Promise<boolean> {
 			const t = await client.prisma.ticket.findUnique({
 				select: { open: true },

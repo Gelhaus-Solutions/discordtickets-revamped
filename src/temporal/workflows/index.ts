@@ -24,6 +24,7 @@ import type {
 	AutomationCronInput,
 	AutomationRunInput,
 	AutomationRunState,
+	AwaitingRenameInput,
 	BulkCloseInput,
 	BulkCloseResult,
 	CascadeCloseUserInput,
@@ -316,6 +317,56 @@ export async function deferredRenameWorkflow(input: DeferredRenameInput): Promis
 	}
 
 	log.warn('Gave up deferring a channel rename', { ticketId: input.ticketId });
+}
+
+// ---------------------------------------------------------------------------
+// Debounce the rename owed to the waiting-on-staff status flipping.
+//
+// The status flips on every human message, but Discord allows two channel
+// renames per ten minutes, so renaming on each flip would exhaust the budget
+// inside one exchange and spend the rest of the conversation parking deferrals
+// for a name that is already stale.
+//
+// Leading-edge with a tail catch: the first flip starts the clock, flips during
+// the wait are absorbed, and a flip *during the activity* runs one more pass.
+// The signal must never push the deadline out — an active back-and-forth would
+// then starve and the channel would never be renamed at all.
+// ---------------------------------------------------------------------------
+const awaitingChangedSignal = defineSignal<[]>(SignalName.awaitingChanged);
+
+/**
+ * How many times one debounce may re-run for the same ticket.
+ *
+ * Matches the spirit of `MAX_RENAME_DEFERRALS`: a ticket flipping this many
+ * times without settling is a conversation, and the next message will start a
+ * fresh workflow anyway.
+ */
+const MAX_AWAITING_PASSES = 5;
+
+export async function awaitingRenameWorkflow(input: AwaitingRenameInput): Promise<void> {
+	let pending = false;
+	setHandler(awaitingChangedSignal, () => {
+		pending = true;
+	});
+
+	const waitMs = input.notBefore - Date.now();
+	if (waitMs > 0) await sleep(waitMs);
+
+	for (let pass = 0; pass < MAX_AWAITING_PASSES; pass++) {
+		// Clear before the activity, not after: a flip that lands *while* the
+		// activity is reading the row would otherwise be erased by the reset and
+		// lost, with no timer left to reschedule it.
+		pending = false;
+
+		// Recomputes from the row as it is now, and parks a deferral of its own
+		// if the rename budget is exhausted. Nothing to inspect in the result:
+		// the deferral ladder owns the retry from that point.
+		await acts.applyAwaitingRename(input.ticketId);
+
+		if (!pending) return;
+	}
+
+	log.warn('Gave up debouncing a waiting-status rename', { ticketId: input.ticketId });
 }
 
 // ---------------------------------------------------------------------------
