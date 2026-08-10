@@ -21,6 +21,8 @@ const {
 } = require('../../lib/automations/dispatcher');
 const { resolveEmoji } = require('../../lib/emoji');
 const regex = require('../../lib/regex');
+const { substitute } = require('../../lib/placeholders');
+const { tagVars } = require('../../lib/tags');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -372,7 +374,13 @@ module.exports = class extends Listener {
 						embeds: [
 							new EmbedBuilder()
 								.setColor(settings.primaryColour)
-								.setDescription(tag.content),
+								// The same substitution `/tag` does. Without it the
+								// dashboard's preview promises {name} and the bot posts
+								// the braces.
+								.setDescription(substitute(tag.content, tagVars({
+									guild: message.guild,
+									member: message.member,
+								}))),
 						],
 					});
 				}

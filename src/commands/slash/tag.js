@@ -3,6 +3,8 @@ const {
 	ApplicationCommandOptionType, MessageFlags,
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
+const { substitute } = require('../../lib/placeholders');
+const { tagVars } = require('../../lib/tags');
 
 module.exports = class TagSlashCommand extends SlashCommand {
 	constructor(client, options) {
@@ -55,7 +57,12 @@ module.exports = class TagSlashCommand extends SlashCommand {
 			embeds: [
 				new ExtendedEmbedBuilder()
 					.setColor(tag.guild.primaryColour)
-					.setDescription(tag.content),
+					// Tags never substituted anything: the dashboard previewed
+					// {name} being filled in and the bot posted the braces.
+					.setDescription(substitute(tag.content, tagVars({
+						guild: interaction.guild,
+						member: interaction.member,
+					}))),
 			],
 		});
 	}
