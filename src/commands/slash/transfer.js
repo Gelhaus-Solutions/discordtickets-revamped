@@ -4,6 +4,7 @@ const {
 	EmbedBuilder,
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
+const { resolveCategory } = require('../../lib/settings/inheritance');
 const { pools } = require('../../lib/threads');
 
 const { crypto } = pools;
@@ -70,7 +71,11 @@ module.exports = class TransferSlashCommand extends SlashCommand {
 
 		const from = ticket.createdById;
 
-		const channelName = ticket.category.channelName
+		// The stored column is NULL when the category inherits its template, so
+		// the chain has to be resolved before anything calls `.replace` on it.
+		const category = resolveCategory(ticket.category, ticket.guild);
+
+		const channelName = category.channelName
 			.replace(/{+\s?(user)?name\s?}+/gi, member.user.username)
 			.replace(/{+\s?(nick|display)(name)?\s?}+/gi, member.displayName)
 			.replace(/{+\s?num(ber)?\s?}+/gi, ticket.number === 1488 ? '1487b' : ticket.number);

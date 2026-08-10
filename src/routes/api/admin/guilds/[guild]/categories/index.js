@@ -4,6 +4,10 @@ const {
 	displayEmoji, isValidEmoji,
 } = require('../../../../../../lib/emoji');
 const {
+	CATEGORY_JSON_NULLABLE,
+	dbNulls,
+} = require('../../../../../../lib/settings/inheritance');
+const {
 	QuestionError,
 	validateQuestions,
 } = require('../../../../../../lib/questions-validate');
@@ -91,6 +95,26 @@ module.exports.post = fastify => ({
 		const data = req.body;
 		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 
+		// Derived, read-only sidecars the GET adds; the dashboard round-trips the
+		// whole object, and an unknown key spread into `create` throws.
+		delete data.inherited;
+		delete data.inheritable;
+
+		// A new category leaves inheritable fields unset, so the Discord category
+		// created below has to be given the *effective* staff roles rather than the
+		// (possibly absent) ones on the request.
+		const settings = await client.prisma.guild.findUnique({
+			select: { staffRoles: true },
+			where: { id: req.params.guild },
+		});
+		const staffRoles = data.staffRoles ?? settings?.staffRoles ?? [];
+
+		if (staffRoles.length === 0) {
+			const badRequest = new Error('A category needs at least one staff role, here or as a server default');
+			badRequest.statusCode = 400;
+			throw badRequest;
+		}
+
 		if (!data.discordCategory) {
 			let name = data.name;
 			const categoryEmoji = displayEmoji(data.emoji);
@@ -108,7 +132,7 @@ module.exports.post = fastify => ({
 							id: client.user.id,
 						},
 					],
-					...data.staffRoles.map(id => ({
+					...staffRoles.map(id => ({
 						allow: allow,
 						id,
 					})),
@@ -120,7 +144,12 @@ module.exports.post = fastify => ({
 			data.discordCategory = channel.id;
 		}
 
-		data.channelName ||= 'ticket-{num}'; // not ??=, expect empty string
+		// Left unset on purpose. A new category with no template inherits the
+		// server default (and, failing that, the built-in `ticket-{num}`); filling
+		// one in here would make every new category an override that never tracks
+		// the server setting again. '' arrives from the legacy dashboard meaning
+		// "unset", so it is normalised rather than stored as a blank name.
+		if (data.channelName === '') data.channelName = null;
 
 		// Same reasoning as the PATCH route: an out-of-range question or an
 		// unresolvable emoji is only discovered when a member tries to open a
@@ -183,7 +212,7 @@ module.exports.post = fastify => ({
 
 		const category = await client.prisma.category.create({
 			data: {
-				...categoryData,
+				...dbNulls(categoryData, CATEGORY_JSON_NULLABLE),
 				guild: { connect: { id: guild.id } },
 				questions: { createMany: { data: categoryData.questions ?? [] } },
 			},
@@ -211,7 +240,9 @@ module.exports.post = fastify => ({
 							permission: false,
 							type: ApplicationCommandPermissionType.Role,
 						},
-						...category.staffRoles.map(id => ({
+						// The effective list computed above, not the stored column: a
+						// new category that inherits its staff roles holds NULL there.
+						...staffRoles.map(id => ({
 							id,
 							permission: true,
 							type: ApplicationCommandPermissionType.Role,

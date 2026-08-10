@@ -2,6 +2,11 @@ const { logAdminEvent } = require('../../../../../lib/logging.js');
 const { Colors } = require('discord.js');
 const temporal = require('../../../../../lib/temporal');
 const { GUILD_SETTINGS_FIELDS } = require('../../../../../lib/schemas/importable');
+const {
+	GUILD_JSON_NULLABLE,
+	dbNulls,
+} = require('../../../../../lib/settings/inheritance');
+const { updateStaffRoles } = require('../../../../../lib/users');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
 // The bot profile fields live behind the customization endpoint. botAvatar and
@@ -55,6 +60,29 @@ function validateJsonFields(data) {
 		if (!Array.isArray(data.blocklist) || !data.blocklist.every(isSnowflake)) {
 			throw new Error('blocklist must be an array of role/user IDs.');
 		}
+	}
+
+	// The server-wide category defaults. `null` is meaningful here — it is how a
+	// guild says "no default, use the built-in" — so it is allowed through, but
+	// anything that is neither null nor a list of role IDs would be read back by
+	// `resolveCategory` and handed to `.some(...)` on every ticket creation in
+	// every category that inherits it.
+	for (const field of ['blockedRoles', 'pingRoles', 'requiredRoles', 'staffRoles']) {
+		if (!(field in data) || data[field] === null) continue;
+		if (!Array.isArray(data[field]) || !data[field].every(isSnowflake)) {
+			throw new Error(`${field} must be an array of role IDs, or null for no server default.`);
+		}
+	}
+
+	for (const field of ['cooldown', 'memberLimit', 'ratelimit', 'totalLimit']) {
+		if (!(field in data) || data[field] === null) continue;
+		if (!Number.isInteger(data[field]) || data[field] < 0) {
+			throw new Error(`${field} must be a non-negative whole number, or null for no server default.`);
+		}
+	}
+
+	if ('channelName' in data && data.channelName !== null && typeof data.channelName !== 'string') {
+		throw new Error('channelName must be text, or null for no server default.');
 	}
 
 	if ('workingHours' in data) {
@@ -131,13 +159,23 @@ module.exports.patch = fastify => ({
 		}
 		const original = await client.prisma.guild.findUnique({ where: { id } });
 		const settings = await client.prisma.guild.update({
-			data: data,
+			data: dbNulls(data, GUILD_JSON_NULLABLE),
 			include: { categories: { select: { id: true } } },
 			where: { id },
 		});
 
 		// Update cached categories, which include guild settings
 		for (const { id } of settings.categories) await client.tickets.getCategory(id, true);
+
+		// `cache/guild-staff` is what `isStaff` reads for every permission check in
+		// the bot, and it is built from the categories' *effective* staff roles —
+		// so a change to the server-wide default has to rebuild it. Without this,
+		// staff in any category that inherits silently lose access until a category
+		// is next saved or the process restarts.
+		if ('staffRoles' in data && JSON.stringify(original?.staffRoles ?? null) !== JSON.stringify(settings.staffRoles ?? null)) {
+			const guild = client.guilds.cache.get(id);
+			if (guild) await updateStaffRoles(guild);
+		}
 
 		// Live-reconfigure running stale workflows when the threshold changed
 		// (fire-and-forget; must not delay or fail the settings response).

@@ -9,18 +9,32 @@ const { PermissionsBitField } = require('discord.js');
 module.exports.getCommonGuilds = (client, userId) => client.guilds.cache.filter(guild => guild.members.cache.has(userId));
 
 /**
+ * Every role that is staff *somewhere* in this guild, cached for `isStaff`.
+ *
+ * A category's `staffRoles` may be NULL, meaning "use the server-wide default",
+ * so the guild's own column is fetched alongside and stood in for it. Getting
+ * this wrong is not a cosmetic bug: this list backs every permission decision
+ * the bot makes, and a category that inherits would otherwise contribute no
+ * staff at all — or throw, since NULL has no spread.
+ *
  * @param {import("discord.js").Guild} guild
  * @returns {Promise<string[]>}
  */
 const updateStaffRoles = async guild => {
-	const { categories } = await guild.client.prisma.guild.findUnique({
-		select: { categories: { select: { staffRoles: true } } },
+	const {
+		categories, staffRoles: guildDefault,
+	} = await guild.client.prisma.guild.findUnique({
+		select: {
+			categories: { select: { staffRoles: true } },
+			staffRoles: true,
+		},
 		where: { id: guild.id },
 	});
+	const fallback = guildDefault ?? [];
 	const staffRoles = [
 		...new Set(
 			categories.reduce((acc, c) => {
-				acc.push(...c.staffRoles);
+				acc.push(...(c.staffRoles ?? fallback));
 				return acc;
 			}, []),
 		),

@@ -5,6 +5,12 @@ const {
 	validateLayout,
 } = require('../../../../../../../lib/components-v2');
 const { isValidEmoji } = require('../../../../../../../lib/emoji');
+const {
+	CATEGORY_JSON_NULLABLE,
+	INHERITED_FIELDS,
+	dbNulls,
+	guildDefaults,
+} = require('../../../../../../../lib/settings/inheritance');
 const { loadRefs } = require('../../../../../../../lib/automations/http');
 const {
 	QuestionError,
@@ -48,6 +54,7 @@ module.exports.get = fastify => ({
 		const categoryId = Number(req.params.category);
 		const category = await client.prisma.category.findUnique({
 			include: {
+				guild: true,
 				questions: {
 					select: {
 						// createdAt: true,
@@ -71,7 +78,20 @@ module.exports.get = fastify => ({
 
 		if (!category || category.guildId !== guildId) return res.status(400).send(new Error('Bad Request'));
 
-		return category;
+		// The row goes back raw — NULL where the category inherits — so the form
+		// binds straight onto the stored overrides and a cleared field stays
+		// cleared. `inherited` is what each of those NULLs would resolve to, which
+		// is what the greyed placeholders show; `inheritable` saves the dashboard
+		// from hard-coding the list. Both are derived and are stripped again on
+		// the way back in.
+		const {
+			guild, ...raw
+		} = category;
+		return {
+			...raw,
+			inheritable: INHERITED_FIELDS,
+			inherited: guildDefaults(guild),
+		};
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],
 });
@@ -93,6 +113,7 @@ module.exports.patch = fastify => ({
 			channelMode: true,
 			channelName: true,
 			claiming: true,
+			cooldown: true,
 			// createdAt: true,
 			description: true,
 			discordCategory: true,
@@ -140,6 +161,12 @@ module.exports.patch = fastify => ({
 		if (Object.prototype.hasOwnProperty.call(data, 'id')) delete data.id;
 		if (Object.prototype.hasOwnProperty.call(data, 'createdAt')) delete data.createdAt;
 		if (Object.prototype.hasOwnProperty.call(data, 'guildId')) delete data.guildId;
+		// Derived, read-only sidecars the GET adds so the dashboard can show what
+		// an empty field would inherit. The dashboard round-trips the GET response
+		// verbatim, and an unknown key spread into `update` below is an "Unknown
+		// arg" throw rather than a quiet drop.
+		delete data.inherited;
+		delete data.inheritable;
 
 		// A malformed opening-message layout must be rejected here: stored, it
 		// would break ticket creation for the whole category, and the failure
@@ -196,18 +223,58 @@ module.exports.patch = fastify => ({
 		}
 
 		// These are JSON columns and `data` is spread straight into the update
-		// below, so whatever arrives is what gets stored. Both are read back in
+		// below, so whatever arrives is what gets stored. They are read back in
 		// `TicketManager#create` with `.some(...)`, where a string or an object
 		// would throw — breaking ticket creation for the whole category, for
 		// members, long after the admin saved it.
-		for (const field of ['blockedRoles', 'requiredRoles']) {
-			if (data[field] === undefined) continue;
+		//
+		// `null` is allowed and means "inherit the server default"; `[]` is an
+		// override meaning "none". All four are checked now that all four inherit.
+		for (const field of ['blockedRoles', 'pingRoles', 'requiredRoles', 'staffRoles']) {
+			if (data[field] === undefined || data[field] === null) continue;
 			const valid = Array.isArray(data[field]) &&
 				data[field].every(id => typeof id === 'string' && /^\d{17,20}$/.test(id));
 			if (!valid) {
 				return res.code(400).send({
 					code: 'invalid_roles',
-					errors: [{ message: `${field} must be an array of role IDs` }],
+					errors: [{ message: `${field} must be an array of role IDs, or null to use the server default` }],
+					statusCode: 400,
+				});
+			}
+		}
+
+		// The numeric limits are inheritable too, so `null` is legal here — but a
+		// string or a negative number would reach Prisma and then Discord.
+		for (const field of ['cooldown', 'memberLimit', 'ratelimit', 'totalLimit']) {
+			if (data[field] === undefined || data[field] === null) continue;
+			if (!Number.isInteger(data[field]) || data[field] < 0) {
+				return res.code(400).send({
+					code: 'invalid_limit',
+					errors: [{ message: `${field} must be a non-negative whole number, or null to use the server default` }],
+					statusCode: 400,
+				});
+			}
+		}
+
+		// An empty template is meaningless, and the legacy dashboard sends '' for
+		// "unset" — which now has a real meaning, so it is normalised rather than
+		// stored as a deliberate blank name.
+		if (data.channelName === '') data.channelName = null;
+
+		// With `staffRoles` optional, a category can end up resolving to no staff
+		// at all — which in CHANNEL mode creates tickets nobody but the opener can
+		// see. Checked against the *effective* value, since inheriting a non-empty
+		// server default is fine.
+		if (data.staffRoles !== undefined) {
+			const settings = await client.prisma.guild.findUnique({
+				select: { staffRoles: true },
+				where: { id: guildId },
+			});
+			const effective = data.staffRoles ?? settings?.staffRoles ?? [];
+			if (effective.length === 0) {
+				return res.code(400).send({
+					code: 'no_staff_roles',
+					errors: [{ message: 'A category needs at least one staff role, here or as a server default' }],
 					statusCode: 400,
 				});
 			}
@@ -241,7 +308,7 @@ module.exports.patch = fastify => ({
 
 		const category = await client.prisma.category.update({
 			data: {
-				...data,
+				...dbNulls(data, CATEGORY_JSON_NULLABLE),
 				questions: {
 					upsert: data.questions?.map(q => ({
 						create: q,
@@ -255,7 +322,7 @@ module.exports.patch = fastify => ({
 		});
 
 		// update caches
-		await client.tickets.getCategory(categoryId, true);
+		const effective = await client.tickets.getCategory(categoryId, true);
 		await updateStaffRoles(guild);
 
 		if (req.user.accessToken && JSON.stringify(category.staffRoles) !== JSON.stringify(original.staffRoles)) {
@@ -276,7 +343,10 @@ module.exports.patch = fastify => ({
 							permission: false,
 							type: ApplicationCommandPermissionType.Role,
 						},
-						...category.staffRoles.map(id => ({
+						// The effective list, not the stored one: a category that
+						// inherits its staff roles holds NULL here, and granting the
+						// staff commands to nobody locks staff out of their own tickets.
+						...effective.staffRoles.map(id => ({
 							id,
 							permission: true,
 							type: ApplicationCommandPermissionType.Role,

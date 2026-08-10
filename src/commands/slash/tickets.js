@@ -73,7 +73,12 @@ module.exports = class TicketsSlashCommand extends SlashCommand {
 				guildId: interaction.guild.id,
 			};
 		} else {
-			const { categories } = await client.prisma.guild.findUnique({
+			// The guild's own `staffRoles` is the default a category falls back to
+			// when its column is NULL — without it, a category that inherits its
+			// staff would look like it has none and be filtered out of the results.
+			const {
+				categories, staffRoles: guildStaffRoles,
+			} = await client.prisma.guild.findUnique({
 				select: {
 					categories: {
 						select: {
@@ -81,6 +86,7 @@ module.exports = class TicketsSlashCommand extends SlashCommand {
 							staffRoles: true,
 						},
 					},
+					staffRoles: true,
 				},
 				where: { id: interaction.guild.id },
 			});
@@ -90,7 +96,7 @@ module.exports = class TicketsSlashCommand extends SlashCommand {
 					interaction.member.permissions.has(PermissionsBitField.Flags.ManageGuild)
 				)
 					? categories
-					: categories.filter(c => c.staffRoles.some(id => interaction.member.roles.cache.has(id)))
+					: categories.filter(c => (c.staffRoles ?? guildStaffRoles ?? []).some(id => interaction.member.roles.cache.has(id)))
 			)
 				.map(c => c.id);
 			base_filter = {

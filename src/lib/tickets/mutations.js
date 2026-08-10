@@ -22,6 +22,7 @@
 const ms = require('ms');
 const { logTicketEvent } = require('../logging');
 const { emit } = require('../automations/dispatcher');
+const { resolveCategory } = require('../settings/inheritance');
 
 /** The channel-name emoji for a priority. Unrecognised values get the neutral one. */
 const getEmoji = priority => {
@@ -140,27 +141,36 @@ async function setPriority(client, {
 async function moveTicket(client, {
 	actorId, categoryId, ticketId,
 }) {
-	const ticket = await client.prisma.ticket.findUnique({
+	const row = await client.prisma.ticket.findUnique({
 		include: {
 			category: true,
 			guild: true,
 		},
 		where: { id: ticketId },
 	});
-	if (!ticket) {
+	if (!row) {
 		return {
 			ok: false,
 			reason: 'unknown_ticket',
 		};
 	}
-	if (ticket.categoryId === categoryId) {
+	if (row.categoryId === categoryId) {
 		return {
 			ok: true,
 			reason: 'noop',
 		};
 	}
 
-	const newCategory = await client.prisma.category.findUnique({ where: { id: categoryId } });
+	// Both sides resolved before they are compared below. A raw category holds
+	// NULL where it inherits, so comparing a raw old category against a resolved
+	// new one would report a difference between two categories that behave
+	// identically — and, worse, hand a NULL `channelName` to the rename.
+	const ticket = {
+		...row,
+		category: resolveCategory(row.category, row.guild),
+	};
+
+	const newCategory = await client.tickets.getCategory(categoryId);
 	if (!newCategory) {
 		return {
 			ok: false,

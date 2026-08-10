@@ -129,18 +129,27 @@ model AutomationRun {
     @@map("automationRuns")
 }
 
+// NULL on any of the columns marked "inheritable" means "use the server-wide
+// default" — the matching column on `Guild`, and failing that a built-in from
+// `src/lib/settings/inheritance.js`. That is why none of them carry a @default:
+// Prisma fills a default in on every create, so a new category would always
+// override and could never inherit.
+//
+// An *empty* value is not an absence. `[]` means "ping nobody", `0` means "slow
+// mode off". Both are choices, both stop the chain, and only NULL inherits.
 model Category {
     autoAssign       Boolean      @default(false)
     backupCategory   Category?    @relation(name: "CategoryBackup", fields: [backupCategoryId], references: [id], onDelete: SetNull)
     backupCategoryId Int?
     // Roles that prevent a member using this category. Checked before
     // `requiredRoles` and not bypassed by staff, matching `Guild.blocklist`.
-    blockedRoles     Json         @default("[]")
+    // Inheritable.
+    blockedRoles     Json?
     channelMode      ChannelMode  @default(CHANNEL)
-    channelName      String
+    channelName      String?      // inheritable
     claiming         Boolean      @default(false)
     createdAt        DateTime     @default(now())
-    cooldown         Int?
+    cooldown         Int?         // inheritable; 0 is an explicit "no cooldown"
     customTopic      String?
     description      String
     discordCategory  String       @db.VarChar(19)
@@ -150,23 +159,23 @@ model Category {
     guildId          String       @db.VarChar(19)
     id               Int          @id @default(autoincrement())
     image            String?
-    memberLimit      Int          @default(1)
+    memberLimit      Int?         // inheritable
     // Components v2 block layout for the ticket opening message. NULL means
     // "derive it from openingMessage", so a guild that never opens the block
     // editor keeps exactly the message it had before.
     messageLayout    Json?
     name             String
     openingMessage   String       @db.Text
-    pingRoles        Json         @default("[]")
+    pingRoles        Json?        // inheritable
     primaryCategories Category[]  @relation("CategoryBackup")
     questions        Question[]
-    ratelimit        Int?
-    requiredRoles    Json         @default("[]")
+    ratelimit        Int?         // inheritable; 0 is an explicit "slow mode off"
+    requiredRoles    Json?        // inheritable
     requireTopic     Boolean      @default(false)
-    staffRoles       Json
+    staffRoles       Json?        // inheritable
     threadChannelId  String?      @db.VarChar(19)
     tickets          Ticket[]
-    totalLimit       Int          @default(50)
+    totalLimit       Int?         // inheritable
 
     @@map("categories")
 }
@@ -185,20 +194,32 @@ model Feedback {
     @@map("feedback")
 }
 
+// The columns marked "category default" are the server-wide fallback for the
+// identically-named column on `Category`. All are nullable with no @default:
+// NULL here means "not set, use the built-in".
+//
+// `blockedRoles` and `blocklist` are different things and are easy to confuse.
+// `blockedRoles` is the server-wide default for a category's role deny list, and
+// a category can override it. `blocklist` is a guild-wide list of users and
+// roles that may not open tickets at all; it has never been a category setting
+// and does not inherit.
 model Guild {
     autoClose         Int          @default(43200000)
     autoTag           Json         @default("[]")
     automations       Automation[]
     archive           Boolean      @default(true)
+    blockedRoles      Json?        // category default
     blocklist         Json         @default("[]")
     botAvatar         String?      @db.Text
     botBanner         String?      @db.Text
     botBio            String?      @db.Text
     botUsername       String?      @db.VarChar(255)
     categories        Category[]
+    channelName       String?      // category default
     claimButton       Boolean      @default(false)
     closeButton       Boolean      @default(false)
     closeReasonButton Boolean      @default(false)
+    cooldown          Int?         // category default
     createdAt         DateTime     @default(now())
     disableDMs        Boolean      @default(false)
     errorColour       String       @default("Red")
@@ -207,13 +228,19 @@ model Guild {
     id                String       @id @db.VarChar(19)
     locale            String       @default("en-GB")
     logChannel        String?      @db.VarChar(19)
+    memberLimit       Int?         // category default
     panels            Panel[]
+    pingRoles         Json?        // category default
     primaryColour     String       @default("#009999")
+    ratelimit         Int?         // category default
     reopenWindow      Int          @default(0)
+    requiredRoles     Json?        // category default
+    staffRoles        Json?        // category default
     staleAfter        Int?
     successColour     String       @default("Green")
     tags              Tag[]
     tickets           Ticket[]
+    totalLimit        Int?         // category default
     workingHours      Json         @default("[\"UTC\", [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"]]")
 
     @@map("guilds")

@@ -24,23 +24,36 @@
 
 // Guild columns the settings UI may write. Exported so the settings route and
 // the importer share one definition and cannot drift apart.
+// The `blockedRoles`…`totalLimit` entries are the server-wide defaults their
+// namesakes on `Category` fall back to — see `src/lib/settings/inheritance.js`.
+// They export as null when unset, and null is meaningful (it is what "inherit"
+// looks like), so the round-trip has to preserve it rather than coerce it.
 const GUILD_SETTINGS_FIELDS = [
 	'archive',
 	'autoClose',
 	'autoTag',
+	'blockedRoles',
 	'blocklist',
+	'channelName',
 	'claimButton',
 	'closeButton',
 	'closeReasonButton',
+	'cooldown',
 	'disableDMs',
 	'errorColour',
 	'footer',
 	'locale',
 	'logChannel',
+	'memberLimit',
+	'pingRoles',
 	'primaryColour',
+	'ratelimit',
 	'reopenWindow',
+	'requiredRoles',
+	'staffRoles',
 	'staleAfter',
 	'successColour',
+	'totalLimit',
 	'workingHours',
 ];
 

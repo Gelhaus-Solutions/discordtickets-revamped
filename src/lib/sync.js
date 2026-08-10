@@ -1,4 +1,5 @@
 const temporal = require('./temporal');
+const { resolveCategory } = require('./settings/inheritance');
 
 /**
  * @param {import("client")} client
@@ -15,9 +16,14 @@ module.exports = async client => {
 	}
 
 	// load total number of open tickets
-	const categories = await client.prisma.category.findMany({
+	//
+	// `guild` is selected alongside `cooldown` because a NULL cooldown means
+	// "use the server-wide default" — restoring the member cooldowns below from
+	// the raw column would silently skip every category that inherits one.
+	const categories = (await client.prisma.category.findMany({
 		select: {
 			cooldown: true,
+			guild: { select: { cooldown: true } },
 			id: true,
 			tickets: {
 				select: {
@@ -29,7 +35,7 @@ module.exports = async client => {
 				where: { open: true },
 			},
 		},
-	});
+	})).map(category => resolveCategory(category));
 	let deleted = 0;
 	let ticketCount = 0;
 	let cooldowns = 0;

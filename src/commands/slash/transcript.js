@@ -9,6 +9,7 @@ const { dataPath } = require('../../lib/paths');
 const Mustache = require('mustache');
 const { AttachmentBuilder } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
+const { resolveCategory } = require('../../lib/settings/inheritance');
 const { formatAnswer } = require('../../lib/tickets/questions');
 const { pools } = require('../../lib/threads');
 
@@ -166,6 +167,12 @@ module.exports = class TranscriptSlashCommand extends SlashCommand {
 		});
 
 		if (!ticket) throw new Error(`Ticket ${ticketId} does not exist`);
+
+		// `shouldAllowAccess` reads `category.staffRoles` and `fillTemplate` reads
+		// `category.channelName`; both are NULL on a category that inherits them,
+		// which would deny a staff member their own transcript and then throw on
+		// the filename.
+		ticket.category = resolveCategory(ticket.category, ticket.guild);
 
 		// `interaction.guild` is null in DMs — this command is reachable there via
 		// the transcript button on the closure DM (`src/buttons/transcript.js`),

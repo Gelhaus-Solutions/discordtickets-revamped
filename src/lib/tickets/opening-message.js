@@ -3,6 +3,7 @@ const {
 	defaultOpeningLayout,
 	needsStats,
 } = require('../components-v2');
+const { resolveCategory } = require('../settings/inheritance');
 const { formatAnswer } = require('./questions');
 
 /**
@@ -127,6 +128,11 @@ async function rerenderOpeningMessage(client, channel, {
 		where: { id: channel.id },
 	});
 	if (!ticket?.openingMessageId || !ticket.category) return false;
+
+	// The category is embedded raw, and the rebuild below reads `pingRoles` and
+	// the limits off it. The guild came along in the include, so this costs
+	// nothing beyond the resolve itself.
+	ticket.category = resolveCategory(ticket.category);
 
 	const message = await channel.messages.fetch(ticket.openingMessageId).catch(() => null);
 	if (!message || message.author?.id !== client.user.id) return false;

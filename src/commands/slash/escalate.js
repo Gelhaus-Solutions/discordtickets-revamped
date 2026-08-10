@@ -6,6 +6,7 @@ const {
 } = require('discord.js');
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
+const { resolveCategory } = require('../../lib/settings/inheritance');
 const {
 	managedPrefix,
 	renderChannelName,
@@ -56,13 +57,19 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 
 		await interaction.deferReply();
 
-		const ticket = await client.prisma.ticket.findUnique({
+		const row = await client.prisma.ticket.findUnique({
 			include: {
 				category: true,
 				guild: true,
 			},
 			where: { id: interaction.channel.id },
 		});
+		// The old category is compared against the new one below, so both have to
+		// be resolved or two categories that behave identically look different.
+		const ticket = row && {
+			...row,
+			category: resolveCategory(row.category, row.guild),
+		};
 
 		if (!ticket) {
 			const settings = await client.prisma.guild.findUnique({ where: { id: interaction.guild.id } });
@@ -100,7 +107,10 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 		const newCategoryId = interaction.options.getInteger('category', true);
 		const reason = interaction.options.getString('reason') || null;
 
-		const newCategory = await client.prisma.category.findUnique({ where: { id: newCategoryId } });
+		// Resolved, not raw: a category that inherits its channel name or staff
+		// roles holds NULL in those columns, and both are used below to build a
+		// channel name and a permission overwrite list.
+		const newCategory = await client.tickets.getCategory(newCategoryId);
 		if (!newCategory) {
 			return await interaction.editReply({
 				embeds: [

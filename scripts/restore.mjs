@@ -3,6 +3,11 @@ import { program } from 'commander';
 import fse from 'fs-extra';
 import ora from 'ora';
 import { PrismaClient } from '@prisma/client';
+import inheritance from '../src/lib/settings/inheritance.js';
+
+const {
+	CATEGORY_JSON_NULLABLE, GUILD_JSON_NULLABLE, dbNulls,
+} = inheritance;
 
 paths.loadEnv();
 
@@ -40,6 +45,11 @@ const queries = [
 	prisma.user.deleteMany(),
 ];
 
+// A dump taken after guild-level category defaults exist carries `null` for
+// every setting the guild or category inherits. Written back as a bare `null`,
+// a nullable Json column stores the JSON `null` literal instead of SQL NULL —
+// which reads back identically through Prisma and so looks fine, while leaving
+// the database holding two different values for "inherit".
 for (const [model, data] of dump) {
 	if (model === 'category') {
 		const rows = data.map(category => {
@@ -49,12 +59,14 @@ for (const [model, data] of dump) {
 					id: category.id,
 				});
 			}
-			return {
+			return dbNulls({
 				...category,
 				backupCategoryId: null,
-			};
+			}, CATEGORY_JSON_NULLABLE);
 		});
 		queries.push(prisma.category.createMany({ data: rows }));
+	} else if (model === 'guild') {
+		queries.push(prisma.guild.createMany({ data: data.map(guild => dbNulls(guild, GUILD_JSON_NULLABLE)) }));
 	} else {
 		queries.push(prisma[model].createMany({ data }));
 	}

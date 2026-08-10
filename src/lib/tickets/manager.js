@@ -35,6 +35,12 @@ const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
 const { recordTicket } = require('../metrics');
 const { isStaff } = require('../users');
+const {
+	CATEGORY_JSON_NULLABLE,
+	GUILD_JSON_NULLABLE,
+	dbNulls,
+	resolveCategory,
+} = require('../settings/inheritance');
 const { getWorkingHours } = require('../working-hours');
 const { emit } = require('../automations/dispatcher');
 const { Collection } = require('discord.js');
@@ -82,12 +88,17 @@ module.exports = class TicketManager {
 	}
 
 	/**
-	 * Retrieve cached category data
+	 * Retrieve cached category data exactly as stored, NULLs intact.
+	 *
+	 * Only wanted by callers that need to tell an override apart from an
+	 * inherited value — the dashboard, and the exporter. Everything that just
+	 * wants to know what the category *does* wants `getCategory`.
+	 *
 	 * @param {string} categoryId the category ID
 	 * @param {boolean} force bypass & update the cache?
 	 * @returns {Promise<CategoryGuildQuestions>}
 	 */
-	async getCategory(categoryId, force) {
+	async getRawCategory(categoryId, force) {
 		const cacheKey = `cache/category+guild+questions:${categoryId}`;
 		/** @type {CategoryGuildQuestions} */
 		let category = await this.client.keyv.get(cacheKey);
@@ -102,6 +113,23 @@ module.exports = class TicketManager {
 			await this.client.keyv.set(cacheKey, category, ms('12h'));
 		}
 		return category;
+	}
+
+	/**
+	 * Retrieve cached category data with every inheritable setting resolved —
+	 * built-in default, then the guild's, then the category's own.
+	 *
+	 * Resolution happens here rather than at each call site so that none of them
+	 * can forget, and on the way *out* of the cache rather than into it, so the
+	 * stored entry stays raw and a guild settings change needs no extra
+	 * invalidation beyond the sweep the settings route already does.
+	 *
+	 * @param {string} categoryId the category ID
+	 * @param {boolean} force bypass & update the cache?
+	 * @returns {Promise<CategoryGuildQuestions>}
+	 */
+	async getCategory(categoryId, force) {
+		return resolveCategory(await this.getRawCategory(categoryId, force));
 	}
 
 	/**
@@ -130,6 +158,16 @@ module.exports = class TicketManager {
 			await this.client.keyv.set(cacheKey, ticket, ms('3m'));
 		}
 		if (guildId && ticket?.guildId !== guildId) return null;
+		// The embedded category is stored raw like everywhere else, and the ticket
+		// carries its guild, so it can be resolved without a second read. Callers
+		// reach for `ticket.category.pingRoles` and friends expecting a value, not
+		// a NULL that means "ask the guild".
+		if (ticket?.category) {
+			return {
+				...ticket,
+				category: resolveCategory(ticket.category, ticket.guild),
+			};
+		}
 		return ticket;
 	}
 
@@ -1817,7 +1855,10 @@ module.exports = class TicketManager {
 			}),
 			client.prisma.guild.create({
 				data: {
-					...guildData,
+					// An archive from a guild with no server-wide defaults carries
+					// nulls for them, and a bare null on a Json column stores the
+					// JSON `null` literal rather than SQL NULL.
+					...dbNulls(guildData, GUILD_JSON_NULLABLE),
 					id: guildId,
 					tags: { createMany: { data: tagData } },
 				},
@@ -1833,7 +1874,13 @@ module.exports = class TicketManager {
 					.map(question => pick(question, QUESTION_FIELDS, 'question', ['categoryId', 'createdAt']));
 				return client.prisma.category.create({
 					data: {
-						...pick(category, CATEGORY_FIELDS, 'category', ['backupCategoryId', 'createdAt', 'guildId', 'id', 'questions']),
+						// Same as the guild above: a category that inherits a role
+						// field exports it as null, and null on a Json column has to
+						// be `Prisma.DbNull` to become a real SQL NULL.
+						...dbNulls(
+							pick(category, CATEGORY_FIELDS, 'category', ['backupCategoryId', 'createdAt', 'guildId', 'id', 'questions']),
+							CATEGORY_JSON_NULLABLE,
+						),
 						guild: { connect: { id: guildId } },
 						questions: { createMany: { data: questions } },
 					},
