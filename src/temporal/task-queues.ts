@@ -23,6 +23,7 @@ export const WorkflowType = {
 	automationRun: 'automationRunWorkflow',
 	automationCron: 'automationCronWorkflow',
 	automationRetention: 'automationRetentionWorkflow',
+	deferredRename: 'deferredRenameWorkflow',
 } as const;
 
 /** Coarse workflow classification, exposed as the `WorkflowKind` search attribute. */
@@ -36,6 +37,7 @@ export const WorkflowKind = {
 	import: 'import',
 	transcript: 'transcript',
 	automation: 'automation',
+	rename: 'rename',
 } as const;
 
 /** Custom Search Attribute keys (registered on the namespace at startup). */
@@ -52,6 +54,7 @@ export const SignalName = {
 	requestClose: 'requestClose',
 	cancelStale: 'cancelStale',
 	reopen: 'reopen',
+	renameRequested: 'renameRequested',
 } as const;
 
 /** Update names used across workflows. */
@@ -69,6 +72,9 @@ export const QueryName = {
 export const staleWorkflowId = (ticketId: string): string => `stale-${ticketId}`;
 export const closeWorkflowId = (ticketId: string): string => `close-${ticketId}`;
 export const reopenWorkflowId = (ticketId: string): string => `reopen-${ticketId}`;
+// One deferred rename per channel, so several requests inside one rate-limit
+// window coalesce into the single rename that eventually happens.
+export const renameWorkflowId = (ticketId: string): string => `rename-${ticketId}`;
 // Per-guild (no timestamp): a second concurrent export/import for the same
 // guild fails with WorkflowExecutionAlreadyStartedError, which the HTTP routes
 // surface as 429. Re-running after completion reuses the id (allowed).

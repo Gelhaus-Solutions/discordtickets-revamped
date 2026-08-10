@@ -37,6 +37,22 @@ export function makeActivities(deps: ActivityDeps) {
 			});
 		},
 
+		/**
+		 * Apply a rename that the channel's rate-limit budget refused earlier.
+		 *
+		 * Through `client.tickets`, like every other activity here: this module is
+		 * compiled into `dist/temporal`, so a relative `require` into `src/lib`
+		 * would resolve to a path that does not exist.
+		 *
+		 * @returns null when there is nothing left to do — including when the
+		 *   ticket or its channel is gone, which is a normal outcome and must not
+		 *   burn five retries on a channel that is never coming back. A number is
+		 *   the epoch at which to try again.
+		 */
+		async applyDeferredRename(ticketId: string): Promise<number | null> {
+			return await client.tickets.applyDeferredRename(ticketId);
+		},
+
 		async isTicketOpen(ticketId: string): Promise<boolean> {
 			const t = await client.prisma.ticket.findUnique({
 				select: { open: true },

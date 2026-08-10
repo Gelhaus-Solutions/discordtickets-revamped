@@ -115,7 +115,7 @@ async function takeRenameBudget(client, ticketId) {
  * @returns {Promise<{ok: boolean, reason?: string, name?: string}>}
  */
 async function syncChannelName(client, {
-	channel, reason, settings, ticket,
+	channel, defer = true, reason, settings, ticket,
 }) {
 	const resolved = channel ?? await client.channels.fetch(ticket.id).catch(() => null);
 	if (!resolved) {
@@ -136,9 +136,35 @@ async function syncChannelName(client, {
 
 	const budget = await takeRenameBudget(client, ticket.id);
 	if (!budget.ok) {
-		// The database is already correct; only the visible name lags, and the
-		// next name write repairs it. A caller that cares can say so in its log.
+		// Park it rather than drop it. A ticket nothing else happens to would
+		// otherwise keep the wrong name forever: "the next name write repairs it"
+		// is only true when there is a next name write.
+		//
+		// The workflow carries no name — the activity recomputes it when a slot
+		// frees up, so a claim, a move or a priority change in the meantime is
+		// reflected rather than overwritten.
+		if (defer) {
+			try {
+				await require('../temporal').deferChannelRename({
+					guildId: ticket.guildId,
+					notBefore: budget.freesAt,
+					ticketId: ticket.id,
+				});
+				return {
+					name,
+					ok: true,
+					reason: 'rename_deferred',
+				};
+			} catch (error) {
+				// Temporal being unreachable must not break `/emoji` or an
+				// automation. Degrading to the old behaviour — the rename is
+				// dropped and repaired by the next name write — is exactly what
+				// this branch did before deferral existed.
+				client.log?.warn?.('Could not defer a channel rename for %s: %s', ticket.id, error?.message ?? error);
+			}
+		}
 		return {
+			freesAt: budget.freesAt,
 			name,
 			ok: true,
 			reason: 'rate_limited',
@@ -240,7 +266,7 @@ async function setTicketEmoji(client, {
 		from: ticket.emojiOverride,
 		ok: true,
 		// The override is persisted either way; only the visible rename can lag.
-		reason: sync.reason === 'rate_limited' ? 'rename_deferred' : undefined,
+		reason: sync.reason === 'rate_limited' || sync.reason === 'rename_deferred' ? 'rename_deferred' : undefined,
 		to: next,
 	};
 }

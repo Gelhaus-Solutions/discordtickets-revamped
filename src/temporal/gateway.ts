@@ -17,6 +17,7 @@ import {
 	closeWorkflowId,
 	exportWorkflowId,
 	importWorkflowId,
+	renameWorkflowId,
 	reopenWorkflowId,
 	staleWorkflowId,
 } from './task-queues';
@@ -25,6 +26,7 @@ import type {
 	BulkCloseInput,
 	CascadeCloseUserInput,
 	CloseTicketInput,
+	DeferredRenameInput,
 	ExportGuildInput,
 	GenerateTranscriptInput,
 	ImportGuildInput,
@@ -60,6 +62,43 @@ export async function signalTicketActivity(input: StaleTicketInput): Promise<voi
 		signal: SignalName.newActivity,
 		signalArgs: [input.lastActivityAt],
 	});
+}
+
+/**
+ * Park a channel rename that Discord's rate limit refused.
+ *
+ * `signalWithStart` keyed on the channel, the same idiom `signalTicketActivity`
+ * uses: several requests inside one rate-limit window coalesce into the single
+ * rename that eventually happens, and the signal only ever pulls the deadline
+ * earlier.
+ */
+export async function deferChannelRename(input: DeferredRenameInput): Promise<void> {
+	const client = getTemporalClient();
+	await client.workflow.signalWithStart(WorkflowType.deferredRename, {
+		workflowId: renameWorkflowId(input.ticketId),
+		taskQueue: taskQueue(),
+		args: [input],
+		searchAttributes: buildSearchAttributes({
+			guildId: input.guildId,
+			kind: WorkflowKind.rename,
+			ticketId: input.ticketId,
+		}),
+		signal: SignalName.renameRequested,
+		signalArgs: [input.notBefore],
+	});
+}
+
+/**
+ * Drop a parked rename.
+ *
+ * Called by `finallyClose` before its own rename, so the close's name is the one
+ * that survives rather than being overwritten minutes later by a deferral that
+ * was queued while the ticket was still open.
+ */
+export async function cancelDeferredRename(ticketId: string): Promise<void> {
+	const client = getTemporalClient();
+	const handle = client.workflow.getHandle(renameWorkflowId(ticketId));
+	await handle.terminate('superseded').catch(() => undefined);
 }
 
 /** Start the per-ticket stale workflow when a ticket opens (idempotent). */

@@ -23,9 +23,9 @@ const N = require(path.join(root, 'src', 'lib', 'tickets', 'naming'));
 const { resolveEmojiSettings } = require(path.join(root, 'src', 'lib', 'tickets', 'emoji-settings'));
 
 let pass = 0;
-const t = (name, fn) => {
+const t = async (name, fn) => {
 	try {
-		fn();
+		await fn();
 		pass++;
 		console.log('  ok  ', name);
 	} catch (e) {
@@ -55,24 +55,24 @@ const ticket = (over = {}) => ({
 	...over,
 });
 
-(() => {
+(async () => {
 	console.log('\nTicket channel naming\n');
 
 	/* ─────────────────────────── the precedence table ─────────────────────────── */
 
-	t('an open unclaimed ticket has no prefix by default', () => {
+	await t('an open unclaimed ticket has no prefix by default', () => {
 		assert.strictEqual(N.managedPrefix(ticket(), defaults()), '');
 	});
 
-	t('a claimed ticket gets the claim tick', () => {
+	await t('a claimed ticket gets the claim tick', () => {
 		assert.strictEqual(N.managedPrefix(ticket({ claimedById: '1' }), defaults()), '✅');
 	});
 
-	t('a closed ticket has no prefix by default', () => {
+	await t('a closed ticket has no prefix by default', () => {
 		assert.strictEqual(N.managedPrefix(ticket({ open: false }), defaults()), '');
 	});
 
-	t('closed beats claimed', () => {
+	await t('closed beats claimed', () => {
 		const settings = settingsFor({
 			claimedEmoji: '✅',
 			closedEmoji: '🔒',
@@ -86,7 +86,7 @@ const ticket = (over = {}) => ({
 		);
 	});
 
-	t('the priority emoji follows the state emoji', () => {
+	await t('the priority emoji follows the state emoji', () => {
 		assert.strictEqual(
 			N.managedPrefix(ticket({
 				claimedById: '1',
@@ -96,13 +96,13 @@ const ticket = (over = {}) => ({
 		);
 	});
 
-	t('no priority means no priority emoji', () => {
+	await t('no priority means no priority emoji', () => {
 		assert.strictEqual(N.managedPrefix(ticket({ priority: null }), defaults()), '');
 	});
 
 	/* ───────────────────────────── the override ───────────────────────────── */
 
-	t('an override replaces the state emoji but keeps the priority one', () => {
+	await t('an override replaces the state emoji but keeps the priority one', () => {
 		assert.strictEqual(
 			N.managedPrefix(ticket({
 				claimedById: '1',
@@ -114,7 +114,7 @@ const ticket = (over = {}) => ({
 		);
 	});
 
-	t('scope \'all\' replaces the whole prefix', () => {
+	await t('scope \'all\' replaces the whole prefix', () => {
 		assert.strictEqual(
 			N.managedPrefix(ticket({
 				claimedById: '1',
@@ -126,7 +126,7 @@ const ticket = (over = {}) => ({
 		);
 	});
 
-	t('an unrecognised scope behaves as state, so a hand-edited row degrades safely', () => {
+	await t('an unrecognised scope behaves as state, so a hand-edited row degrades safely', () => {
 		assert.strictEqual(
 			N.managedPrefix(ticket({
 				emojiOverride: '🔥',
@@ -137,7 +137,7 @@ const ticket = (over = {}) => ({
 		);
 	});
 
-	t('a custom server emoji override resolves to nothing rather than leaking a tag', () => {
+	await t('a custom server emoji override resolves to nothing rather than leaking a tag', () => {
 		const name = N.managedPrefix(ticket({
 			emojiOverride: '<:urgent:123456789012345678>',
 			emojiOverrideScope: 'state',
@@ -147,79 +147,79 @@ const ticket = (over = {}) => ({
 
 	/* ───────────────────────── configuration and inheritance ───────────────────────── */
 
-	t('a category emoji beats the guild one', () => {
+	await t('a category emoji beats the guild one', () => {
 		const settings = settingsFor({ claimedEmoji: '👀' }, { claimedEmoji: '🙌' });
 		assert.strictEqual(N.managedPrefix(ticket({ claimedById: '1' }), settings), '👀');
 	});
 
-	t('a guild emoji reaches a category that sets none', () => {
+	await t('a guild emoji reaches a category that sets none', () => {
 		const settings = settingsFor({}, { claimedEmoji: '🙌' });
 		assert.strictEqual(N.managedPrefix(ticket({ claimedById: '1' }), settings), '🙌');
 	});
 
-	t('an empty string turns the claim tick off without inheriting it', () => {
+	await t('an empty string turns the claim tick off without inheriting it', () => {
 		const settings = settingsFor({ claimedEmoji: '' }, { claimedEmoji: '🙌' });
 		assert.strictEqual(N.managedPrefix(ticket({ claimedById: '1' }), settings), '');
 	});
 
-	t('an unclaimed emoji shows on a new ticket once configured', () => {
+	await t('an unclaimed emoji shows on a new ticket once configured', () => {
 		const settings = settingsFor({ unclaimedEmoji: '🟡' });
 		assert.strictEqual(N.managedPrefix(ticket(), settings), '🟡');
 	});
 
 	/* ───────────────────────────── stripping ───────────────────────────── */
 
-	t('a surrogate pair is stripped whole', () => {
+	await t('a surrogate pair is stripped whole', () => {
 		// The regression test for `.slice(1)`, which would cut 🔴 in half and leave
 		// a lone surrogate in the channel name.
 		const settings = defaults();
 		assert.strictEqual(N.stripManagedPrefix('🔴ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('a ZWJ sequence is stripped whole', () => {
+	await t('a ZWJ sequence is stripped whole', () => {
 		const settings = settingsFor({ claimedEmoji: '🏳️‍🌈' });
 		assert.strictEqual(N.stripManagedPrefix('🏳️‍🌈ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('a skin-tone sequence is stripped whole', () => {
+	await t('a skin-tone sequence is stripped whole', () => {
 		const settings = settingsFor({ claimedEmoji: '👍🏽' });
 		assert.strictEqual(N.stripManagedPrefix('👍🏽ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('the longer of two overlapping emojis is stripped first', () => {
+	await t('the longer of two overlapping emojis is stripped first', () => {
 		// `👍` is a prefix of `👍🏽`; stripping it first would strand the modifier.
 		const settings = settingsFor({ claimedEmoji: '👍🏽' }, { claimedEmoji: '👍' });
 		assert.strictEqual(N.stripManagedPrefix('👍🏽ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('a legacy claim tick still strips after the category changes its emoji', () => {
+	await t('a legacy claim tick still strips after the category changes its emoji', () => {
 		// The channel was named before the guild configured anything, so it is
 		// wearing ✅ while the category now says 👀.
 		const settings = settingsFor({ claimedEmoji: '👀' });
 		assert.strictEqual(N.stripManagedPrefix('✅ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('a guild\'s emoji strips even when a category overrides it', () => {
+	await t('a guild\'s emoji strips even when a category overrides it', () => {
 		// The channel predates the category override and carries the guild value.
 		const settings = settingsFor({ claimedEmoji: '👀' }, { claimedEmoji: '🙌' });
 		assert.strictEqual(N.stripManagedPrefix('🙌ticket-1', ticket(), settings), 'ticket-1');
 	});
 
-	t('both slots strip together', () => {
+	await t('both slots strip together', () => {
 		assert.strictEqual(N.stripManagedPrefix('✅🔴ticket-1', ticket(), defaults()), 'ticket-1');
 	});
 
-	t('the legacy neutral-priority emoji still strips', () => {
+	await t('the legacy neutral-priority emoji still strips', () => {
 		assert.strictEqual(N.stripManagedPrefix('🔵ticket-1', ticket(), defaults()), 'ticket-1');
 	});
 
-	t('a user-authored emoji in the middle of a name is left alone', () => {
+	await t('a user-authored emoji in the middle of a name is left alone', () => {
 		assert.strictEqual(N.stripManagedPrefix('ticket-🎫-1', ticket(), defaults()), 'ticket-🎫-1');
 	});
 
 	/* ───────────────────────────── rebuilding ───────────────────────────── */
 
-	t('managedName is idempotent', () => {
+	await t('managedName is idempotent', () => {
 		const settings = settingsFor({ claimedEmoji: '✅' });
 		const t1 = ticket({
 			claimedById: '1',
@@ -231,7 +231,7 @@ const ticket = (over = {}) => ({
 		assert.strictEqual(N.managedName(N.managedName(once, t1, settings), t1, settings), once);
 	});
 
-	t('a rename from claimed to released drops only the claim tick', () => {
+	await t('a rename from claimed to released drops only the claim tick', () => {
 		const settings = defaults();
 		const claimed = N.managedName('ticket-1', ticket({
 			claimedById: '1',
@@ -241,7 +241,7 @@ const ticket = (over = {}) => ({
 		assert.strictEqual(N.managedName(claimed, ticket({ priority: 'LOW' }), settings), '🟢ticket-1');
 	});
 
-	t('clampName keeps a name within Discord\'s limit without splitting an emoji', () => {
+	await t('clampName keeps a name within Discord\'s limit without splitting an emoji', () => {
 		const long = '🔴'.repeat(120);
 		const clamped = N.clampName(long);
 		assert.strictEqual([...clamped].length, 100);
@@ -249,7 +249,7 @@ const ticket = (over = {}) => ({
 		assert.ok(!/[\uD800-\uDBFF]$/.test(clamped), 'clamped name ends in a lone surrogate');
 	});
 
-	t('managedName clamps, so a maximal template cannot break channel creation', () => {
+	await t('managedName clamps, so a maximal template cannot break channel creation', () => {
 		const settings = settingsFor({ unclaimedEmoji: '🟡' });
 		const name = N.managedName('a'.repeat(100), ticket(), settings);
 		assert.ok([...name].length <= 100, `${[...name].length} code points`);
@@ -257,7 +257,7 @@ const ticket = (over = {}) => ({
 
 	/* ───────────────────────────── the template ───────────────────────────── */
 
-	t('renderChannelName fills in the supported placeholders', () => {
+	await t('renderChannelName fills in the supported placeholders', () => {
 		const rendered = N.renderChannelName('{name}-{num}', {
 			creator: {
 				displayName: 'Alexa',
@@ -268,11 +268,11 @@ const ticket = (over = {}) => ({
 		assert.strictEqual(rendered, 'alex-7');
 	});
 
-	t('renderChannelName keeps the 1488 guard', () => {
+	await t('renderChannelName keeps the 1488 guard', () => {
 		assert.strictEqual(N.renderChannelName('ticket-{num}', { number: 1488 }), 'ticket-1487b');
 	});
 
-	t('renderChannelName falls back for a creator who has left', () => {
+	await t('renderChannelName falls back for a creator who has left', () => {
 		assert.strictEqual(
 			N.renderChannelName('{name}-{num}', {
 				fallback: '123',
@@ -284,7 +284,7 @@ const ticket = (over = {}) => ({
 
 	/* ─────────────────── the property the migration rests on ─────────────────── */
 
-	t('a category with no configuration produces exactly the old name', () => {
+	await t('a category with no configuration produces exactly the old name', () => {
 		const settings = defaults();
 		const template = N.renderChannelName('ticket-{num}', { number: 42 });
 
@@ -313,6 +313,129 @@ const ticket = (over = {}) => ({
 			);
 		}
 	});
+
+	/* ────────────────────────── the deferred rename ──────────────────────── */
+
+	// `syncChannelName` lives in `mutations.js`, which reaches the Temporal layer.
+	// That layer is compiled, and a fresh checkout has not built it yet — so these
+	// cases skip rather than turning `npm test` into something that needs
+	// `npm run temporal.build` first.
+	const fs = require('fs');
+	if (!fs.existsSync(path.join(root, 'dist', 'temporal'))) {
+		console.log('  skip  deferred rename (run `npm run temporal.build` to include these)');
+	} else {
+		// Stubbed on the gateway module rather than on `lib/temporal`, which
+		// re-exports it through TypeScript's getter-only `export *` bindings —
+		// assigning to one of those throws, and the throw would be swallowed by
+		// the very try/catch these cases are here to exercise.
+		const gateway = require(path.join(root, 'dist', 'temporal', 'gateway'));
+		const { syncChannelName } = require(path.join(root, 'src', 'lib', 'tickets', 'mutations'));
+
+		/** A client whose rename budget is already spent. */
+		const exhausted = (log = []) => ({
+			keyv: {
+				get: async () => [Date.now(), Date.now()],
+				set: async () => undefined,
+			},
+			log: { warn: (...args) => log.push(args) },
+		});
+
+		const renameable = () => ({
+			name: 'ticket-42',
+			setName: async () => undefined,
+		});
+
+		const openTicket = {
+			claimedById: '1',
+			guildId: 'g1',
+			id: 't1',
+			open: true,
+		};
+
+		await t('an exhausted budget parks the rename rather than dropping it', async () => {
+			const parked = [];
+			const original = gateway.deferChannelRename;
+			gateway.deferChannelRename = async input => parked.push(input);
+			try {
+				const result = await syncChannelName(exhausted(), {
+					channel: renameable(),
+					settings: defaults(),
+					ticket: openTicket,
+				});
+				assert.strictEqual(result.reason, 'rename_deferred');
+				assert.strictEqual(parked.length, 1);
+				assert.strictEqual(parked[0].ticketId, 't1');
+				assert.strictEqual(parked[0].guildId, 'g1');
+				assert.ok(parked[0].notBefore > Date.now(), 'the deadline must be in the future');
+				// The parked request carries no name: the activity recomputes it, so
+				// a claim or a move in the meantime is reflected rather than
+				// overwritten by a stale opinion.
+				assert.strictEqual(parked[0].name, undefined);
+			} finally {
+				gateway.deferChannelRename = original;
+			}
+		});
+
+		await t('a Temporal outage degrades to the old behaviour', async () => {
+			const original = gateway.deferChannelRename;
+			gateway.deferChannelRename = async () => {
+				throw new Error('no connection');
+			};
+			const warnings = [];
+			try {
+				const result = await syncChannelName(exhausted(warnings), {
+					channel: renameable(),
+					settings: defaults(),
+					ticket: openTicket,
+				});
+				// Still `ok`: the database is right and only the visible name lags,
+				// which is exactly what this branch did before deferral existed.
+				assert.strictEqual(result.ok, true);
+				assert.strictEqual(result.reason, 'rate_limited');
+				assert.strictEqual(warnings.length, 1, 'the outage should be logged, not swallowed');
+			} finally {
+				gateway.deferChannelRename = original;
+			}
+		});
+
+		await t('a deferral inside a deferral is refused', async () => {
+			// The workflow owns the retry; deferring again from the activity that
+			// the workflow just ran would race it.
+			const parked = [];
+			const original = gateway.deferChannelRename;
+			gateway.deferChannelRename = async input => parked.push(input);
+			try {
+				const result = await syncChannelName(exhausted(), {
+					channel: renameable(),
+					defer: false,
+					settings: defaults(),
+					ticket: openTicket,
+				});
+				assert.strictEqual(result.reason, 'rate_limited');
+				assert.ok(result.freesAt > Date.now(), 'the workflow needs a retry time');
+				assert.strictEqual(parked.length, 0);
+			} finally {
+				gateway.deferChannelRename = original;
+			}
+		});
+
+		await t('a name that is already right spends no budget and parks nothing', async () => {
+			const parked = [];
+			const original = gateway.deferChannelRename;
+			gateway.deferChannelRename = async input => parked.push(input);
+			try {
+				const result = await syncChannelName(exhausted(), {
+					channel: { name: '✅ticket-42' },
+					settings: defaults(),
+					ticket: openTicket,
+				});
+				assert.strictEqual(result.reason, 'noop');
+				assert.strictEqual(parked.length, 0);
+			} finally {
+				gateway.deferChannelRename = original;
+			}
+		});
+	}
 
 	console.log(`\n${pass} passed\n`);
 })();

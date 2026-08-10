@@ -1995,6 +1995,40 @@ module.exports = class TicketManager {
 	 * close a ticket
 	 * @param {string} ticketId
 	 */
+	/**
+	 * Apply a rename that Discord's rate limit refused earlier.
+	 *
+	 * The entry point for `deferredRenameWorkflow`, and the reason the parked
+	 * request carries no name: the managed name is recomputed here, from the row
+	 * as it is *now*. A ticket claimed, moved or re-prioritised while the rename
+	 * was parked gets the name it should have, not the one it should have had.
+	 *
+	 * @param {string} ticketId
+	 * @returns {Promise<?number>} null when there is nothing more to do; an epoch
+	 *   to retry at when the budget is somehow still exhausted.
+	 */
+	async applyDeferredRename(ticketId) {
+		const ticket = await this.client.prisma.ticket.findUnique({ where: { id: ticketId } });
+		if (!ticket) return null;
+
+		const channel = await this.client.channels.fetch(ticketId).catch(() => null);
+		// The channel is gone, which for a CHANNEL-mode ticket is what closing
+		// means. Returning rather than throwing keeps the activity from burning
+		// five retries on something that is never coming back.
+		if (!channel) return null;
+
+		const result = await syncChannelName(this.client, {
+			channel,
+			// The workflow owns the retry; deferring again from inside a deferral
+			// would race it.
+			defer: false,
+			reason: 'Deferred rename',
+			ticket,
+		});
+		if (result?.reason !== 'rate_limited') return null;
+		return result.freesAt ?? Date.now() + ms('1m');
+	}
+
 	async finallyClose(ticketId, {
 		closedBy = null,
 		lock = false,
@@ -2108,6 +2142,13 @@ module.exports = class TicketManager {
 			const closeReason = 'Ticket closed' + (member ? ` by ${member.displayName}` : '') + (reason ? `: ${reason}` : '');
 			try {
 				if (channelMode === 'THREAD' || channelMode === 'FORUM' || channel.isThread?.()) {
+					// Drop any rename parked while the ticket was open, *before*
+					// writing the closed name. Otherwise the deferral wakes minutes
+					// later and paints the ticket back to whatever it was — and it
+					// would be recomputed from a row that now says closed anyway, so
+					// the only thing it could add is a second rename nobody asked for.
+					await temporal.cancelDeferredRename(ticket.id).catch(() => null);
+
 					// Repaint the name for the closed state. The two `.replace()` calls
 					// this used to do both matched a single code point, so a ZWJ
 					// sequence or a skin-tone modifier was left half-stripped.

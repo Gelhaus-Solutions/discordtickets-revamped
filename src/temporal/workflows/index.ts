@@ -28,6 +28,7 @@ import type {
 	BulkCloseResult,
 	CascadeCloseUserInput,
 	CloseTicketInput,
+	DeferredRenameInput,
 	ExportGuildInput,
 	GenerateTranscriptInput,
 	ImportGuildInput,
@@ -262,6 +263,59 @@ export async function reopenWindowWorkflow(input: ReopenWindowInput): Promise<Re
 		if (!isAlreadyStarted(err)) throw err;
 	}
 	return { closeAt, reopened: false };
+}
+
+// ---------------------------------------------------------------------------
+// Deferred channel rename.
+//
+// Discord allows two channel renames per ten minutes and then simply stalls, so
+// the bot keeps its own budget. A rename refused by that budget used to be
+// dropped and repaired by whatever wrote the name next — which, for a ticket
+// nothing else happens to, is never.
+//
+// Temporal rather than a keyv entry and a `setTimeout`: the window is ten
+// minutes, deploys land inside ten minutes, a process-local timer loses the
+// rename when they do, and under more than one process every timer fires.
+// ---------------------------------------------------------------------------
+const renameRequestedSignal = defineSignal<[number]>(SignalName.renameRequested);
+
+/**
+ * How long a deferred rename may keep rescheduling itself.
+ *
+ * A channel being renamed every few minutes for hours is a loop, not a backlog,
+ * and this stops one lingering after everyone has stopped caring what it says.
+ */
+const MAX_RENAME_DEFERRALS = 12;
+
+export async function deferredRenameWorkflow(input: DeferredRenameInput): Promise<void> {
+	let notBefore = input.notBefore;
+	let version = 0;
+
+	// Further requests while parked do not queue a second rename; they only pull
+	// the deadline earlier if a slot frees up sooner than this one expected.
+	setHandler(renameRequestedSignal, (at: number) => {
+		if (at && at < notBefore) {
+			notBefore = at;
+			version++;
+		}
+	});
+
+	for (let attempt = 0; attempt < MAX_RENAME_DEFERRALS; attempt++) {
+		const waitMs = notBefore - Date.now();
+		if (waitMs > 0) {
+			const v = version;
+			await condition(() => version !== v, waitMs);
+			if (version !== v) continue; // an earlier slot was signalled
+		}
+
+		// The activity recomputes the name; a return of `null` means it is done,
+		// a number means the budget was *still* exhausted and says when to retry.
+		const retryAt = await acts.applyDeferredRename(input.ticketId);
+		if (retryAt == null) return;
+		notBefore = retryAt;
+	}
+
+	log.warn('Gave up deferring a channel rename', { ticketId: input.ticketId });
 }
 
 // ---------------------------------------------------------------------------

@@ -146,3 +146,21 @@ export interface AutomationCronInput {
 	/** Which `trigger.schedule.cron` node in the graph this schedule belongs to. */
 	nodeId: string;
 }
+
+/**
+ * A rename that Discord's rate limit would not let us do now.
+ *
+ * Carries **no name** — only the ticket and when a slot frees up. The activity
+ * recomputes the managed name from the database when it fires, which is
+ * strictly stronger than "the latest desired name wins": if the ticket was
+ * claimed, re-prioritised, moved, given a different emoji override, or its
+ * category's emoji settings changed while the rename was parked, the one rename
+ * that happens is correct for the state at that moment. Two deferred renames
+ * for one channel cannot disagree, because neither carries an opinion.
+ */
+export interface DeferredRenameInput {
+	ticketId: string;
+	guildId: string;
+	/** Epoch ms: the earliest the rename budget will have a slot. */
+	notBefore: number;
+}
