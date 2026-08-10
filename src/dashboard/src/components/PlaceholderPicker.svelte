@@ -9,11 +9,19 @@
 	 * shows the ones that work *here*, greys out the ones that do not with the
 	 * reason, and inserts at the caret.
 	 *
-	 * Uses the native `popover` attribute rather than absolute positioning like
-	 * `EmojiPicker`. That puts the panel in the browser's top layer, so it is not
-	 * clipped by the nested cards on the category page, the block editor's rows,
-	 * or the 20rem Svelte Flow inspector column — three places an absolutely
-	 * positioned panel would be cut in half.
+	 * ## Two things this must not do
+	 *
+	 * **Nothing is rendered until it is opened.** The first version left the panel
+	 * in the markup and hid it with the native `popover` attribute, keyed by a
+	 * `Math.random()` id. That id differs between the server render and hydration,
+	 * and a page with seven of these hydrates into a scrambled form — overlapping
+	 * labels, columns drawn on top of each other. Nothing here may depend on a
+	 * value that is not identical on both sides, and the cheapest way to
+	 * guarantee that is to emit nothing at all until a click.
+	 *
+	 * **The panel is `fixed`, not `absolute`.** It has to escape the nested cards
+	 * on the category page, the block editor's rows and the 20rem Svelte Flow
+	 * inspector column, any of which would clip an absolutely positioned panel.
 	 *
 	 * @typedef {Object} Props
 	 * @property {HTMLElement} target the input or textarea to insert into
@@ -25,29 +33,31 @@
 
 	const catalogue = placeholders();
 
+	const WIDTH = 320;
+	const MAX_HEIGHT = 360;
+
 	let search = $state('');
-	let popover = $state();
+	let open = $state(false);
 	let trigger = $state();
-
-	const id = `ph-${Math.random().toString(36).slice(2, 9)}`;
-
-	/**
-	 * Put the panel under the button that opened it.
-	 *
-	 * The top layer inherits no positioning, so a popover defaults to the middle
-	 * of the viewport. CSS anchor positioning would say this declaratively but is
-	 * not in every browser this dashboard supports, and a picker that lands in
-	 * the centre of the screen reads as broken.
-	 */
-	const place = () => {
-		if (!trigger || !popover) return;
-		const rect = trigger.getBoundingClientRect();
-		const width = 320;
-		popover.style.top = `${Math.min(rect.bottom + 4, window.innerHeight - 320)}px`;
-		popover.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
-	};
+	let panel = $state();
+	let position = $state({ left: 0, top: 0 });
 
 	const groups = $derived(groupsFor(catalogue, context));
+
+	/** Put the panel under the button, kept inside the viewport on both axes. */
+	const toggle = () => {
+		if (open) {
+			open = false;
+			return;
+		}
+		const rect = trigger.getBoundingClientRect();
+		position = {
+			left: Math.max(8, Math.min(rect.left, window.innerWidth - WIDTH - 8)),
+			top: Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - MAX_HEIGHT - 8))
+		};
+		search = '';
+		open = true;
+	};
 
 	const filter = (list) => {
 		const query = search.trim().toLowerCase();
@@ -62,69 +72,76 @@
 
 	const insert = (token) => {
 		insertAtCaret(target, `{${token}}`);
-		popover?.hidePopover();
-		search = '';
+		open = false;
+	};
+
+	const onWindowClick = (event) => {
+		if (!open) return;
+		if (trigger?.contains(event.target) || panel?.contains(event.target)) return;
+		open = false;
 	};
 </script>
+
+<svelte:window onclick={onWindowClick} onkeydown={(e) => e.key === 'Escape' && (open = false)} />
 
 <button
 	bind:this={trigger}
 	type="button"
 	class="rounded bg-gray-200 px-1.5 py-0.5 font-mono text-xs text-gray-600 transition duration-200 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:text-slate-400"
 	title="Insert a placeholder"
-	popovertarget={id}
-	onclick={place}
+	onclick={toggle}
 >
 	&lbrace;&rbrace;
 </button>
 
-<div
-	bind:this={popover}
-	{id}
-	popover="auto"
-	class="fixed m-0 w-80 rounded-xl bg-white p-2 text-slate-800 shadow-lg dark:bg-slate-700 dark:text-slate-300"
->
-	<!-- svelte-ignore a11y_autofocus -->
-	<input
-		type="text"
-		class="input form-input mb-2 text-sm"
-		placeholder="Search placeholders…"
-		autofocus
-		bind:value={search}
-	/>
+{#if open}
+	<div
+		bind:this={panel}
+		class="fixed z-50 w-80 rounded-xl bg-white p-2 text-slate-800 shadow-lg dark:bg-slate-700 dark:text-slate-300"
+		style="left: {position.left}px; top: {position.top}px"
+	>
+		<!-- svelte-ignore a11y_autofocus -->
+		<input
+			type="text"
+			class="input form-input mb-2 text-sm"
+			placeholder="Search placeholders…"
+			autofocus
+			bind:value={search}
+		/>
 
-	<div class="max-h-72 overflow-y-auto">
-		{#each filter(groups.available) as placeholder (placeholder.token)}
-			<button
-				type="button"
-				class="block w-full rounded p-1.5 text-left transition duration-150 hover:bg-gray-100 dark:hover:bg-slate-600"
-				onclick={() => insert(placeholder.token)}
-			>
-				<span class="font-mono text-sm text-blurple">&lbrace;{placeholder.token}&rbrace;</span>
-				<span class="ml-1 text-sm font-medium">{placeholder.label}</span>
-				<span class="block text-xs text-gray-500 dark:text-slate-400">
-					{noteFor(placeholder, context)}
-				</span>
-			</button>
-		{/each}
-
-		{#if filter(groups.available).length === 0}
-			<p class="p-2 text-sm text-gray-500 dark:text-slate-400">
-				Nothing matches “{search}”.
-			</p>
-		{/if}
-
-		{#if filter(groups.unavailable).length}
-			<p class="mt-2 border-t border-gray-200 pt-2 text-xs font-semibold uppercase text-gray-500 dark:border-slate-600 dark:text-slate-400">
-				Not available here
-			</p>
-			{#each filter(groups.unavailable) as placeholder (placeholder.token)}
-				<div class="p-1.5 opacity-50">
-					<span class="font-mono text-sm">&lbrace;{placeholder.token}&rbrace;</span>
+		<div class="max-h-72 overflow-y-auto">
+			{#each filter(groups.available) as placeholder (placeholder.token)}
+				<button
+					type="button"
+					class="block w-full rounded p-1.5 text-left transition duration-150 hover:bg-gray-100 dark:hover:bg-slate-600"
+					onclick={() => insert(placeholder.token)}
+				>
+					<span class="font-mono text-sm text-blurple">&lbrace;{placeholder.token}&rbrace;</span>
 					<span class="ml-1 text-sm font-medium">{placeholder.label}</span>
-					<span class="block text-xs">{placeholder.description}</span>
-				</div>
+					<span class="block text-xs text-gray-500 dark:text-slate-400">
+						{noteFor(placeholder, context)}
+					</span>
+				</button>
 			{/each}
-		{/if}
+
+			{#if filter(groups.available).length === 0}
+				<p class="p-2 text-sm text-gray-500 dark:text-slate-400">Nothing matches “{search}”.</p>
+			{/if}
+
+			{#if filter(groups.unavailable).length}
+				<p
+					class="mt-2 border-t border-gray-200 pt-2 text-xs font-semibold uppercase text-gray-500 dark:border-slate-600 dark:text-slate-400"
+				>
+					Not available here
+				</p>
+				{#each filter(groups.unavailable) as placeholder (placeholder.token)}
+					<div class="p-1.5 opacity-50">
+						<span class="font-mono text-sm">&lbrace;{placeholder.token}&rbrace;</span>
+						<span class="ml-1 text-sm font-medium">{placeholder.label}</span>
+						<span class="block text-xs">{placeholder.description}</span>
+					</div>
+				{/each}
+			{/if}
+		</div>
 	</div>
-</div>
+{/if}
