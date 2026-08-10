@@ -25,7 +25,7 @@ const {
 	NODE_TYPES, isValidCron, needsOf,
 } = require(path.join(root, 'src', 'lib', 'automations', 'registry'));
 const {
-	deriveTriggers, validateGraph,
+	deriveTriggers, entryButtonTriggers, validateGraph,
 } = require(path.join(root, 'src', 'lib', 'automations', 'validate'));
 const {
 	RUN, STEP, runAutomation, runFrom,
@@ -34,8 +34,11 @@ const { Context } = require(path.join(root, 'src', 'lib', 'automations', 'contex
 const {
 	matches, triggerVars,
 } = require(path.join(root, 'src', 'lib', 'automations', 'dispatcher'));
-const { substitute } = require(path.join(root, 'src', 'lib', 'components-v2'));
+const {
+	defaultMessageLayout, substitute,
+} = require(path.join(root, 'src', 'lib', 'components-v2'));
 const { automationCustomId } = require(path.join(root, 'src', 'lib', 'automations', 'discord'));
+const { upgradeGraph } = require(path.join(root, 'src', 'lib', 'automations', 'upgrade'));
 
 let pass = 0;
 const t = async (name, fn) => {
@@ -72,6 +75,9 @@ const graph = (nodes, edges = []) => ({
 	nodes,
 	version: GRAPH_VERSION,
 });
+
+/** A message node's `layout` param: one text block, optionally one button row. */
+const msg = (content, buttons = []) => defaultMessageLayout(content, buttons, { idPrefix: `l${++seq}` });
 
 /** A minimal valid automation: a ticket closes, a role is added. */
 function simple() {
@@ -201,7 +207,7 @@ function stubRunners(overrides = {}) {
 					cron: '0 9 * * *',
 					timezone: 'UTC',
 				}, 'tc'),
-				node('action.message.reply', { content: 'hi' }, 'r'),
+				node('action.message.reply', { layout: msg('hi') }, 'r'),
 			],
 			[edge('tm', 'r'), edge('tc', 'r')],
 		);
@@ -215,7 +221,7 @@ function stubRunners(overrides = {}) {
 					cron: '0 9 * * *',
 					timezone: 'UTC',
 				}, 'tc'),
-				node('action.message.reply', { content: 'hi' }, 'r'),
+				node('action.message.reply', { layout: msg('hi') }, 'r'),
 				node('action.log', { content: 'tick' }, 'l'),
 			],
 			[edge('tm', 'r'), edge('tc', 'l')],
@@ -229,11 +235,10 @@ function stubRunners(overrides = {}) {
 				node('trigger.ticket.created', {}, 't'),
 				node('trigger.button.pressed', { label: 'Press me' }, 'btn'),
 				node('action.message.send', {
-					buttons: [{
+					layout: msg('Here you go', [{
 						label: 'Press me',
 						nodeId: 'btn',
-					}],
-					content: 'Here you go',
+					}]),
 					target: 'ticket',
 				}, 's'),
 				node('action.role.add', {
@@ -247,7 +252,7 @@ function stubRunners(overrides = {}) {
 
 		// Pointing at something that is not a button trigger is refused.
 		const bad = JSON.parse(JSON.stringify(g));
-		bad.nodes[2].params.buttons[0].nodeId = 't';
+		bad.nodes[2].params.layout.blocks[1].buttons[0].nodeId = 't';
 		assert.strictEqual(codeOf(bad), 'unknown_trigger');
 	});
 
@@ -444,7 +449,7 @@ function stubRunners(overrides = {}) {
 					cron: '0 9 * * *',
 					timezone: 'UTC',
 				}, 'a'),
-				node('action.message.reply', { content: 'hi' }, 'b'),
+				node('action.message.reply', { layout: msg('hi') }, 'b'),
 			],
 			[edge('a', 'b')],
 		);
@@ -455,7 +460,7 @@ function stubRunners(overrides = {}) {
 		const g = graph(
 			[
 				node('trigger.message.created', { scope: 'ticket' }, 'a'),
-				node('action.message.reply', { content: 'hi' }, 'b'),
+				node('action.message.reply', { layout: msg('hi') }, 'b'),
 			],
 			[edge('a', 'b')],
 		);
@@ -469,11 +474,11 @@ function stubRunners(overrides = {}) {
 		})).includes('ticket'));
 		assert.ok(!needsOf(node('action.message.send', {
 			channelId: '820000000000000001',
-			content: 'x',
+			layout: msg('x'),
 			target: 'channel',
 		})).includes('ticketChannel'));
 		assert.ok(needsOf(node('action.message.send', {
-			content: 'x',
+			layout: msg('x'),
 			target: 'ticket',
 		})).includes('ticketChannel'));
 	});
@@ -516,12 +521,11 @@ function stubRunners(overrides = {}) {
 			[
 				node('trigger.ticket.created', {}, 'a'),
 				node('action.message.send', {
-					buttons: [{
+					layout: msg('Press below', [{
 						automationKey: 'btn123',
 						label: 'Claim your role',
 						style: 'success',
-					}],
-					content: 'Press below',
+					}]),
 					target: 'ticket',
 				}, 'b'),
 			],
@@ -538,11 +542,10 @@ function stubRunners(overrides = {}) {
 			[
 				node('trigger.ticket.created', {}, 'a'),
 				node('action.message.send', {
-					buttons: [{
+					layout: msg('x', [{
 						automationKey: 'other',
 						label: 'Nope',
-					}],
-					content: 'x',
+					}]),
 					target: 'ticket',
 				}, 'b'),
 			],
@@ -566,8 +569,7 @@ function stubRunners(overrides = {}) {
 			[
 				node('trigger.ticket.created', {}, 'a'),
 				node('action.message.send', {
-					buttons: [button],
-					content: 'x',
+					layout: msg('x', [button]),
 					target: 'ticket',
 				}, 'b'),
 			],
@@ -579,7 +581,7 @@ function stubRunners(overrides = {}) {
 			automationKey: 'btn123',
 			label: 'Hi',
 			style: 'rainbow',
-		})), 'unknown_option');
+		})), 'invalid');
 	});
 
 	console.log('\ninterpreter\n');
@@ -1091,6 +1093,198 @@ function stubRunners(overrides = {}) {
 			...BOT_COMMAND,
 			pattern: '^open (\\d+)$',
 		}), payload), false);
+	});
+
+	console.log('\ngraph upgrade\n');
+
+	/* ─────────────────────────── GRAPH_VERSION 1 → 2 ─────────────────────────── */
+
+	// `action.message.send` posts publicly, so this transform runs over messages
+	// that are already visible to every member of every affected server. The
+	// property being pinned is that it is shape-only: the same text, the same
+	// buttons, in the same order, and nothing else added.
+
+	/** One v1 graph holding all four legacy message nodes. */
+	const legacy = () => ({
+		edges: [
+			edge('t', 'send', 'out', 'e1'),
+			edge('send', 'dm', 'out', 'e2'),
+			edge('dm', 'eph', 'out', 'e3'),
+			edge('eph', 'rep', 'out', 'e4'),
+		],
+		nodes: [
+			node('trigger.button.pressed', { label: 'Go' }, 't'),
+			node('action.message.send', {
+				buttons: [{
+					automationKey: 'abc123',
+					label: 'Elsewhere',
+					style: 'success',
+				}],
+				channelId: '820000000000000001',
+				content: 'Hello {name}',
+				target: 'channel',
+			}, 'send'),
+			node('action.message.dm', {
+				content: 'Psst',
+				subject: 'ticketCreator',
+			}, 'dm'),
+			node('action.message.ephemeral', {
+				buttons: [{
+					label: 'Yes',
+					nodeId: 't',
+				}],
+				content: 'Are you sure?',
+			}, 'eph'),
+			node('action.message.reply', {
+				content: 'Done',
+				ephemeral: true,
+			}, 'rep'),
+		],
+		version: 1,
+	});
+
+	await t('all four message nodes upgrade in one pass', () => {
+		const before = legacy();
+		const after = upgradeGraph(before);
+		assert.strictEqual(after.version, GRAPH_VERSION);
+
+		for (const id of ['send', 'dm', 'eph', 'rep']) {
+			const node2 = after.nodes.find(n => n.id === id);
+			assert.ok(node2.params.layout, `${id} should have a layout`);
+			assert.strictEqual(node2.params.content, undefined, `${id} should have lost content`);
+			assert.strictEqual(node2.params.buttons, undefined, `${id} should have lost buttons`);
+		}
+
+		// Shape-only: one text block carrying exactly the old content, and the
+		// button row only where there were buttons. No container, no separator.
+		const dm = after.nodes.find(n => n.id === 'dm');
+		assert.deepStrictEqual(dm.params.layout.blocks.map(b => b.type), ['text']);
+		assert.strictEqual(dm.params.layout.blocks[0].content, 'Psst');
+
+		const send = after.nodes.find(n => n.id === 'send');
+		assert.deepStrictEqual(send.params.layout.blocks.map(b => b.type), ['text', 'buttons']);
+		assert.strictEqual(send.params.layout.blocks[0].content, 'Hello {name}');
+		assert.deepStrictEqual(send.params.layout.blocks[1].buttons, [{
+			automationKey: 'abc123',
+			emoji: null,
+			kind: 'automation',
+			label: 'Elsewhere',
+			nodeId: null,
+			style: 'success',
+		}]);
+
+		// An in-graph continuation keeps its node id and gains no key.
+		const eph = after.nodes.find(n => n.id === 'eph');
+		assert.strictEqual(eph.params.layout.blocks[1].buttons[0].nodeId, 't');
+		assert.strictEqual(eph.params.layout.blocks[1].buttons[0].automationKey, null);
+	});
+
+	await t('the upgrade keeps every param it does not own', () => {
+		const send = upgradeGraph(legacy()).nodes.find(n => n.id === 'send');
+		assert.strictEqual(send.params.target, 'channel');
+		assert.strictEqual(send.params.channelId, '820000000000000001');
+		// The reply tickbox is not a message field and must survive untouched —
+		// it is the one control on these nodes that this change makes real.
+		assert.strictEqual(upgradeGraph(legacy()).nodes.find(n => n.id === 'rep').params.ephemeral, true);
+	});
+
+	await t('the upgrade is idempotent and never mutates its input', () => {
+		const before = legacy();
+		const snapshot = JSON.stringify(before);
+		const once = upgradeGraph(before);
+		assert.strictEqual(JSON.stringify(before), snapshot, 'the stored graph must not be touched');
+		assert.deepStrictEqual(upgradeGraph(once), once);
+		// The same row read twice must produce the same document, or the
+		// dashboard's unsaved-changes guard fires on a freshly loaded page.
+		assert.strictEqual(JSON.stringify(upgradeGraph(legacy())), JSON.stringify(once));
+	});
+
+	await t('an upgraded graph validates, and an un-upgraded one is refused', () => {
+		const refs = {
+			automationKeys: ['abc123'],
+			buttonAutomationKeys: ['abc123'],
+		};
+		assert.strictEqual(codeOf(upgradeGraph(legacy()), refs), null);
+		// Both routes upgrade `body.graph` before validating, so reaching the
+		// validator at v1 means something skipped that step.
+		assert.strictEqual(codeOf(legacy(), refs), 'not_upgraded');
+	});
+
+	await t('a layout error names the block it came from', () => {
+		const g = upgradeGraph(legacy());
+		const send = g.nodes.find(n => n.id === 'send');
+		send.params.layout.blocks[0].content = '';
+
+		let thrown;
+		try {
+			validateGraph(g, {
+				automationKeys: ['abc123'],
+				buttonAutomationKeys: ['abc123'],
+			});
+		} catch (error) {
+			thrown = error;
+		}
+		assert.ok(thrown instanceof AutomationError);
+		const problem = thrown.errors.find(e => e.path.includes('layout'));
+		// The whole point of re-basing the layout validator's paths: an admin is
+		// told which block of which step, not "the layout is invalid".
+		assert.match(problem.path, /^nodes\[\d+\]\.params\.layout\.blocks\[0\]\.content$/);
+		assert.strictEqual(problem.code, 'required');
+	});
+
+	await t('a DM layout may not hold an automation button', () => {
+		const g = upgradeGraph(legacy());
+		const dm = g.nodes.find(n => n.id === 'dm');
+		dm.params.layout.blocks.push({
+			buttons: [{
+				automationKey: 'abc123',
+				kind: 'automation',
+				label: 'Press',
+			}],
+			id: 'dm-extra',
+			type: 'buttons',
+		});
+		assert.strictEqual(codeOf(g, {
+			automationKeys: ['abc123'],
+			buttonAutomationKeys: ['abc123'],
+		}), 'not_allowed');
+	});
+
+	await t('entryButtonTriggers sees continuations inside a layout', () => {
+		// Test 19 of this file's original numbering, brought forward: before
+		// layouts, a continuation was `node.params.buttons[].nodeId`. A scan that
+		// only knows that shape finds nothing once buttons are blocks, every
+		// button trigger looks like an entry point, and live panel buttons in
+		// every server start answering "no longer connected to anything".
+		const g = upgradeGraph({
+			edges: [edge('entry', 'eph', 'out', 'e1'), edge('yes', 'log', 'out', 'e2')],
+			nodes: [
+				node('trigger.button.pressed', { label: 'Start' }, 'entry'),
+				node('trigger.button.pressed', { label: 'Yes' }, 'yes'),
+				node('action.message.ephemeral', {
+					buttons: [{
+						label: 'Yes',
+						nodeId: 'yes',
+					}],
+					content: 'Sure?',
+				}, 'eph'),
+				node('action.log', { content: 'confirmed' }, 'log'),
+			],
+			version: 1,
+		});
+
+		assert.deepStrictEqual(entryButtonTriggers(g).map(n => n.id), ['entry']);
+
+		// And nested inside a container, which is what an admin gets the moment
+		// they wrap the message in a coloured box.
+		const nested = JSON.parse(JSON.stringify(g));
+		const layout = nested.nodes.find(n => n.id === 'eph').params.layout;
+		layout.blocks = [{
+			blocks: layout.blocks,
+			id: 'c1',
+			type: 'container',
+		}];
+		assert.deepStrictEqual(entryButtonTriggers(nested).map(n => n.id), ['entry']);
 	});
 
 	console.log('\ndashboard mirror\n');

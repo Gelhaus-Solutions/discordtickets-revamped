@@ -21,23 +21,21 @@
  * out why their automation quietly did nothing.
  */
 
-const { LIMITS } = require('./errors');
 const { logAutomationEvent } = require('../logging');
 const { resolveEmoji } = require('../emoji');
-const { substitute } = require('../components-v2');
+const {
+	buildMessage,
+	substitute,
+} = require('../components-v2');
 const { resolveGuildChannel } = require('../misc');
 const { pools } = require('../threads');
 const temporal = require('../temporal');
 const {
-	ActionRowBuilder,
-	ButtonBuilder,
-	ButtonStyle,
 	MessageFlags,
 	RESTJSONErrorCodes,
 } = require('discord.js');
 const {
 	addRole,
-	automationCustomId,
 	removeRole,
 } = require('./discord');
 const {
@@ -78,45 +76,57 @@ const EXPIRED_INTERACTION = [
 	RESTJSONErrorCodes.InvalidWebhookToken,
 ];
 
-const BUTTON_STYLES = {
-	danger: ButtonStyle.Danger,
-	primary: ButtonStyle.Primary,
-	secondary: ButtonStyle.Secondary,
-	success: ButtonStyle.Success,
-};
-
 /**
- * Turn an `action.message.send` button list into an action row.
+ * Render an `action.message.*` node's stored layout into a message payload.
  *
- * This is what lets one automation hand the member a button that starts
- * another: "ticket opened -> post a button", then "button pressed -> add a
- * role". The custom_id is the same one `src/buttons/auto.js` parses.
+ * The same renderer panels and opening messages use, so an automation message
+ * gets containers, images, sections and the whole button model for free — and
+ * there is exactly one button implementation in the codebase rather than two.
  *
- * Returns an empty array when there are no buttons, so the caller can spread it
- * into `components` unconditionally.
+ * Substitution variables are resolved once for the whole document: `ctx.varsFor`
+ * only touches the database when the text actually references `{opener}` or
+ * `{num}`, and asking it about the serialised layout keeps that property while
+ * covering every string in it.
+ *
+ * `allowedMentions` is deliberately not taken from `buildMessage` — that
+ * derivation is for opening messages, which know their ping roles. Each caller
+ * supplies the rule its old code used, because a Components v2 message has no
+ * `content` for Discord to derive mention parsing from and getting it wrong
+ * means either silently inert role pings or newly-noisy ones.
+ *
+ * @param {'message'|'ephemeral'|'dm'} kind
+ * @returns {Promise<{components: Array, flags: number}>}
  */
-async function buildButtons(node, ctx) {
-	const specs = Array.isArray(node.params?.buttons) ? node.params.buttons : [];
-	if (specs.length === 0) return [];
+async function renderLayout(client, node, ctx, kind) {
+	const layout = node.params?.layout;
+	const settings = await ctx.getSettings();
+	const guild = await ctx.getGuild();
 
-	const buttons = [];
-	for (const spec of specs.slice(0, LIMITS.messageButtons)) {
-		if (!(spec.nodeId ? ctx.automationKey : spec.automationKey)) continue;
-		// An in-graph button carries this automation's own key plus the node,
-		// so pressing it comes back to the right branch of the right graph.
-		const button = new ButtonBuilder()
-			.setCustomId(spec.nodeId
-				? automationCustomId(ctx.automationKey, spec.nodeId)
-				: automationCustomId(spec.automationKey))
-			.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
-			.setLabel((await render(spec.label, ctx)).slice(0, 80));
-		const emoji = spec.emoji ? resolveEmoji(spec.emoji) : null;
-		if (emoji) button.setEmoji(emoji);
-		buttons.push(button);
-	}
-	if (buttons.length === 0) return [];
+	// Only paid for when the layout actually holds a ticket button or an
+	// automation button; both resolutions are memoised for the run.
+	const needsCategories = /"kind"\s*:\s*"ticket"/.test(JSON.stringify(layout ?? ''));
+	const enabled = await client.automations.getForGuild(ctx.guildId).catch(() => null);
 
-	return [new ActionRowBuilder().addComponents(buttons)];
+	const payload = buildMessage(layout, {
+		// A button that continues this graph carries the automation's own key, so
+		// pressing it comes back to the right branch of the right graph.
+		automationKey: ctx.automationKey,
+		automations: enabled ? new Set(enabled.map(a => a.key)) : null,
+		categories: needsCategories ? await ctx.getCategories() : new Map(),
+		getMessage: client.i18n.getLocale(settings?.locale),
+		guild: {
+			footer: settings?.footer ?? null,
+			iconURL: guild?.iconURL() ?? null,
+			primaryColour: settings?.primaryColour ?? null,
+		},
+		kind,
+		vars: await ctx.varsFor(JSON.stringify(layout ?? '')),
+	});
+
+	return {
+		components: payload.components,
+		flags: payload.flags,
+	};
 }
 
 /** Resolve where `action.message.send` should post. */
@@ -221,9 +231,11 @@ function makeRunners(client, runNested) {
 			const channel = await resolveTarget(node, ctx);
 			if (!channel?.send) return skip('unknown_channel');
 			await channel.send({
+				// A Components v2 message has no `content`, so mention parsing is
+				// not derived from anything — without this, a role ping in the
+				// layout is inert and the staff it names are never notified.
 				allowedMentions: { parse: ['users', 'roles'] },
-				components: await buildButtons(node, ctx),
-				content: await render(node.params.content, ctx),
+				...await renderLayout(client, node, ctx, 'message'),
 			});
 			return {};
 		}),
@@ -234,23 +246,46 @@ function makeRunners(client, runNested) {
 			if (settings?.disableDMs) return skip('dms_disabled');
 			const member = await ctx.resolveSubject(node.params.subject);
 			if (!member) return skip('unknown_member');
-			await member.send({ content: await render(node.params.content, ctx) });
+			await member.send(await renderLayout(client, node, ctx, 'dm'));
 			return {};
 		}),
 
 		'action.message.reply': real(async (node, ctx) => {
-			const content = await render(node.params.content, ctx);
+			const payload = await renderLayout(client, node, ctx, 'message');
+			// The tickbox is only meaningful against an interaction: a plain
+			// message has no private channel to answer in.
+			const priv = node.params?.ephemeral !== false;
+
 			// A button or menu trigger has already acknowledged the interaction —
-			// the handler must, inside 3 seconds — so this edits that reply.
+			// the handler must, inside 3 seconds — so this fills that reply in.
 			if (ctx.interaction) {
-				await ctx.interaction.editReply({ content });
+				try {
+					const pending = ctx.interaction.deferred && !ctx.interaction.replied;
+					if (priv && pending && ctx.interaction.ephemeral) {
+						await ctx.interaction.editReply(payload);
+					} else if (priv) {
+						await ctx.interaction.followUp({
+							...payload,
+							flags: payload.flags | MessageFlags.Ephemeral,
+						});
+					} else {
+						// The handler's ephemeral "working on it" would otherwise sit
+						// there spinning forever, because nothing else will fill it in.
+						if (pending && ctx.interaction.ephemeral) await ctx.interaction.deleteReply().catch(() => null);
+						await ctx.interaction.followUp(payload);
+					}
+				} catch (error) {
+					if (EXPIRED_INTERACTION.includes(error?.code)) return skip('interaction_expired');
+					throw error;
+				}
 				return {};
 			}
+
 			const message = await ctx.getMessage();
 			if (!message?.reply) return skip('nothing_to_reply_to');
 			await message.reply({
 				allowedMentions: { repliedUser: false },
-				content,
+				...payload,
 			});
 			return {};
 		}),
@@ -259,25 +294,20 @@ function makeRunners(client, runNested) {
 			// Never serialized, so a run that parked on a `flow.wait` has lost it —
 			// and the 15-minute token would have expired anyway.
 			if (!ctx.interaction) return skip('no_interaction');
-			const content = await render(node.params.content, ctx);
 			// Buttons here are how a confirmation is built: a private "are you
 			// sure?" whose Yes and No each start their own button trigger.
-			const components = await buildButtons(node, ctx);
+			const payload = await renderLayout(client, node, ctx, 'ephemeral');
 			try {
 				// The trigger handler already opened an ephemeral reply with
 				// `deferReply`, so the first private node fills that in and any
 				// later one follows up. After `ack: 'none'` there is no deferred
 				// reply to fill in — `ephemeral` is false — so it follows up too.
 				if (ctx.interaction.ephemeral && ctx.interaction.deferred && !ctx.interaction.replied) {
-					await ctx.interaction.editReply({
-						components,
-						content,
-					});
+					await ctx.interaction.editReply(payload);
 				} else {
 					await ctx.interaction.followUp({
-						components,
-						content,
-						flags: MessageFlags.Ephemeral,
+						...payload,
+						flags: payload.flags | MessageFlags.Ephemeral,
 					});
 				}
 			} catch (error) {

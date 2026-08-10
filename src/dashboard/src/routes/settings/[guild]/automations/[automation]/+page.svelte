@@ -59,7 +59,8 @@
 	});
 
 	// What an in-graph button may point at. Kept on the shared editor state so
-	// ButtonsField does not need the whole graph threaded into it.
+	// LayoutField does not need the whole graph threaded into it — and so the
+	// layout modal, which renders outside this tree, can be handed a plain list.
 	$effect(() => {
 		editor.buttonTriggers = nodes
 			.filter((n) => n.data.type === 'trigger.button.pressed')

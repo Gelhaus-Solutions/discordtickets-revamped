@@ -42,6 +42,12 @@
 
 const { LIMITS } = require('./errors');
 const {
+	LayoutError,
+	collectLayoutButtons,
+	defaultMessageLayout,
+	validateLayout,
+} = require('../components-v2');
+const {
 	MAX_PATTERN_LENGTH, isSafePattern,
 } = require('../regex');
 
@@ -179,6 +185,7 @@ const FIELD_TYPES = {
 	cron: v => (isValidCron(v) ? null : 'invalid_cron'),
 	duration: v => (Number.isInteger(v) && v >= 0 ? null : 'not_a_duration'),
 	emoji: v => (typeof v === 'string' && v.length > 0 ? null : 'not_an_emoji'),
+	layout: null, // handled by validateMessageLayout, which needs the guild's data
 	number: v => (typeof v === 'number' && Number.isFinite(v) ? null : 'not_a_number'),
 	priority: v => (['LOW', 'MEDIUM', 'HIGH'].includes(v) ? null : 'invalid_priority'),
 	regex: v => (typeof v === 'string' ? null : 'not_a_string'),
@@ -419,70 +426,79 @@ function validateClauses(clauses, push, path) {
 }
 
 /**
- * Validate the buttons attached to `action.message.send`.
+ * Validate the Components v2 layout attached to an `action.message.*` node.
  *
- * Each one points at another automation, which must exist in this guild *and*
- * be triggered by a button press — pointing a button at a ticket-closed
- * automation would render fine and then do nothing when pressed, which is the
- * worst kind of broken.
+ * The whole document is checked by `components-v2.js#validateLayout` — the same
+ * function the panels and opening-message routes use — and its `{path, code,
+ * message}` errors are re-based under this node, so a bad block surfaces as
+ * `nodes[2].params.layout.blocks[0].content` rather than as "the layout is
+ * invalid".
+ *
+ * One rule is added on top, because `validateLayout` has no concept of
+ * automations *starting* with a button: a button may only run an automation that
+ * a button press triggers. Pointing one at a ticket-closed automation renders
+ * fine and then does nothing when pressed, which is the worst kind of broken —
+ * and it is a different mistake from naming an automation that does not exist,
+ * so it gets its own message rather than being folded into "unknown".
+ *
+ * @param {'message'|'ephemeral'|'dm'} kind which context's rules apply
  */
-function validateButtons(buttons, push, path, options = {}) {
-	if (buttons === undefined || buttons === null) return;
-	if (!Array.isArray(buttons)) {
-		push(path, 'not_a_list', 'Buttons must be a list');
-		return;
-	}
-	if (buttons.length > LIMITS.messageButtons) {
-		push(path, 'too_many', `Too many buttons (max ${LIMITS.messageButtons})`);
-		return;
-	}
+function validateMessageLayout(kind) {
+	return (params, push, path, options = {}) => {
+		const layout = params?.layout;
+		// `required` on the field has already reported an absent layout; reporting
+		// it twice would put two errors on one field.
+		if (layout === undefined || layout === null || layout === '') return;
+		const at = suffix => `${path}.params.layout${suffix ? `.${suffix}` : ''}`;
 
-	buttons.forEach((button, i) => {
-		const at = `${path}[${i}]`;
-		if (!button || typeof button !== 'object') {
-			push(at, 'not_an_object', 'This button is not valid');
-			return;
-		}
-		if (typeof button.label !== 'string' || !button.label.trim()) {
-			push(`${at}.label`, 'required', 'Buttons need a label');
-		} else if (button.label.length > 80) {
-			push(`${at}.label`, 'too_long', 'The label is too long (max 80)');
-		}
-		if (button.style && !['primary', 'secondary', 'success', 'danger'].includes(button.style)) {
-			push(`${at}.style`, 'unknown_option', 'That is not a button style');
-		}
-		// A button points either at a trigger node in *this* graph — the common
-		// case, and why one automation can own several buttons — or at another
-		// automation entirely.
-		const hasNode = typeof button.nodeId === 'string' && button.nodeId;
-		const hasKey = typeof button.automationKey === 'string' && button.automationKey;
-
-		if (!hasNode && !hasKey) {
-			push(`${at}.nodeId`, 'required', 'Pick what this button does');
-			return;
-		}
-		if (hasNode && hasKey) {
-			push(`${at}.nodeId`, 'ambiguous_target', 'A button runs one thing, not two');
-			return;
+		try {
+			validateLayout(layout, {
+				automationKeys: options.automationKeys ?? null,
+				buttonNodeIds: options.buttonNodeIds ?? null,
+				categoryIds: options.categoryIds ?? null,
+				kind,
+			});
+		} catch (error) {
+			if (!(error instanceof LayoutError)) throw error;
+			for (const e of error.errors) push(at(e.path), e.code, e.message);
 		}
 
-		if (hasNode) {
-			// `buttonNodeIds` is supplied by the caller from the graph being saved.
-			if (options.buttonNodeIds && !options.buttonNodeIds.includes(button.nodeId)) {
-				push(`${at}.nodeId`, 'unknown_trigger', 'That step is not a "button is pressed" trigger in this automation');
+		if (!options.buttonAutomationKeys) return;
+		for (const found of collectLayoutButtons(layout)) {
+			const key = found.button?.kind === 'automation' ? found.button.automationKey : null;
+			if (typeof key !== 'string' || !key) continue;
+			// An automation that does not exist at all has already been reported by
+			// `validateLayout`; saying both would be two errors for one mistake.
+			if (options.automationKeys && !options.automationKeys.includes(key)) continue;
+			if (!options.buttonAutomationKeys.includes(key)) {
+				push(at(`${found.path}.automationKey`), 'not_a_button_automation', 'That automation is not started by a button press');
 			}
-			return;
 		}
-
-		// `buttonAutomationKeys` is only supplied by the routes; the tests and the
-		// catalogue endpoint validate the shape without the guild's data.
-		if (options.automationKeys && !options.automationKeys.includes(button.automationKey)) {
-			push(`${at}.automationKey`, 'unknown_automation', 'That automation no longer exists');
-		} else if (options.buttonAutomationKeys && !options.buttonAutomationKeys.includes(button.automationKey)) {
-			push(`${at}.automationKey`, 'not_a_button_automation', 'That automation is not started by a button press');
-		}
-	});
+	};
 }
+
+/**
+ * The `layout` param every `action.message.*` node carries.
+ *
+ * `default` matters: the dashboard seeds a new node's params from the schema, so
+ * without it a freshly dropped message node would have no layout at all and the
+ * editor would have to invent one — which is how the two ends of this stop
+ * agreeing about what a new message looks like.
+ */
+const layoutField = (kind, help) => ({
+	default: defaultMessageLayout('', [], { idPrefix: 'new' }),
+	help,
+	key: 'layout',
+	// Read by the dashboard to pick which blocks and button kinds the editor
+	// offers, so the two cannot disagree about what will be accepted.
+	kind,
+	label: 'Message',
+	required: true,
+	type: 'layout',
+});
+
+/** The placeholder note every message node shows, in one place. */
+const PLACEHOLDER_HELP = '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.';
 
 /** Capabilities every clause in a node's params depends on. */
 function clauseNeeds(params) {
@@ -581,13 +597,11 @@ const NODE_TYPES = {
 		// A closed DM is the member's choice, not a fault: it must not stop the run.
 		onError: 'continue',
 		outputs: ['out'],
-		params: [subjectField('Send to'), {
-			key: 'content',
-			label: 'Message',
-			maxLength: LIMITS.messageLength,
-			required: true,
-			type: 'textarea',
-		}],
+		params: [
+			subjectField('Send to'),
+			layoutField('dm', `${PLACEHOLDER_HELP} A DM is not in any server, so only link buttons work here.`),
+		],
+		validate: validateMessageLayout('dm'),
 	},
 	'action.message.ephemeral': {
 		category: 'action',
@@ -598,27 +612,11 @@ const NODE_TYPES = {
 		// 400 at save time.
 		needs: ['interaction'],
 		outputs: ['out'],
-		params: [
-			{
-				help: '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.',
-				key: 'content',
-				label: 'Message',
-				maxLength: LIMITS.messageLength,
-				required: true,
-				type: 'textarea',
-			},
-			{
-				// Buttons on a private message are what makes "are you sure?" a
-				// confirmation rather than a public poll: only the person who
-				// pressed the first button ever sees them.
-				help: 'Each button starts a "button is pressed" trigger — in this automation, or another one. Only the person who set this off can see them.',
-				key: 'buttons',
-				label: 'Buttons',
-				maxItems: LIMITS.messageButtons,
-				type: 'buttons',
-			},
-		],
-		validate: (params, push, path, options) => validateButtons(params?.buttons, push, `${path}.buttons`, options),
+		// Buttons on a private message are what makes "are you sure?" a
+		// confirmation rather than a public poll: only the person who pressed the
+		// first button ever sees them.
+		params: [layoutField('ephemeral', `${PLACEHOLDER_HELP} Only the person who set this off can see it.`)],
+		validate: validateMessageLayout('ephemeral'),
 	},
 	'action.message.react': {
 		category: 'action',
@@ -641,20 +639,16 @@ const NODE_TYPES = {
 		needs: ['actor'],
 		outputs: ['out'],
 		params: [
-			{
-				key: 'content',
-				label: 'Message',
-				maxLength: LIMITS.messageLength,
-				required: true,
-				type: 'textarea',
-			},
+			layoutField('message', PLACEHOLDER_HELP),
 			{
 				default: true,
+				help: 'Only applies when a button or menu set this off — there is no private way to answer a plain message.',
 				key: 'ephemeral',
 				label: 'Only they can see it',
 				type: 'boolean',
 			},
 		],
+		validate: validateMessageLayout('message'),
 	},
 	'action.message.send': {
 		category: 'action',
@@ -688,30 +682,16 @@ const NODE_TYPES = {
 				label: 'Channel',
 				type: 'channel',
 			},
-			{
-				// The distinction that catches people out: on a button trigger
-				// `{name}` is the staff member who pressed it, not the member the
-				// ticket belongs to.
-				help: '{name} is whoever set this automation off; {opener}, {openerdisplayname} and {openermention} are the person who opened the ticket.',
-				key: 'content',
-				label: 'Message',
-				maxLength: LIMITS.messageLength,
-				required: true,
-				type: 'textarea',
-			},
-			{
-				help: 'Each button starts a "button is pressed" trigger — in this automation, or another one.',
-				key: 'buttons',
-				label: 'Buttons',
-				maxItems: LIMITS.messageButtons,
-				type: 'buttons',
-			},
+			// The distinction that catches people out: on a button trigger
+			// `{name}` is the staff member who pressed it, not the member the
+			// ticket belongs to.
+			layoutField('message', PLACEHOLDER_HELP),
 		],
 		validate: (params, push, path, options) => {
 			if (params?.target === 'channel' && !params.channelId) {
 				push(`${path}.channelId`, 'required', 'Pick a channel to send to');
 			}
-			validateButtons(params?.buttons, push, `${path}.buttons`, options);
+			validateMessageLayout('message')(params, push, path, options);
 		},
 	},
 	'action.role.add': {
@@ -1432,7 +1412,7 @@ module.exports = {
 	isValidTimezone,
 	regexError,
 	needsOf,
-	validateButtons,
 	validateClauses,
+	validateMessageLayout,
 	validateParams,
 };

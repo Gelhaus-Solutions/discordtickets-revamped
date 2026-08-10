@@ -26,6 +26,7 @@ const {
 	needsOf,
 	validateParams,
 } = require('./registry');
+const { collectLayoutButtons } = require('../components-v2');
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -66,6 +67,45 @@ function triggerNodes(graph) {
 function triggerNode(graph) {
 	const triggers = triggerNodes(graph);
 	return triggers.length === 1 ? triggers[0] : null;
+}
+
+/**
+ * The button triggers in a graph that nothing inside the graph points at.
+ *
+ * An in-graph button — the Confirm/Cancel pair on an ephemeral reply, say —
+ * carries the id of the trigger it continues (`spec.nodeId`). A trigger named
+ * that way is the middle of a conversation, never its start. Whatever is left is
+ * where the graph is entered from outside: a panel button, or a ticket-controls
+ * button. `src/buttons/auto.js` uses it to resolve a press whose custom_id names
+ * no node.
+ *
+ * **The scan must look inside layouts.** Buttons used to live in a flat
+ * `node.params.buttons` array; since GRAPH_VERSION 2 they are blocks in
+ * `node.params.layout`, which may nest them in a container or hang one off a
+ * section. A scan that only knew the old shape would find no continuations at
+ * all, every button trigger would look like an entry point, and live panel
+ * buttons in every server would start answering "That button is no longer
+ * connected to anything." The old shape is still read, so a graph in flight —
+ * one cached before the upgrade landed, or handed straight from a request body —
+ * behaves the same.
+ *
+ * @param {object} graph
+ * @returns {object[]} the entry button triggers
+ */
+function entryButtonTriggers(graph) {
+	const triggers = triggerNodes(graph).filter(n => n.type === 'trigger.button.pressed');
+	if (triggers.length < 2) return triggers;
+
+	const continuations = new Set();
+	for (const node of Array.isArray(graph?.nodes) ? graph.nodes : []) {
+		const specs = [
+			...(Array.isArray(node?.params?.buttons) ? node.params.buttons : []),
+			...collectLayoutButtons(node?.params?.layout).map(found => found.button),
+		];
+		for (const spec of specs) if (spec?.nodeId) continuations.add(spec.nodeId);
+	}
+
+	return triggers.filter(n => !continuations.has(n.id));
 }
 
 /**
@@ -185,6 +225,15 @@ function validateGraph(graph, options = {}) {
 	}
 	if (graph.version > GRAPH_VERSION) {
 		push('version', 'unsupported', 'This automation was made with a newer version of the bot. Update the bot to use it.');
+		fail();
+	}
+	// Everything that reaches a validator has been through `upgrade.js` first —
+	// both routes upgrade `body.graph` before calling this. Refusing an older
+	// version here is what makes "a stored graph is exactly GRAPH_VERSION" an
+	// invariant the interpreter and the renderers can rely on, rather than a
+	// hope.
+	if (graph.version < GRAPH_VERSION) {
+		push('version', 'not_upgraded', 'This automation is in an older format that was not upgraded. Reload the page and try again.');
 		fail();
 	}
 
@@ -422,6 +471,7 @@ function validateGraph(graph, options = {}) {
 
 module.exports = {
 	deriveTriggers,
+	entryButtonTriggers,
 	reachableFrom,
 	triggerNode,
 	triggerNodes,

@@ -12,6 +12,7 @@ const {
 	loadRefs,
 	syncSchedule,
 } = require('../../../../../../lib/automations/http');
+const { upgradeGraph } = require('../../../../../../lib/automations/upgrade');
 
 /** The only fields a caller may change, mirroring `ALLOWED_SETTINGS_FIELDS`. */
 const ALLOWED = ['enabled', 'graph', 'name'];
@@ -38,7 +39,9 @@ module.exports.patch = fastify => ({
 			if (body[field] === undefined) continue;
 			if (field === 'name') data.name = String(body.name).slice(0, LIMITS.nameLength).trim();
 			else if (field === 'enabled') data.enabled = Boolean(body.enabled);
-			else data.graph = body.graph;
+			// Upgraded before validation, so a dashboard tab left open on the old
+			// code saves cleanly instead of being rejected for its version.
+			else data.graph = upgradeGraph(body.graph);
 		}
 
 		if (data.graph !== undefined) {

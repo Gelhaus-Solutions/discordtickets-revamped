@@ -11,7 +11,16 @@
  * is a **graph**, and one execution of it is a **run**.
  */
 
-const GRAPH_VERSION = 1;
+/**
+ * The stored graph format.
+ *
+ * 2 — the four `action.message.*` nodes hold a Components v2 `layout` instead of
+ *     `content` + `buttons`. Stored graphs are upgraded on read by
+ *     `upgrade.js` and written back the next time the automation is saved, so a
+ *     rollback leaves untouched rows readable — right up until a guild saves in
+ *     the new dashboard, at which point that row is v2 for good.
+ */
+const GRAPH_VERSION = 2;
 
 /**
  * Guard rails for a **public** bot.
@@ -37,9 +46,6 @@ const PUBLIC_LIMITS = {
 	inlineMs: 10_000,
 	/** A wait this short is done with setTimeout if Temporal is unreachable. */
 	inlineWaitMs: 15_000,
-	/** Buttons on one `action.message.send`. Discord's action-row cap. */
-	messageButtons: 5,
-	messageLength: 2000,
 	nameLength: 100,
 	nodes: 40,
 	perGuild: 25,

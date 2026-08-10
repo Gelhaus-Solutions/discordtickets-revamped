@@ -3,10 +3,10 @@
 	import { editorState } from './editorState.svelte.js';
 	import ConditionRows from './ConditionRows.svelte';
 	import BooleanField from './fields/BooleanField.svelte';
-	import ButtonsField from './fields/ButtonsField.svelte';
 	import ChannelField from './fields/ChannelField.svelte';
 	import DurationField from './fields/DurationField.svelte';
 	import EmojiField from './fields/EmojiField.svelte';
+	import LayoutField from './fields/LayoutField.svelte';
 	import NumberField from './fields/NumberField.svelte';
 	import RoleField from './fields/RoleField.svelte';
 	import SelectField from './fields/SelectField.svelte';
@@ -31,7 +31,6 @@
 
 	const FIELDS = {
 		boolean: BooleanField,
-		buttons: ButtonsField,
 		categories: TicketCategoryField,
 		category: TicketCategoryField,
 		channel: ChannelField,
@@ -39,6 +38,7 @@
 		cron: TextField,
 		duration: DurationField,
 		emoji: EmojiField,
+		layout: LayoutField,
 		number: NumberField,
 		priority: SelectField,
 		regex: TextField,

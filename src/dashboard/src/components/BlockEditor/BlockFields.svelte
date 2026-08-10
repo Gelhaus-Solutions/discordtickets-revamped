@@ -1,6 +1,6 @@
 <script>
 	import ButtonList from './ButtonList.svelte';
-	import { BLOCK_META, LIMITS } from './blocks.js';
+	import { BLOCK_META, BUTTON_KINDS, LIMITS } from './blocks.js';
 
 	/**
 	 * The editable fields for a single block. Container children are rendered by
@@ -12,10 +12,19 @@
 	 * @property {any[]} categories
 	 * @property {string} context
 	 * @property {any[]} [automations] automations a button press can start
+	 * @property {any[]} [nodeTargets] button triggers in the automation being edited
 	 */
 
 	/** @type {Props} */
-	let { block = $bindable(), categories, context, automations = [] } = $props();
+	let {
+		block = $bindable(),
+		categories,
+		context,
+		automations = [],
+		nodeTargets = []
+	} = $props();
+
+	const kinds = $derived(BUTTON_KINDS[context] ?? BUTTON_KINDS.panel);
 
 	// Blocks saved before automation buttons existed have no `buttons` list at
 	// all; ButtonList reads through a fallback and writes one back when needed.
@@ -49,6 +58,8 @@
 			bind:buttons={block.buttons}
 			{categories}
 			{automations}
+			{nodeTargets}
+			{context}
 			kinds={['automation']}
 		/>
 	</div>
@@ -88,7 +99,14 @@
 		</label>
 	</div>
 {:else if block.type === 'buttons'}
-	<ButtonList bind:buttons={block.buttons} {categories} {automations} />
+	<ButtonList
+		bind:buttons={block.buttons}
+		{categories}
+		{automations}
+		{nodeTargets}
+		{context}
+		{kinds}
+	/>
 {:else if block.type === 'select'}
 	<div class="flex flex-col gap-2">
 		<label class="text-sm">
@@ -206,6 +224,10 @@
 				buttons={[block.accessory.button]}
 				{categories}
 				{automations}
+				{nodeTargets}
+				{context}
+				{kinds}
+				fixed={true}
 			/>
 		{/if}
 	</div>

@@ -13,6 +13,7 @@ const { LIMITS } = require('./errors');
 const { schedulesFor } = require('./schedules');
 const { resolveGuildChannel } = require('../misc');
 const { triggerNodes } = require('./validate');
+const { upgradeAutomation } = require('./upgrade');
 
 /**
  * Load a guild's referential context for validation.
@@ -122,7 +123,10 @@ async function loadAutomation(client, req, res) {
 		res.code(404).send(new Error('Not Found'));
 		return null;
 	}
-	return automation;
+	// The dashboard is handed the graph at the current version, so the editor
+	// never has to understand an older shape. The row itself is only rewritten
+	// when the admin saves.
+	return upgradeAutomation(automation);
 }
 
 /**

@@ -12,6 +12,7 @@
  */
 
 import { reachable } from './graph.js';
+import { describeLayout } from '$components/BlockEditor/blocks.js';
 
 const CAPABILITY_LABELS = {
 	actor: 'the person who triggered it',
@@ -100,8 +101,18 @@ export function validate(graph, catalogue) {
 
 		// Required parameters, from the server's own schema.
 		for (const field of definition.params ?? []) {
-			if (!field.required) continue;
 			const value = node.params?.[field.key];
+
+			// A layout is an object, so it is never "missing" in the sense below —
+			// an empty one has to be described in its own terms or the canvas would
+			// call a blank message complete and let the server reject it.
+			if (field.type === 'layout') {
+				const problem = describeLayout(value);
+				if (problem) add(node.id, problem, 'error', field.key);
+				continue;
+			}
+
+			if (!field.required) continue;
 			const missing =
 				value === undefined ||
 				value === null ||

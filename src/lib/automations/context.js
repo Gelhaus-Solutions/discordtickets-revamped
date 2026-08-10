@@ -112,6 +112,21 @@ class Context {
 		return this._once('settings', () => this.client.prisma.guild.findUnique({ where: { id: this.guildId } }));
 	}
 
+	/**
+	 * The guild's ticket categories, keyed by id, for a layout that holds a ticket
+	 * button.
+	 *
+	 * A Map because that is what `components-v2.js#buildButton` expects, and the
+	 * same shape `renderPanel` builds from the guild's settings. Resolved on demand
+	 * like everything else here: a message with no ticket button never pays for it.
+	 */
+	getCategories() {
+		return this._once('categories', async () => {
+			const categories = await this.client.prisma.category.findMany({ where: { guildId: this.guildId } });
+			return new Map(categories.map(c => [c.id, c]));
+		});
+	}
+
 	getMember() {
 		return this._once('member', async () => {
 			if (!this.actorId) return null;

@@ -5,9 +5,17 @@
  * verbatim in `Panel.layout` and `Category.messageLayout`, edited by the dashboard
  * block editor, and rendered here into a discord.js message payload.
  *
- * The same format serves two contexts:
- *   - `panel`   — a ticket panel (a standalone message with ticket entry points)
- *   - `opening` — a category's ticket opening message
+ * The same format serves five contexts, one per place a layout can be authored:
+ *   - `panel`     — a ticket panel (a standalone message with ticket entry points)
+ *   - `opening`   — a category's ticket opening message
+ *   - `message`   — `action.message.send` and `action.message.reply`
+ *   - `ephemeral` — `action.message.ephemeral`
+ *   - `dm`        — `action.message.dm`
+ *
+ * Five named kinds rather than one `automation` kind because the kind is
+ * interpolated into every validation error: "not allowed in an automation
+ * message" tells an admin nothing, "not allowed in a dm message" tells them
+ * which of their four nodes to open.
  *
  * Blocks whose content is per-ticket (the ping line, question answers, the
  * claim/close controls) cannot be baked into stored JSON, so they are represented
@@ -61,11 +69,53 @@ const LIMITS = {
 
 const STATIC_BLOCKS = ['container', 'text', 'separator', 'buttons', 'section', 'gallery', 'footer'];
 
-/** Which block types may appear in which context. Drives both validation and the editor. */
+/**
+ * Which block types may appear in which context. Drives both validation and the editor.
+ *
+ * `select` is deliberately absent everywhere but `panel`. A ticket *button* names
+ * one category in its `custom_id` and is stateless, so a stale one behaves like a
+ * stale panel button. A *select*'s options are computed at render time from
+ * `ctx.categories` behind a bare `{"action":"create"}` id, which makes an
+ * automation-posted select a panel in everything but bookkeeping: no `Panel` row,
+ * no `syncPanel`, and no way to re-render or delete it from the panels page.
+ */
 const BLOCK_TYPES = {
+	dm: [...STATIC_BLOCKS],
+	ephemeral: [...STATIC_BLOCKS],
+	message: [...STATIC_BLOCKS],
 	opening: [...STATIC_BLOCKS, 'mentions', 'answers', 'controls'],
 	panel: [...STATIC_BLOCKS, 'select'],
 };
+
+/**
+ * Which button kinds may appear in which context. A separate table from
+ * {@link BLOCK_TYPES} because the two axes are genuinely independent: `dm` and
+ * `ephemeral` share a block set but not a button set, and `panel` and `opening`
+ * the other way round.
+ *
+ * A DM carries no `guildId`, so `src/buttons/auto.js` cannot resolve which
+ * server's automation a press belongs to and a ticket button has no category
+ * namespace to look up. Both render perfectly and then report themselves broken,
+ * which is why this is refused at save time with a message an admin can act on.
+ * A link button produces no interaction at all and is the one kind that is inert.
+ */
+const BUTTON_KINDS = {
+	dm: ['link'],
+	ephemeral: ['ticket', 'link', 'automation'],
+	message: ['ticket', 'link', 'automation'],
+	opening: ['ticket', 'link', 'automation'],
+	panel: ['ticket', 'link', 'automation'],
+};
+
+/** Why a DM only takes link buttons. Named so the test can assert the wording. */
+const DM_BUTTON_HELP = 'Only link buttons work in a DM: a direct message is not in any server, so the bot cannot tell which server the button belongs to.';
+
+/**
+ * Contexts where an automation button may continue *this* graph by node id
+ * rather than naming another automation by key. Nowhere else has a graph in
+ * hand, so a `nodeId` there would render a custom_id with no automation in it.
+ */
+const NODE_TARGET_KINDS = ['ephemeral', 'message'];
 
 /** Blocks that may only appear inside a container, or at the top level, but never nested twice. */
 const BUTTON_STYLES = {
@@ -342,6 +392,112 @@ const defaultOpeningLayout = (openingMessage = '', { image = null } = {}) => {
 	};
 };
 
+/**
+ * The layout equivalent of a legacy automation message: `content` as one bare
+ * text block, `buttons` as one bare button row.
+ *
+ * **No container, no separator, no footer.** This is what `upgrade.js` runs over
+ * every stored `action.message.*` node, and the whole acceptability of doing that
+ * to messages that are already posted in thousands of servers rests on the
+ * conversion being shape-only — the rendered message must be byte-identical to
+ * what the old code produced. `check-components-v2.js` pins that.
+ *
+ * @param {string} content
+ * @param {object[]} buttons legacy `{nodeId|automationKey, label, style, emoji}`
+ * @param {{idPrefix?: string}} [opts] a prefix makes the block ids deterministic,
+ *   so re-reading the same stored node twice does not produce two different
+ *   layouts and arm the dashboard's unsaved-changes guard.
+ */
+const defaultMessageLayout = (content = '', buttons = [], { idPrefix = null } = {}) => {
+	const id = suffix => (idPrefix ? `${idPrefix}-${suffix}` : blockId(suffix));
+	const blocks = [];
+	const text = String(content ?? '');
+
+	if (text !== '') {
+		blocks.push({
+			content: text,
+			id: id('text'),
+			type: 'text',
+		});
+	}
+
+	const specs = (Array.isArray(buttons) ? buttons : [])
+		.filter(b => b && typeof b === 'object')
+		.map(b => ({
+			automationKey: b.nodeId ? null : (b.automationKey ?? null),
+			emoji: b.emoji ?? null,
+			kind: 'automation',
+			label: b.label ?? null,
+			nodeId: b.nodeId ?? null,
+			style: b.style ?? 'primary',
+		}));
+
+	if (specs.length) {
+		blocks.push({
+			buttons: specs,
+			id: id('buttons'),
+			type: 'buttons',
+		});
+	}
+
+	// A layout with no blocks is not a layout. A node whose content was empty was
+	// already invalid (`content` was `required`), so surface it as an empty text
+	// block the validator will name rather than as a shapeless document.
+	if (blocks.length === 0) {
+		blocks.push({
+			content: '',
+			id: id('text'),
+			type: 'text',
+		});
+	}
+
+	return {
+		blocks,
+		version: LAYOUT_VERSION,
+	};
+};
+
+/**
+ * Every button spec in a layout, wherever it is nested, paired with the path it
+ * was found at.
+ *
+ * Two callers need it, and both need the path: `src/buttons/auto.js` to tell an
+ * entry button from a continuation — once buttons live in layouts, a scan of
+ * `node.params.buttons` finds nothing and live panel buttons start answering "no
+ * longer connected to anything" — and the automation registry, to report a rule
+ * `validateLayout` cannot know about against the exact button that broke it.
+ *
+ * @returns {{button: object, path: string}[]}
+ */
+const collectLayoutButtons = layout => {
+	const found = [];
+	const walk = (blocks, prefix) => {
+		(blocks ?? []).forEach((block, i) => {
+			if (!block || typeof block !== 'object') return;
+			const at = `${prefix}[${i}]`;
+			if (block.type === 'container') {
+				walk(block.blocks, `${at}.blocks`);
+			} else if (block.type === 'buttons' || block.type === 'controls') {
+				(block.buttons ?? []).forEach((button, j) => {
+					if (button && typeof button === 'object') {
+						found.push({
+							button,
+							path: `${at}.buttons[${j}]`,
+						});
+					}
+				});
+			} else if (block.type === 'section' && block.accessory?.kind === 'button' && block.accessory.button) {
+				found.push({
+					button: block.accessory.button,
+					path: `${at}.accessory.button`,
+				});
+			}
+		});
+	};
+	walk(layout?.blocks, 'blocks');
+	return found;
+};
+
 /* -------------------------------------------------------------------------- */
 /*                                 validation                                  */
 /* -------------------------------------------------------------------------- */
@@ -351,15 +507,34 @@ const defaultOpeningLayout = (openingMessage = '', { image = null } = {}) => {
 // `lib/emoji.js` for why node-emoji cannot be used as the allow-list.
 
 /**
+ * A membership test over a Set, Map or array of known values.
+ *
+ * `null` means "the caller has no list", which is not the same as "the list is
+ * empty" — the catalogue endpoint and the tests validate shape without a guild's
+ * data, and must not have every reference rejected for it.
+ */
+const membership = collection => {
+	if (collection === null || collection === undefined) return () => true;
+	if (typeof collection.has === 'function') return value => collection.has(value);
+	if (Array.isArray(collection)) return value => collection.includes(value);
+	return () => false;
+};
+
+/**
  * Validate a layout before anything is sent to Discord, so a bad layout is a 400
  * with field paths rather than a 500 from a builder assertion (builders throw a
  * plain Error from `toJSON()`, which is indistinguishable from a server fault).
  *
  * @param {object} layout
- * @param {{kind: 'panel'|'opening'|'automation', categoryIds?: Set<number>|Map<number, any>, automationKeys?: Set<string>|Map<string, any>}} opts
+ * @param {object} [opts]
+ * @param {'panel'|'opening'|'message'|'ephemeral'|'dm'} [opts.kind]
+ * @param {Set<number>|Map<number, any>|number[]} [opts.categoryIds]
+ * @param {Set<string>|Map<string, any>|string[]} [opts.automationKeys]
+ * @param {string[]|Set<string>} [opts.buttonNodeIds] `trigger.button.pressed`
+ *   nodes in the graph being saved, which a button may continue by id.
  */
 const validateLayout = (layout, {
-	automationKeys = null, categoryIds = null, kind = 'panel',
+	automationKeys = null, buttonNodeIds = null, categoryIds = null, kind = 'panel',
 } = {}) => {
 	const errors = [];
 	const push = (path, code, message) => errors.push({
@@ -367,14 +542,11 @@ const validateLayout = (layout, {
 		message,
 		path,
 	});
-	const knownCategory = id => {
-		if (!categoryIds) return true;
-		return typeof categoryIds.has === 'function' ? categoryIds.has(id) : false;
-	};
-	const knownAutomation = key => {
-		if (!automationKeys) return true;
-		return typeof automationKeys.has === 'function' ? automationKeys.has(key) : false;
-	};
+	const knownCategory = membership(categoryIds);
+	const knownAutomation = membership(automationKeys);
+	const knownNode = membership(buttonNodeIds);
+	const allowedButtons = BUTTON_KINDS[kind] ?? BUTTON_KINDS.panel;
+	const allowsNodeTargets = NODE_TARGET_KINDS.includes(kind);
 
 	if (!layout || typeof layout !== 'object') {
 		throw new LayoutError([{
@@ -416,6 +588,13 @@ const validateLayout = (layout, {
 		if (button.style && !BUTTON_STYLES[button.style]) {
 			push(`${path}.style`, 'invalid', `Unknown button style '${button.style}'`);
 		}
+		if (typeof button.kind === 'string' && BUTTON_KINDS.panel.includes(button.kind) && !allowedButtons.includes(button.kind)) {
+			return push(
+				`${path}.kind`,
+				'not_allowed',
+				`A ${button.kind} button is not allowed in a ${kind} message. ${kind === 'dm' ? DM_BUTTON_HELP : ''}`.trim(),
+			);
+		}
 		if (button.kind === 'link') {
 			url(button.url, `${path}.url`);
 			if (!button.label) push(`${path}.label`, 'required', 'Link buttons need a label');
@@ -430,7 +609,23 @@ const validateLayout = (layout, {
 			// Deliberately does *not* count as an entry point: a panel made only of
 			// automation buttons still fails `no_entry_point`, which is correct —
 			// it opens no tickets.
-			if (typeof button.automationKey !== 'string' || !button.automationKey) {
+			//
+			// A button either continues *this* graph (`nodeId`, the confirm/cancel
+			// case, and why one automation can own several buttons) or starts
+			// another automation (`automationKey`). Never both: a button runs one
+			// thing, and a pair that named two would have to pick one silently.
+			const hasNode = typeof button.nodeId === 'string' && Boolean(button.nodeId);
+			const hasKey = typeof button.automationKey === 'string' && Boolean(button.automationKey);
+
+			if (hasNode && hasKey) {
+				push(`${path}.nodeId`, 'ambiguous_target', 'A button runs one thing, not two');
+			} else if (hasNode && !allowsNodeTargets) {
+				push(`${path}.nodeId`, 'not_allowed', `A ${kind} message has no automation to continue — pick an automation instead`);
+			} else if (hasNode) {
+				if (!knownNode(button.nodeId)) {
+					push(`${path}.nodeId`, 'unknown_trigger', 'That step is not a "button is pressed" trigger in this automation');
+				}
+			} else if (!hasKey) {
 				push(`${path}.automationKey`, 'required', 'Automation buttons need an automation');
 			} else if (!knownAutomation(button.automationKey)) {
 				push(`${path}.automationKey`, 'unknown_automation', 'That automation does not exist in this server');
@@ -661,11 +856,15 @@ const buildButton = (spec, ctx) => {
 	}
 
 	if (spec.kind === 'automation') {
+		// A `nodeId` continues the automation currently rendering, so the key comes
+		// from the render context; anything else names another automation outright.
+		const key = spec.nodeId ? ctx.automationKey : spec.automationKey;
+		if (!key) return null;
 		// Orphaned automation — skip rather than throw mid-panel, exactly the rule
 		// already applied to a deleted category below.
-		if (ctx.automations && !ctx.automations.has(spec.automationKey)) return null;
+		if (!spec.nodeId && ctx.automations && !ctx.automations.has(spec.automationKey)) return null;
 		button
-			.setCustomId(automationCustomId(spec.automationKey))
+			.setCustomId(automationCustomId(key, spec.nodeId ?? null))
 			.setStyle(BUTTON_STYLES[spec.style] ?? ButtonStyle.Primary)
 			.setLabel(truncate(substitute(spec.label, ctx.vars), 80));
 		const e = toEmoji(spec.emoji);
@@ -1010,12 +1209,17 @@ const buildMessage = (layout, ctx) => {
 
 module.exports = {
 	BLOCK_TYPES,
+	BUTTON_KINDS,
+	DM_BUTTON_HELP,
 	LAYOUT_VERSION,
 	LIMITS,
 	LayoutError,
+	NODE_TARGET_KINDS,
 	buildMessage,
+	collectLayoutButtons,
 	countComponents,
 	countText,
+	defaultMessageLayout,
 	defaultOpeningLayout,
 	defaultPanelLayout,
 	hasPlaceholder,

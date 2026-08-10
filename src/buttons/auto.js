@@ -1,33 +1,10 @@
 const { Button } = require('@eartharoid/dbf');
 const { MessageFlags } = require('discord.js');
 const { emit } = require('../lib/automations/dispatcher');
-const { triggerNodes } = require('../lib/automations/validate');
-
-/**
- * The button triggers in a graph that nothing inside the graph points at.
- *
- * An in-graph button — the Confirm/Cancel pair on an ephemeral reply, say —
- * carries the id of the trigger it continues (`spec.nodeId`, see `buildButtons`
- * in ../lib/automations/actions.js). A trigger named that way is the middle of a
- * conversation, never its start. Whatever is left is where the graph is entered
- * from outside: a panel button, or a ticket-controls button.
- *
- * @param {Object} graph
- * @returns {Array<Object>} the entry button triggers
- */
-const entryButtonTriggers = graph => {
-	const triggers = triggerNodes(graph).filter(n => n.type === 'trigger.button.pressed');
-	if (triggers.length < 2) return triggers;
-
-	const continuations = new Set();
-	for (const node of Array.isArray(graph?.nodes) ? graph.nodes : []) {
-		for (const spec of Array.isArray(node?.params?.buttons) ? node.params.buttons : []) {
-			if (spec?.nodeId) continuations.add(spec.nodeId);
-		}
-	}
-
-	return triggers.filter(n => !continuations.has(n.id));
-};
+const {
+	entryButtonTriggers,
+	triggerNodes,
+} = require('../lib/automations/validate');
 
 /**
  * Buttons placed by an admin that set an automation off.

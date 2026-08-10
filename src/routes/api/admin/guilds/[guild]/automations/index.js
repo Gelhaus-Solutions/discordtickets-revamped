@@ -11,6 +11,7 @@ const {
 	loadRefs,
 	syncSchedule,
 } = require('../../../../../../lib/automations/http');
+const { upgradeGraph } = require('../../../../../../lib/automations/upgrade');
 
 /**
  * Fields a caller may set.
@@ -22,7 +23,9 @@ const {
 function safeAutomationData(body) {
 	return {
 		enabled: typeof body.enabled === 'boolean' ? body.enabled : true,
-		graph: body.graph ?? null,
+		// Upgraded before validation, so an importable or a stale dashboard tab
+		// carrying an older graph is accepted rather than rejected for its version.
+		graph: body.graph ? upgradeGraph(body.graph) : null,
 		name: typeof body.name === 'string' ? body.name.slice(0, LIMITS.nameLength).trim() : '',
 	};
 }

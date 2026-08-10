@@ -87,11 +87,36 @@ export const BLOCK_META = {
 
 const STATIC_BLOCKS = ['container', 'text', 'separator', 'buttons', 'section', 'gallery', 'footer'];
 
-/** Which block types are allowed in which kind of message. */
+/**
+ * Which block types are allowed in which kind of message.
+ * Mirrors `BLOCK_TYPES` in src/lib/components-v2.js — the server is the authority.
+ */
 export const BLOCK_TYPES = {
+	dm: [...STATIC_BLOCKS],
+	ephemeral: [...STATIC_BLOCKS],
+	message: [...STATIC_BLOCKS],
 	opening: [...STATIC_BLOCKS, 'mentions', 'answers', 'controls'],
 	panel: [...STATIC_BLOCKS, 'select']
 };
+
+/**
+ * Which button kinds are allowed in which kind of message.
+ * Mirrors `BUTTON_KINDS` in src/lib/components-v2.js.
+ *
+ * A DM is not in any server, so the bot cannot tell which server an automation
+ * or ticket button belongs to; the server rejects both, and offering them here
+ * would only let an admin build something that fails on save.
+ */
+export const BUTTON_KINDS = {
+	dm: ['link'],
+	ephemeral: ['ticket', 'link', 'automation'],
+	message: ['ticket', 'link', 'automation'],
+	opening: ['ticket', 'link', 'automation'],
+	panel: ['ticket', 'link', 'automation']
+};
+
+/** Contexts where an automation button may continue *this* graph by node id. */
+export const NODE_TARGET_KINDS = ['ephemeral', 'message'];
 
 /** A new block of the given type, with sensible defaults. */
 export function newBlock(type) {
@@ -126,8 +151,17 @@ export function newBlock(type) {
 
 export function newButton(kind = 'ticket') {
 	if (kind === 'link') return { kind: 'link', url: '', label: '', emoji: null };
+	// `nodeId` continues the automation being edited; `automationKey` starts a
+	// different one. Exactly one is ever set — the server rejects both at once.
 	if (kind === 'automation')
-		return { kind: 'automation', automationKey: null, style: 'primary', label: '', emoji: null };
+		return {
+			kind: 'automation',
+			automationKey: null,
+			nodeId: null,
+			style: 'primary',
+			label: '',
+			emoji: null
+		};
 	return {
 		kind: 'ticket',
 		categoryId: null,
@@ -139,6 +173,72 @@ export function newButton(kind = 'ticket') {
 
 export function newLayout() {
 	return { version: LAYOUT_VERSION, blocks: [] };
+}
+
+/**
+ * A brand-new automation message: one empty text block, nothing else.
+ *
+ * Mirrors `defaultMessageLayout` in src/lib/components-v2.js, which is also what
+ * the v1 → v2 upgrade produces — so a node created here and a node migrated
+ * there have the same shape.
+ */
+export function defaultMessageLayout() {
+	return { version: LAYOUT_VERSION, blocks: [newBlock('text')] };
+}
+
+/**
+ * The first thing wrong with a layout, phrased for a person, or null.
+ *
+ * A deliberate subset of the server's `validateLayout` — the rules someone hits
+ * while building, so the canvas can mark the step before a round trip. The
+ * server's 400 is still what stops a bad save.
+ */
+export function describeLayout(layout) {
+	const blocks = layout?.blocks ?? [];
+	if (blocks.length === 0) return 'The message is empty.';
+
+	let problem = null;
+	const walk = (list) => {
+		for (const block of list ?? []) {
+			if (problem) return;
+			if (block?.type === 'container') {
+				if ((block.blocks ?? []).length === 0)
+					problem = 'A container needs at least one block.';
+				else walk(block.blocks);
+			} else if (block?.type === 'text') {
+				if (!block.content?.trim()) problem = 'A text block has no content.';
+			} else if (block?.type === 'section') {
+				if (!(block.text ?? []).some((line) => line?.trim()))
+					problem = 'A section needs at least one line of text.';
+			} else if (block?.type === 'buttons') {
+				if ((block.buttons ?? []).length === 0) problem = 'A button row has no buttons.';
+			} else if (block?.type === 'gallery') {
+				if ((block.items ?? []).length === 0) problem = 'An image block has no images.';
+			}
+		}
+	};
+	walk(blocks);
+	return problem;
+}
+
+/** "3 blocks · 2 buttons · 41/4000 characters", for the collapsed layout field. */
+export function summariseLayout(layout) {
+	const blocks = layout?.blocks ?? [];
+	let buttons = 0;
+	const walk = (list) => {
+		for (const block of list ?? []) {
+			if (block?.type === 'container') walk(block.blocks);
+			else if (block?.type === 'buttons' || block?.type === 'controls')
+				buttons += block.buttons?.length ?? 0;
+			else if (block?.type === 'section' && block.accessory?.kind === 'button') buttons += 1;
+		}
+	};
+	walk(blocks);
+
+	const parts = [`${blocks.length} block${blocks.length === 1 ? '' : 's'}`];
+	if (buttons) parts.push(`${buttons} button${buttons === 1 ? '' : 's'}`);
+	parts.push(`${countText(layout)}/${LIMITS.text} characters`);
+	return parts.join(' · ');
 }
 
 /**

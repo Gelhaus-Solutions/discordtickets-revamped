@@ -26,6 +26,7 @@ const {
 	runFrom,
 } = require('./runtime');
 const { cronNodes } = require('./schedules');
+const { upgradeGraph } = require('./upgrade');
 
 const uid = new ShortUniqueId({ length: 6 });
 
@@ -55,7 +56,7 @@ class AutomationManager {
 		const key = cacheKey(guildId);
 		let all = await this.client.keyv.get(key);
 		if (!all) {
-			all = await this.client.prisma.automation.findMany({
+			const rows = await this.client.prisma.automation.findMany({
 				select: {
 					graph: true,
 					id: true,
@@ -68,6 +69,13 @@ class AutomationManager {
 					guildId,
 				},
 			});
+			// Upgraded before it is cached, not after: every reader downstream of
+			// here — the dispatcher, the button handler, the interpreter — is then
+			// looking at exactly one graph format.
+			all = rows.map(row => ({
+				...row,
+				graph: upgradeGraph(row.graph),
+			}));
 			await this.client.keyv.set(key, all, CACHE_TTL);
 		}
 		return all;
@@ -236,15 +244,21 @@ class AutomationManager {
 		ctx.executed = state.executed ?? [];
 		ctx.trace = state.trace ?? [];
 
-		const result = await runFrom(automation.graph, ctx, state.queue ?? [], { runners: this.runners });
+		// A run can park for days, so the graph it wakes to may predate the last
+		// deploy — upgrade it here as well as at the cached read.
+		const result = await runFrom(upgradeGraph(automation.graph), ctx, state.queue ?? [], { runners: this.runners });
 		await this.finish(state.runId, result, startedAt, ctx);
 		return result;
 	}
 
 	/** Entry point for `trigger.schedule.cron`, called from a Temporal schedule. */
 	async runScheduled(automationId, guildId, nodeId) {
-		const automation = await this.client.prisma.automation.findUnique({ where: { id: automationId } });
-		if (!automation?.enabled || automation.guildId !== guildId) return;
+		const row = await this.client.prisma.automation.findUnique({ where: { id: automationId } });
+		if (!row?.enabled || row.guildId !== guildId) return;
+		const automation = {
+			...row,
+			graph: upgradeGraph(row.graph),
+		};
 
 		// The schedule names its node; a graph may hold several cron triggers, and
 		// only the one that fired should run.

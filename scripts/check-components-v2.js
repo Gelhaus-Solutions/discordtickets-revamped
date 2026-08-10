@@ -759,4 +759,251 @@ t('a 💁 category emoji survives a real panel build', () => {
 	assert.strictEqual(row.components[1].emoji.id, undefined);
 });
 
+/* ────────────────────────── automation message kinds ─────────────────────── */
+
+// The four `action.message.*` nodes render through this same file, so their
+// rules live in the same two tables the panel and opening contexts use.
+
+t('every kind declares both a block set and a button set', () => {
+	const kinds = ['dm', 'ephemeral', 'message', 'opening', 'panel'];
+	assert.deepStrictEqual(Object.keys(v2.BLOCK_TYPES).sort(), [...kinds].sort());
+	assert.deepStrictEqual(Object.keys(v2.BUTTON_KINDS).sort(), [...kinds].sort());
+	for (const kind of kinds) {
+		assert.ok(v2.BLOCK_TYPES[kind].length > 0, `${kind} has no blocks`);
+		assert.ok(v2.BUTTON_KINDS[kind].length > 0, `${kind} has no button kinds`);
+	}
+	// A select is a panel in everything but bookkeeping — no Panel row, no
+	// syncPanel, no way to re-render or delete it — so it stays panel-only.
+	for (const kind of kinds.filter(k => k !== 'panel')) {
+		assert.ok(!v2.BLOCK_TYPES[kind].includes('select'), `${kind} must not allow a select menu`);
+	}
+	// Only the two automation-message kinds have a graph to continue.
+	assert.deepStrictEqual([...v2.NODE_TARGET_KINDS].sort(), ['ephemeral', 'message']);
+});
+
+/** One layout holding one button of the given kind. */
+const withButton = button => ({
+	blocks: [
+		{
+			content: 'Hello',
+			id: 'a',
+			type: 'text',
+		},
+		{
+			buttons: [button],
+			id: 'b',
+			type: 'buttons',
+		},
+	],
+	version: 1,
+});
+
+const errorsOf = (layout, opts) => {
+	try {
+		v2.validateLayout(layout, opts);
+		return [];
+	} catch (error) {
+		assert.ok(error instanceof v2.LayoutError, 'expected a LayoutError');
+		return error.errors;
+	}
+};
+
+t('a DM takes link buttons and nothing else', () => {
+	const link = withButton({
+		kind: 'link',
+		label: 'Docs',
+		url: 'https://example.com',
+	});
+	assert.deepStrictEqual(errorsOf(link, { kind: 'dm' }), []);
+
+	for (const button of [
+		{
+			automationKey: 'abc123',
+			kind: 'automation',
+			label: 'Press',
+		},
+		{
+			categoryId: 1,
+			kind: 'ticket',
+		},
+	]) {
+		const errors = errorsOf(withButton(button), {
+			automationKeys: ['abc123'],
+			categoryIds: categories,
+			kind: 'dm',
+		});
+		assert.strictEqual(errors.length, 1, `expected exactly one error for a ${button.kind} button`);
+		assert.strictEqual(errors[0].code, 'not_allowed');
+		assert.strictEqual(errors[0].path, 'blocks[1].buttons[0].kind');
+		// The wording, not just the code: a DM interaction carries no guildId, so
+		// these render perfectly and then report themselves broken. This message
+		// is the only warning an admin gets, and it is the one they will hit.
+		assert.match(errors[0].message, /not allowed in a dm message/);
+		assert.match(errors[0].message, /Only link buttons work in a DM/);
+	}
+});
+
+t('an in-graph continuation button is only accepted where there is a graph', () => {
+	const button = {
+		kind: 'automation',
+		label: 'Yes',
+		nodeId: 'btn',
+	};
+	assert.deepStrictEqual(errorsOf(withButton(button), {
+		buttonNodeIds: ['btn'],
+		kind: 'ephemeral',
+	}), []);
+
+	// Pointing at something that is not a button trigger in this graph.
+	assert.strictEqual(errorsOf(withButton(button), {
+		buttonNodeIds: ['other'],
+		kind: 'ephemeral',
+	})[0].code, 'unknown_trigger');
+
+	// A panel has no automation to continue, so a nodeId there would render a
+	// custom_id with no automation key in it.
+	assert.strictEqual(errorsOf(withButton(button), { kind: 'panel' })[0].code, 'not_allowed');
+
+	// A button runs one thing, not two.
+	assert.strictEqual(errorsOf(withButton({
+		...button,
+		automationKey: 'abc123',
+	}), {
+		automationKeys: ['abc123'],
+		buttonNodeIds: ['btn'],
+		kind: 'ephemeral',
+	})[0].code, 'ambiguous_target');
+});
+
+t('a continuation button carries the rendering automation\'s own key', () => {
+	const out = v2.buildMessage(withButton({
+		kind: 'automation',
+		label: 'Yes',
+		nodeId: 'btn',
+	}), {
+		...baseCtx,
+		automationKey: 'abc123',
+		kind: 'ephemeral',
+	});
+	const row = out.components[1].toJSON();
+	assert.deepStrictEqual(JSON.parse(row.components[0].custom_id), {
+		action: 'auto',
+		k: 'abc123',
+		n: 'btn',
+	});
+});
+
+t('validateLayout accepts an array as well as a Set', () => {
+	// `loadRefs` hands the automation routes plain arrays; the panels route hands
+	// a Set. An array used to reject every reference in it.
+	const button = {
+		automationKey: 'abc123',
+		kind: 'automation',
+		label: 'Press',
+	};
+	assert.deepStrictEqual(errorsOf(withButton(button), {
+		automationKeys: ['abc123'],
+		kind: 'message',
+	}), []);
+	assert.strictEqual(errorsOf(withButton(button), {
+		automationKeys: [],
+		kind: 'message',
+	})[0].code, 'unknown_automation');
+	// No list at all means "do not check" — the catalogue endpoint and the tests
+	// validate shape without a guild's data.
+	assert.deepStrictEqual(errorsOf(withButton(button), { kind: 'message' }), []);
+});
+
+/* ─────────────────────── the v1 → v2 message conversion ──────────────────── */
+
+t('defaultMessageLayout renders to exactly one TextDisplay and one ActionRow', () => {
+	// The merge gate for GRAPH_VERSION 2. `action.message.send` posts publicly in
+	// every guild that uses it, and the upgrade rewrites those nodes on first
+	// read with no down-migration — so the conversion has to be provably
+	// shape-only. Anything extra here (a container, a separator, a footer) is a
+	// visible change to messages that are already in people's servers.
+	const layout = v2.defaultMessageLayout('Hello {name}', [{
+		label: 'Press',
+		nodeId: 'btn',
+		style: 'success',
+	}], { idPrefix: 'n1' });
+
+	assert.deepStrictEqual(layout.blocks.map(b => b.type), ['text', 'buttons']);
+	assert.deepStrictEqual(layout.blocks.map(b => b.id), ['n1-text', 'n1-buttons']);
+
+	const out = v2.buildMessage(layout, {
+		...baseCtx,
+		automationKey: 'abc123',
+		kind: 'message',
+		vars: { name: 'Bob' },
+	});
+	assert.strictEqual(out.components.length, 2);
+	assert.ok(out.components[0] instanceof djs.TextDisplayBuilder);
+	assert.ok(out.components[1] instanceof djs.ActionRowBuilder);
+	assert.strictEqual(out.components[0].toJSON().content, 'Hello Bob');
+
+	const row = out.components[1].toJSON();
+	assert.strictEqual(row.components.length, 1);
+	assert.strictEqual(row.components[0].label, 'Press');
+	assert.strictEqual(row.components[0].style, djs.ButtonStyle.Success);
+});
+
+t('defaultMessageLayout with no buttons is a bare text block', () => {
+	const layout = v2.defaultMessageLayout('Just words');
+	assert.deepStrictEqual(layout.blocks.map(b => b.type), ['text']);
+	const out = v2.buildMessage(layout, {
+		...baseCtx,
+		kind: 'dm',
+	});
+	assert.strictEqual(out.components.length, 1);
+	assert.strictEqual(out.components[0].toJSON().content, 'Just words');
+});
+
+t('collectLayoutButtons finds buttons wherever they are nested', () => {
+	const layout = {
+		blocks: [
+			{
+				blocks: [{
+					buttons: [{
+						kind: 'automation',
+						label: 'A',
+						nodeId: 'x',
+					}],
+					id: 'inner',
+					type: 'buttons',
+				}],
+				id: 'c',
+				type: 'container',
+			},
+			{
+				accessory: {
+					button: {
+						categoryId: 1,
+						kind: 'ticket',
+					},
+					kind: 'button',
+				},
+				id: 's',
+				text: ['hi'],
+				type: 'section',
+			},
+			{
+				buttons: [{
+					automationKey: 'k',
+					kind: 'automation',
+					label: 'B',
+				}],
+				id: 'ctl',
+				type: 'controls',
+			},
+		],
+		version: 1,
+	};
+	assert.deepStrictEqual(v2.collectLayoutButtons(layout).map(f => f.path), [
+		'blocks[0].blocks[0].buttons[0]',
+		'blocks[1].accessory.button',
+		'blocks[2].buttons[0]',
+	]);
+});
+
 console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);

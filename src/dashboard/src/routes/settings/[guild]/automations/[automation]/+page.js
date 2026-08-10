@@ -34,10 +34,14 @@ export async function load({ fetch, params }) {
 		automation: automation ?? null,
 		// What an `action.message.send` button may point at. The server rejects
 		// anything else, so the picker only offers these.
+		// `triggerTypes` is a list — the API has never sent a singular
+		// `triggerType`, so this filter used to match nothing and the "start
+		// another automation" option never appeared.
 		buttonAutomations: siblings
 			.filter(
 				(a) =>
-					a.triggerType === 'trigger.button.pressed' && a.id !== Number(params.automation)
+					(a.triggerTypes ?? []).includes('trigger.button.pressed') &&
+					a.id !== Number(params.automation)
 			)
 			.map((a) => ({ key: a.key, name: a.name })),
 		catalogue,

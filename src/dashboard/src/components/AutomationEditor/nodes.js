@@ -17,7 +17,9 @@
  * public-bot numbers.
  */
 
-export const GRAPH_VERSION = 1;
+import { summariseLayout } from '$components/BlockEditor/blocks.js';
+
+export const GRAPH_VERSION = 2;
 
 /**
  * Fallback limits, matching the bot's **public-bot** values.
@@ -125,6 +127,22 @@ export const iconFor = (type) => NODE_ICONS[type] ?? 'fa-circle-nodes';
 
 export const categoryOf = (type) => String(type).split('.')[0];
 
+/** The first non-empty line of text in a layout, wherever it is nested. */
+function firstText(layout) {
+	let found = null;
+	const walk = (blocks) => {
+		for (const block of blocks ?? []) {
+			if (found) return;
+			if (block?.type === 'container') walk(block.blocks);
+			else if (block?.type === 'text' && block.content?.trim()) found = block.content;
+			else if (block?.type === 'section')
+				found = (block.text ?? []).find((t) => t?.trim()) ?? null;
+		}
+	};
+	walk(layout?.blocks);
+	return found ? String(found).slice(0, 60) : null;
+}
+
 /** A one-line summary for a node card, so the canvas is readable at a glance. */
 export function summarise(node, catalogue) {
 	const definition = catalogue?.types?.find((t) => t.type === node.type);
@@ -141,6 +159,9 @@ export function summarise(node, catalogue) {
 		if (params.mode === 'clear') return 'clear the emoji';
 		return `${params.emoji ?? ''}${params.mode === 'all' ? ' (whole prefix)' : ''}`;
 	}
+	// A message node's text lives in its layout. Showing the first text block is
+	// what makes two "Send a message" cards on the canvas tell each other apart.
+	if (params.layout) return firstText(params.layout) ?? summariseLayout(params.layout);
 	if (params.content) return String(params.content).slice(0, 60);
 	if (params.name) return String(params.name).slice(0, 60);
 
