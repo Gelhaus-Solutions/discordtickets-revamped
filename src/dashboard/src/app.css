@@ -48,6 +48,17 @@
 	right: 0;
 	left: 0;
 	background: rgba(0, 0, 0, 0.5);
+	/*
+	 * Above everything, including the Svelte Flow canvas.
+	 *
+	 * `<Modals>` is rendered *before* the page content in settings/+layout.svelte,
+	 * and neither of these carried a z-index — so with both the modal and the page
+	 * positioned at `auto`, DOM order decided, and the page won. That went
+	 * unnoticed while every modal was opened from a plain form page. The
+	 * automation canvas sets z-indexes up to 2000 on its nodes, so a modal opened
+	 * over it was painted straight through.
+	 */
+	z-index: 9000;
 }
 
 .modal {
@@ -61,4 +72,5 @@
 	align-items: center;
 	/* allow click-through to backdrop */
 	pointer-events: none;
+	z-index: 9001;
 }

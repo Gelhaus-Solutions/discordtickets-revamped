@@ -114,7 +114,6 @@
 					/>
 				</div>
 				<div>
-					<p class="mb-1 text-sm font-semibold">Preview</p>
 					<Preview
 						layout={draft}
 						{categories}
