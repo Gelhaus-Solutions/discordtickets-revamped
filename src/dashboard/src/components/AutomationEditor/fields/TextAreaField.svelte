@@ -22,7 +22,9 @@
 	oninput={(e) => onchange(e.currentTarget.value)}
 ></textarea>
 <div class="mt-1 flex flex-wrap items-center gap-1">
-	<PlaceholderPicker target={element} context="automation" />
+	{#if field.placeholders}
+		<PlaceholderPicker target={element} context={field.placeholders} />
+	{/if}
 	{#if field.maxLength}
 		<span class="ml-auto text-xs text-gray-400 dark:text-slate-500">
 			{(value ?? '').length}/{field.maxLength}

@@ -32,6 +32,7 @@
 	let textEl = $state();
 	let accessoryEl = $state();
 	let sectionEls = $state([]);
+	let galleryEls = $state([]);
 
 	// Blocks saved before automation buttons existed have no `buttons` list at
 	// all; ButtonList reads through a fallback and writes one back when needed.
@@ -164,11 +165,13 @@
 		{#each block.items as item, i}
 			<div class="flex items-center gap-2">
 				<input
+					bind:this={galleryEls[i]}
 					type="url"
 					class="input form-input text-sm"
 					placeholder="https://example.com/image.png"
 					bind:value={item.url}
 				/>
+				<PlaceholderPicker target={galleryEls[i]} {context} />
 				<button
 					type="button"
 					class="text-red-400 transition duration-300 hover:text-red-600"

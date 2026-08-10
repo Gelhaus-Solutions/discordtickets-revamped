@@ -18,6 +18,8 @@
  * @property {number} [min] @property {number} [max]
  * @property {number} [maxLength]
  * @property {{value: *, label: string}[]} [options]  for `select`
+ * @property {string} [placeholders]  which placeholder context the editor should
+ *   offer beside this field, if any
  * @property {{key: string, in: *[]}} [showWhen]  only offer this field while
  *   another param holds one of these values; `null` in the list means "absent".
  *   Read by the editor to hide the field and to skip validating it — a hidden
@@ -589,6 +591,10 @@ const contentField = help => ({
 	key: 'content',
 	label: 'Message',
 	maxLength: LIMITS.messageLength,
+	// Which placeholder set the editor offers beside this field. Declared here
+	// rather than guessed in the dashboard: `text`-typed params also hold cron
+	// expressions and regexes, where a `{name}` button would be nonsense.
+	placeholders: 'automation',
 	// Not `required`: it only applies in the legacy format, and `validateParams`
 	// has no idea which format is selected. The node's own `validate` enforces it.
 	showWhen: legacyWhen,
@@ -600,6 +606,7 @@ const legacyButtonsField = help => ({
 	key: 'buttons',
 	label: 'Buttons',
 	maxItems: LIMITS.messageButtons,
+	placeholders: 'automation',
 	showWhen: legacyWhen,
 	type: 'buttons',
 });
@@ -733,6 +740,7 @@ const NODE_TYPES = {
 			key: 'content',
 			label: 'Entry',
 			maxLength: 1000,
+			placeholders: 'automation',
 			required: true,
 			type: 'textarea',
 		}],
@@ -911,6 +919,7 @@ const NODE_TYPES = {
 			key: 'reason',
 			label: 'Reason',
 			maxLength: 100,
+			placeholders: 'automation',
 			type: 'text',
 		}],
 	},
@@ -948,6 +957,7 @@ const NODE_TYPES = {
 			key: 'name',
 			label: 'New name',
 			maxLength: 100,
+			placeholders: 'automation',
 			required: true,
 			type: 'text',
 		}],
@@ -1038,6 +1048,7 @@ const NODE_TYPES = {
 			key: 'topic',
 			label: 'Topic',
 			maxLength: 1000,
+			placeholders: 'automation',
 			required: true,
 			type: 'text',
 		}],

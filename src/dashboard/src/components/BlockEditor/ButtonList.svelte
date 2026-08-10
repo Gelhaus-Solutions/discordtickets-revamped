@@ -1,6 +1,7 @@
 <script>
 	import { newButton, LIMITS, NODE_TARGET_KINDS } from './blocks.js';
 	import EmojiPicker from '$components/EmojiPicker.svelte';
+	import PlaceholderPicker from '$components/PlaceholderPicker.svelte';
 
 	/**
 	 * @typedef {Object} Props
@@ -63,6 +64,10 @@
 	};
 
 	const hasTargets = $derived(inGraph.length > 0 || automations.length > 0);
+
+	// One element reference per field the picker can insert into.
+	let labelEls = $state([]);
+	let urlEls = $state([]);
 </script>
 
 <div class="flex flex-col gap-2">
@@ -123,13 +128,20 @@
 				{:else}
 					<label class="text-sm">
 						<span class="font-medium">URL</span>
-						<input type="url" class="input form-input text-sm" bind:value={button.url} />
+						<input
+							bind:this={urlEls[i]}
+							type="url"
+							class="input form-input text-sm"
+							bind:value={button.url}
+						/>
+						<PlaceholderPicker target={urlEls[i]} {context} />
 					</label>
 				{/if}
 
 				<label class="text-sm">
 					<span class="font-medium">Label</span>
 					<input
+						bind:this={labelEls[i]}
 						type="text"
 						maxlength="80"
 						class="input form-input text-sm"
@@ -137,6 +149,7 @@
 						value={button.label ?? ''}
 						oninput={(e) => (button.label = e.currentTarget.value || null)}
 					/>
+					<PlaceholderPicker target={labelEls[i]} {context} />
 				</label>
 
 				<div class="text-sm">

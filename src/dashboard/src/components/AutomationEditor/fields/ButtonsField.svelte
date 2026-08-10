@@ -1,5 +1,6 @@
 <script>
 	import { editorState } from '../editorState.svelte.js';
+	import PlaceholderPicker from '$components/PlaceholderPicker.svelte';
 
 	/**
 	 * Buttons attached to a "Send a message" action.
@@ -43,6 +44,10 @@
 	const set = (i, patch) =>
 		onchange(buttons.map((button, index) => (index === i ? { ...button, ...patch } : button)));
 
+	// One element reference per label, so the picker inserts at the caret rather
+	// than appending.
+	let labelEls = $state([]);
+
 	const add = () =>
 		onchange([
 			...buttons,
@@ -64,6 +69,7 @@
 				<div class="flex items-start gap-2">
 					<div class="min-w-0 flex-1 space-y-1">
 						<input
+							bind:this={labelEls[i]}
 							type="text"
 							class="input form-input text-sm"
 							maxlength="80"
@@ -71,6 +77,9 @@
 							value={button.label ?? ''}
 							oninput={(e) => set(i, { label: e.currentTarget.value })}
 						/>
+						{#if field.placeholders}
+							<PlaceholderPicker target={labelEls[i]} context={field.placeholders} />
+						{/if}
 						<select
 							class="input form-multiselect text-sm"
 							value={valueOf(button)}
