@@ -325,9 +325,19 @@ module.exports.patch = fastify => ({
 			});
 			const effective = data.staffRoles ?? settings?.staffRoles ?? [];
 			if (effective.length === 0) {
+				// Say which value was actually consulted. Clearing a category to
+				// inherit is the common way to reach this, and the server default
+				// read here is the *saved* one — so a dashboard user who has picked
+				// roles but not submitted yet sees a complaint about a field that
+				// looks filled in on their screen.
+				const inheriting = data.staffRoles === null || data.staffRoles === undefined;
 				return res.code(400).send({
 					code: 'no_staff_roles',
-					errors: [{ message: 'A category needs at least one staff role, here or as a server default' }],
+					errors: [{
+						message: inheriting
+							? 'A category needs at least one staff role, and the saved server default has none. Set one on this category, or set and save a server default first.'
+							: 'A category needs at least one staff role, here or as a server default',
+					}],
 					statusCode: 400,
 				});
 			}

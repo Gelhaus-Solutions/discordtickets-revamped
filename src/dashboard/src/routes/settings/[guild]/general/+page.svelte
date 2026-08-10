@@ -148,6 +148,29 @@
 	 */
 	const applyToAll = async () => {
 		const field = APPLICABLE.find((f) => f.key === applyField);
+
+		// Clearing a category makes it inherit from this page, and the category
+		// route validates that against the *saved* server default — it has no way
+		// to see what is on screen. Running this with the form dirty therefore
+		// judges the categories against the old value, which for staff roles
+		// comes back as "a category needs at least one staff role" while the role
+		// you just picked is visible right above the button. Refuse instead.
+		if (modified) {
+			error = {
+				code: 'unsaved_changes',
+				errors: [
+					{
+						message:
+							`Save your changes first — "${field.label}" is applied against the saved ` +
+							'server default, not what is currently on screen.'
+					}
+				],
+				statusCode: 400
+			};
+			window.scroll({ top: 0, behavior: 'smooth' });
+			return;
+		}
+
 		if (
 			!confirm(
 				`Clear "${field.label}" on every category in this server?\n\n` +
