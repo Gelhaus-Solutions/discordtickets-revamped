@@ -1,6 +1,7 @@
 <script>
 	import { marked } from 'marked';
 	import { displayEmoji } from '$lib/emoji.js';
+	import { placeholders, preview } from '$lib/placeholders.js';
 	import { countComponents, countText, LIMITS } from './blocks.js';
 
 	/**
@@ -24,15 +25,12 @@
 	const characters = $derived(countText(layout));
 	const overBudget = $derived(components > LIMITS.components || characters > LIMITS.text);
 
-	/** The same substitutions the bot applies, so the preview stays honest. */
-	const substitute = (str) =>
-		(str ?? '')
-			.replace(/{+\s?(user)?name\s?}+/gi, '@you')
-			.replace(/{+\s?(nick|display)name\s?}+/gi, 'You')
-			.replace(/{+\s?num(ber)?\s?}+/gi, '1')
-			.replace(/{+\s?avgResponseTime\s?}+/gi, '5 minutes')
-			.replace(/{+\s?avgResolutionTime\s?}+/gi, '2 hours')
-			.replace(/{+\s?avgRating\s?}+/gi, '4.8');
+	// The sample values come from the bot's own catalogue, so the preview shows
+	// what the message will look like rather than a second opinion about it. The
+	// six hand-written replacements this replaces did not agree with the bot
+	// about which placeholders existed, let alone what they meant here.
+	const catalogue = placeholders();
+	const substitute = (str) => preview(catalogue, context, str);
 
 	const md = (str) => marked.parse(substitute(str ?? ''), { breaks: true });
 

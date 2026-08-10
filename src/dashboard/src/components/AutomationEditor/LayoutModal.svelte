@@ -1,9 +1,11 @@
 <script>
+	import { untrack } from 'svelte';
 	import { fly } from 'svelte/transition';
 	import { onBeforeClose } from 'svelte-modals';
 	import BlockEditor from '$components/BlockEditor/BlockEditor.svelte';
 	import Preview from '$components/BlockEditor/Preview.svelte';
 	import { defaultMessageLayout } from '$components/BlockEditor/blocks.js';
+	import { setPlaceholders } from '$lib/placeholders.js';
 
 	/**
 	 * The block editor for one `action.message.*` node, in a modal.
@@ -32,6 +34,7 @@
 	 * @property {any[]} categories
 	 * @property {any[]} automations automations a button press can start
 	 * @property {any[]} nodeTargets button triggers in the automation being edited
+	 * @property {any} catalogue the placeholder catalogue, re-provided below
 	 * @property {string} [primaryColour]
 	 * @property {string} [footer]
 	 * @property {(layout: any) => void} onsave
@@ -47,10 +50,17 @@
 		categories = [],
 		automations = [],
 		nodeTargets = [],
+		catalogue = null,
 		primaryColour = '#009999',
 		footer = '',
 		onsave
 	} = $props();
+
+	// `svelte-modals` renders this from `settings/+layout.svelte`, which is a
+	// *parent* of the guild layout that provides the catalogue — so the context
+	// set there does not reach in here, and the picker and preview inside would
+	// silently come up empty. Re-provide it for this subtree.
+	setPlaceholders(untrack(() => catalogue));
 
 	// A clone, so Cancel really discards and Save really commits.
 	let draft = $state(

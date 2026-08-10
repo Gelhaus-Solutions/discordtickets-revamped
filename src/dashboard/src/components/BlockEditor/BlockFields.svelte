@@ -1,5 +1,6 @@
 <script>
 	import ButtonList from './ButtonList.svelte';
+	import PlaceholderPicker from '$components/PlaceholderPicker.svelte';
 	import { BLOCK_META, BUTTON_KINDS, LIMITS } from './blocks.js';
 
 	/**
@@ -25,6 +26,12 @@
 	} = $props();
 
 	const kinds = $derived(BUTTON_KINDS[context] ?? BUTTON_KINDS.panel);
+
+	// One element reference per placeholder-accepting field, so the picker knows
+	// where the caret is.
+	let textEl = $state();
+	let accessoryEl = $state();
+	let sectionEls = $state([]);
 
 	// Blocks saved before automation buttons existed have no `buttons` list at
 	// all; ButtonList reads through a fallback and writes one back when needed.
@@ -71,12 +78,14 @@
 	<label class="text-sm">
 		<span class="font-medium">Text</span>
 		<textarea
+			bind:this={textEl}
 			class="input form-input h-24 text-sm"
 			maxlength={LIMITS.text}
 			placeholder="Markdown is supported."
 			bind:value={block.content}
 		></textarea>
 	</label>
+	<div><PlaceholderPicker target={textEl} {context} /></div>
 {:else if block.type === 'separator'}
 	<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
 		<label class="text-sm">
@@ -183,7 +192,14 @@
 {:else if block.type === 'section'}
 	<div class="flex flex-col gap-2">
 		{#each block.text as _, i}
-			<textarea class="input form-input h-16 text-sm" bind:value={block.text[i]}></textarea>
+			<div>
+				<textarea
+					bind:this={sectionEls[i]}
+					class="input form-input h-16 text-sm"
+					bind:value={block.text[i]}
+				></textarea>
+				<PlaceholderPicker target={sectionEls[i]} {context} />
+			</div>
 		{/each}
 		{#if block.text.length < LIMITS.sectionText}
 			<button
@@ -209,16 +225,16 @@
 
 		{#if block.accessory?.kind === 'thumbnail'}
 			<input
+				bind:this={accessoryEl}
 				type="url"
 				class="input form-input text-sm"
 				placeholder="https://example.com/image.png"
 				bind:value={block.accessory.url}
 			/>
-			{#if context === 'opening'}
-				<p class="text-xs text-gray-500 dark:text-slate-400">
-					Tip: use <code>{'{avatar}'}</code> to show the ticket creator's avatar.
-				</p>
-			{/if}
+			<!-- The `{avatar}` tip this replaces was hardcoded here and shown only
+			     for an opening message; the picker knows which context it is in and
+			     says so for every placeholder, not just that one. -->
+			<div><PlaceholderPicker target={accessoryEl} {context} /></div>
 		{:else if block.accessory?.kind === 'button'}
 			<ButtonList
 				buttons={[block.accessory.button]}

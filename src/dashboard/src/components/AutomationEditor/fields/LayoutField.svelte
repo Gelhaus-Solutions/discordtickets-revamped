@@ -3,6 +3,7 @@
 	import { editorState } from '../editorState.svelte.js';
 	import LayoutModal from '../LayoutModal.svelte';
 	import { defaultMessageLayout, summariseLayout } from '$components/BlockEditor/blocks.js';
+	import { placeholders } from '$lib/placeholders.js';
 
 	/**
 	 * The `layout` parameter of an `action.message.*` node.
@@ -15,6 +16,9 @@
 	let { field, value, onchange } = $props();
 
 	const editor = editorState();
+	// Read here, inside the tree that provides it, and handed to the modal —
+	// which renders outside it.
+	const catalogue = placeholders();
 
 	const layout = $derived(value ?? defaultMessageLayout());
 	const summary = $derived(summariseLayout(layout));
@@ -22,6 +26,7 @@
 	const open = () =>
 		modals.open(LayoutModal, {
 			automations: editor.buttonAutomations ?? [],
+			catalogue,
 			categories: editor.categories ?? [],
 			context: field.kind ?? 'message',
 			layout,

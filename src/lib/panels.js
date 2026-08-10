@@ -1,9 +1,15 @@
+const ms = require('ms');
 const { MessageFlags } = require('discord.js');
 const {
 	LayoutError,
 	buildMessage,
+	needsStats,
 	validateLayout,
 } = require('./components-v2');
+const {
+	getAverageRating,
+	getAverageTimes,
+} = require('./stats');
 
 /**
  * The Discord side of ticket panels.
@@ -20,10 +26,87 @@ const MISSING_ACCESS = 50001;
 const MISSING_PERMISSIONS = 50013;
 
 /**
+ * The substitution variables a panel is rendered with.
+ *
+ * Pure and synchronous: the stats are worked out by {@link panelStats} and
+ * handed in, so this is the one function `check-placeholders.js` can call to
+ * assert that everything the `panel` context advertises is actually supplied.
+ *
+ * @param {?import('discord.js').Guild} guild
+ * @param {?object} [stats] the three averages, or null
+ */
+function panelVars(guild, { stats = null } = {}) {
+	return {
+		// Free: both come off the guild object the client already has cached.
+		members: guild?.memberCount ?? '',
+		server: guild?.name ?? '',
+		...(stats ?? {
+			avgRating: '',
+			avgResolutionTime: '',
+			avgResponseTime: '',
+		}),
+	};
+}
+
+/**
+ * The three averages across the categories a panel opens.
+ *
+ * Aggregated over the raw tickets, **not** by averaging the per-category
+ * averages that are already cached: an unweighted mean of means is wrong the
+ * moment two categories have different volumes, and a category with three
+ * tickets would swing the headline number as hard as one with three thousand.
+ *
+ * Cached on the sorted category list rather than the panel id, so two panels
+ * covering the same categories share the work.
+ *
+ * A panel is rendered once, when an admin saves it, and never again — nothing
+ * re-renders it on a timer. Averages tolerate that, which is why they are here
+ * and a live "3 tickets are open right now" is not.
+ *
+ * @returns {Promise<?object>} null when the panel's message asks for no stats
+ */
+async function panelStats(client, categoryIds) {
+	const ids = [...new Set(categoryIds ?? [])].sort((a, b) => a - b);
+	if (ids.length === 0) return null;
+
+	const cacheKey = `cache/panel-stats:${ids.join(',')}`;
+	const cached = await client.keyv.get(cacheKey);
+	if (cached) return cached;
+
+	const closedTickets = await client.prisma.ticket.findMany({
+		select: {
+			closedAt: true,
+			createdAt: true,
+			feedback: { select: { rating: true } },
+			firstResponseAt: true,
+		},
+		where: {
+			categoryId: { in: ids },
+			firstResponseAt: { not: null },
+			open: false,
+		},
+	});
+
+	const {
+		avgResolutionTime,
+		avgResponseTime,
+	} = await getAverageTimes(closedTickets);
+	const stats = {
+		avgRating: (await getAverageRating(closedTickets)).toFixed(1),
+		avgResolutionTime: ms(avgResolutionTime, { long: true }),
+		avgResponseTime: ms(avgResponseTime, { long: true }),
+	};
+
+	await client.keyv.set(cacheKey, stats, ms('1h'));
+	return stats;
+}
+
+/**
  * Render a stored panel into a Components v2 payload.
  *
- * Pure: it never touches Discord, so a `LayoutError` from here means the caller
- * can answer 400 with nothing having been changed.
+ * Touches the database only for the guild's settings and, when the layout asks
+ * for them, the category averages — so a `LayoutError` from here still means the
+ * caller can answer 400 with nothing having been changed.
  *
  * @param {import('client')} client
  * @param {object} panel a `panels` row
@@ -43,6 +126,19 @@ async function renderPanel(client, panel, settings) {
 	const categories = new Map(settings.categories.map(c => [c.id, c]));
 	const guild = client.guilds.cache.get(panel.guildId);
 
+	// `renderPanel` sits inside the save path, so a stats failure must cost the
+	// admin their averages, never their edit.
+	let stats = null;
+	if (needsStats(panel.layout)) {
+		try {
+			// `Panel.categories` is derived and persisted on every write, including
+			// the expansion of a select menu that covers "all".
+			stats = await panelStats(client, panel.categories);
+		} catch (error) {
+			client.log.warn('Could not work out the stats for panel %s: %s', panel.id, error?.message ?? error);
+		}
+	}
+
 	return buildMessage(panel.layout, {
 		categories,
 		getMessage: client.i18n.getLocale(settings.locale),
@@ -52,7 +148,7 @@ async function renderPanel(client, panel, settings) {
 			primaryColour: settings.primaryColour,
 		},
 		kind: 'panel',
-		vars: {},
+		vars: panelVars(guild, { stats }),
 	});
 }
 
@@ -225,6 +321,8 @@ module.exports = {
 	collectCategoryIds,
 	deletePanelMessage,
 	describeError,
+	panelStats,
+	panelVars,
 	renderPanel,
 	syncPanel,
 	validatePanelLayout,

@@ -11,12 +11,14 @@
 	import { validateQuestion } from '$components/CategoryQuestions/validate.js';
 	import Required from '$components/Required.svelte';
 	import Inheritable from '$components/Inheritable.svelte';
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import ErrorBox from '$components/ErrorBox.svelte';
 	import BlockEditor from '$components/BlockEditor/BlockEditor.svelte';
 	import Preview from '$components/BlockEditor/Preview.svelte';
 	import { defaultOpeningLayout } from '$components/BlockEditor/blocks.js';
+	import PlaceholderPicker from '$components/PlaceholderPicker.svelte';
+	import { placeholders, preview } from '$lib/placeholders.js';
 	/**
 	 * @typedef {Object} Props
 	 * @property {import('./$types').PageData} data
@@ -32,6 +34,12 @@
 	// derives the equivalent layout at send time. Only once someone opts in does
 	// the column get a value.
 	let useBlockEditor = $state(Boolean(data.category?.messageLayout));
+
+	// Element references for the placeholder pickers, which insert at the caret.
+	let channelNameEl = $state();
+	let openingMessageEl = $state();
+
+	const catalogue = placeholders();
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -306,6 +314,7 @@
 					>
 						{#snippet control({ value, setValue, placeholder })}
 							<input
+								bind:this={channelNameEl}
 								type="text"
 								class="input form-input"
 								{placeholder}
@@ -314,6 +323,9 @@
 							/>
 						{/snippet}
 					</Inheritable>
+					<div class="mt-1">
+						<PlaceholderPicker target={channelNameEl} context="channelName" />
+					</div>
 					{#if category.channelName ?? inherited.channelName}
 						<p class="mb-1 mt-2 text-sm font-semibold">Preview</p>
 						<div
@@ -321,22 +333,13 @@
 						>
 							<i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400"></i>
 							<span class="marked">
-								{@html marked
-									.parse(
-										(category.channelName ?? inherited.channelName ?? '').replace(
-											/\n/g,
-											'\n\n'
-										)
+								{@html marked.parse(
+									preview(
+										catalogue,
+										'channelName',
+										(category.channelName ?? inherited.channelName ?? '').replace(/\n/g, '\n\n')
 									)
-									.replace(/{+\s?num(ber)?\s?}+/gi, 1)
-									.replace(
-										/{+\s?(nick|display)(name)?\s?}+/gi,
-										getContext('user').username
-									)
-									.replace(
-										/{+\s?(user)?name\s?}+/gi,
-										getContext('user').username
-									)}
+								)}
 							</span>
 						</div>
 					{/if}
@@ -685,12 +688,16 @@
 						</button>
 					{:else}
 						<textarea
+							bind:this={openingMessageEl}
 							class="input form-input"
 							required
 							rows="4"
 							maxlength="1000"
 							bind:value={category.openingMessage}
 						></textarea>
+						<div class="mt-1">
+							<PlaceholderPicker target={openingMessageEl} context="opening" />
+						</div>
 						<button
 							type="button"
 							class="mt-2 text-sm text-blurple underline"
@@ -775,19 +782,8 @@
 												slot="description"
 												class="break-words prose prose-slate prose-sm dark:prose-invert prose-a:text-blurple"
 											>
-												{@html marked
-													.parse(category.openingMessage)
-													.replace(
-														/{+\s?(user)?name\s?}+/gi,
-														`<discord-mention>${data.user.username}</discord-mention>`
-													)
-													.replace(
-														/{+\s?avgResponseTime\s?}+/gi,
-														data.guild.stats.avgResponseTime
-													)
-													.replace(
-														/{+\s?avgResolutionTime\s?}+/gi,
-														data.guild.stats.avgResolutionTime
+												{@html marked.parse(
+														preview(catalogue, 'opening', category.openingMessage)
 													)}
 											</discord-embed-description>
 											{#if category.requireTopic}

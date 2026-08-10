@@ -14,6 +14,7 @@
  */
 
 const { LIMITS } = require('./errors');
+const { needsLazy } = require('../placeholders');
 
 class Context {
 	/**
@@ -203,19 +204,39 @@ class Context {
 	}
 
 	/**
+	 * `{server}` and `{members}`.
+	 *
+	 * Off the cached guild object, so they cost a Map lookup and are always
+	 * available — unlike the ticket variables below, there is nothing to gate.
+	 */
+	guildVars() {
+		const guild = this.client?.guilds?.cache?.get(this.guildId);
+		return {
+			members: guild?.memberCount ?? '',
+			server: guild?.name ?? '',
+		};
+	}
+
+	/**
 	 * The variables one string needs, resolved.
 	 *
 	 * Only touches the database when the text actually references a ticket
-	 * placeholder: an automation that posts a fixed string should not pay for a
-	 * ticket lookup to find that out.
+	 * placeholder — an automation that posts a fixed string should not pay for a
+	 * ticket lookup to find that out. Which placeholders those are is declared in
+	 * `lib/placeholders.js` rather than in a regex here, so adding one that costs
+	 * a read cannot forget to open the gate.
 	 */
 	async varsFor(text) {
-		if (!/{+\s?(opener\w*|num(ber)?)\s?}+/i.test(String(text ?? ''))) return this.vars;
+		const base = {
+			...this.guildVars(),
+			...this.vars,
+		};
+		if (!needsLazy(String(text ?? ''))) return base;
 		return {
 			...await this.ticketVars(),
 			// Trigger-supplied values win: `{num}` never comes from a trigger
 			// today, but a trigger that knows better should not be overruled.
-			...this.vars,
+			...base,
 		};
 	}
 

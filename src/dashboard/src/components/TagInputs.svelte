@@ -1,9 +1,15 @@
 <script>
-	import { getContext } from 'svelte';
 	import { marked } from 'marked';
 	import Required from './Required.svelte';
+	import PlaceholderPicker from './PlaceholderPicker.svelte';
+	import { placeholders, preview } from '$lib/placeholders.js';
+
 	/** @type {{tag: any}} */
 	let { tag = $bindable() } = $props();
+
+	const catalogue = placeholders();
+
+	let contentEl = $state();
 </script>
 
 <div>
@@ -35,19 +41,25 @@
 			class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 			title="The tag content"
 		></i>
-		<textarea class="input form-input h-24" maxlength="4096" required bind:value={tag.content}
+		<textarea
+			bind:this={contentEl}
+			class="input form-input h-24"
+			maxlength="4096"
+			required
+			bind:value={tag.content}
 		></textarea>
 	</label>
+	<div class="mt-1">
+		<PlaceholderPicker target={contentEl} context="tag" />
+	</div>
 	{#if tag.content}
 		<p class="text-sm font-medium">Preview</p>
 		<div
 			class="block w-full break-words prose prose-slate dark:prose-invert prose-a:text-blurple rounded-md bg-slate-100 p-3 font-mono text-sm shadow-sm dark:bg-slate-900"
 		>
-			{@html marked.parse(
-				tag.content
-					.replace(/\n/g, '\n\n')
-					.replace(/{+\s?(user)?name\s?}+/gi, '@' + getContext('user').username)
-			)}
+			<!-- The preview used to substitute {name} while the bot posted the raw
+			     braces. Both now go through the same table. -->
+			{@html marked.parse(preview(catalogue, 'tag', tag.content.replace(/\n/g, '\n\n')))}
 		</div>
 	{/if}
 </div>

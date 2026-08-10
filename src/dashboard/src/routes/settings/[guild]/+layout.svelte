@@ -1,8 +1,18 @@
 <script>
+	import { untrack } from 'svelte';
+	import { setPlaceholders } from '$lib/placeholders.js';
+
 	/** @type {{data: any, children?: import('svelte').Snippet}} */
 	let { data, children } = $props();
 
 	const { guild } = data;
+
+	// Every editor with a placeholder-accepting field lives under this layout, so
+	// context reaches all of them without a prop being drilled through four
+	// component levels.
+	// `untrack`: the catalogue is a build-time description of the software, so
+	// reading it once is the whole intent.
+	setPlaceholders(untrack(() => data.placeholders));
 </script>
 
 <div class="text-center">

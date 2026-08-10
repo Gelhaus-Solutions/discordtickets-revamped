@@ -11,6 +11,7 @@ const {
 const { saveHtmlTranscript } = require('../../lib/tickets/transcript-html');
 const { reconcileCustomization } = require('../../lib/customization');
 const { sampleGauges } = require('../../lib/metrics');
+const { substituteIn } = require('../../lib/placeholders');
 const temporal = require('../../lib/temporal');
 
 /**
@@ -175,13 +176,10 @@ module.exports = class extends Listener {
 					await client.keyv.set(cacheKey, cached, ms('15m'));
 				}
 				const activity = { ...client.config.presence.activities[next] };
-				activity.name = activity.name
-					.replace(/{+avgResolutionTime}+/gi, cached.avgResolutionTime)
-					.replace(/{+avgResponseTime}+/gi, cached.avgResponseTime)
-					.replace(/{+avgRating}+/gi, cached.avgRating)
-					.replace(/{+guilds}+/gi, cached.guilds)
-					.replace(/{+openTickets}+/gi, cached.openTickets)
-					.replace(/{+totalTickets}+/gi, cached.totalTickets);
+				// Scoped to the presence context on purpose: `{openTickets}` and
+				// `{guilds}` are counts across every server the bot is in, and must
+				// never be reachable from anything a server admin can type.
+				activity.name = substituteIn('presence', activity.name, cached);
 				client.user.setPresence({
 					activities: [activity],
 					status: client.config.presence.status,

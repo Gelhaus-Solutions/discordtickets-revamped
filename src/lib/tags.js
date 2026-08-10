@@ -18,6 +18,28 @@ const {
 	MAX_PATTERN_LENGTH, isSafePattern,
 } = require('./regex');
 
+/**
+ * The substitution variables a tag's content is rendered with.
+ *
+ * Tags did not substitute anything at all: the dashboard previewed `{name}`
+ * being filled in and the bot posted the braces. Both call sites — `/tag` and
+ * the pattern match in `messageCreate` — now go through here, so the preview and
+ * the message agree.
+ *
+ * `{name}` is a mention rather than a username, matching what it means in an
+ * opening message: a tag is a reply to a person.
+ */
+function tagVars({
+	guild = null, member = null,
+} = {}) {
+	return {
+		displayname: member?.displayName ?? '',
+		members: guild?.memberCount ?? '',
+		name: member?.id ? `<@${member.id}>` : '',
+		server: guild?.name ?? '',
+	};
+}
+
 class TagError extends Error {
 	constructor(message) {
 		super(message);
@@ -72,5 +94,6 @@ function validateTagBody(body, { partial = true } = {}) {
 
 module.exports = {
 	TagError,
+	tagVars,
 	validateTagBody,
 };

@@ -43,6 +43,10 @@ const {
 	isValidEmoji,
 	resolveEmoji,
 } = require('./emoji');
+const {
+	needsStats,
+	substitute,
+} = require('./placeholders');
 const { automationCustomId } = require('./automations/discord');
 
 const LAYOUT_VERSION = 1;
@@ -169,68 +173,12 @@ const resolveColour = (value, fallback = null) => {
 	return null;
 };
 
-/** Every placeholder there is, in one pass. Longest alternatives first. */
-const PLACEHOLDER = /{+\s?(username|name|nickname|displayname|openerdisplayname|openernickname|openermention|openername|opener|number|num|avatar|avgResponseTime|avgResolutionTime|avgRating|match[1-9])\s?}+/gi;
-
 /**
- * One placeholder to one value.
- *
- * The `opener*` family is the ticket's creator rather than whoever set the run
- * off, which is the difference that matters in an automation: `{name}` on a
- * "button is pressed" run is the staff member who pressed it.
+ * Placeholder substitution lives in `src/lib/placeholders.js`, which is the one
+ * declaration of what `{name}` and its dozen siblings mean and where each of
+ * them works. Re-exported from here because six modules already import it from
+ * this file, and moving the implementation should not move the import site.
  */
-const substituteOne = (token, vars) => {
-	switch (token.toLowerCase()) {
-	case 'name':
-	case 'username':
-		return vars.name ?? '';
-	case 'nickname':
-	case 'displayname':
-		return vars.displayname ?? vars.name ?? '';
-	case 'opener':
-	case 'openername':
-		return vars.opener ?? '';
-	case 'openernickname':
-	case 'openerdisplayname':
-		return vars.openerdisplayname ?? vars.opener ?? '';
-	case 'openermention':
-		return vars.openermention ?? '';
-	case 'num':
-	case 'number':
-		return vars.num ?? '';
-	case 'avatar':
-		return vars.avatar ?? '';
-	case 'avgresponsetime':
-		return vars.avgResponseTime ?? '';
-	case 'avgresolutiontime':
-		return vars.avgResolutionTime ?? '';
-	case 'avgrating':
-		return vars.avgRating ?? '';
-	// Capture groups from an automation's message pattern. Numbered rather
-	// than open-ended on purpose: this is the only placeholder whose value is
-	// someone else's message text, so it stays a fixed, known set.
-	default:
-		return vars[token.toLowerCase()] ?? '';
-	}
-};
-
-/**
- * The variable substitution that `manager.js` used to do inline. Applied to every
- * author-supplied string in a layout: text content, section text, button labels,
- * URLs and media descriptions.
- *
- * One pass on purpose: a chain of `.replace()` calls substitutes into text it has
- * already substituted, so a member nicknamed `{match1}` would pick up whatever a
- * message pattern captured. Nothing a placeholder expands to is looked at again.
- */
-const substitute = (str, vars = {}) => {
-	if (typeof str !== 'string') return str;
-	return str.replace(PLACEHOLDER, (_, token) => String(substituteOne(token, vars)));
-};
-
-/** Does this layout reference any of the stats variables? Replaces the old `needsStats` regex. */
-const needsStats = layout =>
-	/{+\s?(avgResponseTime|avgResolutionTime|avgRating)\s?}+/i.test(JSON.stringify(layout ?? ''));
 
 let idCounter = 0;
 const blockId = prefix => `${prefix}-${(idCounter++).toString(36)}`;
