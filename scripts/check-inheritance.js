@@ -104,7 +104,9 @@ const guildWith = overrides => {
 	/* ──────────────── empty values are overrides, not absences ──────────────── */
 
 	t('an empty array at the category stops the chain for every role field', () => {
-		const roleFields = I.INHERITED_FIELDS.filter(f => I.INHERITED[f].json);
+		// `merge` fields (priorityEmojis) are JSON but combine rather than replace,
+		// and are covered on their own below.
+		const roleFields = I.INHERITED_FIELDS.filter(f => I.INHERITED[f].json && !I.INHERITED[f].merge);
 		assert.ok(roleFields.length >= 4, 'expected at least four role fields');
 		for (const f of roleFields) {
 			const resolved = I.resolveCategory(
@@ -147,6 +149,67 @@ const guildWith = overrides => {
 	t('a guild value of zero stops the chain at the guild', () => {
 		const resolved = I.resolveCategory(emptyCategory(), guildWith({ memberLimit: 0 }));
 		assert.strictEqual(resolved.memberLimit, 0);
+	});
+
+	/* ─────────────────────── priority emojis merge per key ─────────────────────── */
+
+	t('priority emojis fall back to the built-ins when nothing is set', () => {
+		const r = I.resolveCategory(emptyCategory(), guildWith({}));
+		assert.deepStrictEqual(r.priorityEmojis, I.PRIORITY_EMOJI_DEFAULTS);
+	});
+
+	t('NONE has no emoji by default', () => {
+		// A ticket with no priority has never carried one, and giving NONE a
+		// default would mark every ticket in every guild on upgrade.
+		assert.strictEqual(I.PRIORITY_EMOJI_DEFAULTS.NONE, '');
+	});
+
+	t('a category overriding one priority still inherits the others', () => {
+		const r = I.resolveCategory(
+			{
+				...emptyCategory(),
+				priorityEmojis: { HIGH: '🚨' },
+			},
+			guildWith({ priorityEmojis: { MEDIUM: '🟡' } }),
+		);
+		assert.strictEqual(r.priorityEmojis.HIGH, '🚨', 'category key should win');
+		assert.strictEqual(r.priorityEmojis.MEDIUM, '🟡', 'guild key should survive');
+		assert.strictEqual(r.priorityEmojis.LOW, I.PRIORITY_EMOJI_DEFAULTS.LOW, 'built-in should survive');
+	});
+
+	t('an empty string turns one priority emoji off without inheriting it', () => {
+		const r = I.resolveCategory(
+			{
+				...emptyCategory(),
+				priorityEmojis: { HIGH: '' },
+			},
+			guildWith({ priorityEmojis: { HIGH: '🚨' } }),
+		);
+		assert.strictEqual(r.priorityEmojis.HIGH, '');
+	});
+
+	t('a junk priority map degrades to the level above rather than throwing', () => {
+		for (const junk of ['nonsense', 42, ['🔴'], { HIGH: 5 }]) {
+			const r = I.resolveCategory(
+				{
+					...emptyCategory(),
+					priorityEmojis: junk,
+				},
+				guildWith({}),
+			);
+			assert.deepStrictEqual(r.priorityEmojis, I.PRIORITY_EMOJI_DEFAULTS, `junk: ${JSON.stringify(junk)}`);
+		}
+	});
+
+	t('the merged map always has all four keys', () => {
+		const r = I.resolveCategory(emptyCategory(), guildWith({ priorityEmojis: { HIGH: '🚨' } }));
+		assert.deepStrictEqual(Object.keys(r.priorityEmojis).sort(), ['HIGH', 'LOW', 'MEDIUM', 'NONE']);
+	});
+
+	t('merging never returns the shared defaults object', () => {
+		const r = I.resolveCategory(emptyCategory(), guildWith({}));
+		r.priorityEmojis.HIGH = 'polluted';
+		assert.strictEqual(I.PRIORITY_EMOJI_DEFAULTS.HIGH, '🔴');
 	});
 
 	/* ───────────────────────────── purity ───────────────────────────── */

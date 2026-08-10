@@ -30,6 +30,43 @@ const { Prisma } = require('@prisma/client');
  * handed to a caller that pushes to it would corrupt the default for every
  * category resolved afterwards, in a way that only shows up under load.
  */
+/**
+ * The channel-name emoji for each priority.
+ *
+ * `NONE` is `''`, not a colour. The old `getEmoji` returned 🔵 for an
+ * *unrecognised* priority, which `/priority`'s three fixed choices made
+ * unreachable — a ticket with no priority has never had an emoji, and giving
+ * `NONE` a default would put one on every ticket in every guild on upgrade.
+ */
+const PRIORITY_EMOJI_DEFAULTS = {
+	HIGH: '🔴',
+	LOW: '🟢',
+	MEDIUM: '🟠',
+	NONE: '',
+};
+
+/**
+ * Merge the priority maps level by level.
+ *
+ * Per *key*, not wholesale: its three scalar siblings resolve one setting at a
+ * time, and a whole-map replace would mean setting `{HIGH: '🚨'}` on a category
+ * silently detached MEDIUM and LOW from the server default — a change nobody
+ * asked for and nothing shows.
+ *
+ * Presence-based rather than a `||` chain, so `''` (no emoji for that priority)
+ * overrides instead of falling through.
+ */
+const mergePriorityEmojis = (...levels) => {
+	const out = { ...PRIORITY_EMOJI_DEFAULTS };
+	for (const level of levels) {
+		if (!level || typeof level !== 'object' || Array.isArray(level)) continue;
+		for (const key of Object.keys(PRIORITY_EMOJI_DEFAULTS)) {
+			if (typeof level[key] === 'string') out[key] = level[key];
+		}
+	}
+	return out;
+};
+
 const INHERITED = {
 	blockedRoles: {
 		builtin: () => [],
@@ -39,6 +76,17 @@ const INHERITED = {
 	channelName: {
 		builtin: () => 'ticket-{num}',
 		guild: 'channelName',
+	},
+	// The claim tick, as it has always been. '' turns it off.
+	claimedEmoji: {
+		builtin: () => '✅',
+		guild: 'claimedEmoji',
+	},
+	// Nothing by default: a channel-mode ticket's channel is deleted on close, so
+	// this only ever shows on threads and forums, and it did not exist before.
+	closedEmoji: {
+		builtin: () => '',
+		guild: 'closedEmoji',
 	},
 	// NULL is "no cooldown", which is also what 0 means to `manager.js`. The
 	// difference is that 0 is a *choice* and NULL is an absence, and only the
@@ -55,6 +103,12 @@ const INHERITED = {
 		builtin: () => [],
 		guild: 'pingRoles',
 		json: true,
+	},
+	priorityEmojis: {
+		builtin: () => ({ ...PRIORITY_EMOJI_DEFAULTS }),
+		guild: 'priorityEmojis',
+		json: true,
+		merge: mergePriorityEmojis,
 	},
 	ratelimit: {
 		builtin: () => null,
@@ -73,6 +127,12 @@ const INHERITED = {
 	totalLimit: {
 		builtin: () => 50,
 		guild: 'totalLimit',
+	},
+	// Nothing while a ticket is open and unclaimed, which is what the bot did
+	// before the prefix was configurable.
+	unclaimedEmoji: {
+		builtin: () => '',
+		guild: 'unclaimedEmoji',
 	},
 };
 
@@ -110,8 +170,13 @@ const isSet = value => value !== null && value !== undefined;
 function guildDefaults(guild) {
 	const defaults = {};
 	for (const field of INHERITED_FIELDS) {
-		const value = guild?.[INHERITED[field].guild];
-		defaults[field] = isSet(value) ? value : INHERITED[field].builtin();
+		const {
+			builtin, guild: column, merge,
+		} = INHERITED[field];
+		const value = guild?.[column];
+		// A merging field combines the levels rather than picking one, so a guild
+		// that sets a single key still inherits the rest.
+		defaults[field] = merge ? merge(value) : isSet(value) ? value : builtin();
 	}
 	return defaults;
 }
@@ -135,10 +200,17 @@ function guildDefaults(guild) {
  */
 function resolveCategory(category, guild = category?.guild) {
 	if (!category) return category;
-	const defaults = guildDefaults(guild);
 	const resolved = { ...category };
 	for (const field of INHERITED_FIELDS) {
-		if (!isSet(category[field])) resolved[field] = defaults[field];
+		const {
+			builtin, guild: column, merge,
+		} = INHERITED[field];
+		if (merge) {
+			resolved[field] = merge(guild?.[column], category[field]);
+		} else if (!isSet(category[field])) {
+			const value = guild?.[column];
+			resolved[field] = isSet(value) ? value : builtin();
+		}
 	}
 	return resolved;
 }
@@ -188,8 +260,10 @@ module.exports = {
 	GUILD_JSON_NULLABLE,
 	INHERITED,
 	INHERITED_FIELDS,
+	PRIORITY_EMOJI_DEFAULTS,
 	categoryOverrides,
 	dbNulls,
 	guildDefaults,
+	mergePriorityEmojis,
 	resolveCategory,
 };

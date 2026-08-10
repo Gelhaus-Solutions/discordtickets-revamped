@@ -148,7 +148,13 @@ model Category {
     blockedRoles     Json?
     channelMode      ChannelMode @default(CHANNEL)
     channelName      String?     // inheritable
+    // The channel-name prefix when a ticket is claimed. Inheritable; '' is a
+    // deliberate "no emoji" and NULL asks the guild.
+    claimedEmoji     String?
     claiming         Boolean     @default(false)
+    // Only ever visible on THREAD/FORUM categories: a channel-mode ticket has
+    // its channel deleted on close, so there is no name left to prefix.
+    closedEmoji      String?
     createdAt        DateTime    @default(now())
     cooldown         Int?        // inheritable; 0 is an explicit "no cooldown"
     customTopic      String?
@@ -169,6 +175,9 @@ model Category {
     openingMessage   String      @db.Text
     pingRoles        Json?       // inheritable
     primaryCategories Category[] @relation("CategoryBackup")
+    // { HIGH, MEDIUM, LOW, NONE }, merged per key rather than wholesale, so
+    // overriding one priority does not detach the other three from the guild.
+    priorityEmojis   Json?
     questions        Question[]
     ratelimit        Int?        // inheritable; 0 is an explicit "slow mode off"
     requiredRoles    Json?       // inheritable
@@ -179,6 +188,9 @@ model Category {
     totalLimit       Int?        // inheritable
 
     @@map("categories")
+    // The prefix while a ticket is open and unclaimed. Defaults to nothing,
+    // which is what the bot did before this was configurable.
+    unclaimedEmoji   String?
 }
 
 model Feedback {
@@ -217,7 +229,9 @@ model Guild {
     botUsername       String?      @db.VarChar(255)
     categories        Category[]
     channelName       String?      // category default
+    claimedEmoji      String?      // category default
     claimButton       Boolean      @default(false)
+    closedEmoji       String?      // category default
     closeButton       Boolean      @default(false)
     closeReasonButton Boolean      @default(false)
     cooldown          Int?         // category default
@@ -232,6 +246,7 @@ model Guild {
     memberLimit       Int?         // category default
     panels            Panel[]
     pingRoles         Json?        // category default
+    priorityEmojis    Json?        // category default
     primaryColour     String       @default("#009999")
     ratelimit         Int?         // category default
     reopenWindow      Int          @default(0)
@@ -242,6 +257,7 @@ model Guild {
     tags              Tag[]
     tickets           Ticket[]
     totalLimit        Int?         // category default
+    unclaimedEmoji    String?      // category default
     workingHours      Json         @default("[\"UTC\", [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"], [\"00:00\",\"23:59\"]]")
 
     @@map("guilds")
@@ -341,6 +357,12 @@ model Ticket {
     createdBy           User              @relation(name: "TicketsCreatedByUser", fields: [createdById], references: [id])
     createdById         String            @db.VarChar(19)
     deleted             Boolean           @default(false)
+    // An emoji pinned to this ticket by `action.ticket.setEmoji` or /emoji. It
+    // replaces the state emoji and survives claims, releases and moves; only an
+    // automation, the command, or the ticket closing clears it. `scope` is
+    // 'state' (keep the priority emoji) or 'all' (be the whole prefix).
+    emojiOverride       String?
+    emojiOverrideScope  String?
     feedback            Feedback?
     firstResponseAt     DateTime?
     guild               Guild             @relation(fields: [guildId], references: [id], onDelete: Cascade)
