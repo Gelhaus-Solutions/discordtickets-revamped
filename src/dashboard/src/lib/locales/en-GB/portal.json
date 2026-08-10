@@ -1,0 +1,24 @@
+{
+	"home": {
+		"your_tickets": "Your tickets",
+		"your_tickets_desc": "Tickets you have opened in this server.",
+		"no_open_tickets": "You have no open tickets here.",
+		"open_from_discord": "Tickets are opened from Discord, using this server's ticket panel or the /new command.",
+		"load_failed": "Your tickets could not be loaded.",
+		"no_topic": "No topic",
+		"opened": "Opened {when}",
+		"claimed": "Claimed",
+		"unclaimed": "Unclaimed",
+		"show_closed": "Show closed tickets",
+		"hide_closed": "Hide closed tickets",
+		"closed_tickets": "Closed tickets",
+		"no_closed_tickets": "You have no closed tickets here.",
+		"staff": {
+			"heading": "Needs attention",
+			"open": "Open",
+			"unclaimed": "Unclaimed",
+			"awaiting": "Waiting on staff",
+			"view_all": "Open the staff dashboard"
+		}
+	}
+}
