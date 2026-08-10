@@ -10,6 +10,7 @@ const {
 } = require('../../../../../lib/settings/inheritance');
 const { updateStaffRoles } = require('../../../../../lib/users');
 const { isValidChannelEmoji } = require('../../../../../lib/emoji');
+const { STATE_FIELDS } = require('../../../../../lib/tickets/emoji-settings');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
 // The bot profile fields live behind the customization endpoint. botAvatar and
@@ -100,7 +101,7 @@ function validateJsonFields(data) {
 
 	// The server-wide emoji defaults. Read on every channel-name write, so junk
 	// here breaks claim/release/priority/close for every category that inherits.
-	for (const field of ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji']) {
+	for (const field of STATE_FIELDS) {
 		// null = no server default, '' = deliberately no emoji; both pass.
 		if (!(field in data) || !data[field]) continue;
 		if (!isValidChannelEmoji(data[field])) {
