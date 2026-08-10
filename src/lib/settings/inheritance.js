@@ -26,11 +26,6 @@
 const { Prisma } = require('@prisma/client');
 
 /**
- * `builtin` is a factory rather than a value for the array cases: a shared `[]`
- * handed to a caller that pushes to it would corrupt the default for every
- * category resolved afterwards, in a way that only shows up under load.
- */
-/**
  * The channel-name emoji for each priority.
  *
  * `NONE` is `''`, not a colour. The old `getEmoji` returned 🔵 for an
@@ -67,6 +62,16 @@ const mergePriorityEmojis = (...levels) => {
 	return out;
 };
 
+/**
+ * Every setting a category can inherit.
+ *
+ * `builtin` is a factory rather than a value: a shared `[]` handed to a caller
+ * that pushes to it would corrupt the default for every category resolved
+ * afterwards, in a way that only shows up under load.
+ *
+ * `merge`, where present, combines the levels instead of picking one of them —
+ * see `priorityEmojis`.
+ */
 const INHERITED = {
 	blockedRoles: {
 		builtin: () => [],
