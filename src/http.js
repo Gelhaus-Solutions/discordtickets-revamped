@@ -200,6 +200,52 @@ module.exports = async client => {
 		if (!guildMember) return res;
 	});
 
+	/**
+	 * Guild staff, for the read-only staff views in the public portal.
+	 *
+	 * Deliberately not `isAdmin` with a smaller number: there is no elevated
+	 * scope check here, so no `elevate: 'admin'` body and no second trip through
+	 * OAuth. These endpoints only read, and asking a moderator to grant
+	 * `applications.commands.permissions.update` so they can look at a list of
+	 * tickets would be both alarming and pointless — the scope exists for
+	 * writing command permissions, which staff never do.
+	 *
+	 * The banned-guild 451 is kept, because a banned guild should not be served
+	 * at all, and so is the service-token bypass, which in practice belongs to a
+	 * SUPER and therefore scores 4 anyway.
+	 *
+	 * Not to be confused with `isStaff` in ./lib/users, which takes
+	 * `(guild, userId)` and answers the role question. This is the Fastify hook
+	 * around `getPrivilegeLevel`, which consults it.
+	 */
+	fastify.decorate('isStaff', async (req, res) => {
+		const guildId = req.params.guild;
+		const guild = client.guilds.cache.get(guildId);
+		if (!guild) {
+			return res.code(404).send({
+				error: 'Not Found',
+				message: 'The requested resource could not be found.',
+				statusCode: 404,
+			});
+		}
+		if (client.banned_guilds.has(guildId)) {
+			return res.code(451).send({
+				error: 'Unavailable For Legal Reasons',
+				message: 'This guild has been banned for breaking the terms of service.',
+				statusCode: 451,
+			});
+		}
+		const guildMember = await fetchRequesterMember(req, res, guild);
+		if (!guildMember) return res;
+		if (await getPrivilegeLevel(guildMember) < 1) {
+			return res.code(403).send({
+				error: 'Forbidden',
+				message: 'You are not permitted for this action.',
+				statusCode: 403,
+			});
+		}
+	});
+
 	fastify.decorate('isAdmin', async (req, res) => {
 		const guildId = req.params.guild;
 		const guild = client.guilds.cache.get(guildId);
