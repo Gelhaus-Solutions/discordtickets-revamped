@@ -42,7 +42,7 @@ const t = (name, fn) => {
 
 	t('a script tag cannot be smuggled through a code block', () => {
 		const html = md('```\n<script>alert(1)</script>\n```');
-		assert.ok(!/<script>/.test(html));
+		assert.ok(!/<script>/i.test(html));
 		assert.ok(html.includes('&lt;script&gt;'));
 	});
 
