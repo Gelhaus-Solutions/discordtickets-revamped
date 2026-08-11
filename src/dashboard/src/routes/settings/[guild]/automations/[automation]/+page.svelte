@@ -46,6 +46,8 @@
 			catalogue: data.catalogue,
 			categories: data.categories,
 			channels: data.channels,
+			footer: data.settings?.footer ?? '',
+			primaryColour: data.settings?.primaryColour ?? '#009999',
 			questions: data.categories.flatMap((c) => c.questions ?? []),
 			roles: data.roles
 		}))

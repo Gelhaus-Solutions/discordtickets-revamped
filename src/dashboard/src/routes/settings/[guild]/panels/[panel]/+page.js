@@ -4,10 +4,15 @@ import { error } from '@sveltejs/kit';
 export async function load({ fetch, params }) {
 	const fetchOptions = { credentials: 'include' };
 
-	const [categories, channels, settings, automations] = await Promise.all([
+	const [categories, channels, roles, settings, automations] = await Promise.all([
 		fetch(`/api/admin/guilds/${params.guild}/categories`, fetchOptions).then((r) => r.json()),
 		fetch(`/api/admin/guilds/${params.guild}/data?query=channels.cache`, fetchOptions).then(
 			(r) => r.json()
+		),
+		// Only so the preview can turn `<@&id>` into a role name; a failure here
+		// costs a nicer mention chip, not the page.
+		fetch(`/api/admin/guilds/${params.guild}/data?query=roles.cache`, fetchOptions).then((r) =>
+			r.ok ? r.json() : []
 		),
 		// `/settings` carries primaryColour and footer; the guild root returns stats.
 		fetch(`/api/admin/guilds/${params.guild}/settings`, fetchOptions).then((r) =>
@@ -32,6 +37,7 @@ export async function load({ fetch, params }) {
 			categories,
 			channels,
 			panel: null,
+			roles,
 			settings
 		};
 	}
@@ -51,6 +57,7 @@ export async function load({ fetch, params }) {
 		categories,
 		channels,
 		panel: body,
+		roles,
 		settings
 	};
 }

@@ -19,6 +19,9 @@ export function createEditorState(initial = {}) {
 		buttonTriggers: [],
 		categories: initial.categories ?? [],
 		channels: initial.channels ?? [],
+		/** Guild footer and accent colour, for the message previews. */
+		footer: initial.footer ?? '',
+		primaryColour: initial.primaryColour ?? '#009999',
 		problems: [],
 		questions: initial.questions ?? [],
 		roles: initial.roles ?? [],

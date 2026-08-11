@@ -16,10 +16,20 @@
 	 * @property {string} [context]
 	 * @property {string} [primaryColour]
 	 * @property {string} [footer]
+	 * @property {any[]} [roles] resolves `<@&id>` mentions to a name
+	 * @property {any[]} [channels] resolves `<#id>` mentions to a name
 	 */
 
 	/** @type {Props} */
-	let { layout, categories, context = 'panel', primaryColour = '#009999', footer = '' } = $props();
+	let {
+		layout,
+		categories,
+		context = 'panel',
+		primaryColour = '#009999',
+		footer = '',
+		roles = [],
+		channels = []
+	} = $props();
 
 	const components = $derived(countComponents(layout));
 	const characters = $derived(countText(layout));
@@ -32,7 +42,16 @@
 	const catalogue = placeholders();
 	const substitute = (str) => preview(catalogue, context, str);
 
-	const md = (str) => renderMarkdown(substitute(str ?? ''), { breaks: true });
+	// Substitute, then render: the same order the bot uses, so a placeholder whose
+	// sample value contains markdown previews the way the sent message will read.
+	const md = (str) =>
+		renderMarkdown(substitute(str ?? ''), {
+			breaks: true,
+			mentions: {
+				channels,
+				roles
+			}
+		});
 
 	const previewUrl = (url) => {
 		const resolved = substitute(url ?? '');
@@ -42,10 +61,12 @@
 	const categoryName = (id) => categories.find((c) => c.id === id)?.name ?? 'Unknown category';
 	const categoryEmoji = (id) => displayEmoji(categories.find((c) => c.id === id)?.emoji);
 
+	// Substituted but never rendered as markdown: Discord does not format button
+	// labels, so a preview that did would be flattering rather than accurate.
 	const buttonLabel = (button) => {
-		if (button.kind === 'link') return button.label || 'Link';
-		if (button.kind === 'automation') return button.label || 'Automation';
-		return button.label || categoryName(button.categoryId);
+		if (button.kind === 'link') return substitute(button.label || 'Link');
+		if (button.kind === 'automation') return substitute(button.label || 'Automation');
+		return substitute(button.label || categoryName(button.categoryId));
 	};
 
 	// Mirrors `buildButton`: the button's own emoji wins, then the category's.
@@ -132,11 +153,21 @@
 		<div
 			class="rounded bg-gray-200 px-3 py-2 text-sm text-gray-600 dark:bg-slate-700 dark:text-slate-300"
 		>
-			{block.placeholder || 'Select a category'}
+			{substitute(block.placeholder || 'Select a category')}
 			<i class="fa-solid fa-angle-down float-right"></i>
 		</div>
 	{:else if block.type === 'footer'}
-		<p class="text-xs text-gray-500 dark:text-slate-400">{footer || 'No footer set'}</p>
+		<!--
+			Nothing at all when there is no footer, because that is what the message
+			will contain: the bot returns no component for an unset footer. The block
+			stays in the editor column either way, so it is still configurable.
+			It renders as `-# <footer>` there, which is markdown, so it gets `md()`.
+		-->
+		{#if footer}
+			<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+			<p class="text-xs text-gray-500 dark:text-slate-400">{@html md(footer)}</p>
+		{/if}
 	{:else if block.type === 'mentions'}
 		<p class="text-sm">
 			<span class="rounded bg-blurple/20 px-1 text-blurple">@staff</span>

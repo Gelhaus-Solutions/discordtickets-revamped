@@ -61,7 +61,7 @@
 			     braces. Both now go through the same table. -->
 			<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
 			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-			{@html renderMarkdown(preview(catalogue, 'tag', tag.content.replace(/\n/g, '\n\n')))}
+			{@html renderMarkdown(preview(catalogue, 'tag', tag.content))}
 		</div>
 	{/if}
 </div>

@@ -360,11 +360,7 @@
 								<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
 								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 								{@html renderMarkdown(
-									preview(
-										catalogue,
-										'channelName',
-										(category.channelName ?? inherited.channelName ?? '').replace(/\n/g, '\n\n')
-									)
+									preview(catalogue, 'channelName', category.channelName ?? inherited.channelName ?? '')
 								)}
 							</span>
 						</div>
@@ -772,6 +768,8 @@
 								context="opening"
 								primaryColour={data.settings.primaryColour}
 								footer={data.settings.footer ?? ''}
+								roles={data.roles}
+								channels={data.channels}
 							/>
 						</div>
 					{/if}
