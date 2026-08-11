@@ -88,45 +88,74 @@
 	<title>{t('common:title', { guild: guild.name, client: client.username })}</title>
 </svelte:head>
 
-<div>
-
-	{#if guild.privilegeLevel > 0 && counts}
-		<!--
-			A strip of totals, not a second table. The staff page owns the list; this
-			is here so a staff member landing on the guild page can see at a glance
-			whether anything needs them, and click through.
-		-->
-		<div class="mb-6 rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
-			<div class="flex flex-wrap items-center gap-2 text-sm">
-				<span class="font-semibold">{t('home.staff.heading')}</span>
+<!--
+	The settings index's layout: destination tiles on the left, a card for the
+	thing you are looking at on the right. Same two-column grid, same tile and
+	card classes, so crossing between the portal and the settings panel does not
+	feel like changing product.
+-->
+<div class="grid grid-cols-1 gap-12 md:grid-cols-2">
+	<div>
+		{#if guild.privilegeLevel > 0}
+			<div class="grid grid-cols-2 gap-4 text-center sm:grid-cols-3">
 				<a
-					href={`/${slug}/staff?filter=all`}
-					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
+					href={`/${slug}/staff`}
+					class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
 				>
-					{counts.open}
-					{t('home.staff.open')}
+					<i class="fas fa-user-group mb-4 text-4xl"></i>
+					<p class="text-center text-lg font-semibold">{t('common:staff_dashboard')}</p>
 				</a>
-				<a
-					href={`/${slug}/staff?filter=unclaimed`}
-					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
-				>
-					{counts.unclaimed}
-					{t('home.staff.unclaimed')}
-				</a>
-				<a
-					href={`/${slug}/staff?filter=awaiting_staff`}
-					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
-				>
-					{counts.awaitingStaff}
-					{t('home.staff.awaiting')}
-				</a>
-				<a href={`/${slug}/staff`} class="ml-auto underline decoration-dotted hover:decoration-solid">
-					{t('home.staff.view_all')}
-				</a>
+				{#if guild.privilegeLevel >= 2}
+					<!-- The real snowflake, deliberately: this one belongs to /settings. -->
+					<a
+						href={`/settings/${guild.id}`}
+						class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+					>
+						<i class="fas fa-gear mb-4 text-4xl"></i>
+						<p class="text-center text-lg font-semibold">{t('common:settings_panel')}</p>
+					</a>
+				{/if}
 			</div>
-		</div>
-	{/if}
+		{/if}
+	</div>
 
+	<div>
+		<div class="rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
+			<div
+				class="flex items-center justify-center gap-4 rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+			>
+				<img src={guild.logo} alt="" class="h-12 rounded-full" />
+				<p>
+					<span class="text-2xl font-bold">{guild.name}</span>
+				</p>
+			</div>
+
+			{#if guild.privilegeLevel > 0 && counts}
+				<!--
+					Totals only. The staff page owns the list; these are here so someone
+					landing on the guild page can see whether anything needs them, and
+					click straight into the matching bucket.
+				-->
+				<div class="mt-4 grid grid-cols-3 gap-4 text-center">
+					<a href={`/${slug}/staff?filter=all`} class="link rounded-xl p-2">
+						<p class="text-2xl font-bold">{counts.open}</p>
+						<p class="text-sm text-gray-500 dark:text-slate-400">{t('home.staff.open')}</p>
+					</a>
+					<a href={`/${slug}/staff?filter=unclaimed`} class="link rounded-xl p-2">
+						<p class="text-2xl font-bold">{counts.unclaimed}</p>
+						<p class="text-sm text-gray-500 dark:text-slate-400">{t('home.staff.unclaimed')}</p>
+					</a>
+					<a href={`/${slug}/staff?filter=awaiting_staff`} class="link rounded-xl p-2">
+						<p class="text-2xl font-bold">{counts.awaitingStaff}</p>
+						<p class="text-sm text-gray-500 dark:text-slate-400">{t('home.staff.awaiting')}</p>
+					</a>
+				</div>
+			{/if}
+		</div>
+	</div>
+</div>
+
+<div class="mt-12">
 	<h2 class="text-xl font-bold">{t('home.your_tickets')}</h2>
 	<p class="mb-3 text-base text-gray-500 dark:text-slate-400">{t('home.your_tickets_desc')}</p>
 

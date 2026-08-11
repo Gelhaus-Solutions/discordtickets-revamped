@@ -152,8 +152,9 @@
 </svelte:head>
 
 <div>
-	<h1 class="text-3xl font-bold">{t('staff.heading')}</h1>
-	<p class="mb-4 text-base text-gray-500 dark:text-slate-400">
+	<!-- The heading convention every settings page uses. -->
+	<h1 class="m-4 text-center text-4xl font-bold">{t('staff.heading')}</h1>
+	<p class="mb-6 text-center text-base text-gray-500 dark:text-slate-400">
 		{t('staff.subheading', { guild: guild.name })}
 	</p>
 

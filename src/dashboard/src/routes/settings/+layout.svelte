@@ -13,6 +13,13 @@
 	const client = $derived(data.client);
 	const user = $derived(data.user);
 	const theme = $derived(data.theme);
+
+	// The portal page for the guild being administered, when there is one.
+	// `$page.params.guild` here is the real snowflake, and the portal keys off a
+	// base36 slug, so it has to be converted rather than pasted.
+	const portalHref = $derived(
+		$page.params.guild ? `/${BigInt($page.params.guild).toString(36)}` : '/'
+	);
 	let mounted = $state(false);
 	let cookies = $state({});
 	onMount(() => {
@@ -107,8 +114,16 @@
 					{@render children?.()}
 					<footer class="my-16 text-center">
 						<div class="mb-6 p-2 text-sm">
+							<!--
+								Back to *this guild's* portal page, not the server picker. Going
+								to `/` meant anyone administering one server was bounced to a
+								list to pick it again, and there was no short way back to the
+								staff dashboard from inside settings at all. The portal
+								addresses guilds by base36 slug — a raw id here would be
+								rewritten straight back into /settings by `reroute()`.
+							-->
 							<a
-								href="/"
+								href={portalHref}
 								class="cursor-pointer text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
 							>
 								<i class="fa-solid fa-arrow-left"></i>

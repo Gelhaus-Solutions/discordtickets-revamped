@@ -22,70 +22,40 @@
 	// Portal links use the base36 slug the visitor arrived on, never `guild.id`.
 	// `reroute()` in hooks.server.js rewrites any path whose first segment is all
 	// digits to `/settings/<id>`, so a numeric id here would quietly teleport the
-	// user into the admin panel. The settings link is the one exception — it
-	// *wants* that tree, so it uses the real id.
+	// user into the admin panel.
 	const slug = $derived($page.params.guild);
-
-	/**
-	 * The bar itself is never gated, only the individual links.
-	 *
-	 * Gating the whole thing on `privilegeLevel > 0` left an ordinary member on a
-	 * page with no navigation at all: nothing identifying the server, and no way
-	 * back to the guild home from anywhere they landed.
-	 */
-	const links = $derived(
-		[
-			{ href: `/${slug}`, icon: 'fa-house', label: t('common:home') },
-			guild.privilegeLevel > 0 && {
-				href: `/${slug}/staff`,
-				icon: 'fa-user-group',
-				label: t('common:staff_dashboard')
-			},
-			guild.privilegeLevel >= 2 && {
-				href: `/settings/${guild.id}`,
-				icon: 'fa-gear',
-				label: t('common:settings_panel')
-			}
-		].filter(Boolean)
-	);
+	const atHome = $derived($page.url.pathname === `/${slug}`);
 </script>
 
 <svelte:head>
 	<link rel="icon" href={`${guild.logo}`} />
 </svelte:head>
 
+<!--
+	Structured like `settings/+layout.svelte`: the shared TopBar, the page, then
+	a footer that leads back out. The portal used to carry its own guild header
+	bar with a row of nav pills, which had no counterpart on the settings side
+	and made crossing between them feel like two different applications. The
+	guild's identity is a card on its home page now, exactly as it is there.
+-->
 <div class="text-gray-800 dark:text-slate-300">
 	<div class="m-2 sm:m-6 lg:m-12">
 		<div class="mx-auto max-w-7xl">
 			<TopBar {user} {theme} />
-
-			<div class="mb-8 rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
-				<div class="flex flex-wrap items-center gap-4 sm:mx-8">
-					<div class="flex items-center gap-3">
-						{#if guild.logo}
-							<img src={guild.logo} alt="" class="h-10 w-10 rounded-full" />
-						{/if}
-						<span class="text-lg font-bold">{guild.name}</span>
-					</div>
-					<nav class="ml-auto flex flex-wrap gap-2">
-						{#each links as link (link.href)}
-							<a
-								href={link.href}
-								aria-current={$page.url.pathname === link.href ? 'page' : undefined}
-								class="rounded-lg px-3 py-1.5 text-sm transition duration-300 {$page.url
-									.pathname === link.href
-									? 'bg-blurple text-white'
-									: 'bg-gray-100 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple'}"
-							>
-								<i class="fa-solid {link.icon} mr-1"></i>
-								{link.label}
-							</a>
-						{/each}
-					</nav>
-				</div>
-			</div>
-
 			{@render children?.()}
+			{#if !atHome}
+				<footer class="my-16 text-center">
+					<div class="mb-6 p-2 text-sm">
+						<a
+							href={`/${slug}`}
+							class="cursor-pointer text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
+						>
+							<i class="fa-solid fa-arrow-left"></i>
+							{t('common:back_to', { guild: guild.name })}
+						</a>
+					</div>
+				</footer>
+			{/if}
 		</div>
 	</div>
 </div>
