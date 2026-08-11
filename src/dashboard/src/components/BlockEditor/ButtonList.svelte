@@ -93,7 +93,7 @@
 				{#if button.kind === 'ticket'}
 					<label class="text-sm">
 						<span class="font-medium">Category</span>
-						<select class="input form-multiselect text-sm" bind:value={button.categoryId}>
+						<select class="input form-select text-sm" bind:value={button.categoryId}>
 							<option value={null} disabled>Choose a category</option>
 							{#each categories as category}
 								<option value={category.id}>{category.name}</option>
@@ -104,7 +104,7 @@
 					<label class="text-sm">
 						<span class="font-medium">Runs</span>
 						<select
-							class="input form-multiselect text-sm"
+							class="input form-select text-sm"
 							value={valueOf(button)}
 							onchange={(e) => pickTarget(button, e.currentTarget.value)}
 						>
@@ -163,7 +163,7 @@
 				{#if button.kind === 'ticket' || button.kind === 'automation'}
 					<label class="text-sm">
 						<span class="font-medium">Colour</span>
-						<select class="input form-multiselect text-sm" bind:value={button.style}>
+						<select class="input form-select text-sm" bind:value={button.style}>
 							{#if button.kind === 'ticket'}
 								<option value={null}>Automatic</option>
 							{/if}

@@ -348,7 +348,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which channels should the bot respond with tags in?"
 					></i>
-					<select class="input form-multiselect block font-normal" bind:value={autoTag}>
+					<select class="input form-select block font-normal" bind:value={autoTag}>
 						<option value="custom">Specific channels</option>
 						<option value="ticket">Only ticket channels</option>
 						<option value="!ticket">All non-ticket channels</option>
@@ -510,7 +510,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which language should the bot respond in?"
 					></i>
-					<select class="input form-multiselect" bind:value={settings.locale}>
+					<select class="input form-select" bind:value={settings.locale}>
 						{#each locales as locale}
 							<option value={locale} class="p-1">
 								<!-- <i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400" /> -->
@@ -527,7 +527,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which channel should logs be sent to?"
 					></i>
-					<select class="input form-multiselect" bind:value={settings.logChannel}>
+					<select class="input form-select" bind:value={settings.logChannel}>
 						<option value="">None</option>
 						<hr />
 						{#each channels as channel}
@@ -718,7 +718,7 @@
 					<label class="font-medium">
 						Slow mode
 						<select
-							class="input form-multiselect font-normal"
+							class="input form-select font-normal"
 							value={settings.ratelimit ?? ''}
 							onchange={(e) =>
 								(settings.ratelimit = e.target.value === '' ? null : Number(e.target.value))}
@@ -812,7 +812,7 @@
 						per-field — block the action it exists to configure.
 					-->
 					<select
-						class="input form-multiselect font-normal"
+						class="input form-select font-normal"
 						bind:value={applyField}
 						onchange={(e) => e.stopPropagation()}
 					>

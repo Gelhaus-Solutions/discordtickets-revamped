@@ -81,7 +81,7 @@
 							<PlaceholderPicker target={labelEls[i]} context={field.placeholders} />
 						{/if}
 						<select
-							class="input form-multiselect text-sm"
+							class="input form-select text-sm"
 							value={valueOf(button)}
 							onchange={(e) => pickTarget(i, e.currentTarget.value)}
 						>
@@ -102,7 +102,7 @@
 							{/if}
 						</select>
 						<select
-							class="input form-multiselect text-sm"
+							class="input form-select text-sm"
 							value={button.style ?? 'primary'}
 							onchange={(e) => set(i, { style: e.currentTarget.value })}
 						>

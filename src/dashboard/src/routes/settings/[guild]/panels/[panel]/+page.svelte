@@ -106,7 +106,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="The channel the panel message is posted in"
 					></i>
-					<select required class="input form-multiselect font-normal" bind:value={channel}>
+					<select required class="input form-select font-normal" bind:value={channel}>
 						{#if isNew}
 							<option value="new">Create a new channel</option>
 						{/if}

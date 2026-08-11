@@ -122,7 +122,7 @@
 										title="What type of input should the question use?"
 									></i>
 									<select
-										class="input form-multiselect text-sm"
+										class="input form-select text-sm"
 										required
 										bind:value={q.type}
 										onchange={() => applyTypeDefaults(qS.questions[i])}

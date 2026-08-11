@@ -92,7 +92,7 @@
 		<label class="text-sm">
 			<span class="font-medium">Style</span>
 			<select
-				class="input form-multiselect text-sm"
+				class="input form-select text-sm"
 				value={block.divider === false ? 'space' : 'line'}
 				onchange={(e) => (block.divider = e.currentTarget.value === 'line')}
 			>
@@ -102,7 +102,7 @@
 		</label>
 		<label class="text-sm">
 			<span class="font-medium">Size</span>
-			<select class="input form-multiselect text-sm" bind:value={block.spacing}>
+			<select class="input form-select text-sm" bind:value={block.spacing}>
 				<option value="small">Small</option>
 				<option value="large">Large</option>
 			</select>
@@ -132,7 +132,7 @@
 		<label class="text-sm">
 			<span class="font-medium">Categories</span>
 			<select
-				class="input form-multiselect text-sm"
+				class="input form-select text-sm"
 				value={block.categoryIds === null ? 'all' : 'some'}
 				onchange={(e) =>
 					(block.categoryIds = e.currentTarget.value === 'all' ? null : categories.map((c) => c.id))}
@@ -217,7 +217,7 @@
 		<label class="text-sm">
 			<span class="font-medium">Accessory</span>
 			<select
-				class="input form-multiselect text-sm"
+				class="input form-select text-sm"
 				value={block.accessory?.kind ?? 'thumbnail'}
 				onchange={(e) => setAccessoryKind(e.currentTarget.value)}
 			>
