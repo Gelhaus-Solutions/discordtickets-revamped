@@ -35,6 +35,82 @@
 	.marked {
 		@apply inline-block;
 	}
+
+	/*
+	 * Discord markdown, as rendered by `$lib/markdown.js` for the previews.
+	 *
+	 * Blocks are spans rather than `<h1>`/`<blockquote>`/`<li>`, because the
+	 * renderer emits one line at a time and `prose` would then impose its own
+	 * article-sized margins on a chat message. These approximate Discord's own
+	 * sizes instead.
+	 */
+	.heading,
+	.bullet,
+	.quote,
+	.subtext {
+		@apply block;
+	}
+
+	.heading {
+		@apply font-bold;
+	}
+
+	.heading-1 {
+		@apply text-xl;
+	}
+
+	.heading-2 {
+		@apply text-lg;
+	}
+
+	.heading-3 {
+		@apply text-base;
+	}
+
+	.subtext {
+		@apply text-xs text-gray-500 dark:text-slate-400;
+	}
+
+	.quote {
+		@apply border-l-4 border-gray-400 pl-2 dark:border-slate-500;
+	}
+
+	.bullet {
+		@apply pl-4 before:mr-1 before:content-['•'];
+	}
+
+	.mention {
+		@apply rounded bg-blurple/20 px-1 font-medium text-blurple;
+	}
+
+	.timestamp {
+		@apply rounded bg-gray-500/20 px-1;
+	}
+
+	.emoji {
+		@apply inline-block h-5 w-5 align-text-bottom;
+	}
+
+	.inline-code {
+		@apply rounded bg-gray-200 px-1 font-mono text-sm dark:bg-slate-900;
+	}
+
+	.code-block {
+		@apply my-1 overflow-x-auto rounded bg-gray-200 p-2 font-mono text-sm dark:bg-slate-900;
+	}
+
+	/*
+	 * Hidden until hovered or focused, like the real thing. Focusable so it can
+	 * be revealed without a mouse; `:hover` alone would strand keyboard users.
+	 */
+	.spoiler {
+		@apply cursor-pointer rounded bg-gray-700 text-transparent dark:bg-slate-900;
+	}
+
+	.spoiler:hover,
+	.spoiler:focus {
+		@apply bg-gray-700/30 text-inherit dark:bg-slate-900/30;
+	}
 }
 
 /*

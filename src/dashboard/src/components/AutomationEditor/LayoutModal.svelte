@@ -37,6 +37,8 @@
 	 * @property {any} catalogue the placeholder catalogue, re-provided below
 	 * @property {string} [primaryColour]
 	 * @property {string} [footer]
+	 * @property {any[]} [roles] for resolving role mentions in the preview
+	 * @property {any[]} [channels] for resolving channel mentions in the preview
 	 * @property {(layout: any) => void} onsave
 	 */
 
@@ -53,6 +55,8 @@
 		catalogue = null,
 		primaryColour = '#009999',
 		footer = '',
+		roles = [],
+		channels = [],
 		onsave
 	} = $props();
 
@@ -122,6 +126,8 @@
 						{context}
 						{primaryColour}
 						{footer}
+						{roles}
+						{channels}
 					/>
 				</div>
 			</div>

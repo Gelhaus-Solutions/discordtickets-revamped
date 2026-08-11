@@ -153,6 +153,8 @@
 			context="panel"
 			primaryColour={data.settings?.primaryColour ?? '#009999'}
 			footer={data.settings?.footer ?? ''}
+			roles={data.roles}
+			channels={data.channels}
 		/>
 
 		<div class="flex justify-center gap-2">

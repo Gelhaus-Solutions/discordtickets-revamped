@@ -18,6 +18,13 @@ export async function load({ fetch, params }) {
 			: [fetch(`/api/admin/guilds/${params.guild}/automations/${params.automation}`)])
 	];
 
+	// In flight alongside the others, but kept out of the array so it skips the
+	// strict check below: this only feeds the message preview's footer and accent
+	// colour, and a settings hiccup should not take the whole canvas down.
+	const settingsRequest = fetch(`/api/admin/guilds/${params.guild}/settings`)
+		.then((r) => (r.ok ? r.json() : {}))
+		.catch(() => ({}));
+
 	const responses = await Promise.all(requests);
 	for (const response of responses) {
 		if (response.ok) continue;
@@ -26,9 +33,8 @@ export async function load({ fetch, params }) {
 		error(response.status, isJSON ? JSON.stringify(body) : body);
 	}
 
-	const [catalogue, roles, channels, categories, siblings, automation] = await Promise.all(
-		responses.map((r) => r.json())
-	);
+	const [[catalogue, roles, channels, categories, siblings, automation], settings] =
+		await Promise.all([Promise.all(responses.map((r) => r.json())), settingsRequest]);
 
 	return {
 		automation: automation ?? null,
@@ -55,6 +61,10 @@ export async function load({ fetch, params }) {
 			.map((r) => {
 				const hex = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
 				return { ...r, _style: hex ? `color: ${hex}` : '' };
-			})
+			}),
+		// Only the two fields the message preview needs. The bot renders the guild
+		// footer and accent colour on automation messages too, so a preview without
+		// them is showing a message that will not be sent.
+		settings
 	};
 }

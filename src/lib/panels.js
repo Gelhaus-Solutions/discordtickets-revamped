@@ -196,9 +196,24 @@ function collectCategoryIds(layout, allCategoryIds = []) {
  * returned `messageId` persisted *after*, so a Discord outage can only ever cost
  * a message id, never an admin's work.
  *
- * @returns {Promise<{synced: boolean, messageId: ?string, reason?: string, recreated?: boolean}>}
+ * Two modes, because "re-send" and "save my edit" are different intentions:
+ *
+ * - `edit` (the default) keeps the message where it is. This is what saving a
+ *   panel does — changing a word should not move the panel to the bottom of the
+ *   channel and re-ping everyone reading it.
+ * - `repost` always sends a new message and then removes the old one, which is
+ *   what people press "Re-send" for: the panel has scrolled up the channel and
+ *   they want it back at the bottom.
+ *
+ * `repost` posts *before* it deletes. The other order guarantees a single panel
+ * but leaves the guild with none at all when the send then fails, and a send is
+ * far likelier to fail (permissions, layout, rate limits) than a delete.
+ *
+ * @param {object} [options]
+ * @param {'edit'|'repost'} [options.mode]
+ * @returns {Promise<{synced: boolean, messageId: ?string, reason?: string, recreated?: boolean, removedOld?: boolean}>}
  */
-async function syncPanel(client, panel) {
+async function syncPanel(client, panel, { mode = 'edit' } = {}) {
 	const channel = await client.channels.fetch(panel.channelId).catch(() => null);
 	if (!channel) {
 		// Deliberately does not create a channel: that only happens on create,
@@ -212,7 +227,7 @@ async function syncPanel(client, panel) {
 
 	const payload = await renderPanel(client, panel);
 
-	if (panel.messageId) {
+	if (panel.messageId && mode !== 'repost') {
 		const existing = await channel.messages.fetch(panel.messageId).catch(() => null);
 		// Never touch a message we do not own.
 		if (existing && existing.author?.id === client.user.id) {
@@ -236,9 +251,27 @@ async function syncPanel(client, panel) {
 	}
 
 	const sent = await channel.send(payload);
+
+	// Only a repost has an old message to clear up; the fall-through from a failed
+	// edit got here because the message was already gone.
+	let removedOld;
+	if (mode === 'repost' && panel.messageId) {
+		// Deliberately swallows everything rather than just the three "already
+		// gone / not ours" codes `deletePanelMessage` handles. The new panel is
+		// already live at this point, so throwing would fail a request that has
+		// in fact succeeded and lose the new message id — leaving two panels in
+		// the channel and the database pointing at the wrong one. The caller
+		// reports `removedOld: false` instead, and the admin removes it by hand.
+		removedOld = await deletePanelMessage(client, panel).catch(error => {
+			client.log.warn('Could not delete the old message for panel %s: %s', panel.id, error?.message ?? error);
+			return false;
+		});
+	}
+
 	return {
 		messageId: sent.id,
 		recreated: Boolean(panel.messageId),
+		removedOld,
 		synced: true,
 	};
 }

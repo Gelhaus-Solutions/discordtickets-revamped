@@ -28,10 +28,17 @@
 			automations: editor.buttonAutomations ?? [],
 			catalogue,
 			categories: editor.categories ?? [],
+			channels: editor.channels ?? [],
 			context: field.kind ?? 'message',
+			// The preview renders the guild's footer and accent colour because the
+			// bot does too (`actions.js` passes both into the message context). Left
+			// out, the preview claimed there was no footer on guilds that have one.
+			footer: editor.footer ?? '',
 			layout,
 			nodeTargets: editor.buttonTriggers ?? [],
 			onsave: onchange,
+			primaryColour: editor.primaryColour ?? '#009999',
+			roles: editor.roles ?? [],
 			title: field.label ?? 'Message'
 		});
 </script>
