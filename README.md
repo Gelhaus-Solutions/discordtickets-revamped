@@ -2,20 +2,15 @@
 
 > A fork of [discord-tickets/bot](https://github.com/discord-tickets/bot), with more features, and less bugs.
 
-## Changes
-A quick overview of what has changed:
-- Thread mode, for unlimited tickets, and better overview.
-- Forum mode, for creating tickets in a forum channel. (Used for public support, uncommon use-case)
-- A feedback portal with all the feedback given by the users.
-- Merged the UI (discordtickets-portal) into this repo for better overview, and easier changes.
-- HTML Transcripts, alongside a central dashboard for all of them for admins.
-- Auto-Assign feature. (The first to comment staff member will get assigned)
-- Backup categories. (for the standard ticket method, channel)
-- "Close with Reason" button.
-- No "total limit" for Threads / Forum tickets.
-- Bot appearance customization, per-server.
-- All async and scheduled work (stale-ticket handling, auto-close, transcript export/import, cron) runs on [Temporal](https://temporal.io) instead of in-process timers.
-- And much more!
+## What's different
+
+Tickets as **threads or forum posts** as well as channels, a visual
+**automation** builder, **panels** and message layouts edited in a block editor,
+**HTML transcripts**, a **member portal** and staff queue, per-server **bot
+customisation**, and durable scheduling on [Temporal](https://temporal.io).
+
+**[FORK.md](FORK.md) explains every difference from upstream** — what each
+feature does, what was removed, and why.
 
 ## Requirements
 
