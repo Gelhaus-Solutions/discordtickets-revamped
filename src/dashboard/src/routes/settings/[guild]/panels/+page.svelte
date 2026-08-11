@@ -1,5 +1,6 @@
 <script>
 	import { page } from '$app/stores';
+	import { toasts, ToastContainer, BootstrapToast } from 'svelte-toasts';
 	import ErrorBox from '$components/ErrorBox.svelte';
 
 	/**
@@ -41,17 +42,48 @@
 		if (response.ok) panels = await response.json();
 	};
 
-	const resend = async (panel) => {
+	/**
+	 * Push a panel to Discord again.
+	 *
+	 * `repost` posts a new message and drops the old one — the panel comes back at
+	 * the bottom of the channel, which is the whole point of a re-send. `edit`
+	 * changes the message where it is, so a correction does not move the panel or
+	 * re-notify everyone who has the channel open.
+	 *
+	 * @param {'repost'|'edit'} mode
+	 */
+	const sync = async (panel, mode) => {
 		try {
 			error = null;
 			busy[panel.id] = true;
 			const response = await fetch(
-				`/api/admin/guilds/${$page.params.guild}/panels/${panel.id}/sync`,
+				`/api/admin/guilds/${$page.params.guild}/panels/${panel.id}/sync?mode=${mode}`,
 				{ credentials: 'include', method: 'POST' }
 			);
 			const body = await response.json();
 			if (!response.ok) throw body;
 			await refresh();
+
+			if (body.removedOld === false) {
+				// The new panel is live, so this is not a failure — but the old one
+				// is still in the channel and only the admin can clear it up.
+				toasts.add({
+					description:
+						'Posted a new panel, but the old message could not be deleted. Remove it in Discord yourself.',
+					duration: 8000,
+					type: 'warning'
+				});
+			} else {
+				toasts.add({
+					description:
+						mode === 'repost'
+							? panel.status === 'ok'
+								? 'Panel re-sent.'
+								: 'Panel posted.'
+							: 'Panel updated.',
+					type: 'success'
+				});
+			}
 		} catch (err) {
 			error = err;
 			window.scroll({ behavior: 'smooth', top: 0 });
@@ -134,7 +166,7 @@
 
 					{#if panel.status === 'unposted'}
 						<p class="mt-2 text-sm text-amber-600 dark:text-amber-400">
-							The message is no longer in Discord. Re-send it to put it back.
+							The message is no longer in Discord. Post it to put it back.
 						</p>
 					{:else if panel.status === 'channel_missing'}
 						<p class="mt-2 text-sm text-red-600 dark:text-red-400">
@@ -153,7 +185,10 @@
 							type="button"
 							disabled={busy[panel.id] || panel.status === 'channel_missing'}
 							class="rounded-lg bg-gray-200 px-4 py-2 font-medium transition duration-300 hover:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
-							onclick={() => resend(panel)}
+							title={panel.status === 'ok'
+								? 'Post a new message at the bottom of the channel and delete the old one'
+								: 'Post this panel to its channel'}
+							onclick={() => sync(panel, 'repost')}
 						>
 							{#if busy[panel.id]}
 								<i class="fa-solid fa-spinner animate-spin"></i>
@@ -162,6 +197,24 @@
 							{/if}
 							{panel.status === 'ok' ? 'Re-send' : 'Post'}
 						</button>
+						<!-- Only offered when there is a message to edit: with nothing posted,
+						     "Update" and "Post" would do the same thing. -->
+						{#if panel.status === 'ok'}
+							<button
+								type="button"
+								disabled={busy[panel.id]}
+								class="rounded-lg bg-gray-200 px-4 py-2 font-medium transition duration-300 hover:bg-gray-400 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-600 dark:hover:bg-slate-500"
+								title="Edit the existing message in place, leaving it where it is in the channel"
+								onclick={() => sync(panel, 'edit')}
+							>
+								{#if busy[panel.id]}
+									<i class="fa-solid fa-spinner animate-spin"></i>
+								{:else}
+									<i class="fa-solid fa-rotate"></i>
+								{/if}
+								Update
+							</button>
+						{/if}
 						<button
 							type="button"
 							disabled={busy[panel.id]}
@@ -176,3 +229,7 @@
 		</div>
 	{/if}
 </div>
+
+<ToastContainer let:data placement="bottom-right" duration={4000}>
+	<BootstrapToast {data} />
+</ToastContainer>

@@ -4,6 +4,8 @@
  *
  *   - a panel with no message is posted and its id recorded
  *   - a panel with a live message is edited *in place* (same message id)
+ *   - `mode: 'repost'` posts a new message and clears up the old one
+ *   - a repost whose clean-up fails still counts as a success
  *   - a panel whose message was deleted in Discord is reposted (self-healing)
  *   - a message the bot does not own is never edited or deleted
  *   - a panel whose channel is gone reports `channel_missing` instead of throwing
@@ -31,16 +33,22 @@ const BOT_ID = '999';
 
 /** Builds a fake client whose channels/messages behave like the cases we care about. */
 function makeClient({
-	channelMissing = false, messageMissing = false, messageAuthor = BOT_ID, editThrows = null,
+	channelMissing = false, messageMissing = false, messageAuthor = BOT_ID, editThrows = null, deleteThrows = null,
 } = {}) {
 	const sent = [];
 	const edited = [];
 	const deleted = [];
 	const channelDeletes = [];
+	const warnings = [];
 
 	const message = {
 		author: { id: messageAuthor },
 		delete: async () => {
+			if (deleteThrows) {
+				const err = new Error('boom');
+				err.code = deleteThrows;
+				throw err;
+			}
 			deleted.push('m1');
 		},
 		edit: async payload => {
@@ -97,6 +105,7 @@ function makeClient({
 					}[key] ?? `<<${key}>>`;
 				}),
 			},
+			log: { warn: (...args) => warnings.push(args) },
 			prisma: {
 				guild: {
 					findUnique: async () => ({
@@ -117,6 +126,7 @@ function makeClient({
 		deleted,
 		edited,
 		sent,
+		warnings,
 	};
 }
 
@@ -174,6 +184,85 @@ const panelRow = extra => ({
 		assert.strictEqual(h.sent.length, 0, 'nothing reposted');
 		assert.strictEqual(h.edited.length, 1);
 		assert.strictEqual(h.edited[0].flags, MessageFlags.IsComponentsV2, 'v2 flag re-asserted on edit');
+	});
+
+	await t('the default mode edits in place, so saving a panel never moves it', async () => {
+		const h = makeClient();
+		const r = await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), {});
+		assert.strictEqual(r.messageId, 'm1');
+		assert.strictEqual(h.sent.length, 0);
+	});
+
+	await t('repost sends a new message and deletes the old one', async () => {
+		const h = makeClient();
+		const r = await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), { mode: 'repost' });
+		assert.strictEqual(r.synced, true);
+		assert.strictEqual(r.messageId, 'm-new', 'a new message id');
+		assert.strictEqual(r.recreated, true);
+		assert.strictEqual(r.removedOld, true);
+		assert.strictEqual(h.edited.length, 0, 'the live message is not edited');
+		assert.strictEqual(h.sent.length, 1);
+		assert.deepStrictEqual(h.deleted, ['m1'], 'the old message is cleared up');
+	});
+
+	await t('repost posts before it deletes, so a panel is never briefly absent', async () => {
+		const order = [];
+		const h = makeClient();
+		const send = h.client.channels.fetch;
+		h.client.channels.fetch = async () => {
+			const channel = await send();
+			return {
+				...channel,
+				messages: {
+					fetch: async () => ({
+						...await channel.messages.fetch(),
+						delete: async () => order.push('delete'),
+					}),
+				},
+				send: async payload => {
+					order.push('send');
+					return await channel.send(payload);
+				},
+			};
+		};
+		await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), { mode: 'repost' });
+		assert.deepStrictEqual(order, ['send', 'delete']);
+	});
+
+	await t('a repost whose clean-up is refused still succeeds, flagged removedOld: false', async () => {
+		const h = makeClient({ deleteThrows: 50013 });
+		const r = await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), { mode: 'repost' });
+		assert.strictEqual(r.synced, true, 'the new panel is live, so this is not a failure');
+		assert.strictEqual(r.messageId, 'm-new');
+		assert.strictEqual(r.removedOld, false, 'the dashboard warns the admin to remove it by hand');
+		assert.strictEqual(h.sent.length, 1);
+	});
+
+	await t('an unexpected clean-up failure is logged, not thrown', async () => {
+		// Anything outside the "already gone / not ours" codes would otherwise
+		// escape `deletePanelMessage` and fail a request that has already posted.
+		const h = makeClient({ deleteThrows: 500 });
+		const r = await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), { mode: 'repost' });
+		assert.strictEqual(r.synced, true);
+		assert.strictEqual(r.removedOld, false);
+		assert.strictEqual(h.warnings.length, 1, 'and it is not silent');
+	});
+
+	await t('reposting an unposted panel just posts, with nothing to clean up', async () => {
+		const h = makeClient();
+		const r = await panels.syncPanel(h.client, panelRow(), { mode: 'repost' });
+		assert.strictEqual(r.messageId, 'm-new');
+		assert.strictEqual(r.removedOld, undefined, 'no old message, so nothing to report');
+		assert.deepStrictEqual(h.deleted, []);
+	});
+
+	await t('a repost into a missing channel reports channel_missing and posts nothing', async () => {
+		const h = makeClient({ channelMissing: true });
+		const r = await panels.syncPanel(h.client, panelRow({ messageId: 'm1' }), { mode: 'repost' });
+		assert.strictEqual(r.synced, false);
+		assert.strictEqual(r.reason, 'channel_missing');
+		assert.strictEqual(h.sent.length, 0);
+		assert.deepStrictEqual(h.deleted, [], 'and the old message survives');
 	});
 
 	await t('a panel whose message was deleted is reposted', async () => {
