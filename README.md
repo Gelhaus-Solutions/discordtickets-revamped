@@ -100,6 +100,10 @@ Set `DT_SKIP_DASHBOARD_BUILD=true` to skip the automatic build during install.
 Releases build it in CI, so nothing has to be committed or built on the target
 machine.
 
+## Support
+
+Our support server on discord can be joined via the invite link: [https://discord.gg/PaxqZNnB5e](https://discord.gg/PaxqZNnB5e)
+
 ## Security
 
 See [SECURITY.md](.github/SECURITY.md) for how to report a vulnerability.
