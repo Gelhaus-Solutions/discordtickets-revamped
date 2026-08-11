@@ -19,11 +19,21 @@ import { dev } from '$app/environment';
 /* global globalThis */
 const sentry = () => globalThis.__DT_SENTRY__ ?? null;
 
+/**
+ * Send the old `/<guildId>/…` URLs to their `/settings/<guildId>/…` homes.
+ *
+ * Scoped to 17-20 digits rather than `\d+`, because the portal addresses the
+ * same guilds by a *base36* slug — `BigInt(id).toString(36)`, 11-12 characters
+ * — and an all-digit slug would otherwise be swallowed by this rule and land
+ * the visitor in the admin panel instead of the portal page they asked for.
+ * Snowflakes are 17-20 digits, so the two forms cannot overlap at that length.
+ *
+ * It also turns "linked with the raw id by mistake" into an honest 404 rather
+ * than a silent teleport into the settings tree.
+ */
 /** @type {import('@sveltejs/kit').Reroute} */
 export function reroute({ url }) {
-	// Redirect old URL format (e.g., /1234567890/feedback) to new format (e.g., /settings/1234567890/feedback)
-	// Only reroute if the path starts with a guild ID (numeric) and doesn't already have /settings/
-	const pathMatch = url.pathname.match(/^\/(\d+)(\/.*)?$/);
+	const pathMatch = url.pathname.match(/^\/(\d{17,20})(\/.*)?$/);
 	if (pathMatch && !url.pathname.startsWith('/settings/')) {
 		const guildId = pathMatch[1];
 		const rest = pathMatch[2] || '';
