@@ -20,8 +20,25 @@ module.exports = {
 	},
 	env: {
 		browser: true,
-		es2017: true,
+		// 2022, not 2017: the portal turns guild snowflakes into base36 slugs with
+		// `BigInt`, which es2017 does not know about and reported as an undefined
+		// global.
+		es2022: true,
 		node: true
+	},
+	rules: {
+		// `_` is the conventional throwaway, and Svelte's `{#each Array(5) as _, i}`
+		// needs a binding it will never read. Reporting those trained people to
+		// scroll past the rule rather than act on it.
+		'no-unused-vars': [
+			'error',
+			{
+				args: 'after-used',
+				argsIgnorePattern: '^_',
+				caughtErrorsIgnorePattern: '^_',
+				varsIgnorePattern: '^_'
+			}
+		]
 	},
 	// Runes are compiler intrinsics, not imports. `.svelte` files get them from
 	// svelte-eslint-parser; a `.svelte.js` module does not, so they are declared.

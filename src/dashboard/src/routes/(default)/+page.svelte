@@ -2,9 +2,9 @@
 	import { I18nLite } from '@eartharoid/i18n';
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
-	const { client, guilds, translations } = data;
-	const i18n = new I18nLite();
-	const t = i18n.loadParsed(...translations).createTranslator();
+	const client = $derived(data.client);
+	const guilds = $derived(data.guilds);
+	const t = $derived(new I18nLite().loadParsed(...data.translations).createTranslator());
 </script>
 
 <svelte:head>

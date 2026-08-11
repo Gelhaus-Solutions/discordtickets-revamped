@@ -1,11 +1,12 @@
 <script>
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { modals } from 'svelte-modals';
 	import DataModal from '$components/DataModal.svelte';
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
 
-	const { guild, problems } = data;
+	const guild = $derived(data.guild);
+	const problems = $derived(data.problems);
 
 	let createdAt = $state('');
 	onMount(() => {

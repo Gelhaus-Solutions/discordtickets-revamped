@@ -3,18 +3,13 @@
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
 
-	const { client, guilds } = data;
+	const client = $derived(data.client);
 
-	const good = [];
-	const bad = [];
-
-	guilds.forEach((g) => {
-		if (g.added) {
-			good.push(g);
-		} else {
-			bad.push(g);
-		}
-	});
+	// Split reactively rather than once at init: these two arrays used to be
+	// built from the guild list as it was on first render, so a navigation back
+	// to this page with a freshly-invited server still showed it as not added.
+	const good = $derived(data.guilds.filter((g) => g.added));
+	const bad = $derived(data.guilds.filter((g) => !g.added));
 
 	const formatter = new Intl.NumberFormat();
 </script>

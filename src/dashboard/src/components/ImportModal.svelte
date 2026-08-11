@@ -30,6 +30,17 @@
 	let submitted = $state(false);
 	let logs = $state('');
 
+	// The import streams its progress into `logs`, inside a fixed-height
+	// scrollbox. The element was already bound below but never declared, so the
+	// binding silently pointed at nothing and the box stayed at the top while
+	// the interesting output scrolled out of sight.
+	let logsContainer = $state();
+	$effect(() => {
+		// Read `logs` so this re-runs on every appended line.
+		void logs;
+		if (logsContainer) logsContainer.scrollTop = logsContainer.scrollHeight;
+	});
+
 	$effect(async () => {
 		if (file) {
 			loading = true;

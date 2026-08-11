@@ -10,7 +10,9 @@
 	/** @type {{data: import('./$types').PageData, children?: import('svelte').Snippet}} */
 	let { data, children } = $props();
 
-	const { client, user, theme } = data;
+	const client = $derived(data.client);
+	const user = $derived(data.user);
+	const theme = $derived(data.theme);
 	let mounted = $state(false);
 	let cookies = $state({});
 	onMount(() => {
@@ -55,8 +57,15 @@
 <div class="absolute h-max min-h-screen w-full bg-gray-200 dark:bg-slate-900">
 	<Modals>
 		{#snippet backdrop({ close })}
+			<!--
+				`presentation`, not `button`: the backdrop is a convenience for mouse
+				users and is not a control in its own right. Every modal it sits
+				behind has its own visible close affordance, which is what keyboard
+				users reach — so announcing this as a second button would be noise.
+			-->
 			<div
 				class="backdrop"
+				role="presentation"
 				transition:fade
 				onclick={() => close()}
 				onkeypress={() => close()}
@@ -74,12 +83,15 @@
 		>
 			<p>Cookies are being used to store credentials and preferences.</p>
 			<p>
-				<i
-					class="fa-sharp fa-solid fa-circle-xmark justify-self-end hover:cursor-pointer"
+				<button
+					type="button"
+					class="justify-self-end hover:cursor-pointer"
 					title="Dismiss"
+					aria-label="Dismiss the cookie notice"
 					onclick={dismissCookies}
-					onkeypress={dismissCookies}
-				></i>
+				>
+					<i class="fa-sharp fa-solid fa-circle-xmark"></i>
+				</button>
 			</p>
 		</div>
 	{/if}

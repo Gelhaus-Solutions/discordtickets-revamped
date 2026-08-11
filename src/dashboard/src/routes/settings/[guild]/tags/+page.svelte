@@ -11,8 +11,9 @@
 	let { data } = $props();
 
 	const url = `/api/admin/guilds/${$page.params.guild}/tags`;
-	let { tags } = data;
-	tS.tags = tags;
+	// Seeds the shared tag store, which the editor then owns.
+	// svelte-ignore state_referenced_locally
+	tS.tags = data.tags;
 	let shown = $state(tS.tags);
 	let loading = $state(false);
 	let error = $state(null);
@@ -179,8 +180,11 @@
 			{#each shown as tag, i}
 				<div class="rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
 					<span class="text-lg font-semibold">{tag.name}</span>
-					<p
-						class="cursor-pointer select-none text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
+					<!-- A disclosure control, so it needs to be a real button. -->
+					<button
+						type="button"
+						aria-expanded={expanded === tag.id}
+						class="w-full cursor-pointer select-none text-left text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
 						onclick={() => (expanded = expanded === tag.id ? null : tag.id)}
 					>
 						<i
@@ -189,7 +193,7 @@
 								: 'fa-angle-down'} float-right text-xl"
 						></i>
 						<span class="text-sm"> Click to {expanded === tag.id ? 'collapse' : 'expand'}</span>
-					</p>
+					</button>
 					{#if expanded === tag.id}
 						<div class="m-2">
 							<form onsubmit={preventDefault(() => save(tag))} id={tag.id} name={tag.name}>

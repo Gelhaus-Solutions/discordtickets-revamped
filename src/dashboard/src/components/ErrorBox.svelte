@@ -4,7 +4,10 @@
 	/** @type {{error?: any, boxStyles?: string}} */
 	let { error = {}, boxStyles = 'bg-red-400/40 dark:bg-red-500/20' } = $props();
 
-	console.error(error);
+	// In an effect, so a second error actually reaches the console. At the top
+	// level this logged only whatever the box was first constructed with, and
+	// this component is reused across retries.
+	$effect(() => console.error(error));
 </script>
 
 <div id="error" class="mx-auto my-8 max-w-xl overflow-x-auto break-words">

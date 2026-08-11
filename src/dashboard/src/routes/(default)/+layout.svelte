@@ -1,6 +1,5 @@
 <script>
 	import { onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
 	import { navigating } from '$app/stores';
 	// import { Modals } from 'svelte-modals';
 	import Spinner from '$components/Spinner.svelte';

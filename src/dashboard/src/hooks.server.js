@@ -16,7 +16,6 @@ import { dev } from '$app/environment';
  * global for exactly this purpose (a plain global, not `__SENTRY__`, which is
  * keyed by exact SDK version and would silently disconnect on an upgrade).
  */
-/* global globalThis */
 const sentry = () => globalThis.__DT_SENTRY__ ?? null;
 
 /**

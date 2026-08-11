@@ -33,6 +33,7 @@
 	// block editor keeps using its plain `openingMessage` text, and the bot
 	// derives the equivalent layout at send time. Only once someone opts in does
 	// the column get a value.
+	// svelte-ignore state_referenced_locally
 	let useBlockEditor = $state(Boolean(data.category?.messageLayout));
 
 	// Element references for the placeholder pickers, which insert at the caret.
@@ -74,6 +75,11 @@
 		return () => window.removeEventListener('beforeunload', handler);
 	});
 
+	// A local, mutable copy of the loaded row: this is an edit form, every field
+	// below is two-way bound to it, and Submit is what sends it back. It cannot
+	// be `$derived` — a derived is read-only, and re-deriving mid-edit would
+	// throw away what the user had typed.
+	// svelte-ignore state_referenced_locally
 	let { category, channels, roles, categories, url } = $state(data);
 
 	const slowmodes = [
@@ -112,13 +118,19 @@
 			return channels.filter((c) => c.type === 4);
 		}
 	});
+	// One pass, and copies rather than mutating the rows the loader handed over.
+	// svelte-ignore state_referenced_locally
 	roles = roles
 		.filter((r) => r.name !== '@everyone')
-		.sort((a, b) => b.rawPosition - a.rawPosition);
-	roles.forEach((r) => {
-		r._hexColor = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
-		r._style = r._hexColor ? `color: ${r._hexColor}` : '';
-	});
+		.sort((a, b) => b.rawPosition - a.rawPosition)
+		.map((r) => {
+			const hex = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
+			return {
+				...r,
+				_hexColor: hex,
+				_style: hex ? `color: ${hex}` : ''
+			};
+		});
 
 	/**
 	 * What each inheritable field falls back to when this category leaves it
