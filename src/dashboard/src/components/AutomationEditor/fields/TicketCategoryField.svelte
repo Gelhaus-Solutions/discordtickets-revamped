@@ -22,7 +22,7 @@
 	</p>
 {:else}
 	<select
-		class="input form-multiselect text-sm"
+		class="input form-select text-sm"
 		value={selected ?? ''}
 		onchange={(e) => onchange(e.currentTarget.value === '' ? null : Number(e.currentTarget.value))}
 	>

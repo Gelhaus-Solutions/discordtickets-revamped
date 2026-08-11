@@ -10,6 +10,8 @@
 	/** @type {Props} */
 	let { data } = $props();
 
+	// Mutable: `refresh()` re-fetches into this after a re-send or a delete.
+	// svelte-ignore state_referenced_locally
 	let panels = $state(data.panels);
 	let error = $state(null);
 	let busy = $state({});

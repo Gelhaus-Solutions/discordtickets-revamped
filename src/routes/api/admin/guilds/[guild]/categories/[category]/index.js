@@ -1,5 +1,6 @@
 const { logAdminEvent } = require('../../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../../lib/users');
+const { STATE_FIELDS } = require('../../../../../../../lib/tickets/emoji-settings');
 const {
 	LayoutError,
 	validateLayout,
@@ -53,7 +54,7 @@ function priorityEmojisError(value) {
  * @returns {?string}
  */
 function stateEmojiError(data) {
-	for (const field of ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji']) {
+	for (const field of STATE_FIELDS) {
 		if (!data[field]) continue;
 		if (!isValidChannelEmoji(data[field])) {
 			return `${field} must be an emoji that can appear in a channel name`;

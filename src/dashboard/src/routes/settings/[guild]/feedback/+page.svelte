@@ -26,17 +26,6 @@
 		return colors[rating] || 'bg-gray-100 dark:bg-gray-900/30';
 	};
 
-	const getColorForRating = (rating) => {
-		const colors = {
-			5: '#10b981', // green
-			4: '#3b82f6', // blue
-			3: '#f59e0b', // amber
-			2: '#f97316', // orange
-			1: '#ef4444'  // red
-		};
-		return colors[rating] || '#6b7280';
-	};
-
 	async function refreshData() {
 		isLoading = true;
 		try {
@@ -99,8 +88,9 @@
 		<h2 class="mb-4 text-xl font-bold">Filters</h2>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-4">
 			<div>
-				<label class="block text-sm font-medium mb-2">From Date</label>
+				<label for="feedback-since" class="block text-sm font-medium mb-2">From Date</label>
 				<input
+					id="feedback-since"
 					type="date"
 					value={formatDateForInput(sinceDate)}
 					onchange={(e) => (sinceDate = new Date(e.target.value))}
@@ -109,8 +99,9 @@
 				/>
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-2">To Date</label>
+				<label for="feedback-until" class="block text-sm font-medium mb-2">To Date</label>
 				<input
+					id="feedback-until"
 					type="date"
 					value={formatDateForInput(untilDate)}
 					onchange={(e) => (untilDate = new Date(e.target.value))}
@@ -119,8 +110,9 @@
 				/>
 			</div>
 			<div>
-				<label class="block text-sm font-medium mb-2">Category</label>
+				<label for="feedback-category" class="block text-sm font-medium mb-2">Category</label>
 				<select
+					id="feedback-category"
 					bind:value={selectedCategory}
 					class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-slate-600 dark:border-slate-500"
 					disabled={isLoading}

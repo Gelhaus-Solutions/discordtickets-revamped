@@ -24,6 +24,7 @@ export const WorkflowType = {
 	automationCron: 'automationCronWorkflow',
 	automationRetention: 'automationRetentionWorkflow',
 	deferredRename: 'deferredRenameWorkflow',
+	awaitingRename: 'awaitingRenameWorkflow',
 } as const;
 
 /** Coarse workflow classification, exposed as the `WorkflowKind` search attribute. */
@@ -55,6 +56,7 @@ export const SignalName = {
 	cancelStale: 'cancelStale',
 	reopen: 'reopen',
 	renameRequested: 'renameRequested',
+	awaitingChanged: 'awaitingChanged',
 } as const;
 
 /** Update names used across workflows. */
@@ -75,6 +77,12 @@ export const reopenWorkflowId = (ticketId: string): string => `reopen-${ticketId
 // One deferred rename per channel, so several requests inside one rate-limit
 // window coalesce into the single rename that eventually happens.
 export const renameWorkflowId = (ticketId: string): string => `rename-${ticketId}`;
+// Deliberately *not* `renameWorkflowId`. The two rename paths wait for
+// different things and their signal handlers disagree about what a new
+// deadline means, so sharing an id would have each silently swallow the
+// other's requests. They compose instead: this one decides when to try, and
+// `deferredRenameWorkflow` handles the rate limit saying no.
+export const awaitingRenameWorkflowId = (ticketId: string): string => `awaiting-rename-${ticketId}`;
 // Per-guild (no timestamp): a second concurrent export/import for the same
 // guild fails with WorkflowExecutionAlreadyStartedError, which the HTTP routes
 // surface as 429. Re-running after completion reuses the id (allowed).

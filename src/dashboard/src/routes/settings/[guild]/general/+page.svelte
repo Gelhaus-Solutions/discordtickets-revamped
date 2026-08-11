@@ -42,17 +42,31 @@
 		return () => window.removeEventListener('beforeunload', handler);
 	});
 
+	// A local, mutable copy of the loaded settings: this is an edit form, the
+	// fields below are two-way bound to it, and Submit sends it back. It cannot
+	// be `$derived` — a derived is read-only, and re-deriving mid-edit would
+	// discard what the user had typed.
+	// svelte-ignore state_referenced_locally
 	let { settings, channels, locales, roles } = $state(data);
 
 	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 	const expanded = $state({ workingHours: false });
 
+	// svelte-ignore state_referenced_locally
 	channels = channels.filter((c) => c.type === 0); // text
-	roles = roles.filter((r) => r.name !== '@everyone').sort((a, b) => b.rawPosition - a.rawPosition);
-	roles.forEach((r) => {
-		r._hexColor = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
-		r._style = r._hexColor ? `color: ${r._hexColor}` : '';
-	});
+	// One pass, and copies rather than mutating the rows the loader handed over.
+	// svelte-ignore state_referenced_locally
+	roles = roles
+		.filter((r) => r.name !== '@everyone')
+		.sort((a, b) => b.rawPosition - a.rawPosition)
+		.map((r) => {
+			const hex = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
+			return {
+				...r,
+				_hexColor: hex,
+				_style: hex ? `color: ${hex}` : ''
+			};
+		});
 	settings.autoClose = settings.autoClose ? ms(settings.autoClose) : '';
 	settings.logChannel = settings.logChannel ?? '';
 	settings.staleAfter = settings.staleAfter ? ms(settings.staleAfter) : '';
@@ -96,6 +110,12 @@
 			key: 'closedEmoji',
 			label: 'Closed',
 			title: 'Thread and Forum categories only — a channel-mode ticket is deleted on close.'
+		},
+		{
+			key: 'awaitingStaffEmoji',
+			label: 'Waiting on staff',
+			title:
+				'Shown while the last message is from the ticket author. Takes precedence over Open and Claimed. Leave empty to not use this at all — tickets then keep showing Open or Claimed as before.'
 		}
 	];
 
@@ -125,6 +145,7 @@
 		{ key: 'cooldown', label: 'Cooldown' },
 		{ key: 'ratelimit', label: 'Slow mode' },
 		...ROLE_DEFAULTS.map(({ key, label }) => ({ key, label })),
+		{ key: 'awaitingStaffEmoji', label: 'Waiting-on-staff emoji' },
 		{ key: 'claimedEmoji', label: 'Claimed emoji' },
 		{ key: 'closedEmoji', label: 'Closed emoji' },
 		{ key: 'unclaimedEmoji', label: 'Open emoji' },
@@ -327,7 +348,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which channels should the bot respond with tags in?"
 					></i>
-					<select class="input form-multiselect block font-normal" bind:value={autoTag}>
+					<select class="input form-select block font-normal" bind:value={autoTag}>
 						<option value="custom">Specific channels</option>
 						<option value="ticket">Only ticket channels</option>
 						<option value="!ticket">All non-ticket channels</option>
@@ -489,7 +510,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which language should the bot respond in?"
 					></i>
-					<select class="input form-multiselect" bind:value={settings.locale}>
+					<select class="input form-select" bind:value={settings.locale}>
 						{#each locales as locale}
 							<option value={locale} class="p-1">
 								<!-- <i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400" /> -->
@@ -506,7 +527,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="Which channel should logs be sent to?"
 					></i>
-					<select class="input form-multiselect" bind:value={settings.logChannel}>
+					<select class="input form-select" bind:value={settings.logChannel}>
 						<option value="">None</option>
 						<hr />
 						{#each channels as channel}
@@ -556,8 +577,11 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="When can your members expect staff to be available?"
 						></i>
-						<p
-							class="cursor-pointer select-none text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
+						<!-- A disclosure control, so it needs to be a real button. -->
+						<button
+							type="button"
+							aria-expanded={expanded.workingHours}
+							class="w-full cursor-pointer select-none text-left text-gray-500 transition duration-300 hover:text-blurple dark:text-slate-400 dark:hover:text-blurple"
 							onclick={() => (expanded.workingHours = !expanded.workingHours)}
 						>
 							<i
@@ -566,7 +590,7 @@
 									: 'fa-angle-down'} float-right text-xl"
 							></i>
 							<span class="text-sm"> Click to {expanded.workingHours ? 'collapse' : 'expand'}</span>
-						</p>
+						</button>
 					</div>
 
 					{#if expanded.workingHours}
@@ -694,7 +718,7 @@
 					<label class="font-medium">
 						Slow mode
 						<select
-							class="input form-multiselect font-normal"
+							class="input form-select font-normal"
 							value={settings.ratelimit ?? ''}
 							onchange={(e) =>
 								(settings.ratelimit = e.target.value === '' ? null : Number(e.target.value))}
@@ -714,7 +738,7 @@
 						Shown at the start of a ticket channel's name. "None" means no emoji;
 						leave a field untouched for the built-in default.
 					</p>
-					<div class="grid gap-4 md:grid-cols-3">
+					<div class="grid gap-4 md:grid-cols-2">
 						{#each STATE_EMOJI_FIELDS as { key, label, title } (key)}
 							<label class="font-medium">
 								{label}
@@ -788,7 +812,7 @@
 						per-field — block the action it exists to configure.
 					-->
 					<select
-						class="input form-multiselect font-normal"
+						class="input form-select font-normal"
 						bind:value={applyField}
 						onchange={(e) => e.stopPropagation()}
 					>

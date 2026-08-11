@@ -62,7 +62,9 @@
 	// silently come up empty. Re-provide it for this subtree.
 	setPlaceholders(untrack(() => catalogue));
 
-	// A clone, so Cancel really discards and Save really commits.
+	// A clone, so Cancel really discards and Save really commits. Snapshotting
+	// the prop once is the entire point — the draft must not track the original.
+	// svelte-ignore state_referenced_locally
 	let draft = $state(
 		structuredClone($state.snapshot(layout)) ?? defaultMessageLayout()
 	);

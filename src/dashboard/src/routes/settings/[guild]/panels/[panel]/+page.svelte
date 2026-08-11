@@ -17,6 +17,7 @@
 	let { data } = $props();
 
 	const isNew = $derived($page.params.panel === 'new');
+	// svelte-ignore state_referenced_locally
 	const channels = data.channels.filter((c) => c.type === 0); // text channels
 
 	/** A sensible starting point: a container with a heading and a button row. */
@@ -36,8 +37,13 @@
 		return { ...newLayout(), blocks: [container] };
 	};
 
+	// The editor's working copy of the panel. Seeded once and then owned by the
+	// form — deriving these would overwrite an in-progress edit.
+	// svelte-ignore state_referenced_locally
 	let name = $state(data.panel?.name ?? 'Ticket panel');
+	// svelte-ignore state_referenced_locally
 	let channel = $state(data.panel?.channelId ?? 'new');
+	// svelte-ignore state_referenced_locally
 	let layout = $state(data.panel?.layout ?? starterLayout());
 	let error = $state(null);
 	let loading = $state(false);
@@ -100,7 +106,7 @@
 						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 						title="The channel the panel message is posted in"
 					></i>
-					<select required class="input form-multiselect font-normal" bind:value={channel}>
+					<select required class="input form-select font-normal" bind:value={channel}>
 						{#if isNew}
 							<option value="new">Create a new channel</option>
 						{/if}

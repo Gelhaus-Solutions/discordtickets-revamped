@@ -18,7 +18,14 @@
 <div class="my-8 rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
 	<div class="grid grid-cols-1 gap-4 sm:mx-8 md:grid-cols-2">
 		<div>
-			<a href={base + '/settings'} class="flex justify-center md:justify-start">
+			<!--
+				The portal root, not the settings picker. This is the closest thing
+				the dashboard has to a home button, and it sits on portal pages too —
+				where sending someone into the admin panel is the wrong destination
+				entirely. `/` picks a server, and goes straight to it when there is
+				only one.
+			-->
+			<a href={base + '/'} class="flex justify-center md:justify-start">
 				<span class="text-lg font-bold text-blurple">Discord Tickets</span>
 			</a>
 		</div>
@@ -39,19 +46,20 @@
 					<span class="ml-3">{user.username}</span>
 				</a>
 				<div class="ml-4">
-					{#if theme === 'dark'}
-						<i
-							class="fa-solid fa-moon cursor-pointer p-1 text-lg transition duration-300 hover:text-blurple"
-							title="Switch to light mode"
-							onclick={() => toggle()}
-						></i>
-					{:else}
-						<i
-							class="fa-solid fa-sun cursor-pointer p-1 text-lg transition duration-300 hover:text-blurple"
-							title="Switch to dark mode"
-							onclick={() => toggle()}
-						></i>
-					{/if}
+					<!--
+						A real button, not a clickable <i>: this is the only way to change
+						the theme, and as a bare icon it could not be reached by keyboard
+						or announced by a screen reader at all.
+					-->
+					<button
+						type="button"
+						class="cursor-pointer p-1 text-lg transition duration-300 hover:text-blurple"
+						title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+						aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+						onclick={() => toggle()}
+					>
+						<i class="fa-solid {theme === 'dark' ? 'fa-moon' : 'fa-sun'}"></i>
+					</button>
 				</div>
 			</div>
 		</div>

@@ -77,7 +77,7 @@
 			class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 			title="How big should the input box be?"
 		></i>
-		<select class="input form-multiselect" required bind:value={question.style}>
+		<select class="input form-select" required bind:value={question.style}>
 			<option value={1} class="p-1">Short (single-line)</option>
 			<option value={2} class="p-1">Long (multi-line)</option>
 		</select>

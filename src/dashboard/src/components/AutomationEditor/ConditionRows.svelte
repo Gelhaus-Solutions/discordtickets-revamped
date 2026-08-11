@@ -63,7 +63,7 @@
 <div class="flex items-center gap-2">
 	<span class="text-sm font-medium">Match</span>
 	<select
-		class="input form-multiselect w-auto text-sm"
+		class="input form-select w-auto text-sm"
 		value={match}
 		onchange={(e) => update(clauses, e.currentTarget.value)}
 	>
@@ -80,7 +80,7 @@
 			<div class="flex items-start gap-2">
 				<div class="min-w-0 flex-1 space-y-1">
 					<select
-						class="input form-multiselect text-sm"
+						class="input form-select text-sm"
 						value={clause.field ?? ''}
 						onchange={(e) => pickField(i, e.currentTarget.value)}
 					>
@@ -90,7 +90,7 @@
 					</select>
 
 					<select
-						class="input form-multiselect text-sm"
+						class="input form-select text-sm"
 						value={clause.op ?? ''}
 						onchange={(e) => setClause(i, { op: e.currentTarget.value })}
 					>
@@ -101,7 +101,7 @@
 
 					{#if clause.field === 'ticket.answer'}
 						<select
-							class="input form-multiselect text-sm"
+							class="input form-select text-sm"
 							value={clause.questionId ?? ''}
 							onchange={(e) => setClause(i, { questionId: e.currentTarget.value })}
 						>

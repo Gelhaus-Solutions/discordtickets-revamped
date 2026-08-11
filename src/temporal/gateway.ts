@@ -14,6 +14,7 @@ import {
 	WorkflowKind,
 	WorkflowType,
 	automationRunWorkflowId,
+	awaitingRenameWorkflowId,
 	closeWorkflowId,
 	exportWorkflowId,
 	importWorkflowId,
@@ -23,6 +24,7 @@ import {
 } from './task-queues';
 import type {
 	AutomationRunInput,
+	AwaitingRenameInput,
 	BulkCloseInput,
 	CascadeCloseUserInput,
 	CloseTicketInput,
@@ -99,6 +101,42 @@ export async function cancelDeferredRename(ticketId: string): Promise<void> {
 	const client = getTemporalClient();
 	const handle = client.workflow.getHandle(renameWorkflowId(ticketId));
 	await handle.terminate('superseded').catch(() => undefined);
+}
+
+/**
+ * Debounce the rename owed to the waiting-on-staff status changing.
+ *
+ * Signal-with-start, so a conversation's worth of flips collapses into the one
+ * workflow already counting down rather than a rename per message.
+ */
+export async function scheduleAwaitingRename(input: AwaitingRenameInput): Promise<void> {
+	const client = getTemporalClient();
+	await client.workflow.signalWithStart(WorkflowType.awaitingRename, {
+		workflowId: awaitingRenameWorkflowId(input.ticketId),
+		taskQueue: taskQueue(),
+		args: [input],
+		searchAttributes: buildSearchAttributes({
+			guildId: input.guildId,
+			kind: WorkflowKind.rename,
+			ticketId: input.ticketId,
+		}),
+		signal: SignalName.awaitingChanged,
+		signalArgs: [],
+	});
+}
+
+/**
+ * Drop a pending waiting-status rename.
+ *
+ * Called by `finallyClose`: a closed ticket waits on nobody, so the debounce
+ * would wake up only to recompute a name the close has already written. Strictly
+ * an optimisation — the activity is a no-op by then — but it saves a channel
+ * fetch and keeps the Temporal UI free of workflows for closed tickets.
+ */
+export async function cancelAwaitingRename(ticketId: string): Promise<void> {
+	const client = getTemporalClient();
+	const handle = client.workflow.getHandle(awaitingRenameWorkflowId(ticketId));
+	await handle.terminate('ticket closed').catch(() => undefined);
 }
 
 /** Start the per-ticket stale workflow when a ticket opens (idempotent). */

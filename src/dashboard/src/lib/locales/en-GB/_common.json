@@ -1,6 +1,12 @@
 {
+	"back_to": "Back to {guild}",
+	"error_generic": "Something went wrong.",
+	"home": "Home",
 	"language": "Language",
+	"loading": "Loading…",
 	"logout": "Log out",
+	"open_in_discord": "Open in Discord",
+	"retry": "Try again",
 	"settings_panel": "Settings Panel",
 	"staff_dashboard": "Staff Dashboard",
 	"theme": "Theme",

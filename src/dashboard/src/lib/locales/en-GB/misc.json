@@ -2,6 +2,18 @@
 	"login_title": "Log in - {username} Portal",
 	"please_login": "Log in to the Portal to view this page",
 	"select_server": "Select a server",
+	"select_server_desc": "Servers you and {client} are both in.",
+	"filter_servers": "Filter servers",
+	"no_matches": "No servers match \"{query}\".",
+	"no_servers": "No servers yet",
+	"no_servers_desc": "You are not in any server that {client} is also in. Add it to one to get started.",
+	"add_to_server": "Add to another server",
+	"role_owner": "Owner",
+	"role_admin": "Admin",
+	"role_staff": "Staff",
+	"role_member": "Member",
+	"open_staff": "Staff",
+	"open_settings": "Settings",
 	"select_server_title": "{username} Portal",
 	"continue_with_discord": "Continue with Discord"
 }

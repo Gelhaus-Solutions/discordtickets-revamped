@@ -71,7 +71,7 @@
 			<div class="mb-3">
 				<div class="text-sm font-medium">When this happens</div>
 				<select
-					class="input form-multiselect text-sm"
+					class="input form-select text-sm"
 					value={node.data.type}
 					onchange={(e) => changeTrigger(e.currentTarget.value)}
 				>

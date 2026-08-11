@@ -15,6 +15,7 @@ const {
 } = require('../../lib/users');
 const temporal = require('../../lib/temporal');
 const ms = require('ms');
+const { emojiSettingsFor } = require('../../lib/tickets/mutations');
 const {
 	emit,
 	flattenEmbeds,
@@ -23,6 +24,18 @@ const { resolveEmoji } = require('../../lib/emoji');
 const regex = require('../../lib/regex');
 const { substitute } = require('../../lib/placeholders');
 const { tagVars } = require('../../lib/tags');
+
+/**
+ * How long to wait for a conversation to settle before renaming a channel for
+ * the waiting-on-staff state.
+ *
+ * `RENAME_LIMIT` in lib/tickets/mutations.js is two renames per ten minutes per
+ * channel, and the status flips on every message — so renaming eagerly would
+ * spend the budget inside one exchange and leave the rest of the conversation
+ * parking deferrals. Raising this towards the ten-minute window trades a
+ * staler name for fewer deferrals; the deferral ladder makes either safe.
+ */
+const AWAITING_RENAME_DEBOUNCE = ms('60s');
 
 module.exports = class extends Listener {
 	constructor(client, options) {
@@ -251,6 +264,19 @@ module.exports = class extends Listener {
 					const data = { lastMessageAt: new Date() };
 					const isStaffMember = await isStaff(message.guild, message.author.id);
 					if (ticket.firstResponseAt === null && isStaffMember) data.firstResponseAt = new Date();
+
+					// Who the ticket is now waiting on. The creator counts as the
+					// user side even when they are staff themselves — otherwise a
+					// staff member's own ticket would answer itself on every
+					// message and sit permanently at "waiting on the user".
+					//
+					// Scoped to this field on purpose: `firstResponseAt` and
+					// autoAssign above keep their existing (arguably wrong)
+					// treatment of a staff creator, and changing those is a
+					// different conversation.
+					const awaiting = isStaffMember && message.author.id !== ticket.createdById ? 'USER' : 'STAFF';
+					const awaitingChanged = ticket.awaitingResponseFrom !== awaiting;
+					if (awaitingChanged) data.awaitingResponseFrom = awaiting;
 					// The `include` must be repeated here: `update()` returns scalars
 					// only, so reassigning `ticket` from it dropped the `category`
 					// relation loaded above — leaving the autoAssign guard below
@@ -280,6 +306,35 @@ module.exports = class extends Listener {
 							lastActivityAt: Date.now(),
 							ticketId: ticket.id,
 						}).catch(err => client.log.error(err));
+					}
+
+					// The channel name carries the waiting-on-staff state, but the
+					// state flips on every message and Discord allows two renames
+					// per ten minutes, so this is debounced rather than applied
+					// here. The workflow recomputes the name when it fires.
+					//
+					// Only when the status actually changed: renaming is the whole
+					// point, and an unchanged status cannot change the name.
+					if (
+						process.env.PUBLIC_BOT !== 'true' &&
+						awaitingChanged &&
+						!ticket.pendingCloseAt
+					) {
+						// With no awaiting emoji configured the name resolves the
+						// same for every value of the status (stateEmoji falls back
+						// to the claim tick), so there is no rename to owe and no
+						// reason to touch Temporal at all. Cached for 12 hours, so
+						// this costs nothing on the hot path.
+						emojiSettingsFor(client, ticket)
+							.then(settings => {
+								if (!settings?.awaitingStaffEmoji) return null;
+								return temporal.scheduleAwaitingRename({
+									guildId: message.guild.id,
+									notBefore: Date.now() + AWAITING_RENAME_DEBOUNCE,
+									ticketId: ticket.id,
+								});
+							})
+							.catch(err => client.log.error(err));
 					}
 				}
 

@@ -1,5 +1,5 @@
 <script>
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/markdown.js';
 	import { displayEmoji } from '$lib/emoji.js';
 	import { placeholders, preview } from '$lib/placeholders.js';
 	import { countComponents, countText, LIMITS } from './blocks.js';
@@ -32,7 +32,7 @@
 	const catalogue = placeholders();
 	const substitute = (str) => preview(catalogue, context, str);
 
-	const md = (str) => marked.parse(substitute(str ?? ''), { breaks: true });
+	const md = (str) => renderMarkdown(substitute(str ?? ''), { breaks: true });
 
 	const previewUrl = (url) => {
 		const resolved = substitute(url ?? '');
@@ -68,6 +68,8 @@
 
 {#snippet blockPreview(block)}
 	{#if block.type === 'text'}
+		<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		<div class="prose prose-sm max-w-none dark:prose-invert">{@html md(block.content)}</div>
 	{:else if block.type === 'separator'}
 		{#if block.divider === false}
@@ -78,6 +80,8 @@
 	{:else if block.type === 'section'}
 		<div class="flex items-start gap-3">
 			<div class="prose prose-sm min-w-0 flex-1 max-w-none dark:prose-invert">
+				<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+				<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 				{@html md((block.text ?? []).join('\n'))}
 			</div>
 			{#if block.accessory?.kind === 'thumbnail'}

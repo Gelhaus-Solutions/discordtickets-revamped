@@ -7,6 +7,9 @@
  * never learns which level supplied them.
  *
  * @typedef {object} EmojiSettings
+ * @property {string} awaitingStaffEmoji '' means the guild does not use the
+ *   waiting-on-staff state at all — see naming.js#stateEmoji, which is the one
+ *   place '' is not read as "no emoji"
  * @property {string} claimedEmoji    '' means no emoji
  * @property {string} closedEmoji
  * @property {string} unclaimedEmoji
@@ -22,7 +25,7 @@ const {
 	resolveCategory,
 } = require('../settings/inheritance');
 
-const STATE_FIELDS = ['claimedEmoji', 'closedEmoji', 'unclaimedEmoji'];
+const STATE_FIELDS = ['awaitingStaffEmoji', 'claimedEmoji', 'closedEmoji', 'unclaimedEmoji'];
 
 /**
  * Everything that could be sitting on the front of an existing channel name.
@@ -81,6 +84,7 @@ function resolveEmojiSettings({
 }
 
 module.exports = {
+	STATE_FIELDS,
 	historicalEmojis,
 	resolveEmojiSettings,
 };

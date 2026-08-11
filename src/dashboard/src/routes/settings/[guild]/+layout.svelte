@@ -5,7 +5,7 @@
 	/** @type {{data: any, children?: import('svelte').Snippet}} */
 	let { data, children } = $props();
 
-	const { guild } = data;
+	const guild = $derived(data.guild);
 
 	// Every editor with a placeholder-accepting field lives under this layout, so
 	// context reaches all of them without a prop being drilled through four

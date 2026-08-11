@@ -141,6 +141,10 @@ model Category {
     autoAssign       Boolean      @default(false)
     backupCategory   Category?    @relation(name: "CategoryBackup", fields: [backupCategoryId], references: [id], onDelete: SetNull)
     backupCategoryId Int?
+    // The channel-name prefix while the last message is from the ticket author.
+    // Inheritable; '' is a deliberate "no emoji", and both levels unset means
+    // the feature is off — the ticket keeps showing its claimed/unclaimed emoji.
+    awaitingStaffEmoji String?
     // Roles that prevent a member using this category. Checked before
     // `requiredRoles` and not bypassed by staff, matching `Guild.blocklist`.
     // Inheritable.
@@ -220,6 +224,7 @@ model Guild {
     autoTag           Json         @default("[]")
     automations       Automation[]
     archive           Boolean      @default(true)
+    awaitingStaffEmoji String?     // category default
     blockedRoles      Json?        // category default
     blocklist         Json         @default("[]")
     botAvatar         String?      @db.Text
@@ -344,6 +349,11 @@ model Ticket {
     archivedMessages    ArchivedMessage[]
     archivedRoles       ArchivedRole[]
     archivedUsers       ArchivedUser[]
+    // Who the ticket is waiting on: 'STAFF' or 'USER', flipped by whoever sent
+    // the last human message. NULL once the ticket closes, and on any ticket
+    // that predates this column — see `naming.js#ticketState`, which treats
+    // anything other than 'STAFF' as "not waiting on us".
+    awaitingResponseFrom String?
     category            Category?         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
     categoryId          Int?
     claimedBy           User?             @relation(name: "TicketsClaimedByUser", fields: [claimedById], references: [id])

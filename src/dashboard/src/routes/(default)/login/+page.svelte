@@ -3,9 +3,9 @@
 	import { getContext } from 'svelte';
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
-	const { client, translations, query } = data;
-	const i18n = new I18nLite();
-	const t = i18n.loadParsed(...translations).createTranslator();
+	const client = $derived(data.client);
+	const query = $derived(data.query);
+	const t = $derived(new I18nLite().loadParsed(...data.translations).createTranslator());
 
 	let theme = getContext('theme');
 </script>
@@ -56,14 +56,14 @@
 								<!-- py-1 px-2 text-dgrey-700 bg-dgrey-900/10 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20 dark:text-dgrey-400/75 hover:dark:text-dgrey-400/100 duration-300 rounded-md -->
 								<div class="">
 									<div class="flex items-center gap-2">
-										<i class="fa-solid fa-globe" />
+										<i class="fa-solid fa-globe"></i>
 										{t('common:language')}
 									</div>
 								</div>
 
 								<div class="">
 									<div class="flex items-center gap-2">
-										<i class="fa-solid {theme === 'dark' ? 'fa-moon' : 'fa-sun'}" />
+										<i class="fa-solid {theme === 'dark' ? 'fa-moon' : 'fa-sun'}"></i>
 										{t('common:theme')}
 									</div>
 								</div>

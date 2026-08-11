@@ -4,7 +4,7 @@
 	import ms from 'ms';
 	import { displayEmoji } from '$lib/emoji.js';
 	import EmojiPicker from '$components/EmojiPicker.svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/markdown.js';
 	import { v4 as uuidv4 } from 'uuid';
 	import CategoryQuestions from '$components/CategoryQuestions/Questions.svelte';
 	import { questionsState as qS } from '$components/state.svelte';
@@ -33,6 +33,7 @@
 	// block editor keeps using its plain `openingMessage` text, and the bot
 	// derives the equivalent layout at send time. Only once someone opts in does
 	// the column get a value.
+	// svelte-ignore state_referenced_locally
 	let useBlockEditor = $state(Boolean(data.category?.messageLayout));
 
 	// Element references for the placeholder pickers, which insert at the caret.
@@ -74,6 +75,11 @@
 		return () => window.removeEventListener('beforeunload', handler);
 	});
 
+	// A local, mutable copy of the loaded row: this is an edit form, every field
+	// below is two-way bound to it, and Submit is what sends it back. It cannot
+	// be `$derived` — a derived is read-only, and re-deriving mid-edit would
+	// throw away what the user had typed.
+	// svelte-ignore state_referenced_locally
 	let { category, channels, roles, categories, url } = $state(data);
 
 	const slowmodes = [
@@ -112,13 +118,19 @@
 			return channels.filter((c) => c.type === 4);
 		}
 	});
+	// One pass, and copies rather than mutating the rows the loader handed over.
+	// svelte-ignore state_referenced_locally
 	roles = roles
 		.filter((r) => r.name !== '@everyone')
-		.sort((a, b) => b.rawPosition - a.rawPosition);
-	roles.forEach((r) => {
-		r._hexColor = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
-		r._style = r._hexColor ? `color: ${r._hexColor}` : '';
-	});
+		.sort((a, b) => b.rawPosition - a.rawPosition)
+		.map((r) => {
+			const hex = r.color > 0 ? `#${r.color.toString(16).padStart(6, '0')}` : null;
+			return {
+				...r,
+				_hexColor: hex,
+				_style: hex ? `color: ${hex}` : ''
+			};
+		});
 
 	/**
 	 * What each inheritable field falls back to when this category leaves it
@@ -345,7 +357,9 @@
 						>
 							<i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400"></i>
 							<span class="marked">
-								{@html marked.parse(
+								<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+								{@html renderMarkdown(
 									preview(
 										catalogue,
 										'channelName',
@@ -445,7 +459,7 @@
 								: 'Which category channel should ticket channels be created under?'}
 						></i>
 						<select
-							class="input form-multiselect"
+							class="input form-select"
 							required
 							bind:value={category.discordCategory}
 						>
@@ -473,7 +487,7 @@
 							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
 							title="How should ticket channels be created?"
 						></i>
-						<select class="input form-multiselect" bind:value={category.channelMode}>
+						<select class="input form-select" bind:value={category.channelMode}>
 							{#each channelModes as mode}
 								<option value={mode.value} class="p-1">
 									{mode.label}
@@ -491,7 +505,7 @@
 								title="Alternative category to use when primary is full"
 							></i>
 							<select
-								class="input form-multiselect"
+								class="input form-select"
 								bind:value={category.backupCategoryId}
 							>
 								<option value={null} class="p-1"> None </option>
@@ -514,7 +528,7 @@
 								title="Not available for Thread or Forum modes"
 							></i>
 							<select
-								class="input form-multiselect opacity-50 cursor-not-allowed"
+								class="input form-select opacity-50 cursor-not-allowed"
 								disabled
 							>
 								<option>Not available for this mode</option>
@@ -572,6 +586,22 @@
 							title="Shown once a staff member has claimed the ticket."
 							bind:value={category.claimedEmoji}
 							inherited={inherited.claimedEmoji}
+							format={emojiLabel}
+						>
+							{#snippet control({ value, setValue, placeholder })}
+								<EmojiPicker
+									value={value ?? ''}
+									{placeholder}
+									onchange={(v) => setValue(v ?? '')}
+								/>
+							{/snippet}
+						</Inheritable>
+
+						<Inheritable
+							label="Waiting on staff"
+							title="Shown while the last message is from the ticket author. Takes precedence over Open and Claimed. Leave empty to not use this at all — tickets then keep showing Open or Claimed as before."
+							bind:value={category.awaitingStaffEmoji}
+							inherited={inherited.awaitingStaffEmoji}
 							format={emojiLabel}
 						>
 							{#snippet control({ value, setValue, placeholder })}
@@ -801,7 +831,9 @@
 												slot="description"
 												class="break-words prose prose-slate prose-sm dark:prose-invert prose-a:text-blurple"
 											>
-												{@html marked.parse(
+												<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+												<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+												{@html renderMarkdown(
 														preview(catalogue, 'opening', category.openingMessage)
 													)}
 											</discord-embed-description>
@@ -882,7 +914,7 @@
 					>
 						{#snippet control({ value, setValue })}
 							<select
-								class="input form-multiselect font-normal"
+								class="input form-select font-normal"
 								value={value ?? ''}
 								onchange={(e) =>
 									setValue(e.target.value === '' ? null : Number(e.target.value))}
@@ -1057,7 +1089,7 @@
 										title="Which question's value should be used as the ticket topic?"
 									></i>
 									<select
-										class="input form-multiselect font-normal"
+										class="input form-select font-normal"
 										bind:value={category.customTopic}
 									>
 										<option value={null} class="p-1">

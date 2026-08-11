@@ -1,12 +1,10 @@
 <script>
 	import { page } from '$app/stores';
 
-	/** @type {import('./$types').PageData} */
-	let { data } = $props();
-
+	// No `data` destructure: the loader returns empty scaffolding and this page
+	// searches on demand, so there is nothing from it to read.
 	let searchQuery = $state('');
 	let sortBy = $state('date');
-	let searchTerm = $state('');
 	let searched = $state(false);
 	let isLoading = $state(false);
 	let searchResults = $state([]);
@@ -160,8 +158,11 @@
 	<div class="mb-8 rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 			<div class="md:col-span-2">
-				<label class="block text-sm font-semibold mb-2">Search Transcripts</label>
+				<label for="transcript-search" class="block text-sm font-semibold mb-2"
+					>Search Transcripts</label
+				>
 				<input
+					id="transcript-search"
 					type="text"
 					placeholder="Search by topic, user ID, or ticket ID..."
 					class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-slate-800"
@@ -171,8 +172,9 @@
 				<p class="text-xs text-gray-500 dark:text-slate-400 mt-2">Press Enter or click Search to find transcripts</p>
 			</div>
 			<div>
-				<label class="block text-sm font-semibold mb-2">Sort By</label>
+				<label for="transcript-sort" class="block text-sm font-semibold mb-2">Sort By</label>
 				<select
+					id="transcript-sort"
 					class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 dark:border-gray-600 dark:bg-slate-800"
 					bind:value={sortBy}
 				>

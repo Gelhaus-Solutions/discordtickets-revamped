@@ -4,7 +4,7 @@
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
 
-	const { categories } = data;
+	const categories = $derived(data.categories);
 </script>
 
 <h1 class="m-4 text-center text-4xl font-bold">Categories</h1>
