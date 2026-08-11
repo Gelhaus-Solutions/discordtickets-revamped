@@ -4,7 +4,7 @@
 	import ms from 'ms';
 	import { displayEmoji } from '$lib/emoji.js';
 	import EmojiPicker from '$components/EmojiPicker.svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/markdown.js';
 	import { v4 as uuidv4 } from 'uuid';
 	import CategoryQuestions from '$components/CategoryQuestions/Questions.svelte';
 	import { questionsState as qS } from '$components/state.svelte';
@@ -357,7 +357,9 @@
 						>
 							<i class="fa-solid fa-hashtag text-gray-500 dark:text-slate-400"></i>
 							<span class="marked">
-								{@html marked.parse(
+								<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+								{@html renderMarkdown(
 									preview(
 										catalogue,
 										'channelName',
@@ -829,7 +831,9 @@
 												slot="description"
 												class="break-words prose prose-slate prose-sm dark:prose-invert prose-a:text-blurple"
 											>
-												{@html marked.parse(
+												<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+												<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+												{@html renderMarkdown(
 														preview(catalogue, 'opening', category.openingMessage)
 													)}
 											</discord-embed-description>

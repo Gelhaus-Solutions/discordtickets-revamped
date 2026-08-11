@@ -1,6 +1,6 @@
 <script>
 	import Tree from './Tree.svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/markdown.js';
 
 	/** @type {{entry?: any, indent?: number}} */
 	let { entry = [], indent = 0 } = $props();
@@ -22,7 +22,9 @@
 	{:else}
 		<!-- text-xs -->
 		<p class="prose prose-sm prose-slate ml-2 text-black/75 dark:prose-invert dark:text-white/75">
-			{@html marked.parse(entry)}
+			<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+			{@html renderMarkdown(entry)}
 		</p>
 	{/if}
 </div>

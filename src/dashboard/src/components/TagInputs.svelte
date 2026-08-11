@@ -1,5 +1,5 @@
 <script>
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/markdown.js';
 	import Required from './Required.svelte';
 	import PlaceholderPicker from './PlaceholderPicker.svelte';
 	import { placeholders, preview } from '$lib/placeholders.js';
@@ -59,7 +59,9 @@
 		>
 			<!-- The preview used to substitute {name} while the bot posted the raw
 			     braces. Both now go through the same table. -->
-			{@html marked.parse(preview(catalogue, 'tag', tag.content.replace(/\n/g, '\n\n')))}
+			<!-- Escaped by renderMarkdown before parsing; see $lib/markdown.js. -->
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+			{@html renderMarkdown(preview(catalogue, 'tag', tag.content.replace(/\n/g, '\n\n')))}
 		</div>
 	{/if}
 </div>

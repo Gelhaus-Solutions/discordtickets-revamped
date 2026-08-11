@@ -152,6 +152,15 @@
 								bind:this={logsContainer}
 								class="flex max-h-64 flex-col gap-1 overflow-y-auto text-wrap rounded-xl bg-gray-100 p-4 font-mono shadow-sm dark:bg-slate-800"
 							>
+								<!--
+									Not markdown, and not user-supplied: this is the HTML progress
+									log the import route streams back. It escapes every
+									interpolation at the source — the CSS classes, the level
+									prefix, and the message, which can carry attacker-controlled
+									text out of the uploaded archive. See `userLog.write` in
+									src/routes/api/admin/guilds/[guild]/import.js.
+								-->
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 								{@html logs}
 							</div>
 						{:else}
