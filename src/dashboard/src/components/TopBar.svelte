@@ -18,7 +18,14 @@
 <div class="my-8 rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
 	<div class="grid grid-cols-1 gap-4 sm:mx-8 md:grid-cols-2">
 		<div>
-			<a href={base + '/settings'} class="flex justify-center md:justify-start">
+			<!--
+				The portal root, not the settings picker. This is the closest thing
+				the dashboard has to a home button, and it sits on portal pages too —
+				where sending someone into the admin panel is the wrong destination
+				entirely. `/` picks a server, and goes straight to it when there is
+				only one.
+			-->
+			<a href={base + '/'} class="flex justify-center md:justify-start">
 				<span class="text-lg font-bold text-blurple">Discord Tickets</span>
 			</a>
 		</div>
