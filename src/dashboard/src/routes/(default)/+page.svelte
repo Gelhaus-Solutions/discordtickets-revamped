@@ -12,9 +12,7 @@
 	<link rel="icon" href={`${client.avatar}?size=32`} />
 </svelte:head>
 
-<div
-	class="absolute h-max min-h-screen w-full bg-dgrey-100 text-dgrey-600 dark:bg-dgrey-800 dark:text-dgrey-300"
->
+<div class="text-gray-800 dark:text-slate-300">
 	<div class="container mx-auto mt-24 p-4 text-center sm:mt-48">
 		<h1 class="mb-16 text-2xl font-bold">
 			{t('select_server')}
@@ -24,7 +22,7 @@
 				{@const slug = BigInt(guild.id).toString(36)}
 				<a href={`/${slug}`}>
 					<div
-						class="h-full w-full rounded-lg border-2 border-dgrey-400 bg-dgrey-300 p-4 shadow-black transition-all duration-300 hover:scale-105 hover:shadow-2xl dark:border-dgrey-700 dark:bg-dgrey-900 sm:w-48"
+						class="h-full w-full rounded-xl bg-white p-4 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:ring-2 hover:ring-blurple dark:bg-slate-700 sm:w-48"
 					>
 						<div class="flex flex-row items-center gap-4 sm:flex-col">
 							<img

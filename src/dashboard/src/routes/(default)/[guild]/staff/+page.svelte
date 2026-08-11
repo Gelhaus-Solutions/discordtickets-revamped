@@ -3,6 +3,9 @@
 	import { replaceState } from '$app/navigation';
 	import { I18nLite } from '@eartharoid/i18n';
 	import { getContext } from 'svelte';
+	// Category emoji are stored as the admin typed them, often a shortcode like
+	// `:arrow_up_down:`; the raw column rendered that as literal text.
+	import { displayEmoji } from '$lib/emoji.js';
 
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
@@ -57,6 +60,11 @@
 		}
 		return rtf.format(Math.round(diff / 1000), 'second');
 	};
+
+	/** "🔼 Install Problem", or just the name when there is no emoji. */
+	const categoryLabel = (ticket) =>
+		[displayEmoji(ticket.categoryEmoji ?? ''), ticket.categoryName].filter(Boolean).join(' ') ||
+		t('staff.uncategorised');
 
 	/** The ticket id *is* the channel id. Threads address the same way. */
 	const discordUrl = (ticket) => `https://discord.com/channels/${guild.id}/${ticket.id}`;
@@ -143,9 +151,9 @@
 	<title>{t('staff.title', { guild: guild.name })}</title>
 </svelte:head>
 
-<div class="container mx-auto max-w-5xl p-4">
+<div>
 	<h1 class="text-3xl font-bold">{t('staff.heading')}</h1>
-	<p class="mb-4 text-base text-dgrey-500 dark:text-dgrey-400">
+	<p class="mb-4 text-base text-gray-500 dark:text-slate-400">
 		{t('staff.subheading', { guild: guild.name })}
 	</p>
 
@@ -158,7 +166,7 @@
 				class="rounded-md px-3 py-1 text-sm duration-300 disabled:cursor-not-allowed {filter ===
 				bucket.key
 					? 'bg-blurple text-white'
-					: 'bg-dgrey-900/10 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20'}"
+					: 'bg-gray-100 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple'}"
 			>
 				{t(bucket.label)}
 				{#if bucketCount(bucket.key) != null}
@@ -171,17 +179,19 @@
 	<div class="mb-3 flex flex-wrap items-end gap-3">
 		<label class="text-sm font-medium">
 			{t('staff.filter_category')}
-			<select class="input form-multiselect block font-normal" bind:value={categoryId}>
+			<select class="input form-select font-normal" bind:value={categoryId}>
 				<option value="">{t('staff.filter_all_categories')}</option>
 				{#each categories as category (category.id)}
-					<option value={category.id}>{category.emoji ?? ''} {category.name}</option>
+					<option value={category.id}>
+						{[displayEmoji(category.emoji ?? ''), category.name].filter(Boolean).join(' ')}
+					</option>
 				{/each}
 			</select>
 		</label>
 		<label class="text-sm font-medium">
 			{t('staff.sort')}
 			<select
-				class="input form-multiselect block font-normal"
+				class="input form-select font-normal"
 				bind:value={sort}
 				onchange={() => loadPage(filter, 1)}
 			>
@@ -199,29 +209,29 @@
 			/>
 		</label>
 	</div>
-	<p class="mb-4 text-xs text-dgrey-500 dark:text-dgrey-400">{t('staff.search_hint')}</p>
+	<p class="mb-4 text-xs text-gray-500 dark:text-slate-400">{t('staff.search_hint')}</p>
 
 	{#if filter === 'attention' && meta?.staleAfter == null}
-		<p class="mb-3 rounded-lg bg-dgrey-200 p-3 text-sm dark:bg-dgrey-900">
+		<p class="mb-3 rounded-lg bg-white p-4 text-sm shadow-sm dark:bg-slate-700">
 			{t('staff.stale_disabled')}
 		</p>
 	{/if}
 
 	{#if isLoading}
-		<p class="text-base text-dgrey-500 dark:text-dgrey-400">{t('common:loading')}</p>
+		<p class="text-base text-gray-500 dark:text-slate-400">{t('common:loading')}</p>
 	{:else if loadError}
-		<div class="rounded-lg bg-dgrey-200 p-4 dark:bg-dgrey-900">
+		<div class="rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
 			<p>{t('staff.load_failed')}</p>
 			<button
 				type="button"
 				onclick={() => loadPage(filter, currentPage)}
-				class="mt-2 rounded-md bg-dgrey-900/10 px-3 py-1 duration-300 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+				class="mt-2 rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
 			>
 				{t('common:retry')}
 			</button>
 		</div>
 	{:else if visible.length === 0}
-		<div class="rounded-lg bg-dgrey-200 p-4 dark:bg-dgrey-900">
+		<div class="rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
 			<p>
 				{#if tickets.length > 0}
 					{t('staff.empty_filtered')}
@@ -233,9 +243,9 @@
 			</p>
 		</div>
 	{:else}
-		<div class="overflow-x-auto">
+		<div class="overflow-x-auto rounded-xl bg-white p-2 shadow-sm dark:bg-slate-700">
 			<table class="w-full text-left text-sm">
-				<thead class="border-b border-dgrey-300 dark:border-dgrey-700">
+				<thead class="border-b border-gray-300 dark:border-slate-600">
 					<tr>
 						<th class="p-2">{t('staff.col_ticket')}</th>
 						<th class="p-2">{t('staff.col_topic')}</th>
@@ -247,7 +257,7 @@
 				<tbody>
 					{#each visible as ticket (ticket.id)}
 						{@const chip = waitingChip(ticket)}
-						<tr class="border-b border-dgrey-200 dark:border-dgrey-800">
+						<tr class="border-b border-gray-200 dark:border-slate-700">
 							<td class="p-2 font-semibold">
 								<a
 									href={discordUrl(ticket)}
@@ -261,17 +271,14 @@
 								</a>
 							</td>
 							<td class="p-2">{ticket.topic || t('staff.no_topic')}</td>
-							<td class="p-2">
-								{ticket.categoryEmoji ?? ''}
-								{ticket.categoryName ?? t('staff.uncategorised')}
-							</td>
+							<td class="p-2">{categoryLabel(ticket)}</td>
 							<td class="p-2 whitespace-nowrap">
 								{ago(ticket.lastMessageAt) ?? t('staff.never')}
 							</td>
 							<td class="p-2 whitespace-nowrap">
 								<span
 									class="rounded-md px-2 py-0.5 text-xs {ticket.claimedById
-										? 'bg-dgrey-900/10 dark:bg-dgrey-400/10'
+										? 'bg-gray-100 dark:bg-slate-800'
 										: 'bg-amber-500/20'}"
 								>
 									{ticket.claimedById ? t('staff.chip_claimed') : t('staff.chip_unclaimed')}
@@ -279,7 +286,7 @@
 								<span
 									class="ml-1 rounded-md px-2 py-0.5 text-xs {chip.tone === 'amber'
 										? 'bg-amber-500/20'
-										: 'bg-dgrey-900/10 dark:bg-dgrey-400/10'}"
+										: 'bg-gray-100 dark:bg-slate-800'}"
 									title={chip.hint ?? ''}
 								>
 									{t(chip.key)}
@@ -297,7 +304,7 @@
 					type="button"
 					disabled={currentPage <= 1}
 					onclick={() => loadPage(filter, currentPage - 1)}
-					class="rounded-md bg-dgrey-900/10 px-3 py-1 duration-300 hover:bg-dgrey-900/20 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-blurple"
 				>
 					{t('staff.prev')}
 				</button>
@@ -306,7 +313,7 @@
 					type="button"
 					disabled={currentPage >= totalPages}
 					onclick={() => loadPage(filter, currentPage + 1)}
-					class="rounded-md bg-dgrey-900/10 px-3 py-1 duration-300 hover:bg-dgrey-900/20 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-blurple"
 				>
 					{t('staff.next')}
 				</button>
@@ -315,7 +322,7 @@
 	{/if}
 
 	{#if guild.privilegeLevel >= 2}
-		<p class="mt-6 text-xs text-dgrey-500 dark:text-dgrey-400">
+		<p class="mt-6 text-xs text-gray-500 dark:text-slate-400">
 			{t('staff.closed_hint')}
 			<a
 				href={`/settings/${guild.id}/transcripts`}

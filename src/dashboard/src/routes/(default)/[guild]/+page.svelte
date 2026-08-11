@@ -2,6 +2,11 @@
 	import { page } from '$app/stores';
 	import { I18nLite } from '@eartharoid/i18n';
 	import { getContext } from 'svelte';
+	// Category emoji are stored the way an admin typed them — often a shortcode
+	// like `:arrow_up_down:`. Rendering the raw column printed `arrow_up_down`
+	// as text. Every other preview in the dashboard goes through this, so what
+	// is shown here matches what the bot sends.
+	import { displayEmoji } from '$lib/emoji.js';
 
 	/** @type {{data: import('./$types').PageData}} */
 	let { data } = $props();
@@ -48,6 +53,10 @@
 	/** The ticket id *is* the channel id, so no lookup is needed. */
 	const discordUrl = (ticket) => `https://discord.com/channels/${guild.id}/${ticket.id}`;
 
+	/** "🔼 Install Problem", or just the name when there is no emoji. */
+	const categoryLabel = (ticket) =>
+		[displayEmoji(ticket.categoryEmoji ?? ''), ticket.categoryName].filter(Boolean).join(' ');
+
 	const retry = async () => {
 		retrying = true;
 		try {
@@ -79,13 +88,7 @@
 	<title>{t('common:title', { guild: guild.name, client: client.username })}</title>
 </svelte:head>
 
-<div class="container mx-auto max-w-3xl p-4">
-	<div class="mb-6 flex items-center gap-3">
-		{#if guild.logo}
-			<img src={guild.logo} alt="" class="h-12 w-12 rounded-full" />
-		{/if}
-		<h1 class="text-3xl font-bold">{guild.name}</h1>
-	</div>
+<div>
 
 	{#if guild.privilegeLevel > 0 && counts}
 		<!--
@@ -93,26 +96,26 @@
 			is here so a staff member landing on the guild page can see at a glance
 			whether anything needs them, and click through.
 		-->
-		<div class="mb-6 rounded-lg bg-dgrey-200 p-3 dark:bg-dgrey-900">
+		<div class="mb-6 rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
 			<div class="flex flex-wrap items-center gap-2 text-sm">
 				<span class="font-semibold">{t('home.staff.heading')}</span>
 				<a
 					href={`/${slug}/staff?filter=all`}
-					class="rounded-md bg-dgrey-900/10 px-2 py-1 duration-300 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
 				>
 					{counts.open}
 					{t('home.staff.open')}
 				</a>
 				<a
 					href={`/${slug}/staff?filter=unclaimed`}
-					class="rounded-md bg-dgrey-900/10 px-2 py-1 duration-300 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
 				>
 					{counts.unclaimed}
 					{t('home.staff.unclaimed')}
 				</a>
 				<a
 					href={`/${slug}/staff?filter=awaiting_staff`}
-					class="rounded-md bg-dgrey-900/10 px-2 py-1 duration-300 hover:bg-dgrey-900/20 dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+					class="rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
 				>
 					{counts.awaitingStaff}
 					{t('home.staff.awaiting')}
@@ -125,24 +128,24 @@
 	{/if}
 
 	<h2 class="text-xl font-bold">{t('home.your_tickets')}</h2>
-	<p class="mb-3 text-base text-dgrey-500 dark:text-dgrey-400">{t('home.your_tickets_desc')}</p>
+	<p class="mb-3 text-base text-gray-500 dark:text-slate-400">{t('home.your_tickets_desc')}</p>
 
 	{#if tickets === null}
-		<div class="rounded-lg bg-dgrey-200 p-4 dark:bg-dgrey-900">
+		<div class="rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
 			<p>{t('home.load_failed')}</p>
 			<button
 				type="button"
 				disabled={retrying}
 				onclick={retry}
-				class="mt-2 rounded-md bg-dgrey-900/10 px-3 py-1 duration-300 hover:bg-dgrey-900/20 disabled:cursor-not-allowed dark:bg-dgrey-400/10 dark:hover:bg-dgrey-400/20"
+				class="mt-2 rounded-md bg-gray-100 px-3 py-1 transition duration-300 hover:bg-blurple hover:text-white disabled:cursor-not-allowed dark:bg-slate-800 dark:hover:bg-blurple"
 			>
 				{retrying ? t('common:loading') : t('common:retry')}
 			</button>
 		</div>
 	{:else if tickets.length === 0}
-		<div class="rounded-lg bg-dgrey-200 p-4 dark:bg-dgrey-900">
+		<div class="rounded-lg bg-white p-4 shadow-sm dark:bg-slate-700">
 			<p class="font-medium">{t('home.no_open_tickets')}</p>
-			<p class="text-base text-dgrey-500 dark:text-dgrey-400">{t('home.open_from_discord')}</p>
+			<p class="text-base text-gray-500 dark:text-slate-400">{t('home.open_from_discord')}</p>
 		</div>
 	{:else}
 		<ul class="grid gap-2">
@@ -152,24 +155,26 @@
 						href={discordUrl(ticket)}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="block rounded-lg bg-dgrey-200 p-3 duration-300 hover:bg-dgrey-300 dark:bg-dgrey-900 dark:hover:bg-dgrey-950"
+						class="group block rounded-xl bg-white p-4 shadow-sm transition duration-300 hover:ring-2 hover:ring-blurple dark:bg-slate-700"
 					>
 						<div class="flex flex-wrap items-baseline gap-2">
 							<span class="font-semibold">#{ticket.number}</span>
-							<span class="text-base text-dgrey-500 dark:text-dgrey-400">
-								{ticket.categoryEmoji ?? ''}
-								{ticket.categoryName ?? ''}
+							<span class="text-base text-gray-500 dark:text-slate-400">
+								{categoryLabel(ticket)}
 							</span>
 							<span
-								class="ml-auto rounded-md bg-dgrey-900/10 px-2 py-0.5 text-xs dark:bg-dgrey-400/10"
+								class="ml-auto rounded-md bg-gray-100 px-2 py-0.5 text-xs dark:bg-slate-800"
 							>
 								{ticket.claimedById ? t('home.claimed') : t('home.unclaimed')}
 							</span>
 						</div>
 						<p class="mt-1">{ticket.topic || t('home.no_topic')}</p>
-						<p class="mt-1 text-sm text-dgrey-500 dark:text-dgrey-400">
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
 							{t('home.opened', { when: ago(ticket.createdAt) })}
-							· {t('common:open_in_discord')}
+							<span class="ml-1 opacity-0 duration-300 group-hover:opacity-100">
+								<i class="fa-solid fa-arrow-up-right-from-square"></i>
+								{t('common:open_in_discord')}
+							</span>
 						</p>
 					</a>
 				</li>
@@ -179,30 +184,50 @@
 
 	<button
 		type="button"
+		aria-expanded={showClosed}
 		onclick={toggleClosed}
-		class="mt-4 text-sm underline decoration-dotted hover:decoration-solid"
+		class="mt-4 rounded-md bg-gray-100 px-3 py-1.5 text-sm transition duration-300 hover:bg-blurple hover:text-white dark:bg-slate-800 dark:hover:bg-blurple"
 	>
+		<i class="fa-solid {showClosed ? 'fa-angle-up' : 'fa-angle-down'} mr-1"></i>
 		{showClosed ? t('home.hide_closed') : t('home.show_closed')}
 	</button>
 
 	{#if showClosed}
 		<h2 class="mt-4 text-xl font-bold">{t('home.closed_tickets')}</h2>
 		{#if loadingClosed}
-			<p class="text-base text-dgrey-500 dark:text-dgrey-400">{t('common:loading')}</p>
+			<p class="text-base text-gray-500 dark:text-slate-400">{t('common:loading')}</p>
 		{:else if !closed || closed.length === 0}
-			<p class="text-base text-dgrey-500 dark:text-dgrey-400">{t('home.no_closed_tickets')}</p>
+			<p class="text-base text-gray-500 dark:text-slate-400">{t('home.no_closed_tickets')}</p>
 		{:else}
 			<ul class="mt-2 grid gap-2">
 				{#each closed as ticket (ticket.id)}
-					<li class="rounded-lg bg-dgrey-200 p-3 dark:bg-dgrey-900">
-						<div class="flex flex-wrap items-baseline gap-2">
-							<span class="font-semibold">#{ticket.number}</span>
-							<span class="text-base text-dgrey-500 dark:text-dgrey-400">
-								{ticket.categoryEmoji ?? ''}
-								{ticket.categoryName ?? ''}
-							</span>
-						</div>
-						<p class="mt-1">{ticket.topic || t('home.no_topic')}</p>
+					<li>
+						<!--
+							A link like the open ones. A closed CHANNEL-mode ticket has had
+							its channel deleted so this may 404 in Discord, but a closed
+							thread is still readable — and a card that looks identical to
+							the ones above while silently not being clickable is worse than
+							a link that sometimes cannot resolve.
+						-->
+						<a
+							href={discordUrl(ticket)}
+							target="_blank"
+							rel="noopener noreferrer"
+							class="block rounded-xl bg-gray-100 p-4 opacity-75 shadow-sm transition duration-300 hover:opacity-100 hover:ring-2 hover:ring-blurple dark:bg-slate-800"
+						>
+							<div class="flex flex-wrap items-baseline gap-2">
+								<span class="font-semibold">#{ticket.number}</span>
+								<span class="text-base text-gray-500 dark:text-slate-400">
+									{categoryLabel(ticket)}
+								</span>
+								{#if ticket.closedAt}
+									<span class="ml-auto text-xs text-gray-500 dark:text-slate-400">
+										{ago(ticket.closedAt)}
+									</span>
+								{/if}
+							</div>
+							<p class="mt-1">{ticket.topic || t('home.no_topic')}</p>
+						</a>
 					</li>
 				{/each}
 			</ul>
