@@ -20,7 +20,7 @@ const path = require('path');
 const { dataPath } = require('../paths');
 const { LocalStorage } = require('./local');
 const {
-	KEY_RE, StorageError, assertKey, keyFor, ticketIdFromKey,
+	KEY_RE, StorageError, archiveEntryFor, assertKey, keyFor, ticketIdFromArchiveEntry, ticketIdFromKey,
 } = require('./keys');
 
 const DRIVERS = ['local', 's3'];
@@ -193,10 +193,12 @@ async function deleteTranscripts(client, tickets) {
 module.exports = {
 	DRIVERS,
 	StorageError,
+	archiveEntryFor,
 	createStorage,
 	deleteTranscripts,
 	formatRef,
 	keyFor,
 	parseRef,
+	ticketIdFromArchiveEntry,
 	ticketIdFromKey,
 };

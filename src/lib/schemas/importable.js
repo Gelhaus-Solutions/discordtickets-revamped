@@ -129,9 +129,11 @@ const TAG_FIELDS = [
 
 // `id` is kept: ticket ids are Discord channel/thread snowflakes and the
 // archived message/user/role rows reference them. `htmlTranscript` is not —
-// the transcript route joins it onto the data directory, so an archive that
-// chose it would be an arbitrary file read. Transcripts are regenerated on
-// demand anyway.
+// it is a storage reference, and one chosen by an archive would be a read of
+// whatever it named. It stays excluded even though export archives now carry
+// transcript files: the importer writes those under a key it derives from the
+// ticket id itself and sets the reference afterwards, so the value never comes
+// from the archive at any point. (See `importGuildFromArchive`.)
 const TICKET_FIELDS = [
 	'awaitingResponseFrom',
 	'claimedById',

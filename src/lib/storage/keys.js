@@ -65,10 +65,35 @@ function ticketIdFromKey(key) {
 	return match ? match[1] : null;
 }
 
+/** Where a transcript sits inside a guild export archive. */
+const ARCHIVE_ENTRY_RE = /^transcripts\/([A-Za-z0-9_-]{1,32})\.html$/;
+
+/**
+ * The ticket id an export archive entry claims to be for, or null.
+ *
+ * The importer never uses the entry's name as a path — it looks the id up among
+ * the tickets it has just created and derives the storage key with `keyFor`. A
+ * crafted name therefore cannot escape anywhere; it can only fail to match.
+ * This is a function rather than an inline regex so that it can be tested with
+ * hostile input directly.
+ *
+ * @param {string} entryPath
+ * @returns {string|null}
+ */
+function ticketIdFromArchiveEntry(entryPath) {
+	const match = ARCHIVE_ENTRY_RE.exec(entryPath ?? '');
+	return match ? match[1] : null;
+}
+
+/** @param {string} ticketId */
+const archiveEntryFor = ticketId => `transcripts/${ticketId}.html`;
+
 module.exports = {
 	KEY_RE,
 	StorageError,
+	archiveEntryFor,
 	assertKey,
 	keyFor,
+	ticketIdFromArchiveEntry,
 	ticketIdFromKey,
 };
