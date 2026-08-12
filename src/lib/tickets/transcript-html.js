@@ -1,13 +1,14 @@
 /* eslint-disable max-lines */
 'use strict';
 const ms = require('ms');
-const path = require('path');
-const { dataPath } = require('../paths');
-const fs = require('fs');
 const { formatAnswer } = require('./questions');
+const {
+	formatRef, keyFor,
+} = require('../storage');
 
-// Lazy-loaded: pools is only available inside the full bot process.
-// The migration script uses buildHtml directly without the worker pool.
+// Lazy-loaded: `pools` only exists inside the full bot process, and this module
+// is also required by `scripts/check-transcript-v2.js` and by the maintenance
+// scripts, which use `buildHtml` directly and never touch the worker pool.
 let _crypto = null;
 function getCrypto() {
 	if (!_crypto) {
@@ -1094,31 +1095,36 @@ async function generateHtmlTranscript(client, ticketId) {
 }
 
 /**
- * Save an HTML transcript to disk and update the DB record.
+ * Render a ticket's transcript, store it, and record the reference.
+ *
+ * Returns null only when there was nothing to render — a ticket that has gone,
+ * or has no archived messages — because that is not retryable and callers treat
+ * it as "no transcript to link to". A *storage* failure throws instead: the
+ * close path catches it and carries on without the link, while the Temporal
+ * activity lets it surface and is retried.
+ *
+ * The write happens before the column is updated, so an interruption leaves an
+ * orphaned object at a deterministic key that the next run overwrites — never a
+ * reference pointing at bytes that were never written.
+ *
  * @param {import('client')} client
  * @param {string} ticketId
- * @returns {Promise<string|null>} relative file path or null
+ * @returns {Promise<string|null>} the stored reference, or null
  */
 async function saveHtmlTranscript(client, ticketId) {
 	const html = await generateHtmlTranscript(client, ticketId);
 	if (!html) return null;
 
-	const dir = dataPath('user', 'transcripts');
-	if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+	const key = keyFor(ticketId);
+	await client.storage.put(key, html);
+	const ref = formatRef(client.storage.name, key);
 
-	const filename = `ticket-${ticketId}.html`;
-	const filepath = path.join(dir, filename);
-	fs.writeFileSync(filepath, html, 'utf8');
-
-	const relativePath = `user/transcripts/${filename}`;
-
-	// Update DB with the transcript path
 	await client.prisma.ticket.update({
-		data: { htmlTranscript: relativePath },
+		data: { htmlTranscript: ref },
 		where: { id: ticketId },
 	});
 
-	return relativePath;
+	return ref;
 }
 
 module.exports = {

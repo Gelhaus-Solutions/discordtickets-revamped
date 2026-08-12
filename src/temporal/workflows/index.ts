@@ -441,9 +441,11 @@ export async function importGuildWorkflow(input: ImportGuildInput): Promise<void
 	await longActs.runGuildImport(input);
 }
 
-export async function generateTranscriptWorkflow(input: GenerateTranscriptInput): Promise<{ path: string | null }> {
-	const path = await longActs.regenerateTranscript(input.ticketId);
-	return { path };
+export async function generateTranscriptWorkflow(input: GenerateTranscriptInput): Promise<{ ref: string | null }> {
+	// A storage reference (`local:transcripts/...`), not a path: where the bytes
+	// went is the storage layer's business, and on S3 there is no path at all.
+	const ref = await longActs.regenerateTranscript(input.ticketId);
+	return { ref };
 }
 
 // ---------------------------------------------------------------------------

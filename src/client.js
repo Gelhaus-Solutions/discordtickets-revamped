@@ -6,6 +6,7 @@ const {
 const logger = require('./lib/logger');
 const { loadConfig } = require('./lib/config');
 const { dataPath } = require('./lib/paths');
+const { createStorage } = require('./lib/storage');
 const { setLogger: setThreadsLogger } = require('./lib/threads');
 const {
 	guardListeners, instrumentInteractions,
@@ -87,6 +88,14 @@ module.exports = class Client extends FrameworkClient {
 		// Worker-pool diagnostics default to the console, which never reaches the
 		// configured log files. Hand them the real logger now that it exists.
 		setThreadsLogger(this.log);
+
+		// Where transcripts are written and read. Constructed here so that every
+		// consumer — the ticket manager, the HTTP routes and the Temporal
+		// activities, which all reach the client — shares one configured driver.
+		this.storage = createStorage({
+			config: this.config,
+			log: this.log,
+		});
 
 		this.banned_guilds = new Set(
 			(() => {
