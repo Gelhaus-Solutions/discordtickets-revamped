@@ -248,6 +248,101 @@ cd /home/container/node_modules/@temporalio/core-bridge/releases
 ls   # keep the one matching your platform, e.g. x86_64-unknown-linux-gnu
 ```
 
+The S3 SDK is an optional dependency (~16 MB) and is only loaded if you set
+`STORAGE_DRIVER=s3`. Installing with `--omit=optional` skips it; the panel
+install script already does.
+
+---
+
+## Transcript storage
+
+HTML transcripts are **not** stored in the database — it holds a reference like
+`local:transcripts/ticket-<id>.html` and the bytes live wherever the configured
+driver puts them.
+
+The practical consequence: **a database dump does not contain your
+transcripts.** Back up the data directory alongside it.
+
+Losing them is not fatal. Transcripts are rendered from the archived messages,
+which *are* in the database, so a missing or unreadable object is regenerated
+the next time someone opens it. Storage is a cache, not the system of record.
+
+### Local (the default)
+
+Nothing to configure. Transcripts are written to
+`<data dir>/user/transcripts/ticket-<id>.html`, which is where they have always
+been written.
+
+### S3-compatible object storage
+
+For deployments where the data directory is not durable, or where transcripts
+have outgrown the disk. Set the driver and the bucket:
+
+```
+STORAGE_DRIVER=s3
+S3_BUCKET=discord-tickets
+S3_ENDPOINT=http://minio:9000   # omit for real AWS
+S3_REGION=us-east-1
+S3_FORCE_PATH_STYLE=true        # MinIO and most self-hosted gateways need this
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+```
+
+Leave both credentials unset to use the AWS SDK's own credential chain, which
+is how instance roles (IMDS, IRSA) work — prefer that where it is available.
+The bucket details may also be set in `user/config.yml` under `storage.s3`, but
+the environment wins, and credentials belong only in the environment.
+
+The bucket is not created for you, and the bot does not stop if it is
+unreachable: it warns at startup and every read falls back to regenerating.
+
+Testing against MinIO locally:
+
+```sh
+docker run -d --name minio -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+  quay.io/minio/minio server /data --console-address ":9001"
+mc alias set local http://127.0.0.1:9000 minioadmin minioadmin
+mc mb local/discord-tickets
+```
+
+There is a commented-out `minio` service in
+[docker-compose.yml](../docker-compose.yml) for the same purpose.
+
+### Moving existing transcripts
+
+Switching the driver does not move anything, and it does not need to: rows keep
+their own reference, so transcripts written before the switch keep being read
+from where they are. To move them anyway:
+
+```sh
+npm run transcripts -- --to s3            # dry run: says what it would do
+npm run transcripts -- --to s3 -y         # do it
+npm run transcripts -- --to s3 -y --delete-source   # ...and remove the originals
+```
+
+It is a dry run unless you pass `-y`, it is idempotent — running it twice
+changes nothing the second time — and it can be interrupted safely: each
+transcript is copied and verified before its row is repointed, so a crash
+leaves a stray object rather than a row pointing at nothing.
+
+Run it with no `--to` to tidy the current driver in place: transcripts still
+held in the database are written out, and references in the pre-4.x format are
+rewritten. Add `--prune-missing` to clear references whose object has gone, so
+those transcripts regenerate on next view instead of 404ing.
+
+To delete stored transcripts belonging to tickets that no longer exist:
+
+```sh
+npm run transcripts -- --gc               # dry run, lists what it would delete
+npm run transcripts -- --gc -y
+```
+
+The collector only touches objects matching its own naming, skips anything
+written in the last 24 hours, and refuses to run at all if the database
+contains no tickets — a mistyped `DB_CONNECTION_URL` would otherwise look like
+"nothing refers to any of these".
+
 ---
 
 ## Reaching Temporal
@@ -322,6 +417,15 @@ fork adds or changes:
 | `PUBLIC_SENTRY_TRACES_RATE` | no | `0` | Browser performance tracing, 0–1. |
 | `PUBLIC_SENTRY_REPLAY_SESSION_RATE` | no | `0` | Session Replay sampling, 0–1. See the note below. |
 | `PUBLIC_SENTRY_REPLAY_ERROR_RATE` | no | `0` | Session Replay sampling for sessions that hit an error, 0–1. |
+| `STORAGE_DRIVER` | no | `local` | Where transcripts are kept: `local` or `s3`. See [Transcript storage](#transcript-storage). |
+| `S3_BUCKET` | when `s3` | — | Bucket transcripts are written to. |
+| `S3_ENDPOINT` | no | AWS | Base URL of the gateway, e.g. `http://minio:9000`. Leave unset for real AWS. |
+| `S3_REGION` | no | `us-east-1` | |
+| `S3_PREFIX` | no | — | Key prefix within the bucket, e.g. `production/`. |
+| `S3_FORCE_PATH_STYLE` | no | `true` | Required by MinIO and most self-hosted gateways. |
+| `S3_ACCESS_KEY_ID` | no | — | Leave unset to use the AWS SDK credential chain (instance roles). |
+| `S3_SECRET_ACCESS_KEY` | no | — | |
+| `S3_SESSION_TOKEN` | no | — | Only for temporary credentials. |
 | `DT_DATA_DIR` | no | app directory | Where `.env`, `user/` and `logs/` live. |
 | `DT_APP_DIR` | no | auto-detected | Where the code lives. |
 | `DT_ENV_FILE` | no | `<data dir>/.env` | |

@@ -1,11 +1,37 @@
 const { pools } = require('../../../../../../lib/threads');
+const { parseRef } = require('../../../../../../lib/storage');
 const { crypto } = pools;
+
+/**
+ * How big a ticket's stored transcript is, or null if that cannot be answered.
+ *
+ * Null rather than zero: "no transcript", "the object has gone" and "storage is
+ * unreachable" are all genuinely unknown, and a confident 0.00 KB is worse than
+ * an honest dash.
+ *
+ * @param {import('client')} client
+ * @param {string|null} value the raw `htmlTranscript` column
+ * @returns {Promise<number|null>}
+ */
+async function transcriptSize(client, value) {
+	const ref = parseRef(value);
+	if (!ref) return null;
+	// A row still holding the HTML itself: its size is its length.
+	if (ref.kind === 'inline') return Buffer.byteLength(ref.html);
+	try {
+		const stat = await client.storage.for(ref.driver).stat(ref.key);
+		return stat?.size ?? null;
+	} catch {
+		return null;
+	}
+}
 
 module.exports.get = fastify => ({
 	handler: async req => {
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const { query } = req;
+		const withSizes = query.transcriptSize === 'true';
 
 		// Pagination support
 		const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 50));
@@ -77,10 +103,22 @@ module.exports.get = fastify => ({
 						ticket.topic = '[Decryption failed]';
 					}
 				}
-				// Build absolute transcript URL when the path exists
-				if (ticket.htmlTranscript && base) {
+				// The column is a storage reference — which driver, which key — and
+				// the dashboard has no business knowing either. It gets the fact
+				// that a transcript exists and the URL that serves it.
+				ticket.hasTranscript = Boolean(ticket.htmlTranscript);
+				if (ticket.hasTranscript && base) {
 					ticket.transcriptUrl = `${base}/api/admin/guilds/${ticket.guildId}/tickets/${ticket.id}/transcript`;
 				}
+
+				// Sizes are opt-in because they cost a `stat` per row — on S3 that
+				// is a HeadObject each, which is not a tax worth paying on every
+				// listing for a number most callers ignore.
+				if (withSizes) {
+					ticket.transcriptBytes = await transcriptSize(client, ticket.htmlTranscript);
+				}
+
+				delete ticket.htmlTranscript;
 				return ticket;
 			}),
 		);

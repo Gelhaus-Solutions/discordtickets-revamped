@@ -21,6 +21,13 @@
 		return `${hours}h ${minutes}m`;
 	};
 
+	// A dash rather than 0.00 KB when the size is unknown: the API sends null
+	// when the object has gone or storage could not be reached, and a confident
+	// zero there is a lie. (This chip used to measure the length of the database
+	// reference, so every transcript claimed to be 0.03 KB.)
+	const formatSize = (bytes) =>
+		typeof bytes === 'number' ? `${(bytes / 1024).toFixed(2)} KB` : '—';
+
 	const performSearch = async (pg = 1) => {
 		if (!searchQuery.trim()) {
 			searchResults = [];
@@ -38,7 +45,9 @@
 				status: 'closed',
 				hasTranscript: 'true',
 				limit: pageSize.toString(),
-				page: pg.toString()
+				page: pg.toString(),
+				// Opt-in, because it costs the API a stat per row.
+				transcriptSize: 'true'
 			});
 
 			const response = await fetch(
@@ -247,7 +256,7 @@
 						</div>
 						<div class="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800">
 							<i class="fa-solid fa-database"></i>
-							Size: {((transcript.htmlTranscript?.length || 0) / 1024).toFixed(2)} KB
+							Size: {formatSize(transcript.transcriptBytes)}
 						</div>
 						{#if !transcript.open}
 							<div class="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/30 dark:text-red-300">

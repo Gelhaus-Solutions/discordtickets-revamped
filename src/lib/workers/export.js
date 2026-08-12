@@ -24,6 +24,12 @@ expose({
 
 		delete ticket.guildId;
 
+		// A storage reference is meaningless anywhere but the instance that wrote
+		// it — it names a driver and a key in *that* deployment. The transcripts
+		// themselves travel as separate entries in the archive, keyed by ticket
+		// id, and the importer regenerates the reference from where it puts them.
+		delete ticket.htmlTranscript;
+
 		ticket.questionAnswers = ticket.questionAnswers.map(answer => {
 			answer.value &&= decrypt(answer.value);
 			return answer;

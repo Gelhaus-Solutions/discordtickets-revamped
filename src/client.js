@@ -4,7 +4,9 @@ const {
 	Partials,
 } = require('discord.js');
 const logger = require('./lib/logger');
+const { loadConfig } = require('./lib/config');
 const { dataPath } = require('./lib/paths');
+const { createStorage } = require('./lib/storage');
 const { setLogger: setThreadsLogger } = require('./lib/threads');
 const {
 	guardListeners, instrumentInteractions,
@@ -75,12 +77,25 @@ module.exports = class Client extends FrameworkClient {
 		this.i18n = new I18n('en-GB', locales);
 
 		// to maintain references, these shouldn't be reassigned
-		Object.assign(this.config, YAML.parse(fs.readFileSync(dataPath('user', 'config.yml'), 'utf8')));
+		//
+		// `loadConfig()` fills the operator's file in from the shipped defaults.
+		// Their copy is seeded once and never overwritten, so without this any key
+		// added after they installed reads as `undefined` — every consumer would
+		// otherwise need its own fallback for a default that already exists.
+		Object.assign(this.config, loadConfig());
 		Object.assign(this.log, logger(this.config));
 
 		// Worker-pool diagnostics default to the console, which never reaches the
 		// configured log files. Hand them the real logger now that it exists.
 		setThreadsLogger(this.log);
+
+		// Where transcripts are written and read. Constructed here so that every
+		// consumer — the ticket manager, the HTTP routes and the Temporal
+		// activities, which all reach the client — shares one configured driver.
+		this.storage = createStorage({
+			config: this.config,
+			log: this.log,
+		});
 
 		this.banned_guilds = new Set(
 			(() => {

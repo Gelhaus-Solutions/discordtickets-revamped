@@ -88,7 +88,22 @@ const env = {
 	SENTRY_RELEASE: () => true, // optional (default: version+build id)
 	SENTRY_SAMPLE_RATE: () => true, // optional (traces, default 0.1)
 	SENTRY_SEND_PII: () => true, // optional (default false)
+	// Transcript storage — all optional; the local filesystem is the default.
+	// Only the driver name is validated here: everything else is checked when
+	// the driver is constructed, which is the first point at which the merged
+	// config (and therefore the effective driver) is known at all.
+	S3_ACCESS_KEY_ID: () => true, // optional (unset falls back to the AWS credential chain)
+	S3_BUCKET: () => true, // optional (required when STORAGE_DRIVER=s3)
+	S3_ENDPOINT: () => true, // optional (unset means real AWS; set it for MinIO and friends)
+	S3_FORCE_PATH_STYLE: () => true, // optional (default true)
+	S3_PREFIX: () => true, // optional
+	S3_REGION: () => true, // optional (default "us-east-1")
+	S3_SECRET_ACCESS_KEY: () => true, // optional
+	S3_SESSION_TOKEN: () => true, // optional
 	STATS_URL: () => true, // optional (Houston-compatible endpoint; stats are not reported when unset)
+	STORAGE_DRIVER: v =>
+		!v || ['local', 's3'].includes(v) ||
+		new Error('must be "local" or "s3"'),
 	SUPER: () => true, // optional
 	// Temporal — required (durable execution backs all async/scheduled work)
 	TEMPORAL_ADDRESS: v =>

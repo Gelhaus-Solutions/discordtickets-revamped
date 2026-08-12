@@ -2,6 +2,16 @@
 /* eslint-disable max-lines */
 const TicketArchiver = require('./archiver');
 const { saveHtmlTranscript } = require('./transcript-html');
+const {
+	archiveEntryFor, deleteTranscripts, formatRef, keyFor, parseRef, ticketIdFromArchiveEntry,
+} = require('../storage');
+
+/**
+ * Ceiling on a single transcript restored from an import archive. Generously
+ * above any real transcript, and low enough that a crafted archive cannot fill
+ * the disk one entry at a time.
+ */
+const MAX_TRANSCRIPT_BYTES = 32 * 1024 * 1024;
 const archiver = require('archiver');
 const unzipper = require('unzipper');
 const { createWriteStream } = require('node:fs');
@@ -1852,6 +1862,43 @@ module.exports = class TicketManager {
 		archive.append(Readable.from(icon.body), { name: 'icon.png' });
 		archive.append(JSON.stringify(settings), { name: 'settings.json' });
 		archive.append(ticketsStream, { name: 'tickets.jsonl' });
+
+		// Transcripts, as their own entries. They live outside the database, so
+		// an export without them is a guild whose entire ticket history reads as
+		// "transcript unavailable" on the other side.
+		//
+		// A second query rather than collecting references during the generator
+		// above: `archive.append` queues, while `Readable.from` consumes the
+		// generator lazily, so gathering them there would race the append order.
+		const stored = await client.prisma.ticket.findMany({
+			select: {
+				htmlTranscript: true,
+				id: true,
+			},
+			where: {
+				guildId,
+				htmlTranscript: { not: null },
+			},
+		});
+		let appended = 0;
+		for (const ticket of stored) {
+			const ref = parseRef(ticket.htmlTranscript);
+			if (!ref) continue;
+			try {
+				const body = ref.kind === 'inline'
+					? Readable.from([ref.html])
+					: await client.storage.for(ref.driver).getStream(ref.key);
+				archive.append(body, { name: archiveEntryFor(ticket.id) });
+				appended++;
+			} catch (error) {
+				// A transcript that has gone is not a reason to fail an export —
+				// it regenerates from the archived messages, which are in here.
+				client.log.warn('Could not add the transcript for %s to the export: %s', ticket.id, error.message);
+			}
+			if (appended % 50 === 0) heartbeat();
+		}
+		client.log.info('Added %d transcripts to the export of guild %s', appended, guildId);
+
 		await archive.finalize();
 		await written;
 		return outputPath;
@@ -1899,6 +1946,19 @@ module.exports = class TicketManager {
 		const guildData = pick(settings, GUILD_FIELDS, 'guild setting', ['categories', 'createdAt', 'id', 'tags']);
 		const tagData = (settings.tags ?? []).map(tag => pick(tag, TAG_FIELDS, 'tag', ['createdAt', 'guildId', 'id']));
 
+		// Read before the delete below cascades these rows away, so the stored
+		// transcripts they point at can be cleaned up afterwards.
+		const oldTranscripts = await client.prisma.ticket.findMany({
+			select: {
+				htmlTranscript: true,
+				id: true,
+			},
+			where: {
+				guildId,
+				htmlTranscript: { not: null },
+			},
+		});
+
 		await client.prisma.$transaction([
 			client.prisma.guild.delete({
 				select: { id: true },
@@ -1917,6 +1977,11 @@ module.exports = class TicketManager {
 				select: { id: true },
 			}),
 		]);
+
+		// After the transaction, and best-effort: an orphan is tidied up by
+		// `scripts/transcripts.mjs --gc`, whereas deleting the transcripts of
+		// tickets that survived a rollback is not recoverable.
+		await deleteTranscripts(client, oldTranscripts);
 		heartbeat();
 
 		const newCategories = await client.prisma.$transaction(
@@ -1998,7 +2063,41 @@ module.exports = class TicketManager {
 
 		await client.prisma.$transaction(queries);
 		heartbeat();
-		client.log.success(`Imported ${settingsJSON.categories.length} categories and ${ticketsResolved.length} tickets into guild ${guildId}`);
+
+		// Transcripts, for the tickets this import actually created.
+		//
+		// The archive's filename is never used as a path. It is only a lookup of
+		// an id we have just created, and the storage key is rebuilt by
+		// `keyFor(id)` — so a crafted entry name cannot reach outside storage,
+		// and an entry for a ticket that is not ours is ignored rather than
+		// written. That is why `importable.js` can go on excluding
+		// `htmlTranscript` from the ticket payload outright: the reference is
+		// never taken from the archive, only ever recomputed here.
+		const imported = new Set(ticketsResolved.map(([ticket]) => ticket.id));
+		let restored = 0;
+		for (const file of files) {
+			const ticketId = ticketIdFromArchiveEntry(file.path);
+			if (!ticketId || !imported.has(ticketId)) continue;
+			// A zip bomb would otherwise be a way to fill the volume.
+			if (file.uncompressedSize > MAX_TRANSCRIPT_BYTES) {
+				client.log.warn('Skipping the transcript for %s: %d bytes is over the limit', ticketId, file.uncompressedSize);
+				continue;
+			}
+			try {
+				const key = keyFor(ticketId);
+				await client.storage.put(key, await file.buffer());
+				await client.prisma.ticket.update({
+					data: { htmlTranscript: formatRef(client.storage.name, key) },
+					where: { id: ticketId },
+				});
+				restored++;
+			} catch (error) {
+				client.log.warn('Could not restore the transcript for %s: %s', ticketId, error.message);
+			}
+			if (restored % 50 === 0) heartbeat();
+		}
+
+		client.log.success(`Imported ${settingsJSON.categories.length} categories, ${ticketsResolved.length} tickets and ${restored} transcripts into guild ${guildId}`);
 	}
 
 	/**

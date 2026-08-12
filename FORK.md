@@ -150,8 +150,17 @@ deliberate "none", and the two are kept distinct all the way down.
 
 Upstream produces text transcripts on request. This fork also renders HTML
 transcripts — message content, embeds, components, attachments and replies — and
-gives admins a searchable archive of them in the dashboard. Transcripts are
-written to disk with only a reference in the database.
+gives admins a searchable archive of them in the dashboard.
+
+Where those bytes live is pluggable. The database holds only a reference of the
+form `local:transcripts/ticket-<id>.html`, never the HTML. The default driver
+writes to `<data dir>/user/transcripts`; an S3-compatible driver is available
+for deployments that need it, and is opt-in rather than assumed. Either way the
+transcript is served through the dashboard's own admin-checked route under a
+strict CSP, never handed out as a presigned URL. A transcript that has gone
+missing is regenerated from the archived messages on next view, so storage is a
+cache rather than a system of record. See "Transcript storage" in
+[docs/installation.md](docs/installation.md).
 
 ### Encryption
 

@@ -206,11 +206,13 @@ module.exports.get = fastify => ({
 					claimed: 0,
 					closed: 0,
 					resolutionTotal: 0,
+					resolvedCount: 0,
 					userId: t.claimedById,
 				};
 				assigneeStats[t.claimedById].claimed++;
 				if (!t.open && t.closedAt) {
 					assigneeStats[t.claimedById].resolutionTotal += new Date(t.closedAt) - new Date(t.createdAt);
+					assigneeStats[t.claimedById].resolvedCount++;
 				}
 			}
 			// Closed
@@ -220,17 +222,55 @@ module.exports.get = fastify => ({
 					claimed: 0,
 					closed: 0,
 					resolutionTotal: 0,
+					resolvedCount: 0,
 					userId: t.closedById,
 				};
 				assigneeStats[t.closedById].closed++;
 			}
 		}
-		// Calculate per-assignee avg resolution time
+		// Calculate per-assignee avg resolution time.
+		//
+		// Divided by the claims that actually closed, not by every claim: the
+		// total only accumulates over closed tickets, so dividing by `claimed`
+		// understated anyone still holding open claims in proportion to how many
+		// they were holding — the busiest staff looked like the fastest.
 		for (const stat of Object.values(assigneeStats)) {
-			if (stat.claimed > 0 && stat.resolutionTotal > 0) {
-				stat.avgResolutionTimeMs = Math.round(stat.resolutionTotal / stat.claimed);
+			if (stat.resolvedCount > 0) {
+				stat.avgResolutionTimeMs = Math.round(stat.resolutionTotal / stat.resolvedCount);
 			}
 			delete stat.resolutionTotal;
+			delete stat.resolvedCount;
+		}
+
+		// ── 6b. Assignee display names ───────────────────────────────────────
+		// Resolved here rather than in the dashboard, whose only other option is
+		// `data?query=members.cache` — the entire member cache, every member's
+		// roles, nickname and three avatar URLs, shipped to label a couple of
+		// dozen table rows.
+		//
+		// Cache first, then one bounded fetch for what is missing. An unbounded
+		// `members.fetch()` on a request-driven route is a gateway amplifier, so
+		// the batch is capped and time-limited, and a failure is not fatal: the
+		// table falls back to the id, which is all it ever had before.
+		const guild = client.guilds.cache.get(guildId);
+		const assignees = Object.values(assigneeStats);
+		if (guild) {
+			const missing = assignees.map(s => s.userId).filter(id => !guild.members.cache.has(id));
+			if (missing.length > 0 && missing.length <= 100) {
+				try {
+					await guild.members.fetch({
+						time: 5000,
+						user: missing,
+					});
+				} catch (error) {
+					client.log.debug('Could not resolve every assignee for the analytics report: %s', error?.message ?? error);
+				}
+			}
+			for (const stat of assignees) {
+				const member = guild.members.cache.get(stat.userId);
+				stat.avatarURL = member?.displayAvatarURL({ size: 32 }) ?? null;
+				stat.displayName = member?.displayName ?? client.users.cache.get(stat.userId)?.username ?? null;
+			}
 		}
 
 		// ── 7. Priority breakdown ─────────────────────────────────────────────
@@ -275,7 +315,7 @@ module.exports.get = fastify => ({
 		};
 
 		return {
-			assigneeStats: Object.values(assigneeStats).sort((a, b) => b.closed - a.closed),
+			assigneeStats: assignees.sort((a, b) => b.closed - a.closed),
 			avgRating,
 			categoryBreakdown: Object.values(categoryBreakdown),
 			period: {

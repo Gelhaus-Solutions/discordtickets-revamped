@@ -1,7 +1,4 @@
 'use strict';
-const path = require('path');
-const { dataPath } = require('../../../../../../../lib/paths');
-const fs = require('fs');
 // A plain relative require. `require` resolves against this file's directory,
 // never the working directory, so the previous candidate-path search was
 // unnecessary — and actively harmful: two of its five candidates were at the
@@ -9,6 +6,9 @@ const fs = require('fs');
 // `throw` at require time that took down the entire HTTP server rather than
 // just this route.
 const { generateHtmlTranscript } = require('../../../../../../../lib/tickets/transcript-html.js');
+const {
+	formatRef, keyFor, parseRef,
+} = require('../../../../../../../lib/storage');
 
 // Transcripts are HTML built from user-authored Discord messages and served
 // from the same origin as the session cookie. The generator escapes its input,
@@ -27,9 +27,16 @@ const TRANSCRIPT_CSP = [
 ].join('; ');
 
 /**
- * Send generated transcript HTML with a restrictive CSP.
+ * Send a transcript with a restrictive CSP.
+ *
+ * Takes a stream as readily as a string, which is why stored transcripts are
+ * never buffered just to be sent. This is also why S3 transcripts are streamed
+ * through here rather than handed out as presigned URLs: the CSP above is a
+ * header on *this* response, and a redirect to a bucket would drop it, along
+ * with `nosniff` and the admin check that guards every view.
+ *
  * @param {import('fastify').FastifyReply} res
- * @param {string} html
+ * @param {import('stream').Readable|string} html
  */
 function sendTranscript(res, html) {
 	return res
@@ -93,19 +100,55 @@ module.exports.get = fastify => ({
 			});
 		}
 
-		// Try to serve from disk cache first (unless regen requested)
-		if (!forceRegen && ticket.htmlTranscript) {
-			// Resolved against DATA_DIR, and confined to it: `htmlTranscript` is a
-			// column, and a column is only ever as trustworthy as everything that
-			// can write to it (an import archive, historically).
-			const filepath = path.resolve(dataPath(ticket.htmlTranscript));
-			if (filepath.startsWith(path.resolve(dataPath('user', 'transcripts')) + path.sep) && fs.existsSync(filepath)) {
-				const html = fs.readFileSync(filepath, 'utf8');
-				if (asDownload) {
-					res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
-				}
-				return sendTranscript(res, html);
+		const setDisposition = () => {
+			if (asDownload) {
+				res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
 			}
+		};
+
+		// Serve what is already stored, unless a regeneration was asked for.
+		//
+		// `parseRef` is the only thing that reads this column, and it is strict:
+		// a value it does not recognise — including anything that looks like a
+		// path escape — comes back as null and falls through to regeneration
+		// rather than being resolved against anything.
+		const ref = forceRegen ? null : parseRef(ticket.htmlTranscript);
+
+		if (ref?.kind === 'object') {
+			try {
+				const driver = client.storage.for(ref.driver);
+				// `stat` first, then stream. Not "stream and catch": once the first
+				// byte is on the wire there is no falling back to regenerating, so
+				// the existence check has to happen while there is still a choice.
+				if (await driver.stat(ref.key)) {
+					setDisposition();
+					return sendTranscript(res, await driver.getStream(ref.key));
+				}
+			} catch (err) {
+				// A storage outage degrades to a slower transcript, not a missing
+				// one — the archived messages are still in the database.
+				client.log.warn('Could not read the stored transcript for %s, regenerating: %s', ticketId, err.message);
+			}
+		}
+
+		if (ref?.kind === 'inline') {
+			// A row from before transcripts moved out of the database. Serve it,
+			// then move it into storage so the next view takes the path above. This
+			// is what makes the backfill script a convenience rather than a
+			// prerequisite.
+			setDisposition();
+			const response = sendTranscript(res, ref.html);
+			try {
+				const key = keyFor(ticketId);
+				await client.storage.put(key, ref.html);
+				await client.prisma.ticket.update({
+					data: { htmlTranscript: formatRef(client.storage.name, key) },
+					where: { id: ticketId },
+				});
+			} catch (err) {
+				client.log.warn('Could not move the inline transcript for %s into storage: %s', ticketId, err.message);
+			}
+			return response;
 		}
 
 		// Generate fresh HTML transcript
@@ -118,24 +161,20 @@ module.exports.get = fastify => ({
 			});
 		}
 
-		// Cache to disk asynchronously
+		// Cache for next time. Best-effort: the transcript is already rendered and
+		// the caller should get it whether or not it can be stored.
 		try {
-			const dir = dataPath('user', 'transcripts');
-			if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-			const filepath = path.join(dir, `ticket-${ticketId}.html`);
-			fs.writeFileSync(filepath, html, 'utf8');
-			const relativePath = `user/transcripts/ticket-${ticketId}.html`;
+			const key = keyFor(ticketId);
+			await client.storage.put(key, html);
 			await client.prisma.ticket.update({
-				data: { htmlTranscript: relativePath },
+				data: { htmlTranscript: formatRef(client.storage.name, key) },
 				where: { id: ticketId },
 			});
 		} catch (err) {
 			client.log.warn('Failed to cache transcript for %s: %s', ticketId, err.message);
 		}
 
-		if (asDownload) {
-			res.header('Content-Disposition', `attachment; filename="ticket-${ticket.number}-transcript.html"`);
-		}
+		setDisposition();
 		return sendTranscript(res, html);
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],

@@ -172,6 +172,23 @@ services:
       PUBLIC_SENTRY_TRACES_RATE: "0"
       PUBLIC_SENTRY_REPLAY_SESSION_RATE: "0"
       PUBLIC_SENTRY_REPLAY_ERROR_RATE: "0"
+      # --- Transcript storage (optional) ---
+      # Transcripts are written to /home/container/user/transcripts, which is
+      # inside the tickets-bot volume above, and the database holds only a
+      # reference. They are therefore NOT in a database dump — back the volume
+      # up as well.
+      #
+      # Set STORAGE_DRIVER=s3 (and uncomment the minio service at the bottom of
+      # this file, or point these at a real bucket) only if you need it.
+      STORAGE_DRIVER: local
+      S3_BUCKET:
+      S3_ENDPOINT: # e.g. http://minio:9000
+      S3_REGION: us-east-1
+      S3_PREFIX:
+      S3_FORCE_PATH_STYLE: "true" # required by MinIO and most self-hosted gateways
+      # Leave both empty to use the AWS SDK credential chain (instance roles).
+      S3_ACCESS_KEY_ID:
+      S3_SECRET_ACCESS_KEY:
       # --- Temporal ---
       TEMPORAL_ADDRESS: temporal # host/IP of the Temporal frontend
       TEMPORAL_PORT: 7233
@@ -184,10 +201,39 @@ services:
       # TEMPORAL_TLS_CA_PATH: /home/container/certs/ca.pem
       # TEMPORAL_TLS_SERVER_NAME: temporal.your-domain.example
 
+  # --- Object storage (optional) ------------------------------------------
+  # Only needed if you set STORAGE_DRIVER=s3 above. Uncomment this service and
+  # the tickets-minio volume, then set on the bot:
+  #   S3_ENDPOINT: http://minio:9000
+  #   S3_BUCKET: discord-tickets
+  #   S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY to match the credentials here
+  # The bucket is not created for you: visit the console on :9001 and add it.
+  #
+  # minio:
+  #   image: quay.io/minio/minio
+  #   restart: unless-stopped
+  #   hostname: minio
+  #   command: server /data --console-address ":9001"
+  #   networks:
+  #     - discord-tickets
+  #   ports:
+  #     - 9001:9001 # web console; the bot reaches :9000 over the compose network
+  #   environment:
+  #     MINIO_ROOT_USER: minioadmin # change this
+  #     MINIO_ROOT_PASSWORD: minioadmin # change this
+  #   volumes:
+  #     - tickets-minio:/data
+  #   healthcheck:
+  #     test: ["CMD", "mc", "ready", "local"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 20
+
 networks:
   discord-tickets:
 
 volumes:
   tickets-mysql:
   tickets-bot:
+  # tickets-minio:
   temporal-postgresql:

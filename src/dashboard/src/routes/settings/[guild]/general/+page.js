@@ -8,23 +8,8 @@ export async function load({ fetch, params }) {
 	if (!response.ok) {
 		error(response.status, isJSON ? JSON.stringify(body) : body);
 	} else {
-		// Try to fetch analytics data
-		let analytics = null;
-		try {
-			const analyticsRes = await fetch(
-				`/api/admin/guilds/${params.guild}/analytics`,
-				fetchOptions
-			);
-			if (analyticsRes.ok) {
-				analytics = await analyticsRes.json();
-			}
-		} catch (err) {
-			console.error('Failed to load analytics:', err);
-		}
-
 		return {
 			settings: body,
-			analytics,
 			channels: await (
 				await fetch(
 					`/api/admin/guilds/${params.guild}/data?query=channels.cache`,

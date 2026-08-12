@@ -8,6 +8,7 @@
 		"db.dump": "node scripts/dump.mjs",
 		"db.prune": "node scripts/prune.mjs",
 		"db.restore": "node scripts/restore.mjs",
+		"transcripts": "node scripts/transcripts.mjs",
 		"changelog": "conventional-changelog -p angular -i CHANGELOG.md -s",
 		"dashboard.build": "npm --prefix src/dashboard ci --include=dev --no-audit --no-fund && npm --prefix src/dashboard run build",
 		"contributors:add": "all-contributors add",
@@ -22,7 +23,7 @@
 		"healthcheck": "node scripts/healthcheck.js",
 		"start": "node .",
 		"studio": "npx prisma studio",
-		"test": "node scripts/check-i18n && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2 && node scripts/check-questions && node scripts/check-automations && node scripts/check-importable && node scripts/check-inheritance && node scripts/check-tickets && node scripts/check-placeholders && node scripts/check-regex && node scripts/check-markdown",
+		"test": "node scripts/check-i18n && node scripts/check-config && node scripts/check-components-v2 && node scripts/check-panels && node scripts/check-transcript-v2 && node scripts/check-storage && node scripts/check-questions && node scripts/check-automations && node scripts/check-importable && node scripts/check-inheritance && node scripts/check-tickets && node scripts/check-placeholders && node scripts/check-regex && node scripts/check-markdown",
 		"prepare": "husky install || exit 0"
 	},
 	"commitlint": {
@@ -59,7 +60,9 @@
 	"engines": {
 		"node": ">=20"
 	},
-	"overrides": { "discord.js": "^14.27.0" },
+	"overrides": {
+		"discord.js": "^14.27.0"
+	},
 	"dependencies": {
 		"@eartharoid/dbf": "^0.4.2",
 		"@eartharoid/dtf": "^2.0.1",
@@ -120,6 +123,7 @@
 		"typescript": "^5.6.3"
 	},
 	"optionalDependencies": {
+		"@aws-sdk/client-s3": "^3.1108.0",
 		"bufferutil": "^4.0.9",
 		"erlpack": "github:discord/erlpack",
 		"utf-8-validate": "^5.0.10",
