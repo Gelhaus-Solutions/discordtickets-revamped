@@ -137,4 +137,6 @@ jobs:
       # Needs a generated Prisma client: check-importable reads the datamodel
       # to prove the import allow-lists still cover every column.
       - run: npx prisma generate --schema db/postgresql/schema.prisma
+      # check-stale-sweep drives the compiled activity, not the TypeScript.
+      - run: npm run temporal.build
       - run: npm test

@@ -36,6 +36,25 @@ export interface StaleState {
 	staleAfterMs: number;
 }
 
+/**
+ * What one pass of the stale sweep had to put right.
+ *
+ * Every number here counts a ticket the per-ticket timers should already have
+ * dealt with, so anything other than zero means one of them stopped: a stale
+ * workflow that failed or was terminated, a deadline that passed while no
+ * worker was polling, or a ticket opened while Temporal was unreachable.
+ */
+export interface StaleSweepResult {
+	/** Overdue tickets handed to a close (or reopen-window) workflow. */
+	closed: number;
+	/** Tickets left sitting past the end of their reopen grace window. */
+	pendingClosed: number;
+	/** Inactive tickets whose stale workflow was no longer running. */
+	rearmed: number;
+	/** The per-pass action cap was reached and more tickets are still waiting. */
+	truncated: boolean;
+}
+
 export interface BulkCloseInput {
 	ticketIds: string[];
 	closedBy?: string | null;

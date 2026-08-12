@@ -37,6 +37,7 @@ import type {
 	ReopenState,
 	ReopenWindowInput,
 	StaleState,
+	StaleSweepResult,
 	StaleTicketInput,
 } from '../types';
 
@@ -50,6 +51,17 @@ const longActs = proxyActivities<Activities>({
 	heartbeatTimeout: '1 minute',
 	retry: { maximumAttempts: 3 },
 	startToCloseTimeout: '60 minutes',
+});
+
+/**
+ * The recovery sweep: a couple of queries per guild and then up to a few
+ * hundred small client calls, so it wants more than the two minutes the
+ * ordinary activities get. Every action it takes is idempotent, which is what
+ * makes retrying the whole pass safe.
+ */
+const sweepActs = proxyActivities<Activities>({
+	retry: { maximumAttempts: 3 },
+	startToCloseTimeout: '10 minutes',
 });
 
 const isAlreadyStarted = (err: unknown): boolean =>
@@ -217,6 +229,34 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		}
 		return;
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Safety net for the per-ticket stale timers (scheduled; see ./schedules).
+//
+// One workflow per ticket is the right shape for this — it is resettable,
+// queryable and reconfigurable — but it also means one lost workflow is one
+// ticket that stays open for ever, silently, after the bot has already told the
+// channel when it would close. Nothing else in the system ever revisits that
+// promise: the startup sync only re-arms tickets it can see, and a ticket in a
+// reopen grace window is deliberately skipped by every other path.
+//
+// Deliberately a separate workflow rather than logic inside staleTicketWorkflow:
+// those run for days, and editing them breaks the replay of every one that is
+// currently parked mid-countdown.
+// ---------------------------------------------------------------------------
+export async function staleSweepWorkflow(): Promise<StaleSweepResult> {
+	const result = await sweepActs.sweepStaleTickets();
+	// Nothing to say on a quiet pass; anything else means a durable timer was
+	// lost, which is worth finding in the logs when someone asks why a ticket
+	// closed late.
+	if (result.closed || result.pendingClosed || result.rearmed) {
+		log.warn('Stale sweep recovered tickets the per-ticket timers had missed', { ...result });
+	}
+	if (result.truncated) {
+		log.warn('Stale sweep hit its per-pass action cap; more tickets are still overdue', { ...result });
+	}
+	return result;
 }
 
 // ---------------------------------------------------------------------------

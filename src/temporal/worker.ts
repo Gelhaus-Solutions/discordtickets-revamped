@@ -17,7 +17,15 @@ let _runPromise: Promise<void> | null = null;
 /**
  * Promote this build to the deployment's Current Version. The server rejects
  * the request until this worker's pollers have registered, so we retry with a
- * short backoff. Non-fatal: a failure just means routing isn't updated.
+ * short backoff.
+ *
+ * Not the cosmetic "routing isn't updated" it looks like: with worker
+ * versioning on, a workflow only makes progress on a worker of the version it
+ * is assigned to, and AUTO_UPGRADE moves it onto the Current one. Until this
+ * request lands, this process is the only worker alive and it is not Current —
+ * so every ticket already counting down to an auto-close stops counting, with
+ * nothing but this log line to say so. Hence a long retry and an error, rather
+ * than fifteen seconds and a warning.
  */
 async function setCurrentDeploymentVersion(cfg: TemporalConfig, deps: ActivityDeps): Promise<void> {
 	const client = getTemporalClient();
@@ -27,7 +35,10 @@ async function setCurrentDeploymentVersion(cfg: TemporalConfig, deps: ActivityDe
 		identity: `discord-tickets-${cfg.buildId}`,
 		namespace: cfg.namespace,
 	};
-	const maxAttempts = 15;
+	// ~10 minutes in total: a second between the early tries, so a healthy start
+	// is still instant, then backing off while a struggling server catches up.
+	const maxAttempts = 40;
+	const backoffMs = (attempt: number): number => Math.min(30_000, 1000 * Math.ceil(attempt / 5));
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		try {
 			await client.workflowService.setWorkerDeploymentCurrentVersion(request);
@@ -49,12 +60,17 @@ async function setCurrentDeploymentVersion(cfg: TemporalConfig, deps: ActivityDe
 				return;
 			}
 			if (attempt === maxAttempts) {
-				deps.client.log?.warn?.(
+				deps.client.log?.error?.(
 					`Could not set current deployment version ${cfg.deploymentName}.${cfg.buildId}: ${(err as Error)?.message ?? err}`,
+				);
+				deps.client.log?.error?.(
+					'Workflows assigned to an older version have no worker polling for them and will not ' +
+					'progress until this succeeds. Promote it by hand, or set TEMPORAL_SET_CURRENT_ON_START=false ' +
+					'and manage deployment versions yourself.',
 				);
 				return;
 			}
-			await new Promise(resolve => setTimeout(resolve, 1000));
+			await new Promise(resolve => setTimeout(resolve, backoffMs(attempt)));
 		}
 	}
 }

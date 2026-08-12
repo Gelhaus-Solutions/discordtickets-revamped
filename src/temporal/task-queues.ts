@@ -11,6 +11,7 @@ export const DEFAULT_DEPLOYMENT_NAME = 'discord-tickets';
 /** Canonical workflow-type names (must match the exported function names in ./workflows). */
 export const WorkflowType = {
 	staleTicket: 'staleTicketWorkflow',
+	staleSweep: 'staleSweepWorkflow',
 	closeTicket: 'closeTicketWorkflow',
 	reopenWindow: 'reopenWindowWorkflow',
 	bulkClose: 'bulkCloseWorkflow',

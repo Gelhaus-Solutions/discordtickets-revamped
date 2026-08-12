@@ -37,6 +37,15 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 
 	const schedules: ScheduleDef[] = [
 		{
+			// Not optional, and not a tidy-up job: this is what closes an inactive
+			// ticket whose own workflow died, so it is the difference between the
+			// auto-close being reliable and being usually.
+			enabled: true,
+			every: 15 * MINUTE,
+			id: 'stale-sweep',
+			workflowType: WorkflowType.staleSweep,
+		},
+		{
 			enabled: flags.stats !== false,
 			every: 12 * HOUR,
 			id: 'houston-stats',
