@@ -12,6 +12,7 @@
 	"role_admin": "Admin",
 	"role_staff": "Staff",
 	"role_member": "Member",
+	"open_home": "Home",
 	"open_staff": "Staff",
 	"open_settings": "Settings",
 	"select_server_title": "{username} Portal",

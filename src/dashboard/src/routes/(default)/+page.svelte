@@ -99,14 +99,26 @@
 							</a>
 
 							<!--
-								The two places a privileged member actually wants to land, without
-								going through the guild page first.
+								The places a privileged member actually wants to land, without
+								going through the guild page first. Home duplicates the card
+								header's link on purpose: once there are sibling buttons, the
+								header alone reads as decoration rather than a destination.
+
+								`basis-24` over a bare `flex-1` so the third button wraps onto
+								its own line instead of squashing all three in a grid column.
 							-->
 							{#if guild.privilegeLevel > 0}
-								<div class="mt-4 flex gap-2 text-sm">
+								<div class="mt-4 flex flex-wrap gap-2 text-sm">
+									<a
+										href={`/${slugOf(guild)}`}
+										class="link flex-1 basis-24 rounded-lg bg-gray-100 px-3 py-1.5 text-center dark:bg-slate-800"
+									>
+										<i class="fa-solid fa-house mr-1"></i>
+										{t('open_home')}
+									</a>
 									<a
 										href={`/${slugOf(guild)}/staff`}
-										class="link flex-1 rounded-lg bg-gray-100 px-3 py-1.5 text-center dark:bg-slate-800"
+										class="link flex-1 basis-24 rounded-lg bg-gray-100 px-3 py-1.5 text-center dark:bg-slate-800"
 									>
 										<i class="fa-solid fa-user-group mr-1"></i>
 										{t('open_staff')}
@@ -115,7 +127,7 @@
 										<!-- The real snowflake: this one belongs to /settings. -->
 										<a
 											href={`/settings/${guild.id}`}
-											class="link flex-1 rounded-lg bg-gray-100 px-3 py-1.5 text-center dark:bg-slate-800"
+											class="link flex-1 basis-24 rounded-lg bg-gray-100 px-3 py-1.5 text-center dark:bg-slate-800"
 										>
 											<i class="fa-solid fa-gear mr-1"></i>
 											{t('open_settings')}
