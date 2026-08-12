@@ -33,6 +33,29 @@ presence:
   interval: 20
   status: online
 stats: true
+# Where ticket transcripts are kept. The database only ever holds a reference.
+#
+# `local` writes them under the data directory (user/transcripts) and is the
+# right answer for almost everyone — note they are NOT part of a database dump,
+# so back that directory up alongside it.
+#
+# `s3` is for deployments that genuinely need object storage. The bucket and
+# endpoint go here; the credentials go in the environment, as S3_ACCESS_KEY_ID
+# and S3_SECRET_ACCESS_KEY. Leaving those unset falls back to the AWS SDK's own
+# credential chain, which is how instance roles work. Every value below can also
+# be set from the environment (S3_BUCKET, S3_ENDPOINT, ...), which is easier on
+# panel and Docker installs than editing a file inside the volume.
+storage:
+  driver: local
+  s3:
+    bucket: ""
+    # Leave empty for real AWS. For MinIO and friends: http://minio:9000
+    endpoint: ""
+    # Required by MinIO and most self-hosted gateways.
+    forcePathStyle: true
+    # Optional key prefix within the bucket, e.g. "production/".
+    prefix: ""
+    region: us-east-1
 templates:
   transcript: transcript.md
 updates: true
