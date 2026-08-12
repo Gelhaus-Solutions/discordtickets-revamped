@@ -103,7 +103,14 @@
 		</div>
 	{/if}
 	<div class="text-gray-800 dark:text-slate-300">
-		{#if $navigating || !mounted}
+		<!--
+			Spin on a route change, not on any navigation. The statistics page
+			re-runs its loader by navigating to itself with a different query
+			string, and blanking the whole settings shell for that unmounts the
+			filter form mid-interaction and throws away scroll position — for what
+			is conceptually a refresh of one panel.
+		-->
+		{#if !mounted || ($navigating && $navigating.to?.route.id !== $navigating.from?.route.id)}
 			<div class="flex h-dvh items-center justify-center">
 				<Spinner />
 			</div>

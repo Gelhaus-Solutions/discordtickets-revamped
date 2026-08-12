@@ -122,6 +122,13 @@
 				<p class="text-center text-lg font-semibold">Automations</p>
 			</a>
 			<a
+				href={guild.id + '/statistics'}
+				class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+			>
+				<i class="fas fa-chart-line mb-4 text-4xl"></i>
+				<p class="text-center text-lg font-semibold">Statistics</p>
+			</a>
+			<a
 				href={guild.id + '/feedback'}
 				class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
 			>
