@@ -115,6 +115,12 @@ module.exports = class extends Listener {
 			client.log.error(error);
 		}
 
+		// Tell the operator now if the bucket is unreachable, rather than at the
+		// first ticket close. Never fatal, and never awaited on the critical
+		// path: a transient outage must not stop the bot starting, and reads
+		// fall back to regenerating from the database anyway.
+		if (client.storage.name === 's3') client.storage.check?.();
+
 		// fill cache (also re-establishes stale workflows for open tickets)
 		await sync(client);
 

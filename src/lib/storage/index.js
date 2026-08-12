@@ -145,6 +145,8 @@ function createStorage({
 	// live on the prototype, so spreading would silently produce an object with
 	// its fields and none of its behaviour.
 	return {
+		/** Reachability, for drivers that can be unreachable. Never throws. */
+		check: () => active.check?.() ?? Promise.resolve(true),
 		/** The driver named in the config — what new transcripts are written to. */
 		delete: key => active.delete(key),
 		/**

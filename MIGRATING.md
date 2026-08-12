@@ -47,6 +47,21 @@ a bare `KEY:` in a compose file no longer shadows the value in `.env` (it used
 to, which produced "ENCRYPTION_KEY is required" while the key sat in the file
 being read).
 
+**Transcript references now name their storage driver.** `tickets.htmlTranscript`
+holds `local:transcripts/ticket-<id>.html` where it used to hold
+`user/transcripts/ticket-<id>.html`. No migration runs and no files move —
+old-format rows are still read, and new ones are written in the new format as
+transcripts are regenerated. There is no schema change.
+
+If you ever downgrade, the older code will not recognise the new format and
+will regenerate those transcripts from the archived messages instead. That
+costs some CPU on first view; nothing is lost.
+
+**Your `user/config.yml` is now filled in from the shipped defaults.** Keys
+added after you installed no longer read as unset. Anything you have written in
+that file still wins, including an explicit `null`, and lists (such as
+`presence.activities`) replace the default outright rather than merging with it.
+
 ---
 
 ## Sessions and API keys are invalidated on upgrade
