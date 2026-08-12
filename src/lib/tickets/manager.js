@@ -2,6 +2,7 @@
 /* eslint-disable max-lines */
 const TicketArchiver = require('./archiver');
 const { saveHtmlTranscript } = require('./transcript-html');
+const { deleteTranscripts } = require('../storage');
 const archiver = require('archiver');
 const unzipper = require('unzipper');
 const { createWriteStream } = require('node:fs');
@@ -1899,6 +1900,19 @@ module.exports = class TicketManager {
 		const guildData = pick(settings, GUILD_FIELDS, 'guild setting', ['categories', 'createdAt', 'id', 'tags']);
 		const tagData = (settings.tags ?? []).map(tag => pick(tag, TAG_FIELDS, 'tag', ['createdAt', 'guildId', 'id']));
 
+		// Read before the delete below cascades these rows away, so the stored
+		// transcripts they point at can be cleaned up afterwards.
+		const oldTranscripts = await client.prisma.ticket.findMany({
+			select: {
+				htmlTranscript: true,
+				id: true,
+			},
+			where: {
+				guildId,
+				htmlTranscript: { not: null },
+			},
+		});
+
 		await client.prisma.$transaction([
 			client.prisma.guild.delete({
 				select: { id: true },
@@ -1917,6 +1931,11 @@ module.exports = class TicketManager {
 				select: { id: true },
 			}),
 		]);
+
+		// After the transaction, and best-effort: an orphan is tidied up by
+		// `scripts/transcripts.mjs --gc`, whereas deleting the transcripts of
+		// tickets that survived a rollback is not recoverable.
+		await deleteTranscripts(client, oldTranscripts);
 		heartbeat();
 
 		const newCategories = await client.prisma.$transaction(

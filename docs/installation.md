@@ -313,7 +313,35 @@ There is a commented-out `minio` service in
 
 Switching the driver does not move anything, and it does not need to: rows keep
 their own reference, so transcripts written before the switch keep being read
-from where they are.
+from where they are. To move them anyway:
+
+```sh
+npm run transcripts -- --to s3            # dry run: says what it would do
+npm run transcripts -- --to s3 -y         # do it
+npm run transcripts -- --to s3 -y --delete-source   # ...and remove the originals
+```
+
+It is a dry run unless you pass `-y`, it is idempotent — running it twice
+changes nothing the second time — and it can be interrupted safely: each
+transcript is copied and verified before its row is repointed, so a crash
+leaves a stray object rather than a row pointing at nothing.
+
+Run it with no `--to` to tidy the current driver in place: transcripts still
+held in the database are written out, and references in the pre-4.x format are
+rewritten. Add `--prune-missing` to clear references whose object has gone, so
+those transcripts regenerate on next view instead of 404ing.
+
+To delete stored transcripts belonging to tickets that no longer exist:
+
+```sh
+npm run transcripts -- --gc               # dry run, lists what it would delete
+npm run transcripts -- --gc -y
+```
+
+The collector only touches objects matching its own naming, skips anything
+written in the last 24 hours, and refuses to run at all if the database
+contains no tickets — a mistyped `DB_CONNECTION_URL` would otherwise look like
+"nothing refers to any of these".
 
 ---
 

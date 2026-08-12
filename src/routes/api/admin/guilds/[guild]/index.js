@@ -4,6 +4,7 @@ const { iconURL } = require('../../../../../lib/misc');
 const {
 	getAverageTimes, getAverageRating,
 } = require('../../../../../lib/stats');
+const { deleteTranscripts } = require('../../../../../lib/storage');
 const ms = require('ms');
 
 module.exports.delete = fastify => ({
@@ -12,10 +13,30 @@ module.exports.delete = fastify => ({
 		const client = req.routeOptions.config.client;
 		const id = req.params.guild;
 		client.keyv.delete(`cache/stats/guild:${id}`);
+
+		// Collected before the delete, because the rows are about to cascade away
+		// and take their references with them.
+		const transcripts = await client.prisma.ticket.findMany({
+			select: {
+				htmlTranscript: true,
+				id: true,
+			},
+			where: {
+				guildId: id,
+				htmlTranscript: { not: null },
+			},
+		});
+
 		await client.prisma.$transaction([
 			client.prisma.guild.delete({ where: { id } }),
 			client.prisma.guild.create({ data: { id } }),
 		]);
+
+		// After the transaction commits, and never part of it: an orphaned file
+		// is a tidiness problem that `scripts/transcripts.mjs --gc` cleans up,
+		// whereas deleting bytes for rows that survived a rollback is not
+		// recoverable at all.
+		await deleteTranscripts(client, transcripts);
 		logAdminEvent(client, {
 			action: 'delete',
 			guildId: id,

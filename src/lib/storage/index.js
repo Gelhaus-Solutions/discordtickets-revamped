@@ -163,10 +163,38 @@ function createStorage({
 	};
 }
 
+/**
+ * Delete the stored transcripts belonging to a set of tickets.
+ *
+ * Best-effort by design, and never inside the caller's transaction. Leaving an
+ * orphaned object behind is a tidiness problem that `scripts/transcripts.mjs
+ * --gc` exists to clean up; deleting the bytes for a row that then survived a
+ * rollback is not recoverable at all. So every failure is a warning.
+ *
+ * @param {import('client')} client
+ * @param {Array<{htmlTranscript: string|null, id: string}>} tickets
+ * @returns {Promise<number>} how many objects were actually deleted
+ */
+async function deleteTranscripts(client, tickets) {
+	let deleted = 0;
+	for (const ticket of tickets) {
+		const ref = parseRef(ticket.htmlTranscript);
+		// Inline rows have no object; unrecognised ones are not ours to touch.
+		if (ref?.kind !== 'object') continue;
+		try {
+			if (await client.storage.for(ref.driver).delete(ref.key)) deleted++;
+		} catch (error) {
+			client.log.warn('Could not delete the transcript for %s: %s', ticket.id, error.message);
+		}
+	}
+	return deleted;
+}
+
 module.exports = {
 	DRIVERS,
 	StorageError,
 	createStorage,
+	deleteTranscripts,
 	formatRef,
 	keyFor,
 	parseRef,
