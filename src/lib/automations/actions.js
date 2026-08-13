@@ -50,6 +50,7 @@ const {
 	removeTicketMember,
 	renameTicket,
 	setPriority,
+	setSlowmode,
 	setTicketEmoji,
 } = require('../tickets/mutations');
 const { evaluateClauses } = require('./conditions');
@@ -431,6 +432,17 @@ function makeRunners(client, runNested) {
 			const result = await setPriority(client, {
 				actorId: ctx.actorId,
 				priority: node.params.priority,
+				ticketId: ctx.ticketId,
+			});
+			return result.ok ? { reason: result.reason } : skip(result.reason);
+		}),
+
+		'action.ticket.setSlowmode': real(async (node, ctx) => {
+			// The editor's duration field speaks milliseconds (see `flow.wait`),
+			// Discord's `rateLimitPerUser` speaks whole seconds.
+			const result = await setSlowmode(client, {
+				actorId: ctx.actorId,
+				seconds: Math.round(node.params.ms / 1000),
 				ticketId: ctx.ticketId,
 			});
 			return result.ok ? { reason: result.reason } : skip(result.reason);

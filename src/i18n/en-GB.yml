@@ -275,6 +275,33 @@ commands:
       success:
         description: The ticket channel has been renamed to `{name}`.
         title: Channel renamed
+    slowmode:
+      description: Set how often members can post in this ticket
+      failed:
+        description:
+          The slow mode could not be changed. Check that the bot still has
+          Manage Channels on this ticket.
+        title: ❌ Error
+      invalid:
+        description:
+          Give a length of time like `30s`, `10m` or `2h`, up to 6 hours, or
+          `off` to turn slow mode off.
+        title: Invalid duration
+      name: slowmode
+      not_staff:
+        description: Only staff members can change the slow mode of tickets.
+        title: ❌ Error
+      options:
+        duration:
+          description: How long members must wait between messages, e.g. 30s, 10m, 2h, or off
+          name: duration
+      success:
+        cleared:
+          description: Members can post in this ticket as often as they like.
+          title: ✅ Slow mode off
+        set:
+          description: Members must now wait {duration} between messages in this ticket.
+          title: ✅ Slow mode set
     tag:
       description: Use a tag
       name: tag

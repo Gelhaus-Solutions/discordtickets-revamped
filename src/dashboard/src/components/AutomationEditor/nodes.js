@@ -95,6 +95,7 @@ export const NODE_ICONS = {
 	'action.ticket.rename': 'fa-i-cursor',
 	'action.ticket.setEmoji': 'fa-icons',
 	'action.ticket.setPriority': 'fa-flag',
+	'action.ticket.setSlowmode': 'fa-gauge-low',
 	'action.ticket.setTopic': 'fa-pen',
 	'condition.filter': 'fa-filter',
 	'flow.if': 'fa-code-branch',
