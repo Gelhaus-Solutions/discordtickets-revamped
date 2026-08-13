@@ -91,8 +91,9 @@
 	};
 
 	onMount(async () => {
-		// No dedicated route needed: `data?query=…` reduces a dotted path over the
-		// cached guild, the same way this page already loads channels and roles.
+		// No dedicated route needed: `emojis.cache` is one of the queries the
+		// `data` route allows, the same way this page already loads channels
+		// and roles.
 		try {
 			const response = await fetch(
 				`/api/admin/guilds/${$page.params.guild}/data?query=emojis.cache`,
