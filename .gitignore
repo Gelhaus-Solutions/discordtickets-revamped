@@ -5,6 +5,7 @@ node_modules/
 /prisma/
 /user/
 /dist/
+/local-tests/
 .idea/
 # Build output, not source: CI builds it (the `dashboard` stage in the
 # Dockerfile, release-tarball.yml) and scripts/postinstall builds it on a
