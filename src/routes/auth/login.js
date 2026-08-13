@@ -1,11 +1,14 @@
 const { randomBytes } = require('crypto');
+const { isSafeRedirect } = require('../../lib/misc');
 
 module.exports.get = () => ({
 	handler: async function (req, res) {
 		const { client } = req.routeOptions.config;
 
+		// Refuse an off-site target here as well as in the callback, so a crafted
+		// login link cannot park one in the state cookie in the first place.
 		const state = new URLSearchParams({
-			redirect: req.query.r ?? '',
+			redirect: isSafeRedirect(req.query.r) ? req.query.r : '',
 			secret: randomBytes(8).toString('hex'),
 		});
 

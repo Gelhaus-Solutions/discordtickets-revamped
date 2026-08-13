@@ -1,3 +1,5 @@
+const { isSafeRedirect } = require('../../lib/misc');
+
 module.exports.get = () => ({
 	handler: async function (req, res) {
 		const cookie = req.cookies['oauth2-state'];
@@ -48,16 +50,7 @@ module.exports.get = () => ({
 		}
 
 		const rawRedirect = (data.guild?.id && `/settings/${data.guild?.id}`) || state.get('redirect') || '/';
-		// Only allow same-origin relative paths; reject protocol-relative (`//evil`),
-		// scheme URLs (`javascript:`, `http://...`), and anything containing control
-		// characters or quote chars that could break out of an HTML/URL context.
-		const isSafeRelativePath = typeof rawRedirect === 'string' &&
-			rawRedirect.startsWith('/') &&
-			!rawRedirect.startsWith('//') &&
-			!rawRedirect.startsWith('/\\') &&
-			// eslint-disable-next-line no-control-regex
-			!/[\x00-\x1f\x7f"'<>\\]/.test(rawRedirect);
-		const redirect = isSafeRelativePath ? rawRedirect : '/';
+		const redirect = isSafeRedirect(rawRedirect) ? rawRedirect : '/';
 
 		const bearerOptions = { headers: { 'Authorization': `Bearer ${data.access_token}` } };
 		const user = await (await fetch('https://discordapp.com/api/users/@me', bearerOptions)).json();
