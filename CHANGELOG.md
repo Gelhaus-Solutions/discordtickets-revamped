@@ -4,7 +4,8 @@ This fork has its own release line starting at `v1.0.0`. Full notes for each
 release are on the [releases page](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases).
 Everything below the "Upstream history" heading is the changelog of
 [discord-tickets/bot](https://github.com/discord-tickets/bot), which this fork
-was branched from at 4.0.50 — those version numbers are unrelated to ours.
+was branched from at 4.0.50 and last took changes from at 4.0.51 — those version
+numbers are unrelated to ours.
 
 ## [1.4.0](https://github.com/Gelhaus-Solutions/discordtickets-revamped/releases/tag/v1.4.0) (2026-07-26)
 
@@ -64,6 +65,30 @@ removal of the total-ticket limit for thread/forum tickets.
 ---
 
 # Upstream history
+
+## [4.0.51](https://github.com/discord-tickets/bot/compare/v4.0.50...v4.0.51) (2026-08-13)
+
+
+### Bug Fixes
+
+* **api:** destructure input first ([2c11335](https://github.com/discord-tickets/bot/commit/2c11335347ada9b0aa2a9bd3e85d210dc643a0b0))
+* **auth:** only allow relative URL redirects ([1167fd6](https://github.com/discord-tickets/bot/commit/1167fd603def332dec8bd79b42d55eed50a927d5))
+* **docs:** use a working star history chart ([#686](https://github.com/discord-tickets/bot/issues/686)) ([13190b8](https://github.com/discord-tickets/bot/commit/13190b8fa1e8c5ee364a59d000b8dc1ab5249249))
+
+
+### Features
+
+* **i18n:** update English (United States) translations ([8a08ab5](https://github.com/discord-tickets/bot/commit/8a08ab5dd6a47ae1f2c0bfed06d44afc2e822d5e))
+* **i18n:** update English (United States) translations ([d4c7ac4](https://github.com/discord-tickets/bot/commit/d4c7ac431a89e5c8545e17dbe12e6e438b1b94cb))
+* **i18n:** update English (United States) translations ([1e99362](https://github.com/discord-tickets/bot/commit/1e99362cb2cc4afd6b81c8ae5b64e542f42e63dc))
+* **i18n:** update English (United States) translations ([6802c2b](https://github.com/discord-tickets/bot/commit/6802c2ba0c7f90423be6f7f89cc4b58cfbf89b7b))
+* **i18n:** update English (United States) translations ([2858ed6](https://github.com/discord-tickets/bot/commit/2858ed6c17d515fd8f9b89703e2279da093c2647))
+* **i18n:** update French translations ([02179c7](https://github.com/discord-tickets/bot/commit/02179c7ad61ebe290847edc5a1d8542ab0df0539))
+* **i18n:** update Italian translations ([7bb1821](https://github.com/discord-tickets/bot/commit/7bb182198a59e10b2d69013fb6c48d33f3403a76))
+* **i18n:** update Japanese translations ([182e6ba](https://github.com/discord-tickets/bot/commit/182e6ba46c5a326491b4556e088d2f7a5e09b907))
+* **i18n:** update Japanese translations ([bc40f78](https://github.com/discord-tickets/bot/commit/bc40f78f514a54840d1cad0c03c341f19e33902b))
+
+
 
 ## [4.0.50](https://github.com/discord-tickets/bot/compare/v4.0.49...v4.0.50) (2026-03-02)
 
