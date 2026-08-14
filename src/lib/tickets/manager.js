@@ -44,7 +44,9 @@ const {
 	managedPrefix,
 	renderChannelName,
 } = require('./naming');
-const { syncChannelName } = require('./mutations');
+const {
+	ensureStaffChannel, syncChannelName,
+} = require('./mutations');
 const {
 	buildQuestionComponents,
 	formatAnswer,
@@ -974,6 +976,28 @@ module.exports = class TicketManager {
 			}
 
 			recordTicket('created');
+
+			// After the row exists, because there is nothing to write
+			// `staffChannelId` on before it, and in its own try because a missing
+			// staff channel must never cost the member their ticket: the catch
+			// below deletes the channel and reports a failure, which is far worse
+			// than opening without one.
+			if (category.staffChannel) {
+				try {
+					const staff = await ensureStaffChannel(this.client, {
+						actorId: interaction.user.id,
+						ticket: {
+							...ticket,
+							category,
+						},
+					});
+					if (!staff.ok) {
+						this.client.log.warn.tickets('No staff channel for ticket %s: %s', ticket.id, staff.reason);
+					}
+				} catch (error) {
+					this.client.log.warn.tickets('No staff channel for ticket %s: %s', ticket.id, error.message);
+				}
+			}
 
 			logTicketEvent(this.client, {
 				action: 'create',

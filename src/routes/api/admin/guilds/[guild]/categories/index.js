@@ -183,6 +183,17 @@ module.exports.post = fastify => ({
 		// "unset", so it is normalised rather than stored as a blank name.
 		if (data.channelName === '') data.channelName = null;
 
+		// Same three as the PATCH route, and for the same reasons: a forum cannot
+		// hold a private post, and '' from a cleared select means "use the
+		// default", which is what NULL means in the column.
+		if (data.staffChannelMode === 'FORUM') {
+			const badRequest = new Error('A staff channel can be a channel or a thread. Forums cannot hold private posts.');
+			badRequest.statusCode = 400;
+			throw badRequest;
+		}
+		if (data.staffChannelMode === '') data.staffChannelMode = null;
+		if (data.staffChannelParent === '') data.staffChannelParent = null;
+
 		// Same reasoning as the PATCH route: an out-of-range question or an
 		// unresolvable emoji is only discovered when a member tries to open a
 		// ticket, so it has to be caught at the point the admin saves it.

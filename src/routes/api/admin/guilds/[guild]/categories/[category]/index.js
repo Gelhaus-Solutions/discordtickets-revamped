@@ -192,6 +192,9 @@ module.exports.patch = fastify => ({
 			ratelimit: true,
 			requireTopic: true,
 			requiredRoles: true,
+			staffChannel: true,
+			staffChannelMode: true,
+			staffChannelParent: true,
 			staffRoles: true,
 			totalLimit: true,
 		};
@@ -343,6 +346,22 @@ module.exports.patch = fastify => ({
 				});
 			}
 		}
+
+		// A forum post is a thread that anyone who can see the forum can read, so
+		// there is no such thing as a private staff one. Refused here rather than
+		// silently rewritten, because an admin who picked it wants to know it is
+		// not a thing rather than find a channel where they expected a post.
+		if (data.staffChannelMode === 'FORUM') {
+			return res.code(400).send({
+				code: 'invalid_staff_channel_mode',
+				errors: [{ message: 'A staff channel can be a channel or a thread. Forums cannot hold private posts.' }],
+				statusCode: 400,
+			});
+		}
+		// '' arrives from a cleared dashboard select meaning "use the default",
+		// which is what NULL means here.
+		if (data.staffChannelMode === '') data.staffChannelMode = null;
+		if (data.staffChannelParent === '') data.staffChannelParent = null;
 
 		// For THREAD and FORUM modes, don't send totalLimit (it's not applicable)
 		if (data.channelMode === 'THREAD' || data.channelMode === 'FORUM') {

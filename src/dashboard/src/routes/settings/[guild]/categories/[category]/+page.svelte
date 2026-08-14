@@ -104,6 +104,31 @@
 		{ value: 'FORUM', label: 'Forum Channel' }
 	];
 
+	// Never FORUM: a forum post is readable by anyone who can see the forum, so
+	// there is no private staff version of one. The API refuses it too.
+	const staffChannelModes = [
+		{ value: '', label: 'Default for this category' },
+		{ value: 'THREAD', label: 'Private thread' },
+		{ value: 'CHANNEL', label: 'Private channel' }
+	];
+
+	// What "Default for this category" resolves to, spelled out rather than left
+	// for someone to discover: Discord cannot nest a thread inside a thread, so a
+	// THREAD ticket's staff thread is a sibling rather than a child.
+	let staffChannelDefault = $derived(
+		category.channelMode === 'FORUM'
+			? 'a private channel in this category'
+			: category.channelMode === 'THREAD'
+				? 'a private thread beside the ticket thread'
+				: 'a private thread inside the ticket channel'
+	);
+
+	// A channel-mode staff channel hangs off a Discord category (type 4); a thread
+	// hangs off a text channel (type 0).
+	let staffParentChannels = $derived(
+		channels.filter((c) => (category.staffChannelMode === 'CHANNEL' ? c.type === 4 : c.type === 0))
+	);
+
 	qS.questions = category.questions;
 	// Filter channels based on channel mode - will be updated reactively
 	let filteredChannels = $derived.by(() => {
@@ -492,6 +517,60 @@
 						</select>
 					</label>
 				</div>
+				<div>
+					<label for="staffChannel" class="font-medium">
+						Staff channel
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="Also open a private space only staff can see, alongside every ticket in this category. It is removed when the ticket closes."
+						></i>
+						<input
+							type="checkbox"
+							id="staffChannel"
+							name="staffChannel"
+							class="form-checkbox"
+							bind:checked={category.staffChannel}
+						/>
+					</label>
+				</div>
+				{#if category.staffChannel}
+					<div>
+						<label class="font-medium">
+							Staff channel type
+							<i
+								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+								title="A forum cannot hold a private post, so a forum category always gets a channel."
+							></i>
+							<select class="input form-select" bind:value={category.staffChannelMode}>
+								{#each staffChannelModes as mode}
+									<option value={mode.value || null} class="p-1">
+										{mode.label}
+									</option>
+								{/each}
+							</select>
+						</label>
+						<p class="text-sm text-gray-500 dark:text-slate-400">
+							The default for this category is {staffChannelDefault}.
+						</p>
+					</div>
+					<div>
+						<label class="font-medium">
+							Staff channel location
+							<i
+								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+								title="Leave empty to use the default location described above."
+							></i>
+							<select class="input form-select" bind:value={category.staffChannelParent}>
+								<option value={null} class="p-1">Default</option>
+								{#each staffParentChannels as channel}
+									<option value={channel.id} class="p-1">
+										{channel.name}
+									</option>
+								{/each}
+							</select>
+						</label>
+					</div>
+				{/if}
 				<div>
 					{#if category.channelMode === 'CHANNEL'}
 						<label class="font-medium">

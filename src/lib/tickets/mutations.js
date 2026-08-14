@@ -23,6 +23,7 @@ const ms = require('ms');
 const { logTicketEvent } = require('../logging');
 const { emit } = require('../automations/dispatcher');
 const { isValidChannelEmoji } = require('../emoji');
+const { resolveGuildChannel } = require('../misc');
 const {
 	PRIORITY_EMOJI_DEFAULTS,
 	resolveCategory,
@@ -30,6 +31,7 @@ const {
 const {
 	PARTICIPANT_ALLOW,
 	buildOverwrites,
+	createChannel,
 } = require('./channels');
 const { resolveEmojiSettings } = require('./emoji-settings');
 const {
@@ -784,6 +786,154 @@ async function removeTicketMember(client, {
 	};
 }
 
+/**
+ * Where a ticket's private staff space goes, and what kind of thing it is.
+ *
+ * Discord cannot put a thread inside a thread, so the arrangement DTREVAMPED-56
+ * describes — Channel > Ticket Thread > Staff Thread — is not expressible. For a
+ * THREAD ticket the staff thread is a *sibling* on the same parent channel; only
+ * a CHANNEL ticket gets the genuinely nested version the ticket describes.
+ *
+ * A CHANNEL ticket defaults to a *thread* rather than matching its own mode.
+ * That looks inconsistent until you count: a Discord category holds 50 channels,
+ * and a channel-mode staff channel would burn a second slot per ticket, halving
+ * a category's capacity and pushing it into `backupCategory` overflow twice as
+ * fast.
+ *
+ * @returns {{mode: 'CHANNEL'|'THREAD', parentId: string|null}}
+ */
+function staffChannelTarget(ticket, category) {
+	const explicit = category.staffChannelMode;
+	const ticketMode = category.channelMode || 'CHANNEL';
+	// A private forum post does not exist, so a FORUM category falls back to a
+	// channel. The category route refuses to store FORUM here, but a hand-edited
+	// row must not produce something Discord will reject.
+	const mode = explicit === 'THREAD' || explicit === 'CHANNEL'
+		? explicit
+		: (ticketMode === 'FORUM' ? 'CHANNEL' : 'THREAD');
+
+	if (mode === 'CHANNEL') {
+		return {
+			mode,
+			parentId: category.staffChannelParent || category.discordCategory,
+		};
+	}
+	// A thread with no override hangs off the ticket itself: nested for a CHANNEL
+	// ticket, and beside it for a THREAD one, which `climbToParent` arranges.
+	return {
+		mode,
+		parentId: category.staffChannelParent || ticket.id,
+	};
+}
+
+/**
+ * Open the private staff thread or channel for a ticket, if it has none.
+ *
+ * Idempotent by design: `/private-channel` and the automatic path both call it,
+ * and the command's whole job is to be safe to run on a ticket that may already
+ * have one.
+ *
+ * @returns {Promise<{ok: true, channel: object, created: boolean}|{ok: false, reason: string}>}
+ */
+async function ensureStaffChannel(client, {
+	actorId = null, ticket,
+}) {
+	const guild = client.guilds.cache.get(ticket.guildId);
+	if (!guild) {
+		return {
+			ok: false,
+			reason: 'unknown_guild',
+		};
+	}
+
+	if (ticket.staffChannelId) {
+		const existing = resolveGuildChannel(client, ticket.guildId, ticket.staffChannelId) ??
+			await client.channels.fetch(ticket.staffChannelId).catch(() => null);
+		if (existing && existing.guildId === ticket.guildId) {
+			return {
+				channel: existing,
+				created: false,
+				ok: true,
+			};
+		}
+		// The row points at something that is gone. The delete listeners clear it,
+		// but a channel deleted while the bot was offline never fired one, so this
+		// falls through and makes a new one rather than refusing forever.
+	}
+
+	const category = ticket.category;
+	if (!category) {
+		return {
+			ok: false,
+			reason: 'unknown_category',
+		};
+	}
+	const staffRoles = Array.isArray(category.staffRoles) ? category.staffRoles : [];
+	if (staffRoles.length === 0) {
+		return {
+			ok: false,
+			reason: 'no_staff_roles',
+		};
+	}
+
+	const {
+		mode, parentId,
+	} = staffChannelTarget(ticket, category);
+	const creator = await guild.members.fetch(ticket.createdById).catch(() => null);
+
+	const result = await createChannel(client, {
+		// Staff only: the opener is deliberately never added. That is the whole
+		// point of the channel.
+		access: {
+			allow: PARTICIPANT_ALLOW,
+			roleIds: staffRoles,
+		},
+		guild,
+		mode,
+		name: {
+			creator,
+			fallback: ticket.createdById,
+			number: ticket.number,
+			// The lock is the only thing distinguishing it from the ticket channel
+			// in a channel list, which is worth more than a second name template
+			// and the column, dashboard field and export entry it would cost.
+			prefix: '🔒',
+			template: category.channelName,
+		},
+		parentId,
+		reason: `Private staff channel for ticket #${ticket.number}`,
+		// A thread cannot nest inside the ticket thread, so it is created beside
+		// it instead. See `staffChannelTarget`.
+		thread: { climbToParent: true },
+	});
+	if (!result.ok) return result;
+
+	await client.prisma.ticket.update({
+		data: { staffChannelId: result.channel.id },
+		where: { id: ticket.id },
+	});
+	await client.tickets.getTicket(ticket.id, true);
+
+	logTicketEvent(client, {
+		action: 'update',
+		diff: {
+			original: {},
+			updated: { staffChannel: `<#${result.channel.id}>` },
+		},
+		target: {
+			id: ticket.id,
+			name: `<#${ticket.id}>`,
+		},
+		userId: actorId ?? client.user.id,
+	});
+
+	return {
+		channel: result.channel,
+		created: true,
+		ok: true,
+	};
+}
+
 /** How many created channels one ticket will remember. */
 const CREATED_CHANNEL_LIMIT = 25;
 
@@ -841,6 +991,7 @@ module.exports = {
 	SLOWMODE_LIMIT,
 	addTicketMember,
 	emojiSettingsFor,
+	ensureStaffChannel,
 	getEmoji,
 	managedPrefix,
 	moveTicket,

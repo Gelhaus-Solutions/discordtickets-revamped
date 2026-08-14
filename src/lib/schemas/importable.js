@@ -97,6 +97,13 @@ const CATEGORY_FIELDS = [
 	'ratelimit',
 	'requiredRoles',
 	'requireTopic',
+	'staffChannel',
+	'staffChannelMode',
+	// A snowflake that will not exist in an importing guild, the same as
+	// `discordCategory` and `threadChannelId` beside it. Kept for the same reason
+	// they are: an export within one guild round-trips, and the alternative is an
+	// exception nobody would remember the rule for.
+	'staffChannelParent',
 	'staffRoles',
 	'threadChannelId',
 	'totalLimit',

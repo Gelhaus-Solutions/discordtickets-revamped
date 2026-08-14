@@ -186,6 +186,20 @@ model Category {
     requiredRoles    Json?        // inheritable
     requireTopic     Boolean      @default(false)
     staffRoles       Json?        // inheritable
+    // Also open a private staff-only thread or channel when a ticket opens here.
+    // Boolean rather than nullable-and-inheritable on purpose: the three-state
+    // trap `inheritance.js` exists to police (NULL asks the level above, false
+    // is a decision) simply does not arise without a NULL, and a server-wide
+    // default is an additive change if anyone wants one.
+    staffChannel     Boolean      @default(false)
+    // How to make it. NULL means the sensible default for the ticket's own mode:
+    // a nested private thread for a CHANNEL ticket, a sibling private thread for
+    // a THREAD one, and a private channel for a FORUM one. Never FORUM: a
+    // private staff forum post is a contradiction, and the route refuses it.
+    staffChannelMode ChannelMode?
+    // Where to put it, overriding that default. A Discord category for a
+    // channel-mode staff channel, a text channel for a thread.
+    staffChannelParent String?    @db.VarChar(19)
     threadChannelId  String?      @db.VarChar(19)
     tickets          Ticket[]
     totalLimit       Int?         // inheritable
