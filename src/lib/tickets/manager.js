@@ -2291,9 +2291,12 @@ module.exports = class TicketManager {
 
 		// Close/archive channel or thread depending on mode
 		const channelMode = ticket.category?.channelMode || 'CHANNEL';
+		// Hoisted out of the branch below because the staff-channel clean-up
+		// further down needs the same audit-log line, and a ticket whose channel
+		// is already gone still has one to take down.
+		const closedByMember = closedBy ? guild?.members.cache.get(closedBy) : null;
+		const closeReason = 'Ticket closed' + (closedByMember ? ` by ${closedByMember.displayName}` : '') + (reason ? `: ${reason}` : '');
 		if (channel) {
-			const member = closedBy ? channel.guild?.members.cache.get(closedBy) : null;
-			const closeReason = 'Ticket closed' + (member ? ` by ${member.displayName}` : '') + (reason ? `: ${reason}` : '');
 			try {
 				if (channelMode === 'THREAD' || channelMode === 'FORUM' || channel.isThread?.()) {
 					// Drop any rename parked while the ticket was open, *before*
@@ -2349,6 +2352,41 @@ module.exports = class TicketManager {
 				}
 			} catch (err) {
 				this.client.log.warn('Failed to close channel/thread %s: %s', ticket.id, err.message);
+			}
+		}
+
+		// The staff channel and anything an automation made while this ticket was
+		// open. A private channel is deleted, matching what happens to a CHANNEL
+		// ticket; a thread is archived and locked, matching the ticket thread it
+		// sits beside — deleting one while the other stays readable would be an
+		// odd asymmetry to explain to the staff who were talking in it.
+		//
+		// Read off the post-compare-and-swap row rather than the keyv-cached one,
+		// so a channel recorded moments ago is not missed. Failures are logged
+		// individually: one channel an admin already deleted by hand must not stop
+		// the rest from being cleaned up.
+		const extraChannelIds = [
+			ticket.staffChannelId,
+			...(Array.isArray(ticket.createdChannelIds) ? ticket.createdChannelIds : []),
+		].filter(Boolean);
+		for (const id of extraChannelIds) {
+			try {
+				const extra = this.client.channels.cache.get(id) ?? await this.client.channels.fetch(id).catch(() => null);
+				// Dead ids accumulate here by design: `createdChannelIds` is never
+				// pruned when a channel is deleted by hand, because a read-modify-
+				// write on every channelDelete across the whole bot is not worth it.
+				if (!extra || extra.guildId !== ticket.guildId) continue;
+				if (extra.isThread?.()) {
+					await extra.edit({
+						archived: true,
+						locked: true,
+						reason: closeReason,
+					});
+				} else if (extra.deletable) {
+					await extra.delete(closeReason);
+				}
+			} catch (err) {
+				this.client.log.warn('Failed to clean up channel %s for ticket %s: %s', id, ticket.id, err.message);
 			}
 		}
 

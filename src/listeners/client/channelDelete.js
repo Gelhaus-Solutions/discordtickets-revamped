@@ -22,6 +22,15 @@ module.exports = class extends Listener {
 			where: { channelId: channel.id },
 		}).catch(() => null);
 
+		// A staff channel deleted by hand must not leave the ticket pointing at a
+		// dead id, or `/private-channel` would refuse to make a new one forever.
+		// This never matches the ticket's own channel — a ticket's id *is* that
+		// channel — so it cannot interfere with the close below.
+		await client.prisma.ticket.updateMany({
+			data: { staffChannelId: null },
+			where: { staffChannelId: channel.id },
+		}).catch(() => null);
+
 		const ticket = await client.prisma.ticket.findUnique({
 			include: { guild: true },
 			where: { id: channel.id },

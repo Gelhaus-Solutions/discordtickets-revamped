@@ -14,6 +14,14 @@ module.exports = class extends Listener {
 		/** @type {import("client")} */
 		const client = this.client;
 
+		// A staff thread deleted by hand must not leave the ticket pointing at a
+		// dead id, or `/private-channel` would refuse to make a new one forever.
+		// It cannot match the ticket's own thread, whose id *is* the ticket id.
+		await client.prisma.ticket.updateMany({
+			data: { staffChannelId: null },
+			where: { staffChannelId: thread.id },
+		}).catch(() => null);
+
 		// Threads used as ticket channels store the thread id as ticket.id
 		const ticket = await client.prisma.ticket.findUnique({
 			include: { guild: true },
