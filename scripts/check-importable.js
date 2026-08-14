@@ -52,10 +52,15 @@ const MODELS = [
 		'archivedRoles',
 		'archivedUsers',
 		'categoryId',
+		// Snowflakes belonging to one specific server. Importing them would
+		// point another guild's close path at channels it does not own, which
+		// is the same reason `htmlTranscript` is here.
+		'createdChannelIds',
 		'feedback',
 		'guildId',
 		'htmlTranscript',
 		'questionAnswers',
+		'staffChannelId',
 	]],
 	['ArchivedChannel', F.ARCHIVED_CHANNEL_FIELDS, ['ticketId']],
 	['ArchivedMessage', F.ARCHIVED_MESSAGE_FIELDS, []],

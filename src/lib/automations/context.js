@@ -35,6 +35,17 @@ class Context {
 		this.ticketId = state.ticketId ?? null;
 		this.channelId = state.channelId ?? null;
 		this.messageId = state.messageId ?? null;
+		/**
+		 * Which channel the trigger message is in.
+		 *
+		 * Its own field because `channelId` is no longer fixed for the length of a
+		 * run: an action that `provides` the `channel` capability rewrites it, and
+		 * resolving the message through the *current* channel would then hunt the
+		 * trigger message inside a channel created seconds ago and quietly find
+		 * nothing. Defaults to `channelId`, which is what it always was, so runs
+		 * parked before this existed resume unchanged.
+		 */
+		this.messageChannelId = state.messageChannelId ?? state.channelId ?? null;
 		/** Values chosen in a select menu, for `trigger.menu.selected`. */
 		this.selection = state.selection ?? null;
 
@@ -82,6 +93,7 @@ class Context {
 			channelId: this.channelId,
 			depth: this.depth,
 			guildId: this.guildId,
+			messageChannelId: this.messageChannelId,
 			messageId: this.messageId,
 			runId: this.runId,
 			selection: this.selection,
@@ -158,7 +170,12 @@ class Context {
 	}
 
 	getChannel() {
-		return this._once('channel', async () => {
+		// Keyed by the id rather than a bare 'channel', because this one is not
+		// fixed for the length of a run: `setChannel` moves it. An id-keyed memo
+		// invalidates by construction, and it also keeps `descend()` honest —
+		// parent and child share the cache by reference, so a nested automation
+		// that creates a channel would otherwise poison its caller's lookup.
+		return this._once(`channel:${this.channelId}`, async () => {
 			if (!this.channelId) return null;
 			const channel = await this.client.channels.fetch(this.channelId).catch(() => null);
 			return channel?.guildId === this.guildId ? channel : null;
@@ -166,11 +183,33 @@ class Context {
 	}
 
 	getMessage() {
-		return this._once('message', async () => {
-			if (!this.messageId) return null;
-			const channel = await this.getChannel();
+		return this._once(`message:${this.messageId}`, async () => {
+			if (!this.messageId || !this.messageChannelId) return null;
+			// Resolved from the message's *own* channel, not the run's current one.
+			const channel = await this.client.channels.fetch(this.messageChannelId).catch(() => null);
+			if (channel?.guildId !== this.guildId) return null;
 			return channel?.messages ? channel.messages.fetch(this.messageId) : null;
 		});
+	}
+
+	/**
+	 * Point the run's `channel` capability at a channel a node just made.
+	 *
+	 * There is one channel per run, not one per branch: the interpreter fans out
+	 * over a single queue with a single context, so the last create wins for
+	 * everything that runs after it. The validator is stricter than the runtime
+	 * here on purpose (it only credits a capability provided on *every* path),
+	 * which means it never approves a graph that will fail, but it cannot stop a
+	 * sibling branch from seeing a channel it did not ask for.
+	 *
+	 * @param {{id: string}|string|null} channel
+	 */
+	setChannel(channel) {
+		const id = typeof channel === 'string' ? channel : channel?.id ?? null;
+		this.channelId = id;
+		// Seed the memo so the very next `getChannel()` costs nothing. Safe
+		// because the key carries the id: nothing can read it under the old one.
+		if (channel && typeof channel !== 'string') this._cache.set(`channel:${id}`, channel);
 	}
 
 	/**
@@ -295,7 +334,10 @@ class Context {
 		});
 		child.dryRun = this.dryRun;
 		child.durable = this.durable;
-		// Live objects are safe to share — same guild, same actor, same ticket.
+		// Live objects are safe to share: same guild, same actor, same ticket. The
+		// one that moves, `channel`, is memoised under its id, so a child that
+		// creates one cannot hand it back to the parent by accident. The child's
+		// own `channelId` is a copy either way, so a rewrite does not propagate up.
 		child._cache = this._cache;
 		return child;
 	}

@@ -216,6 +216,40 @@ commands:
         references:
           description: The number of a related ticket
           name: references
+    private-channel:
+      channel_limit:
+        description:
+          There is no room for another channel here. Ask an administrator to
+          free one up, or to point staff channels at a different category.
+        title: ❌ Error
+      closed:
+        description: This ticket is closed, so there is nothing to open a staff channel beside.
+        title: ❌ Error
+      description: Open a private staff channel for this ticket
+      failed:
+        description: The staff channel could not be created. Please try again.
+        title: ❌ Error
+      missing_permission:
+        description:
+          The bot cannot create the staff channel. Check that it still has
+          Manage Channels, and Manage Threads if the channel is a thread.
+        title: ❌ Error
+      name: private-channel
+      no_staff_roles:
+        description:
+          This ticket's category has no staff roles, so nobody could see the
+          channel. Set one in the dashboard first.
+        title: ❌ Error
+      not_staff:
+        description: Only staff members can open a private staff channel.
+        title: ❌ Error
+      success:
+        created:
+          description: "{channel} is private to staff, and goes away when this ticket closes."
+          title: 🔒 Staff channel opened
+        exists:
+          description: "This ticket already has one: {channel}."
+          title: 🔒 Staff channel
     priority:
       description: Set the priority of a ticket
       name: priority

@@ -7,6 +7,7 @@ const {
 const ExtendedEmbedBuilder = require('../../lib/embed');
 const { isStaff } = require('../../lib/users');
 const { resolveCategory } = require('../../lib/settings/inheritance');
+const { buildOverwrites } = require('../../lib/tickets/channels');
 const {
 	emojiSettingsFor,
 	managedPrefix,
@@ -184,7 +185,6 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 			newCategory.discordCategory !== ticket.category.discordCategory ||
 			managedPrefix(ticket, emojiSettings) !== managedPrefix(ticket, fromEmojiSettings))
 		) {
-			const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 			const channelName = renderChannelName(newCategory.channelName, {
 				creator,
 				fallback: ticket.createdById,
@@ -198,24 +198,14 @@ module.exports = class EscalateSlashCommand extends SlashCommand {
 				lockPermissions: false,
 				name: finalName,
 				...(discordCategory ? { parent: discordCategory } : {}),
-				permissionOverwrites: [
-					{
-						deny: ['ViewChannel'],
-						id: interaction.guild.roles.everyone,
+				permissionOverwrites: buildOverwrites({
+					access: {
+						roleIds: newCategory.staffRoles,
+						userIds: creator ? [creator.id] : [],
 					},
-					{
-						allow,
-						id: client.user.id,
-					},
-					...(creator ? [{
-						allow,
-						id: creator.id,
-					}] : []),
-					...newCategory.staffRoles.map(id => ({
-						allow,
-						id,
-					})),
-				],
+					clientId: client.user.id,
+					guild: interaction.guild,
+				}),
 				reason: `Escalated by ${interaction.user.username}`,
 			});
 		}

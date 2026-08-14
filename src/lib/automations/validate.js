@@ -12,8 +12,8 @@
  *   1. exactly one trigger node, so the entry point is unambiguous;
  *   2. no cycles, so a run terminates without needing a visited-set to be correct;
  *   3. every reachable node's capability `needs` are satisfied by the trigger's
- *      `provides`, so a node cannot fail at 3am for a reason that was knowable
- *      at save time.
+ *      `provides`, plus whatever every path to that node guarantees, so a node
+ *      cannot fail at 3am for a reason that was knowable at save time.
  */
 
 const {
@@ -160,8 +160,10 @@ function reachableFrom(startIds, edges) {
 /**
  * Kahn's algorithm over the reachable subgraph.
  *
- * @returns {{cycle: string[]|null, longestPath: number}} `cycle` lists the nodes
- * left with incoming edges, which is what the canvas highlights.
+ * @returns {{cycle: string[]|null, longestPath: number, order: string[]}} `cycle`
+ * lists the nodes left with incoming edges, which is what the canvas highlights.
+ * `order` is the dequeue order, which is a topological one whenever `cycle` is
+ * null — the capability walk needs it and computing it twice would be silly.
  */
 function analyse(nodeIds, edges) {
 	const indegree = new Map([...nodeIds].map(id => [id, 0]));
@@ -174,9 +176,11 @@ function analyse(nodeIds, edges) {
 
 	const depth = new Map([...nodeIds].map(id => [id, 1]));
 	const queue = [...nodeIds].filter(id => indegree.get(id) === 0);
+	const order = [];
 	let visited = 0;
 	while (queue.length) {
 		const id = queue.shift();
+		order.push(id);
 		visited++;
 		for (const to of next.get(id)) {
 			depth.set(to, Math.max(depth.get(to), depth.get(id) + 1));
@@ -188,7 +192,62 @@ function analyse(nodeIds, edges) {
 	return {
 		cycle: visited === nodeIds.size ? null : [...nodeIds].filter(id => indegree.get(id) > 0),
 		longestPath: Math.max(0, ...depth.values()),
+		order,
 	};
+}
+
+/**
+ * What the context holds *before* each node under one trigger.
+ *
+ * A forward dataflow pass: `IN(n)` is the intersection of its predecessors'
+ * `OUT`, and `OUT(n)` is `IN(n)` plus whatever `n` provides. Triggers start
+ * empty and provide theirs on the way out.
+ *
+ * Intersection is not merely the cautious meet, it is the correct one. A node
+ * runs at most once and a join executes on first arrival (see the runtime
+ * header), so at the bottom of a `flow.if` the other branch may not have run at
+ * all — a channel created on one arm genuinely may not exist.
+ *
+ * One pass is exact rather than an approximation: the transfer function is
+ * "union with a constant", which distributes over intersection, so the
+ * maximal-fixed-point solution is the meet-over-all-paths solution and there is
+ * nothing to iterate. Acyclicity is already guaranteed, because `validateGraph`
+ * fails on a cycle before it gets here.
+ *
+ * @param {Set<string>} cone node ids reachable from the trigger, trigger included
+ * @param {string[]} order a topological order covering `cone`
+ * @param {object[]} edges
+ * @param {Map<string, object>} byId
+ * @returns {Map<string, Set<string>>} node id -> capabilities available to it
+ */
+function capabilitiesFrom(cone, order, edges, byId) {
+	const incoming = new Map();
+	for (const edge of edges) {
+		if (!cone.has(edge.from) || !cone.has(edge.to)) continue;
+		if (!incoming.has(edge.to)) incoming.set(edge.to, []);
+		incoming.get(edge.to).push(edge.from);
+	}
+
+	const into = new Map();
+	const outOf = new Map();
+	for (const id of order) {
+		if (!cone.has(id)) continue;
+		const preds = incoming.get(id) ?? [];
+		let available;
+		if (preds.length === 0) {
+			// The trigger itself: nothing leads into it, by `trigger_has_input`.
+			available = new Set();
+		} else {
+			available = new Set(outOf.get(preds[0]) ?? []);
+			for (const pred of preds.slice(1)) {
+				const other = outOf.get(pred) ?? new Set();
+				for (const capability of [...available]) if (!other.has(capability)) available.delete(capability);
+			}
+		}
+		into.set(id, available);
+		outOf.set(id, new Set([...available, ...(NODE_TYPES[byId.get(id)?.type]?.provides ?? [])]));
+	}
+	return into;
 }
 
 /**
@@ -406,7 +465,7 @@ function validateGraph(graph, options = {}) {
 	if (errors.length) fail();
 
 	const {
-		cycle, longestPath,
+		cycle, longestPath, order,
 	} = analyse(reachable, edges);
 	if (cycle) {
 		push('edges', 'cycle', `These steps lead back into each other: ${cycle.join(', ')}`);
@@ -422,11 +481,19 @@ function validateGraph(graph, options = {}) {
 	// can reach it provides. A step fed by both "a ticket is closed" and "a button
 	// is pressed" gets the intersection — anything else would work when one fired
 	// and fail when the other did, which is the worst way to find out.
-	const reachSets = triggers.map(t => ({
-		provides: new Set(NODE_TYPES[t.type].provides ?? []),
-		reaches: reachableFrom([t.id], edges),
-		trigger: t,
-	}));
+	//
+	// An action may add to that on its way past (see `capabilitiesFrom`), so this
+	// is a walk per trigger rather than a constant per trigger. Kept per trigger,
+	// rather than one global pass, because the two are equivalent and only this
+	// shape can name the trigger that falls short in the message.
+	const reachSets = triggers.map(t => {
+		const reaches = reachableFrom([t.id], edges);
+		return {
+			available: capabilitiesFrom(reaches, order, edges, byId),
+			reaches,
+			trigger: t,
+		};
+	});
 
 	nodes.forEach((node, i) => {
 		if (!reachable.has(node.id)) return;
@@ -436,13 +503,13 @@ function validateGraph(graph, options = {}) {
 		if (feeders.length === 0) return;
 
 		for (const capability of needsOf(node)) {
-			const missing = feeders.filter(f => !f.provides.has(capability));
+			const missing = feeders.filter(f => !f.available.get(node.id)?.has(capability));
 			if (missing.length === 0) continue;
 			const names = missing.map(f => `"${NODE_TYPES[f.trigger.type].label}"`).join(', ');
 			push(
 				`nodes[${i}]`,
 				'missing_context',
-				`"${NODE_TYPES[node.type].label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which ${names} ${missing.length > 1 ? 'do' : 'does'} not provide`,
+				`"${NODE_TYPES[node.type].label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which nothing before it under ${names} provides`,
 			);
 			break;
 		}
@@ -470,6 +537,8 @@ function validateGraph(graph, options = {}) {
 }
 
 module.exports = {
+	analyse,
+	capabilitiesFrom,
 	deriveTriggers,
 	entryButtonTriggers,
 	reachableFrom,

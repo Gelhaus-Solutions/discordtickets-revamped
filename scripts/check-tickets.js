@@ -504,6 +504,288 @@ const ticket = (over = {}) => ({
 		);
 	});
 
+	/* ─────────────────────────── channel creation ─────────────────────────── */
+
+	// `channels.js` is dependency-free for the same reason `naming.js` is, so it
+	// can be driven here with hand-rolled fakes rather than a gateway. What these
+	// cases pin is the part four call sites used to each get slightly wrong: the
+	// shape of the overwrite array, the clamp, and the rule that once the channel
+	// exists nothing may report failure.
+	const C = require(path.join(root, 'src', 'lib', 'tickets', 'channels'));
+
+	const role = (id, memberIds = []) => [id, {
+		id,
+		members: new Map(memberIds.map(m => [m, { id: m }])),
+	}];
+
+	const fakeGuild = (roles = []) => ({
+		channels: {
+			create: async options => ({
+				...options,
+				id: 'new1',
+			}),
+		},
+		id: 'g1',
+		roles: {
+			cache: new Map(roles),
+			everyone: { id: 'g1' },
+		},
+	});
+
+	const fakeClient = (channels = []) => ({
+		channels: { cache: new Map(channels.map(c => [c.id, c])) },
+		log: {
+			error: () => undefined,
+			warn: () => undefined,
+		},
+		user: { id: 'bot' },
+	});
+
+	await t('a name is clamped after the prefix is added, not before', () => {
+		const long = 'a'.repeat(100);
+		assert.strictEqual(C.resolveName({
+			prefix: '🔴',
+			text: long,
+		}).length, 101); // 100 code points, one of them a surrogate pair
+		assert.strictEqual([...C.resolveName({
+			prefix: '🔴',
+			text: long,
+		})].length, 100);
+	});
+
+	await t('a name renders the category template', () => {
+		assert.strictEqual(C.resolveName({
+			number: 7,
+			template: 'ticket-{num}',
+		}), 'ticket-7');
+	});
+
+	await t('overwrites are everyone-deny, bot, users, then roles', () => {
+		const overwrites = C.buildOverwrites({
+			access: {
+				roleIds: ['r1', 'r2'],
+				userIds: ['u1'],
+			},
+			clientId: 'bot',
+			guild: fakeGuild(),
+		});
+		assert.deepStrictEqual(overwrites.map(o => o.id), ['g1', 'bot', 'u1', 'r1', 'r2']);
+		assert.deepStrictEqual(overwrites[0].deny, ['ViewChannel']);
+		assert.deepStrictEqual(overwrites[1].allow, C.PARTICIPANT_ALLOW);
+	});
+
+	await t('a public channel keeps no everyone-deny', () => {
+		const overwrites = C.buildOverwrites({
+			clientId: 'bot',
+			everyoneDenied: false,
+			guild: fakeGuild(),
+		});
+		assert.deepStrictEqual(overwrites.map(o => o.id), ['bot']);
+	});
+
+	await t('thread members expand from roles and stop at the cap', () => {
+		const guild = fakeGuild([role('r1', ['a', 'b', 'c', 'd'])]);
+		const capped = C.threadMemberIds({
+			access: { roleIds: ['r1'] },
+			clientId: 'bot',
+			guild,
+			memberCap: 3,
+		});
+		assert.strictEqual(capped.ids.length, 3);
+		assert.ok(capped.truncated, 'a truncated expansion has to say so');
+
+		// Uncapped, the bot is always in and an unknown role is skipped rather
+		// than throwing: a role deleted between the settings write and the
+		// create must not cost somebody their ticket.
+		const all = C.threadMemberIds({
+			access: { roleIds: ['r1', 'gone'] },
+			clientId: 'bot',
+			guild,
+			memberCap: 50,
+		});
+		assert.deepStrictEqual(all.ids, ['bot', 'a', 'b', 'c', 'd']);
+		assert.strictEqual(all.truncated, false);
+	});
+
+	await t('a full category is not reported as a bad name', () => {
+		// The 50-children limit has no code of its own; it arrives as a form-body
+		// rejection naming parent_id. Reading it generically would tell an admin
+		// their name was wrong when their category is full.
+		assert.strictEqual(C.classifyError({
+			code: 50035,
+			rawError: { errors: { parent_id: {} } },
+		}), 'channel_limit');
+		assert.strictEqual(C.classifyError({
+			code: 50035,
+			rawError: { errors: { name: {} } },
+		}), 'invalid_name');
+		assert.strictEqual(C.classifyError({ code: 50013 }), 'missing_permission');
+		assert.strictEqual(C.classifyError({ code: 50001 }), 'missing_permission');
+		assert.strictEqual(C.classifyError({ code: 30013 }), 'channel_limit');
+		assert.strictEqual(C.classifyError({ code: 160006 }), 'channel_limit');
+		assert.strictEqual(C.classifyError(new Error('nope')), 'create_failed');
+	});
+
+	await t('a parent in another guild is not a parent', () => {
+		const client = fakeClient([{
+			guildId: 'other',
+			id: 'c1',
+			type: 4,
+		}]);
+		assert.deepStrictEqual(C.resolveParent(client, {
+			guild: fakeGuild(),
+			mode: 'CHANNEL',
+			parentId: 'c1',
+		}), {
+			ok: false,
+			reason: 'no_parent',
+		});
+	});
+
+	await t('a thread asked for on a thread is created beside it', () => {
+		const parent = {
+			guildId: 'g1',
+			id: 'c1',
+			type: 0,
+		};
+		const client = fakeClient([{
+			guildId: 'g1',
+			id: 't1',
+			isThread: () => true,
+			parent,
+			type: 12,
+		}]);
+		const climbed = C.resolveParent(client, {
+			climbToParent: true,
+			guild: fakeGuild(),
+			mode: 'THREAD',
+			parentId: 't1',
+		});
+		assert.strictEqual(climbed.parent, parent);
+
+		// With the option off it is an error rather than a surprise placement.
+		assert.strictEqual(C.resolveParent(client, {
+			climbToParent: false,
+			guild: fakeGuild(),
+			mode: 'THREAD',
+			parentId: 't1',
+		}).reason, 'wrong_parent_type');
+	});
+
+	await t('a forum post without a message is refused before anything is created', async () => {
+		const result = await C.createChannel(fakeClient(), {
+			guild: fakeGuild(),
+			mode: 'FORUM',
+			name: { text: 'x' },
+			parentId: 'f1',
+			reason: 'test',
+		});
+		assert.deepStrictEqual(result, {
+			ok: false,
+			reason: 'no_message',
+		});
+	});
+
+	await t('a failed create is returned, not thrown', async () => {
+		const guild = fakeGuild();
+		guild.channels.create = async () => {
+			const error = new Error('Missing Permissions');
+			error.code = 50013;
+			throw error;
+		};
+		const result = await C.createChannel(fakeClient(), {
+			guild,
+			mode: 'CHANNEL',
+			name: { text: 'x' },
+			reason: 'test',
+		});
+		assert.strictEqual(result.ok, false);
+		assert.strictEqual(result.reason, 'missing_permission');
+		assert.ok(result.error, 'the caller may still want to log the original');
+	});
+
+	await t('a created channel is never reported as a failure', async () => {
+		// The rule the whole return shape exists for: once Discord has made the
+		// channel, a caller that reads `ok: false` as "nothing happened" would
+		// abandon a real channel with no row pointing at it. Every failure after
+		// creation is a soft reason instead.
+		const guild = fakeGuild([role('r1', ['a'])]);
+		const created = {
+			id: 'th1',
+			members: {
+				add: async () => {
+					throw new Error('cannot add');
+				},
+			},
+		};
+		const parent = {
+			guildId: 'g1',
+			id: 'c1',
+			threads: { create: async () => created },
+			type: 0,
+		};
+		const result = await C.createChannel(fakeClient([parent]), {
+			access: { roleIds: ['r1'] },
+			guild,
+			mode: 'THREAD',
+			name: { text: 'staff' },
+			parentId: 'c1',
+			reason: 'test',
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.channel, created);
+	});
+
+	await t('a private thread nobody could be added to says so', async () => {
+		const created = {
+			id: 'th1',
+			members: { add: async () => undefined },
+		};
+		const parent = {
+			guildId: 'g1',
+			id: 'c1',
+			threads: { create: async () => created },
+			type: 0,
+		};
+		const result = await C.createChannel(fakeClient([parent]), {
+			// A role whose members were never cached expands to nothing, which
+			// produces a thread only the bot can see. Worth a reason in a run log.
+			access: { roleIds: ['uncached'] },
+			guild: fakeGuild(),
+			mode: 'THREAD',
+			name: { text: 'staff' },
+			parentId: 'c1',
+			reason: 'test',
+		});
+		assert.strictEqual(result.reason, 'no_members_resolved');
+	});
+
+	await t('a channel is created with the clamped name and the built overwrites', async () => {
+		const guild = fakeGuild([role('r1')]);
+		const parent = {
+			guildId: 'g1',
+			id: 'cat1',
+			type: 4,
+		};
+		const result = await C.createChannel(fakeClient([parent]), {
+			access: { roleIds: ['r1'] },
+			guild,
+			mode: 'CHANNEL',
+			name: {
+				number: 42,
+				template: 'ticket-{num}',
+			},
+			parentId: 'cat1',
+			rateLimitPerUser: 10,
+			reason: 'test',
+		});
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.name, 'ticket-42');
+		assert.strictEqual(result.channel.parent, 'cat1');
+		assert.strictEqual(result.channel.rateLimitPerUser, 10);
+		assert.deepStrictEqual(result.channel.permissionOverwrites.map(o => o.id), ['g1', 'bot', 'r1']);
+	});
+
 	/* ────────────────────────── the deferred rename ──────────────────────── */
 
 	// `syncChannelName` lives in `mutations.js`, which reaches the Temporal layer.
@@ -624,6 +906,75 @@ const ticket = (over = {}) => ({
 			} finally {
 				gateway.deferChannelRename = original;
 			}
+		});
+
+		/* ─────────────────── remembering a created channel ─────────────────── */
+
+		const { recordTicketChannel } = require(path.join(root, 'src', 'lib', 'tickets', 'mutations'));
+
+		/** A client whose ticket row is a plain object, and which counts refreshes. */
+		const recordingClient = (createdChannelIds, refreshed = []) => {
+			let row = createdChannelIds;
+			return {
+				prisma: {
+					ticket: {
+						findUnique: async () => (row === undefined ? null : { createdChannelIds: row }),
+						update: async ({ data }) => {
+							row = data.createdChannelIds;
+							return { createdChannelIds: row };
+						},
+					},
+				},
+				read: () => row,
+				tickets: { getTicket: async (id, force) => refreshed.push([id, force]) },
+			};
+		};
+
+		await t('a created channel is remembered against the ticket', async () => {
+			const refreshed = [];
+			const client = recordingClient([], refreshed);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), { ok: true });
+			assert.deepStrictEqual(client.read(), ['999']);
+			// The ticket cache is keyed for three minutes and nothing else clears
+			// it, so a later step in the same run would read the pre-write row.
+			assert.deepStrictEqual(refreshed, [['t1', true]]);
+		});
+
+		await t('a NULL column reads as an empty list', async () => {
+			// The column has no default, because MySQL cannot give a JSON column
+			// one. Every read has to cope with that rather than assume an array.
+			const client = recordingClient(null);
+			await recordTicketChannel(client, 't1', '999');
+			assert.deepStrictEqual(client.read(), ['999']);
+		});
+
+		await t('recording the same channel twice writes nothing', async () => {
+			const refreshed = [];
+			const client = recordingClient(['999'], refreshed);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), {
+				ok: true,
+				reason: 'noop',
+			});
+			assert.deepStrictEqual(refreshed, [], 'a no-op must not bust the cache');
+		});
+
+		await t('the list is capped, oldest first', async () => {
+			// Cleanup state, not a log: a runaway automation must not grow the row
+			// without bound, and the oldest ids are the likeliest to be dead.
+			const client = recordingClient(Array.from({ length: 25 }, (_, i) => `c${i}`));
+			await recordTicketChannel(client, 't1', 'new');
+			const stored = client.read();
+			assert.strictEqual(stored.length, 25);
+			assert.strictEqual(stored[24], 'new');
+			assert.strictEqual(stored[0], 'c1', 'the oldest entry should have been dropped');
+		});
+
+		await t('a ticket that has gone is reported, not thrown', async () => {
+			const client = recordingClient(undefined);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), {
+				ok: false,
+				reason: 'unknown_ticket',
+			});
 		});
 	}
 

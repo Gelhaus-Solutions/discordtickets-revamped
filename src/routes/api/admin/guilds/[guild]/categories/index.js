@@ -1,6 +1,7 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../lib/users');
 const { STATE_FIELDS } = require('../../../../../../lib/tickets/emoji-settings');
+const { buildOverwrites } = require('../../../../../../lib/tickets/channels');
 const {
 	displayEmoji, isValidChannelEmoji, isValidEmoji,
 } = require('../../../../../../lib/emoji');
@@ -136,7 +137,6 @@ module.exports.post = fastify => ({
 		const user = await client.users.fetch(req.user.id);
 		const guild = client.guilds.cache.get(req.params.guild);
 		const data = req.body;
-		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 
 		// Derived, read-only sidecars the GET adds; the dashboard round-trips the
 		// whole object, and an unknown key spread into `create` throws.
@@ -164,22 +164,11 @@ module.exports.post = fastify => ({
 			if (categoryEmoji) name = `${categoryEmoji} ${name}`;
 			const channel = await guild.channels.create({
 				name,
-				permissionOverwrites: [
-					...[
-						{
-							deny: ['ViewChannel'],
-							id: guild.roles.everyone,
-						},
-						{
-							allow: allow,
-							id: client.user.id,
-						},
-					],
-					...staffRoles.map(id => ({
-						allow: allow,
-						id,
-					})),
-				],
+				permissionOverwrites: buildOverwrites({
+					access: { roleIds: staffRoles },
+					clientId: client.user.id,
+					guild,
+				}),
 				position: 1,
 				reason: `Tickets category created by ${user.tag}`,
 				type: GuildCategory,
@@ -193,6 +182,17 @@ module.exports.post = fastify => ({
 		// the server setting again. '' arrives from the legacy dashboard meaning
 		// "unset", so it is normalised rather than stored as a blank name.
 		if (data.channelName === '') data.channelName = null;
+
+		// Same three as the PATCH route, and for the same reasons: a forum cannot
+		// hold a private post, and '' from a cleared select means "use the
+		// default", which is what NULL means in the column.
+		if (data.staffChannelMode === 'FORUM') {
+			const badRequest = new Error('A staff channel can be a channel or a thread. Forums cannot hold private posts.');
+			badRequest.statusCode = 400;
+			throw badRequest;
+		}
+		if (data.staffChannelMode === '') data.staffChannelMode = null;
+		if (data.staffChannelParent === '') data.staffChannelParent = null;
 
 		// Same reasoning as the PATCH route: an out-of-range question or an
 		// unresolvable emoji is only discovered when a member tries to open a
@@ -280,6 +280,7 @@ module.exports.post = fastify => ({
 				'force-close',
 				'move',
 				'priority',
+				'private-channel',
 				'release',
 			].map(name =>
 				client.application.commands.permissions.set({

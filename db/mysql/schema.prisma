@@ -187,6 +187,20 @@ model Category {
     requiredRoles    Json?       // inheritable
     requireTopic     Boolean     @default(false)
     staffRoles       Json?       // inheritable
+    // Also open a private staff-only thread or channel when a ticket opens here.
+    // Boolean rather than nullable-and-inheritable on purpose: the three-state
+    // trap `inheritance.js` exists to police (NULL asks the level above, false
+    // is a decision) simply does not arise without a NULL, and a server-wide
+    // default is an additive change if anyone wants one.
+    staffChannel     Boolean     @default(false)
+    // How to make it. NULL means the sensible default for the ticket's own mode:
+    // a nested private thread for a CHANNEL ticket, a sibling private thread for
+    // a THREAD one, and a private channel for a FORUM one. Never FORUM: a
+    // private staff forum post is a contradiction, and the route refuses it.
+    staffChannelMode ChannelMode?
+    // Where to put it, overriding that default. A Discord category for a
+    // channel-mode staff channel, a text channel for a thread.
+    staffChannelParent String?   @db.VarChar(19)
     threadChannelId  String?     @db.VarChar(19)
     tickets          Ticket[]
     totalLimit       Int?        // inheritable
@@ -366,6 +380,11 @@ model Ticket {
     createdAt           DateTime          @default(now())
     createdBy           User              @relation(name: "TicketsCreatedByUser", fields: [createdById], references: [id])
     createdById         String            @db.VarChar(19)
+    // Channels an automation's "create a channel" node made during a run that
+    // had this ticket, so closing it can take them down again. Nullable rather
+    // than NOT NULL DEFAULT '[]' because MySQL cannot put a DEFAULT on a JSON
+    // column; NULL reads as [].
+    createdChannelIds   Json?
     deleted             Boolean           @default(false)
     // An emoji pinned to this ticket by `action.ticket.setEmoji` or /emoji. It
     // replaces the state emoji and survives claims, releases and moves; only an
@@ -391,6 +410,10 @@ model Ticket {
     referencesMessageId String?           @db.VarChar(19)
     referencesTicket    Ticket?           @relation(name: "TicketsReferencedByTicket", fields: [referencesTicketId], references: [id], onDelete: SetNull)
     referencesTicketId  String?           @db.VarChar(19)
+    // The private staff thread or channel for this ticket, if it has one. Its
+    // own column rather than an entry in `createdChannelIds`, because
+    // /private-channel has to find it by id to stay idempotent.
+    staffChannelId      String?           @db.VarChar(19)
     topic               String?           @db.Text
     questionAnswers     QuestionAnswer[]
 

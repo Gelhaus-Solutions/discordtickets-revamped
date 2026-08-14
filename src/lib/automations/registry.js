@@ -33,7 +33,8 @@
  * @property {string[]} outputs     handle names, in canvas order
  * @property {ParamField[]} params
  * @property {boolean} [durable]    true ⇒ the run must be handed to Temporal here
- * @property {string[]} [provides]  triggers only: capabilities the run context will hold
+ * @property {string[]} [provides]  capabilities the run context holds *after* this
+ *   node: a trigger's are what the run starts with, an action's are what it makes
  * @property {string[]} [needs]     capabilities this node cannot run without
  * @property {'stop'|'continue'} [onError]  default 'stop' — stops this branch only
  * @property {(params, push, path) => void} [validate]  cross-field rules only;
@@ -44,6 +45,14 @@
  * `provides`/`needs` are what turn "reply to the message under a cron trigger"
  * from a mystery at 3am into a 400 at save time. A trigger declares what the run
  * context will contain; every reachable node's `needs` must be a subset of that.
+ *
+ * An action may provide too, which is how "create a channel, then post in it"
+ * works. It only counts downstream if it is provided on *every* path to the node
+ * that needs it: the interpreter joins on first arrival, so a channel created on
+ * one arm of a `flow.if` may not exist at the bottom of it. There is one channel
+ * per run rather than one per branch, so a sibling branch will see whatever was
+ * created last — the validator is stricter than the runtime here, and never
+ * approves a graph that will fail.
  */
 
 const { LIMITS } = require('./errors');
@@ -675,6 +684,145 @@ const subjectField = (label = 'Who') => ({
 	type: 'select',
 });
 
+/**
+ * What a role or member may do in a channel a node creates.
+ *
+ * Three presets rather than a permission matrix. Discord has around forty flags,
+ * the editor has no widget for them and `FIELD_TYPES` has nothing to validate
+ * them with — and a matrix would let an admin hand a role `ManageChannels` or
+ * `MentionEveryone` through the bot. The flags each preset maps to live with the
+ * runner, in `actions.js`, because nothing here needs to know them.
+ */
+const ACCESS_LEVELS = [
+	{
+		label: 'Read only',
+		value: 'read',
+	},
+	{
+		label: 'Read and write',
+		value: 'write',
+	},
+	{
+		label: 'Read, write and manage messages',
+		value: 'manage',
+	},
+];
+
+/** Who gets into a channel a node creates. Shared by the three create nodes. */
+const accessParams = [
+	{
+		help: 'Anyone with one of these roles can see the channel.',
+		key: 'roleIds',
+		label: 'Roles',
+		maxItems: 20,
+		type: 'roles',
+	},
+	{
+		default: true,
+		key: 'includeStaff',
+		label: 'Add the ticket\'s staff roles',
+		type: 'boolean',
+	},
+	{
+		default: false,
+		key: 'includeOpener',
+		label: 'Add whoever opened the ticket',
+		type: 'boolean',
+	},
+	{
+		default: false,
+		key: 'includeActor',
+		label: 'Add whoever set this off',
+		type: 'boolean',
+	},
+	{
+		default: 'write',
+		key: 'access',
+		label: 'What they can do',
+		options: ACCESS_LEVELS,
+		required: true,
+		type: 'select',
+	},
+];
+
+/**
+ * The message a create node optionally posts in what it just made.
+ *
+ * Optional, unlike a message node's: "make a war room" is a complete thing to
+ * want. `content` and `layout` therefore only validate when one of them is
+ * actually in use, which each node's own `validate` decides.
+ */
+const starterParams = help => [
+	formatField,
+	contentField(help),
+	legacyButtonsField('Buttons on the first message.'),
+	layoutField('message', help),
+];
+
+/** Is a create node posting a first message at all? */
+const hasStarter = params => usesLayout(params) || Boolean(params?.content);
+
+/**
+ * Whether the ticket should take this channel down with it.
+ *
+ * Not a `needs`: a run with no ticket simply has nowhere to record it, which is
+ * a no-op rather than a misconfiguration. Making it one would refuse a perfectly
+ * sensible "a member joined, make them a channel" automation for a tickbox they
+ * left at its default.
+ */
+const cleanUpField = noun => ({
+	default: true,
+	help: `Only applies when this automation is working on a ticket. The ${noun} is deleted when it closes, or archived if it is a thread.`,
+	key: 'cleanUpOnClose',
+	label: 'Remove it when the ticket closes',
+	type: 'boolean',
+});
+
+/**
+ * Refuse a private channel or thread nobody was let into.
+ *
+ * The same failure the category route guards with `no_staff_roles`: it saves
+ * cleanly, produces something only the bot can read, and is discovered by
+ * someone going looking rather than by anything telling them.
+ */
+function validateAccess(params, push, path, noun) {
+	if (params?.private === false) return;
+	if (params?.roleIds?.length || params?.includeStaff || params?.includeOpener || params?.includeActor) return;
+	push(`${path}.roleIds`, 'required', `Nobody would be able to see this ${noun}: pick at least one role or person`);
+}
+
+/** How long a thread stays visible before Discord archives it. */
+const AUTO_ARCHIVE_OPTIONS = [
+	{
+		label: '1 hour',
+		value: 60,
+	},
+	{
+		label: '1 day',
+		value: 1440,
+	},
+	{
+		label: '3 days',
+		value: 4320,
+	},
+	{
+		label: '1 week',
+		value: 10080,
+	},
+];
+
+/** The name a create node gives what it makes. */
+const channelNameField = {
+	// Discord's channel-name limit. The runner clamps to it as well, because a
+	// rendered placeholder can push a legal template over.
+	key: 'name',
+	label: 'Name',
+	maxLength: 100,
+	placeholders: 'automation',
+	required: true,
+	type: 'text',
+};
+
 const categoryFilter = {
 	help: 'Leave empty to match every category.',
 	key: 'categoryIds',
@@ -729,6 +877,174 @@ const NODE_TYPES = {
 			required: true,
 			type: 'automationKey',
 		}],
+	},
+	'action.channel.create': {
+		category: 'action',
+		description: 'Create a text channel, and use it for the rest of this automation. A test run does not make one, so the steps after it will still see the channel this started in.',
+		label: 'Create a channel',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				// Type 4 is a Discord category. Declared here rather than guessed in
+				// the dashboard: `ChannelField` reads `channelTypes` straight off the
+				// catalogue, so this is the only place that decides.
+				channelTypes: [4],
+				help: 'Leave empty to create it at the top of the channel list.',
+				key: 'parentId',
+				label: 'Discord category',
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				key: 'topic',
+				label: 'Topic',
+				maxLength: 1024,
+				placeholders: 'automation',
+				type: 'text',
+			},
+			{
+				default: true,
+				help: 'A private channel is hidden from everyone except the roles and people below.',
+				key: 'private',
+				label: 'Private',
+				type: 'boolean',
+			},
+			...accessParams,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000, // Discord's ceiling, 6 hours
+				min: 0,
+				type: 'duration',
+			},
+			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the channel without a first message.`),
+			cleanUpField('channel'),
+		],
+		provides: ['channel'],
+		validate: (params, push, path, options) => {
+			if (hasStarter(params)) validateMessage('message', { buttons: true })(params, push, path, options);
+			// A private channel with nobody in it is a channel only the bot can
+			// read. Same failure the category route guards with `no_staff_roles`:
+			validateAccess(params, push, path, 'channel');
+		},
+	},
+	'action.channel.createForumPost': {
+		category: 'action',
+		description: 'Open a post in a forum channel, and use it for the rest of this automation. A test run does not make one.',
+		label: 'Create a forum post',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				// 15 is a forum channel.
+				channelTypes: [15],
+				key: 'parentId',
+				label: 'Forum',
+				required: true,
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000,
+				min: 0,
+				type: 'duration',
+			},
+			// No access params: a forum post inherits the forum's permissions, and
+			// there is nothing per-post to grant.
+			...starterParams(PLACEHOLDER_HELP),
+			cleanUpField('post'),
+		],
+		provides: ['channel'],
+		// Unlike the other two, the message is not optional: a forum post *is* its
+		// first message, so there is no post to make without one.
+		validate: validateMessage('message', { buttons: true }),
+	},
+	'action.channel.createThread': {
+		category: 'action',
+		description: 'Start a thread, and use it for the rest of this automation. A test run does not make one, so the steps after it will still see the channel this started in.',
+		label: 'Create a thread',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				default: 'ticket',
+				key: 'target',
+				label: 'Create it on',
+				// The same three choices `action.message.send` offers, so the
+				// control means the same thing in both places.
+				options: [{
+					label: 'The ticket channel',
+					value: 'ticket',
+				}, {
+					label: 'The channel this happened in',
+					value: 'triggerChannel',
+				}, {
+					label: 'A specific channel',
+					value: 'channel',
+				}],
+				required: true,
+				type: 'select',
+			},
+			{
+				channelTypes: [0, 5],
+				key: 'parentId',
+				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'target',
+				},
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				default: true,
+				help: 'A private thread is visible only to the people added to it. A public one is visible to anyone who can see the channel it is on.',
+				key: 'private',
+				label: 'Private',
+				type: 'boolean',
+			},
+			{
+				default: true,
+				help: 'Discord cannot put a thread inside a thread. With this on, a thread asked for on a thread is created beside it, on the same channel, instead of failing.',
+				key: 'climbToParent',
+				label: 'Allow on a parent thread',
+				type: 'boolean',
+			},
+			{
+				default: 10080,
+				key: 'autoArchive',
+				label: 'Archive after',
+				options: AUTO_ARCHIVE_OPTIONS,
+				required: true,
+				type: 'select',
+			},
+			...accessParams,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000,
+				min: 0,
+				type: 'duration',
+			},
+			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the thread without a first message.`),
+			cleanUpField('thread'),
+		],
+		provides: ['channel'],
+		validate: (params, push, path, options) => {
+			if (hasStarter(params)) validateMessage('message', { buttons: true })(params, push, path, options);
+			validateAccess(params, push, path, 'thread');
+			// `parentId` cannot be `required`: it only applies to one of the three
+			// targets, and `validateParams` cannot see which was picked.
+			if (params?.target === 'channel' && !params?.parentId) {
+				push(`${path}.parentId`, 'required', 'Channel is required');
+			}
+		},
 	},
 	'action.log': {
 		category: 'action',
@@ -1569,6 +1885,18 @@ function needsOf(node) {
 		if (node.params?.target === 'ticket') needs.add('ticketChannel');
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
+
+	// Same reasoning for the create nodes: who they let in decides what they
+	// depend on. Ticking "add the staff roles" is what turns a node that needs a
+	// server into one that needs a ticket.
+	if (node.type?.startsWith('action.channel.create')) {
+		if (node.params?.includeStaff || node.params?.includeOpener) needs.add('ticket');
+		if (node.params?.includeActor) needs.add('member');
+		// And where it hangs from, which is the same question `action.message.send`
+		// asks about where it posts.
+		if (node.params?.target === 'ticket') needs.add('ticketChannel');
+		if (node.params?.target === 'triggerChannel') needs.add('channel');
+	}
 	return [...needs];
 }
 
@@ -1610,6 +1938,7 @@ module.exports = {
 	NODE_TYPES,
 	SUBJECTS,
 	catalogue,
+	hasStarter,
 	isValidCron,
 	isValidTimezone,
 	regexError,

@@ -30,7 +30,13 @@ const {
 } = require('../components-v2');
 const { resolveGuildChannel } = require('../misc');
 const { pools } = require('../threads');
-const { usesLayout } = require('./registry');
+const {
+	hasStarter, usesLayout,
+} = require('./registry');
+const {
+	PARTICIPANT_ALLOW,
+	createChannel,
+} = require('../tickets/channels');
 const temporal = require('../temporal');
 const {
 	ActionRowBuilder,
@@ -47,6 +53,7 @@ const {
 const {
 	addTicketMember,
 	moveTicket,
+	recordTicketChannel,
 	removeTicketMember,
 	renameTicket,
 	setPriority,
@@ -193,6 +200,87 @@ async function renderMessage(client, node, ctx, kind) {
 	};
 }
 
+/**
+ * What each access preset actually grants.
+ *
+ * Kept here rather than in the registry because the registry is a schema and has
+ * no business knowing Discord's permission names.
+ */
+const ACCESS_ALLOW = {
+	manage: [...PARTICIPANT_ALLOW, 'ManageMessages'],
+	read: ['ViewChannel', 'ReadMessageHistory'],
+	write: PARTICIPANT_ALLOW,
+};
+
+/**
+ * How close to Discord's 500-channel guild cap a create node will go.
+ *
+ * `LIMITS.steps` bounds one run, not the rate of runs: "a message is posted ->
+ * create a channel" is a channel per message. Stopping short of the cap leaves a
+ * server room to keep working while somebody notices.
+ */
+const CHANNEL_CEILING = 480;
+
+/** Who a create node lets into what it makes, as ids. */
+async function resolveAccess(node, ctx) {
+	const roleIds = new Set(node.params?.roleIds ?? []);
+	const userIds = new Set();
+
+	if (node.params?.includeStaff || node.params?.includeOpener) {
+		// One lookup for both: `getTicket` is memoised for the run anyway, and
+		// reading it twice would only look like two different dependencies.
+		const ticket = await ctx.getTicket();
+		if (node.params.includeStaff) for (const id of ticket?.category?.staffRoles ?? []) roleIds.add(id);
+		if (node.params.includeOpener && ticket?.createdById) userIds.add(ticket.createdById);
+	}
+	if (node.params?.includeActor && ctx.actorId) userIds.add(ctx.actorId);
+
+	return {
+		allow: ACCESS_ALLOW[node.params?.access] ?? ACCESS_ALLOW.write,
+		roleIds: [...roleIds],
+		userIds: [...userIds],
+	};
+}
+
+/**
+ * Bind a channel a node just made to the rest of the run, and to the ticket.
+ *
+ * The recording is best-effort: the channel exists either way, and a run that
+ * fails here because the ticket row moved underneath it would be worse than one
+ * that leaves a channel behind. It is skipped entirely when the run has no
+ * ticket, which is a no-op rather than a misconfiguration.
+ */
+async function bindCreatedChannel(client, node, ctx, channel) {
+	ctx.setChannel(channel);
+	if (!ctx.ticketId || node.params?.cleanUpOnClose === false) return;
+	await recordTicketChannel(client, ctx.ticketId, channel.id).catch(() => null);
+}
+
+/** The first message a create node posts, or null when it was left empty. */
+async function starterMessage(client, node, ctx) {
+	if (!hasStarter(node.params)) return null;
+	return {
+		// Same rule as `action.message.send`: a Components v2 message has no
+		// `content` for Discord to derive mention parsing from.
+		allowedMentions: { parse: ['users', 'roles'] },
+		...await renderMessage(client, node, ctx, 'message'),
+	};
+}
+
+/** Resolve what a thread node hangs its thread from. */
+async function resolveThreadParent(node, ctx) {
+	switch (node.params?.target) {
+	case 'channel':
+		// Guild-scoped for the reason `resolveGuildChannel` documents: an id from
+		// an admin's request would otherwise resolve into any server the bot is in.
+		return resolveGuildChannel(ctx.client, ctx.guildId, node.params.parentId);
+	case 'triggerChannel':
+		return ctx.getChannel();
+	default:
+		return ctx.getTicketChannel();
+	}
+}
+
 /** Resolve where `action.message.send` should post. */
 async function resolveTarget(node, ctx) {
 	switch (node.params?.target) {
@@ -256,6 +344,7 @@ function makeRunners(client, runNested) {
 				'button.pressed',
 				'menu.selected',
 				'message.created',
+				'bot.command',
 				'member.joined',
 				'member.left',
 				'member.roleAdded',
@@ -287,6 +376,98 @@ function makeRunners(client, runNested) {
 				userId: member.id,
 			});
 			return result.ok ? { reason: result.reason } : skip(result.reason);
+		}),
+
+		/* ── channels ────────────────────────────────────────────────────────── */
+
+		// The one place in this file that throws where everything else would skip.
+		// A skip continues the branch (see `runtime.js`), which would leave the
+		// run's `channel` pointing at whatever the trigger supplied — so the next
+		// "send a message to the channel this happened in" would post content
+		// meant for a private channel into a public one. `action.role.add` can
+		// skip because nothing downstream depends on the role; a node that
+		// `provides` cannot. Throwing also records the run as FAILED with the
+		// reason, which is what an admin needs; a SKIPPED run reads as "nothing
+		// to do".
+		'action.channel.create': real(async (node, ctx) => {
+			const guild = await ctx.getGuild();
+			// The bot left the guild mid-run. Nothing is wrong and nothing is
+			// fixable, which is the definition of a skip.
+			if (!guild) return skip('unknown_guild');
+			if (guild.channels.cache.size >= CHANNEL_CEILING) throw new Error('the server is near its channel limit');
+
+			const result = await createChannel(client, {
+				access: await resolveAccess(node, ctx),
+				everyoneDenied: node.params?.private !== false,
+				guild,
+				message: await starterMessage(client, node, ctx),
+				mode: 'CHANNEL',
+				name: { text: await render(node.params.name, ctx) },
+				parentId: node.params?.parentId ?? null,
+				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
+				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
+				topic: node.params?.topic ? await render(node.params.topic, ctx) : null,
+			});
+			if (!result.ok) throw new Error(`could not create the channel: ${result.reason}`);
+
+			await bindCreatedChannel(client, node, ctx, result.channel);
+			return { reason: result.reason };
+		}),
+
+		// Same failure convention as the channel node above, and for the same
+		// reason: both hand a channel to whatever comes next.
+		'action.channel.createThread': real(async (node, ctx) => {
+			const guild = await ctx.getGuild();
+			if (!guild) return skip('unknown_guild');
+
+			const parent = await resolveThreadParent(node, ctx);
+			// A ticket closed between the trigger and this step, or a channel an
+			// admin deleted. Nothing is fixable, so the branch stops rather than
+			// carrying on with the wrong channel bound.
+			if (!parent) throw new Error('could not create the thread: no_parent');
+
+			const result = await createChannel(client, {
+				access: await resolveAccess(node, ctx),
+				everyoneDenied: node.params?.private !== false,
+				guild,
+				message: await starterMessage(client, node, ctx),
+				mode: 'THREAD',
+				name: { text: await render(node.params.name, ctx) },
+				parentId: parent.id,
+				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
+				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
+				thread: {
+					autoArchiveDuration: node.params?.autoArchive ?? 10080,
+					climbToParent: node.params?.climbToParent !== false,
+					invitable: false,
+					private: node.params?.private !== false,
+				},
+			});
+			if (!result.ok) throw new Error(`could not create the thread: ${result.reason}`);
+
+			await bindCreatedChannel(client, node, ctx, result.channel);
+			return { reason: result.reason };
+		}),
+
+		'action.channel.createForumPost': real(async (node, ctx) => {
+			const guild = await ctx.getGuild();
+			if (!guild) return skip('unknown_guild');
+
+			const result = await createChannel(client, {
+				guild,
+				// Not optional here: a forum post is its first message, which is
+				// why the node's schema requires one.
+				message: await starterMessage(client, node, ctx),
+				mode: 'FORUM',
+				name: { text: await render(node.params.name, ctx) },
+				parentId: node.params?.parentId ?? null,
+				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
+				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
+			});
+			if (!result.ok) throw new Error(`could not create the forum post: ${result.reason}`);
+
+			await bindCreatedChannel(client, node, ctx, result.channel);
+			return { reason: result.reason };
 		}),
 
 		/* ── messages ────────────────────────────────────────────────────────── */

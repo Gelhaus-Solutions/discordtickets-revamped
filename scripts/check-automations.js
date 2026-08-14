@@ -22,10 +22,10 @@ const {
 	GRAPH_VERSION, LIMITS, PRIVATE_LIMITS, PUBLIC_LIMITS, AutomationError, describeError,
 } = require(path.join(root, 'src', 'lib', 'automations', 'errors'));
 const {
-	NODE_TYPES, isValidCron, needsOf,
+	CAPABILITIES, NODE_TYPES, isValidCron, needsOf,
 } = require(path.join(root, 'src', 'lib', 'automations', 'registry'));
 const {
-	deriveTriggers, entryButtonTriggers, validateGraph,
+	analyse, capabilitiesFrom, deriveTriggers, entryButtonTriggers, validateGraph,
 } = require(path.join(root, 'src', 'lib', 'automations', 'validate'));
 const {
 	RUN, STEP, runAutomation, runFrom,
@@ -496,6 +496,194 @@ function stubRunners(overrides = {}) {
 		})).includes('ticketChannel'));
 	});
 
+	/* ─────────────────── capabilities an action hands onward ─────────────────── */
+
+	// These need a node type that provides one. Rather than pin the suite to
+	// whichever real node happens to provide `channel` this month, they install a
+	// synthetic one for the length of the case: the walk is what is under test,
+	// not any particular node's declaration.
+	const withProvider = fn => {
+		NODE_TYPES['action.test.provider'] = {
+			category: 'action',
+			description: 'Test only.',
+			label: 'Provide a channel',
+			needs: ['guild'],
+			outputs: ['out'],
+			params: [],
+			provides: ['channel'],
+		};
+		try {
+			return fn();
+		} finally {
+			delete NODE_TYPES['action.test.provider'];
+		}
+	};
+
+	/** A branch condition that depends on no capability, so it fits any trigger. */
+	const COIN_FLIP = {
+		clauses: [{
+			field: 'random.percent',
+			op: 'lt',
+			value: 50,
+		}],
+		match: 'all',
+	};
+
+	/** cron -> ...middle... -> "send to the channel this happened in". */
+	const sendToTriggerChannel = id => node('action.message.send', {
+		...rich('hi'),
+		target: 'triggerChannel',
+	}, id);
+
+	await t('capabilities: an action can provide what the trigger did not', () => withProvider(() => {
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				node('action.test.provider', {}, 'b'),
+				sendToTriggerChannel('c'),
+			],
+			[edge('a', 'b'), edge('b', 'c')],
+		);
+		assert.strictEqual(codeOf(g), null);
+	}));
+
+	await t('capabilities: a capability provided after the node does not count', () => withProvider(() => {
+		// The IN/OUT distinction, and the easiest thing to get wrong: the send
+		// runs first, so the channel does not exist yet.
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				sendToTriggerChannel('b'),
+				node('action.test.provider', {}, 'c'),
+			],
+			[edge('a', 'b'), edge('b', 'c')],
+		);
+		assert.strictEqual(codeOf(g), 'missing_context');
+	}));
+
+	await t('capabilities: one branch of a flow.if does not provide for the join', () => withProvider(() => {
+		// The case the whole meet exists for. A join executes on first arrival, so
+		// a channel made on the true arm may genuinely not exist below the branch.
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				node('flow.if', COIN_FLIP, 'b'),
+				node('action.test.provider', {}, 'c'),
+				node('flow.noop', {}, 'd'),
+				sendToTriggerChannel('e'),
+			],
+			[edge('a', 'b'), edge('b', 'c', 'true'), edge('b', 'd', 'false'), edge('c', 'e'), edge('d', 'e')],
+		);
+		assert.strictEqual(codeOf(g), 'missing_context');
+	}));
+
+	await t('capabilities: both branches providing does count at the join', () => withProvider(() => {
+		// And the other half: this is a real intersection, not "give up after a
+		// branch". If this passes and the case above fails, the meet is wrong.
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				node('flow.if', COIN_FLIP, 'b'),
+				node('action.test.provider', {}, 'c'),
+				node('action.test.provider', {}, 'd'),
+				sendToTriggerChannel('e'),
+			],
+			[edge('a', 'b'), edge('b', 'c', 'true'), edge('b', 'd', 'false'), edge('c', 'e'), edge('d', 'e')],
+		);
+		assert.strictEqual(codeOf(g), null);
+	}));
+
+	await t('capabilities: a provider before the branch serves both arms', () => withProvider(() => {
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				node('action.test.provider', {}, 'b'),
+				node('flow.if', COIN_FLIP, 'c'),
+				sendToTriggerChannel('d'),
+				sendToTriggerChannel('e'),
+			],
+			[edge('a', 'b'), edge('b', 'c'), edge('c', 'd', 'true'), edge('c', 'e', 'false')],
+		);
+		assert.strictEqual(codeOf(g), null);
+	}));
+
+	await t('capabilities: two triggers, one direct and one via an action', () => withProvider(() => {
+		// The message trigger supplies `channel` itself; the cron one has to make
+		// it. Both feed the same send, and both have to be satisfied.
+		const nodes = () => [
+			node('trigger.message.created', { scope: 'ticket' }, 'a'),
+			node('trigger.schedule.cron', {
+				cron: '0 9 * * *',
+				timezone: 'UTC',
+			}, 'b'),
+			node('action.test.provider', {}, 'c'),
+			sendToTriggerChannel('d'),
+		];
+		assert.strictEqual(codeOf(graph(nodes(), [edge('a', 'd'), edge('b', 'c'), edge('c', 'd')])), null);
+
+		// Take the provider out of the cron path and that trigger falls short,
+		// even though the other one is still fine.
+		assert.strictEqual(codeOf(graph(nodes(), [edge('a', 'd'), edge('b', 'd'), edge('b', 'c')])), 'missing_context');
+	}));
+
+	await t('capabilities: a node does not satisfy its own needs', () => withProvider(() => {
+		const g = graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				node('action.test.provider', {}, 'b'),
+			],
+			[edge('a', 'b')],
+		);
+		const byId = new Map(g.nodes.map(n => [n.id, n]));
+		const { order } = analyse(new Set(byId.keys()), g.edges);
+		const into = capabilitiesFrom(new Set(byId.keys()), order, g.edges, byId);
+		assert.ok(!into.get('b').has('channel'), 'a provider must not see its own capability');
+	}));
+
+	await t('capabilities: a graph with no provider is walked exactly as before', () => {
+		// The back-compat proof, pinned. While no action provides anything, every
+		// node's set has to be precisely its trigger's `provides` — which is the
+		// value the trigger-only walk used. If a future node breaks this, the
+		// claim that stored graphs validate identically breaks with it.
+		for (const g of [simple(), graph(
+			[
+				node('trigger.message.created', { scope: 'ticket' }, 'a'),
+				node('flow.if', COIN_FLIP, 'b'),
+				node('action.message.reply', rich('hi'), 'c'),
+			],
+			[edge('a', 'b'), edge('b', 'c', 'true')],
+		)]) {
+			const byId = new Map(g.nodes.map(n => [n.id, n]));
+			const ids = new Set(byId.keys());
+			const { order } = analyse(ids, g.edges);
+			const into = capabilitiesFrom(ids, order, g.edges, byId);
+			const trigger = g.nodes.find(n => n.type.startsWith('trigger.'));
+			const expected = new Set(NODE_TYPES[trigger.type].provides);
+			for (const n of g.nodes) {
+				if (n.id === trigger.id) continue;
+				assert.deepStrictEqual(into.get(n.id), expected, `${n.type} sees a different set than its trigger provides`);
+			}
+		}
+	});
+
 	await t('deriveTriggers lists every distinct trigger type', () => {
 		assert.deepStrictEqual(deriveTriggers(simple()), { triggerTypes: ['trigger.ticket.closed'] });
 
@@ -789,6 +977,170 @@ function stubRunners(overrides = {}) {
 		assert.ok(result.error.startsWith('graph_changed'));
 	});
 
+	/* ────────────── the channel an action hands to the rest of a run ────────── */
+
+	/** A client whose channel fetches are counted, so a memo can be proven. */
+	const countingClient = (channels = {}) => {
+		const fetched = [];
+		return {
+			channels: {
+				fetch: async id => {
+					fetched.push(id);
+					return channels[id] ?? null;
+				},
+			},
+			fetched,
+		};
+	};
+
+	await t('a created channel becomes the run\'s channel, for every later step', async () => {
+		const g = graph(
+			[
+				node('trigger.ticket.closed', {}, 'a'),
+				node('action.log', { content: 'make' }, 'make'),
+				node('action.log', { content: 'after' }, 'after'),
+			],
+			[edge('a', 'make'), edge('make', 'after')],
+		);
+		let seenByLater = null;
+		const { runners } = stubRunners({
+			'action.log': async (n, c) => {
+				if (n.id === 'make') {
+					c.setChannel({
+						guildId: '1',
+						id: '999',
+					});
+				} else {
+					seenByLater = c.channelId;
+				}
+				return {};
+			},
+		});
+		const context = ctx({ channelId: '111' });
+		await runAutomation(g, context, { runners });
+		assert.strictEqual(seenByLater, '999');
+		assert.strictEqual(context.serialize().channelId, '999');
+	});
+
+	await t('the created channel survives a park and a resume', async () => {
+		// `channelId` was always serialized, so this costs nothing new — but it is
+		// the whole reason the capability is safe to hand across a `flow.wait`, and
+		// nothing else asserts it.
+		const g = graph(
+			[
+				node('trigger.ticket.closed', {}, 'a'),
+				node('action.log', { content: 'make' }, 'make'),
+				node('flow.wait', { ms: 60_000 }, 'w'),
+				node('action.log', { content: 'after' }, 'after'),
+			],
+			[edge('a', 'make'), edge('make', 'w'), edge('w', 'after')],
+		);
+		const { runners } = stubRunners({
+			'action.log': async (n, c) => {
+				if (n.id === 'make') c.setChannel('999');
+				return {};
+			},
+		});
+		const parked = await runAutomation(g, ctx({ channelId: '111' }), { runners });
+		const state = JSON.parse(JSON.stringify(parked.state));
+		assert.strictEqual(state.channelId, '999', 'the parked run forgot the channel it made');
+
+		let seenAfterResume = null;
+		const resumed = new Context(null, state);
+		resumed.durable = true;
+		resumed.executed = state.executed;
+		resumed.trace = state.trace;
+		const { runners: runners2 } = stubRunners({
+			'action.log': async (n, c) => {
+				seenAfterResume = c.channelId;
+				return {};
+			},
+		});
+		await runFrom(g, resumed, state.queue, { runners: runners2 });
+		assert.strictEqual(seenAfterResume, '999');
+	});
+
+	await t('setChannel moves the memo rather than leaving a stale one', async () => {
+		const first = {
+			guildId: '1',
+			id: '111',
+		};
+		const second = {
+			guildId: '1',
+			id: '999',
+		};
+		const client = countingClient({
+			111: first,
+			999: second,
+		});
+		const context = new Context(client, {
+			channelId: '111',
+			guildId: '1',
+		});
+
+		assert.strictEqual(await context.getChannel(), first);
+		context.setChannel('999');
+		assert.strictEqual(await context.getChannel(), second, 'the old channel was still memoised');
+		assert.deepStrictEqual(client.fetched, ['111', '999']);
+	});
+
+	await t('a nested automation\'s channel does not leak back to its caller', async () => {
+		// `descend()` shares the cache by reference, so a bare cache key would let
+		// a child's creation overwrite what the parent resolves next.
+		const parentChannel = {
+			guildId: '1',
+			id: '111',
+		};
+		const childChannel = {
+			guildId: '1',
+			id: '999',
+		};
+		const client = countingClient({
+			111: parentChannel,
+			999: childChannel,
+		});
+		const parent = new Context(client, {
+			channelId: '111',
+			guildId: '1',
+		});
+		const child = parent.descend(2, 'r2');
+		child.setChannel('999');
+
+		assert.strictEqual(await child.getChannel(), childChannel);
+		assert.strictEqual(await parent.getChannel(), parentChannel, 'the parent saw the child\'s channel');
+		assert.strictEqual(parent.channelId, '111');
+	});
+
+	await t('the trigger message still resolves after the channel is rewritten', async () => {
+		// The bug this guards: `getMessage` used to resolve through `getChannel`,
+		// so once a node moved the run's channel it hunted the trigger message
+		// inside a channel created seconds ago and quietly found nothing.
+		const message = { id: 'm1' };
+		const origin = {
+			guildId: '1',
+			id: '111',
+			messages: { fetch: async id => (id === 'm1' ? message : null) },
+		};
+		const created = {
+			guildId: '1',
+			id: '999',
+			messages: { fetch: async () => null },
+		};
+		const client = countingClient({
+			111: origin,
+			999: created,
+		});
+		const context = new Context(client, {
+			channelId: '111',
+			guildId: '1',
+			messageId: 'm1',
+		});
+		context.setChannel('999');
+
+		assert.strictEqual(await context.getMessage(), message);
+		assert.strictEqual(context.serialize().messageChannelId, '111');
+	});
+
 	console.log('\nsubstitution\n');
 
 	/** Just enough client for the ticket placeholders. */
@@ -890,8 +1242,15 @@ function stubRunners(overrides = {}) {
 			if (definition.category === 'trigger') {
 				assert.ok(definition.provides?.length, `${type} provides nothing`);
 				assert.deepStrictEqual(definition.outputs, ['out'], `${type} should have one output`);
-			} else {
-				assert.ok(!definition.provides, `${type} is not a trigger but declares provides`);
+			} else if (definition.provides) {
+				// An action may hand a capability to the steps after it. Nothing
+				// else may: a condition or a flow node creates nothing, and one
+				// claiming otherwise would silently widen what validates.
+				assert.strictEqual(definition.category, 'action', `${type} is not an action but declares provides`);
+				assert.ok(definition.provides.length, `${type} declares an empty provides`);
+			}
+			for (const capability of definition.provides ?? []) {
+				assert.ok(CAPABILITIES.includes(capability), `${type} provides unknown capability ${capability}`);
 			}
 			for (const field of definition.params) {
 				assert.ok(field.key && field.label && field.type, `${type} has a malformed param`);
@@ -1443,6 +1802,172 @@ function stubRunners(overrides = {}) {
 		assert.strictEqual(codeOf(g), 'missing_context');
 	});
 
+	/* ────────────────────────── creating a channel ────────────────────────── */
+
+	// `access` is required-with-a-default, the same shape as `subject` and
+	// `setSlowmode.ms`: the dashboard seeds it from the schema, so a graph
+	// arriving without it was not authored by the editor.
+	const createNode = (params = {}, id = 'c') => node('action.channel.create', {
+		access: 'write',
+		format: 'text',
+		name: 'war-room-{num}',
+		roleIds: ['820000000000000001'],
+		...params,
+	}, id);
+
+	/** cron -> create -> whatever comes next. */
+	const underCron = (rest, edges = []) => graph(
+		[
+			node('trigger.schedule.cron', {
+				cron: '0 9 * * *',
+				timezone: 'UTC',
+			}, 'a'),
+			...rest,
+		],
+		[edge('a', rest[0].id), ...edges],
+	);
+
+	await t('creating a channel needs only a server', () => {
+		// The default `includeStaff` is what would otherwise drag a ticket
+		// dependency in, so the fixture has to turn it off to mean "only a
+		// server". That is the behaviour, not an inconvenience.
+		assert.strictEqual(codeOf(underCron([createNode({ includeStaff: false })])), null);
+	});
+
+	await t('a private channel nobody can see is refused at save time', () => {
+		assert.strictEqual(codeOf(underCron([createNode({
+			includeStaff: false,
+			roleIds: [],
+		})])), 'required');
+
+		// Not private, so there is nobody to require: everyone can see it.
+		assert.strictEqual(codeOf(underCron([createNode({
+			includeStaff: false,
+			private: false,
+			roleIds: [],
+		})])), null);
+	});
+
+	await t('who a create node lets in decides what it needs', () => {
+		assert.deepStrictEqual(needsOf(createNode({ includeStaff: false })), ['guild']);
+		assert.ok(needsOf(createNode({ includeStaff: true })).includes('ticket'));
+		assert.ok(needsOf(createNode({ includeOpener: true })).includes('ticket'));
+		assert.ok(needsOf(createNode({ includeActor: true })).includes('member'));
+	});
+
+	await t('adding the staff roles is rejected under a trigger with no ticket', () => {
+		assert.strictEqual(codeOf(underCron([createNode({ includeStaff: true })])), 'missing_context');
+	});
+
+	await t('a created channel satisfies a later "send to the channel this happened in"', () => {
+		// The end-to-end version of the capability walk: a real node, a real
+		// downstream need, no synthetic type involved.
+		const send = node('action.message.send', {
+			...rich('hi'),
+			target: 'triggerChannel',
+		}, 'd');
+		assert.strictEqual(
+			codeOf(underCron([createNode({ includeStaff: false }), send], [edge('c', 'd')])),
+			null,
+		);
+
+		// And without the create in front of it, the same send is refused.
+		assert.strictEqual(codeOf(graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				send,
+			],
+			[edge('a', 'd')],
+		)), 'missing_context');
+	});
+
+	await t('a create node with no starter message needs no message', () => {
+		// The message is optional here, unlike a message node's: "make a war room"
+		// is a complete thing to want. But a half-authored one still validates.
+		assert.strictEqual(codeOf(underCron([createNode({
+			content: '',
+			includeStaff: false,
+		})])), null);
+		assert.strictEqual(codeOf(underCron([createNode({
+			...rich('welcome'),
+			includeStaff: false,
+		})])), null);
+	});
+
+	const threadNode = (params = {}, id = 'c') => node('action.channel.createThread', {
+		access: 'write',
+		autoArchive: 10080,
+		format: 'text',
+		name: 'staff-{num}',
+		roleIds: ['820000000000000001'],
+		target: 'triggerChannel',
+		...params,
+	}, id);
+
+	await t('where a thread hangs from decides what it needs', () => {
+		assert.ok(needsOf(threadNode({
+			includeStaff: false,
+			target: 'ticket',
+		})).includes('ticketChannel'));
+		assert.ok(needsOf(threadNode({
+			includeStaff: false,
+			target: 'triggerChannel',
+		})).includes('channel'));
+		// A fixed channel depends on nothing the trigger has to supply.
+		assert.deepStrictEqual(needsOf(threadNode({
+			includeStaff: false,
+			parentId: '820000000000000009',
+			target: 'channel',
+		})), ['guild']);
+	});
+
+	await t('a thread on the trigger channel is refused under a cron trigger', () => {
+		assert.strictEqual(codeOf(underCron([threadNode({ includeStaff: false })])), 'missing_context');
+	});
+
+	await t('a thread on a channel the create node made is accepted', () => {
+		// The composition that makes these nodes worth having: make a channel,
+		// then thread off it, under a trigger that supplies neither.
+		assert.strictEqual(codeOf(underCron(
+			[createNode({ includeStaff: false }), threadNode({ includeStaff: false }, 'd')],
+			[edge('c', 'd')],
+		)), null);
+	});
+
+	await t('a thread on a specific channel needs one to be picked', () => {
+		assert.strictEqual(codeOf(underCron([threadNode({
+			includeStaff: false,
+			target: 'channel',
+		})])), 'required');
+	});
+
+	await t('a forum post must have a message, and needs only a server', () => {
+		const post = (params = {}) => node('action.channel.createForumPost', {
+			format: 'text',
+			name: 'report-{num}',
+			parentId: '820000000000000009',
+			...params,
+		}, 'c');
+		// A forum post *is* its first message, so an empty one is not a post.
+		assert.strictEqual(codeOf(underCron([post({ content: '' })])), 'required');
+		assert.strictEqual(codeOf(underCron([post({ content: 'hello' })])), null);
+		assert.deepStrictEqual(needsOf(post({ content: 'hello' })), ['guild']);
+	});
+
+	await t('every node type has a runner', () => {
+		// The interpreter dispatches with `runners[node.type]?.(...)`, so a type in
+		// the registry with no runner does not throw: it returns `{}` and traces as
+		// a success. A node that silently does nothing is the worst outcome
+		// available, and nothing else in this suite would notice.
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const missing = Object.keys(NODE_TYPES).filter(type => typeof runners[type] !== 'function');
+		assert.deepStrictEqual(missing, [], `no runner for: ${missing.join(', ')}`);
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {
@@ -1470,6 +1995,23 @@ function stubRunners(overrides = {}) {
 			assert.ok(found, `the editor does not declare the ${key} limit`);
 			assert.strictEqual(Number(found[1]), PUBLIC_LIMITS[key], `the ${key} limit differs between the bot and the editor`);
 		}
+	});
+
+	await t('the editor mirrors the capability walk', () => {
+		// The editor's validator is ESM and never runs under `npm test`, so the
+		// two walks cannot be driven against each other. A text assertion is weak,
+		// but the failure it guards against is expensive: if the two disagree the
+		// canvas either blocks a save the server would take, or offers one it
+		// answers with a 400.
+		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'validate.js');
+		if (!fs.existsSync(mirror)) {
+			console.log('       (skipped: the editor validator does not exist yet)');
+			return;
+		}
+		const source = fs.readFileSync(mirror, 'utf8');
+		assert.ok(source.includes('function capabilitiesFrom('), 'the editor has no capability walk');
+		assert.ok(!source.includes('feedersOf'), 'the editor still uses the trigger-only walk');
+		assert.ok(source.includes('topoOrder'), 'the editor walk is not ordered');
 	});
 
 	console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);
