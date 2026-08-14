@@ -1897,6 +1897,66 @@ function stubRunners(overrides = {}) {
 		})])), null);
 	});
 
+	const threadNode = (params = {}, id = 'c') => node('action.channel.createThread', {
+		access: 'write',
+		autoArchive: 10080,
+		format: 'text',
+		name: 'staff-{num}',
+		roleIds: ['820000000000000001'],
+		target: 'triggerChannel',
+		...params,
+	}, id);
+
+	await t('where a thread hangs from decides what it needs', () => {
+		assert.ok(needsOf(threadNode({
+			includeStaff: false,
+			target: 'ticket',
+		})).includes('ticketChannel'));
+		assert.ok(needsOf(threadNode({
+			includeStaff: false,
+			target: 'triggerChannel',
+		})).includes('channel'));
+		// A fixed channel depends on nothing the trigger has to supply.
+		assert.deepStrictEqual(needsOf(threadNode({
+			includeStaff: false,
+			parentId: '820000000000000009',
+			target: 'channel',
+		})), ['guild']);
+	});
+
+	await t('a thread on the trigger channel is refused under a cron trigger', () => {
+		assert.strictEqual(codeOf(underCron([threadNode({ includeStaff: false })])), 'missing_context');
+	});
+
+	await t('a thread on a channel the create node made is accepted', () => {
+		// The composition that makes these nodes worth having: make a channel,
+		// then thread off it, under a trigger that supplies neither.
+		assert.strictEqual(codeOf(underCron(
+			[createNode({ includeStaff: false }), threadNode({ includeStaff: false }, 'd')],
+			[edge('c', 'd')],
+		)), null);
+	});
+
+	await t('a thread on a specific channel needs one to be picked', () => {
+		assert.strictEqual(codeOf(underCron([threadNode({
+			includeStaff: false,
+			target: 'channel',
+		})])), 'required');
+	});
+
+	await t('a forum post must have a message, and needs only a server', () => {
+		const post = (params = {}) => node('action.channel.createForumPost', {
+			format: 'text',
+			name: 'report-{num}',
+			parentId: '820000000000000009',
+			...params,
+		}, 'c');
+		// A forum post *is* its first message, so an empty one is not a post.
+		assert.strictEqual(codeOf(underCron([post({ content: '' })])), 'required');
+		assert.strictEqual(codeOf(underCron([post({ content: 'hello' })])), null);
+		assert.deepStrictEqual(needsOf(post({ content: 'hello' })), ['guild']);
+	});
+
 	await t('every node type has a runner', () => {
 		// The interpreter dispatches with `runners[node.type]?.(...)`, so a type in
 		// the registry with no runner does not throw: it returns `{}` and traces as

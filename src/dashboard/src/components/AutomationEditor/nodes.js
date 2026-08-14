@@ -80,6 +80,8 @@ export const CATEGORY_ORDER = ['trigger', 'condition', 'flow', 'action'];
 export const NODE_ICONS = {
 	'action.automation.run': 'fa-diagram-project',
 	'action.channel.create': 'fa-hashtag',
+	'action.channel.createForumPost': 'fa-comments',
+	'action.channel.createThread': 'fa-comment-dots',
 	'action.log': 'fa-file-lines',
 	'action.message.dm': 'fa-envelope',
 	'action.message.ephemeral': 'fa-eye-slash',

@@ -762,6 +762,39 @@ const starterParams = help => [
 /** Is a create node posting a first message at all? */
 const hasStarter = params => usesLayout(params) || Boolean(params?.content);
 
+/**
+ * Refuse a private channel or thread nobody was let into.
+ *
+ * The same failure the category route guards with `no_staff_roles`: it saves
+ * cleanly, produces something only the bot can read, and is discovered by
+ * someone going looking rather than by anything telling them.
+ */
+function validateAccess(params, push, path, noun) {
+	if (params?.private === false) return;
+	if (params?.roleIds?.length || params?.includeStaff || params?.includeOpener || params?.includeActor) return;
+	push(`${path}.roleIds`, 'required', `Nobody would be able to see this ${noun}: pick at least one role or person`);
+}
+
+/** How long a thread stays visible before Discord archives it. */
+const AUTO_ARCHIVE_OPTIONS = [
+	{
+		label: '1 hour',
+		value: 60,
+	},
+	{
+		label: '1 day',
+		value: 1440,
+	},
+	{
+		label: '3 days',
+		value: 4320,
+	},
+	{
+		label: '1 week',
+		value: 10080,
+	},
+];
+
 /** The name a create node gives what it makes. */
 const channelNameField = {
 	// Discord's channel-name limit. The runner clamps to it as well, because a
@@ -877,15 +910,120 @@ const NODE_TYPES = {
 			if (hasStarter(params)) validateMessage('message', { buttons: true })(params, push, path, options);
 			// A private channel with nobody in it is a channel only the bot can
 			// read. Same failure the category route guards with `no_staff_roles`:
-			// it saves cleanly and is only discovered by someone going looking.
-			if (
-				params?.private !== false &&
-				!params?.roleIds?.length &&
-				!params?.includeStaff &&
-				!params?.includeOpener &&
-				!params?.includeActor
-			) {
-				push(`${path}.roleIds`, 'required', 'Nobody would be able to see this channel: pick at least one role or person');
+			validateAccess(params, push, path, 'channel');
+		},
+	},
+	'action.channel.createForumPost': {
+		category: 'action',
+		description: 'Open a post in a forum channel, and use it for the rest of this automation. A test run does not make one.',
+		label: 'Create a forum post',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				// 15 is a forum channel.
+				channelTypes: [15],
+				key: 'parentId',
+				label: 'Forum',
+				required: true,
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000,
+				min: 0,
+				type: 'duration',
+			},
+			// No access params: a forum post inherits the forum's permissions, and
+			// there is nothing per-post to grant.
+			...starterParams(PLACEHOLDER_HELP),
+		],
+		provides: ['channel'],
+		// Unlike the other two, the message is not optional: a forum post *is* its
+		// first message, so there is no post to make without one.
+		validate: validateMessage('message', { buttons: true }),
+	},
+	'action.channel.createThread': {
+		category: 'action',
+		description: 'Start a thread, and use it for the rest of this automation. A test run does not make one, so the steps after it will still see the channel this started in.',
+		label: 'Create a thread',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				default: 'ticket',
+				key: 'target',
+				label: 'Create it on',
+				// The same three choices `action.message.send` offers, so the
+				// control means the same thing in both places.
+				options: [{
+					label: 'The ticket channel',
+					value: 'ticket',
+				}, {
+					label: 'The channel this happened in',
+					value: 'triggerChannel',
+				}, {
+					label: 'A specific channel',
+					value: 'channel',
+				}],
+				required: true,
+				type: 'select',
+			},
+			{
+				channelTypes: [0, 5],
+				key: 'parentId',
+				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'target',
+				},
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				default: true,
+				help: 'A private thread is visible only to the people added to it. A public one is visible to anyone who can see the channel it is on.',
+				key: 'private',
+				label: 'Private',
+				type: 'boolean',
+			},
+			{
+				default: true,
+				help: 'Discord cannot put a thread inside a thread. With this on, a thread asked for on a thread is created beside it, on the same channel, instead of failing.',
+				key: 'climbToParent',
+				label: 'Allow on a parent thread',
+				type: 'boolean',
+			},
+			{
+				default: 10080,
+				key: 'autoArchive',
+				label: 'Archive after',
+				options: AUTO_ARCHIVE_OPTIONS,
+				required: true,
+				type: 'select',
+			},
+			...accessParams,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000,
+				min: 0,
+				type: 'duration',
+			},
+			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the thread without a first message.`),
+		],
+		provides: ['channel'],
+		validate: (params, push, path, options) => {
+			if (hasStarter(params)) validateMessage('message', { buttons: true })(params, push, path, options);
+			validateAccess(params, push, path, 'thread');
+			// `parentId` cannot be `required`: it only applies to one of the three
+			// targets, and `validateParams` cannot see which was picked.
+			if (params?.target === 'channel' && !params?.parentId) {
+				push(`${path}.parentId`, 'required', 'Channel is required');
 			}
 		},
 	},
@@ -1735,6 +1873,10 @@ function needsOf(node) {
 	if (node.type?.startsWith('action.channel.create')) {
 		if (node.params?.includeStaff || node.params?.includeOpener) needs.add('ticket');
 		if (node.params?.includeActor) needs.add('member');
+		// And where it hangs from, which is the same question `action.message.send`
+		// asks about where it posts.
+		if (node.params?.target === 'ticket') needs.add('ticketChannel');
+		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
 	return [...needs];
 }

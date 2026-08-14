@@ -252,6 +252,20 @@ async function starterMessage(client, node, ctx) {
 	};
 }
 
+/** Resolve what a thread node hangs its thread from. */
+async function resolveThreadParent(node, ctx) {
+	switch (node.params?.target) {
+	case 'channel':
+		// Guild-scoped for the reason `resolveGuildChannel` documents: an id from
+		// an admin's request would otherwise resolve into any server the bot is in.
+		return resolveGuildChannel(ctx.client, ctx.guildId, node.params.parentId);
+	case 'triggerChannel':
+		return ctx.getChannel();
+	default:
+		return ctx.getTicketChannel();
+	}
+}
+
 /** Resolve where `action.message.send` should post. */
 async function resolveTarget(node, ctx) {
 	switch (node.params?.target) {
@@ -380,6 +394,62 @@ function makeRunners(client, runNested) {
 				topic: node.params?.topic ? await render(node.params.topic, ctx) : null,
 			});
 			if (!result.ok) throw new Error(`could not create the channel: ${result.reason}`);
+
+			ctx.setChannel(result.channel);
+			return { reason: result.reason };
+		}),
+
+		// Same failure convention as the channel node above, and for the same
+		// reason: both hand a channel to whatever comes next.
+		'action.channel.createThread': real(async (node, ctx) => {
+			const guild = await ctx.getGuild();
+			if (!guild) return skip('unknown_guild');
+
+			const parent = await resolveThreadParent(node, ctx);
+			// A ticket closed between the trigger and this step, or a channel an
+			// admin deleted. Nothing is fixable, so the branch stops rather than
+			// carrying on with the wrong channel bound.
+			if (!parent) throw new Error('could not create the thread: no_parent');
+
+			const result = await createChannel(client, {
+				access: await resolveAccess(node, ctx),
+				everyoneDenied: node.params?.private !== false,
+				guild,
+				message: await starterMessage(client, node, ctx),
+				mode: 'THREAD',
+				name: { text: await render(node.params.name, ctx) },
+				parentId: parent.id,
+				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
+				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
+				thread: {
+					autoArchiveDuration: node.params?.autoArchive ?? 10080,
+					climbToParent: node.params?.climbToParent !== false,
+					invitable: false,
+					private: node.params?.private !== false,
+				},
+			});
+			if (!result.ok) throw new Error(`could not create the thread: ${result.reason}`);
+
+			ctx.setChannel(result.channel);
+			return { reason: result.reason };
+		}),
+
+		'action.channel.createForumPost': real(async (node, ctx) => {
+			const guild = await ctx.getGuild();
+			if (!guild) return skip('unknown_guild');
+
+			const result = await createChannel(client, {
+				guild,
+				// Not optional here: a forum post is its first message, which is
+				// why the node's schema requires one.
+				message: await starterMessage(client, node, ctx),
+				mode: 'FORUM',
+				name: { text: await render(node.params.name, ctx) },
+				parentId: node.params?.parentId ?? null,
+				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
+				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
+			});
+			if (!result.ok) throw new Error(`could not create the forum post: ${result.reason}`);
 
 			ctx.setChannel(result.channel);
 			return { reason: result.reason };
