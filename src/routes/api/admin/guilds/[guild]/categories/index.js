@@ -1,6 +1,7 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
 const { updateStaffRoles } = require('../../../../../../lib/users');
 const { STATE_FIELDS } = require('../../../../../../lib/tickets/emoji-settings');
+const { buildOverwrites } = require('../../../../../../lib/tickets/channels');
 const {
 	displayEmoji, isValidChannelEmoji, isValidEmoji,
 } = require('../../../../../../lib/emoji');
@@ -136,7 +137,6 @@ module.exports.post = fastify => ({
 		const user = await client.users.fetch(req.user.id);
 		const guild = client.guilds.cache.get(req.params.guild);
 		const data = req.body;
-		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 
 		// Derived, read-only sidecars the GET adds; the dashboard round-trips the
 		// whole object, and an unknown key spread into `create` throws.
@@ -164,22 +164,11 @@ module.exports.post = fastify => ({
 			if (categoryEmoji) name = `${categoryEmoji} ${name}`;
 			const channel = await guild.channels.create({
 				name,
-				permissionOverwrites: [
-					...[
-						{
-							deny: ['ViewChannel'],
-							id: guild.roles.everyone,
-						},
-						{
-							allow: allow,
-							id: client.user.id,
-						},
-					],
-					...staffRoles.map(id => ({
-						allow: allow,
-						id,
-					})),
-				],
+				permissionOverwrites: buildOverwrites({
+					access: { roleIds: staffRoles },
+					clientId: client.user.id,
+					guild,
+				}),
 				position: 1,
 				reason: `Tickets category created by ${user.tag}`,
 				type: GuildCategory,

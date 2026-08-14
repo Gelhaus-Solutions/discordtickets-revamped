@@ -27,6 +27,10 @@ const {
 	PRIORITY_EMOJI_DEFAULTS,
 	resolveCategory,
 } = require('../settings/inheritance');
+const {
+	PARTICIPANT_ALLOW,
+	buildOverwrites,
+} = require('./channels');
 const { resolveEmojiSettings } = require('./emoji-settings');
 const {
 	NAME_LIMIT,
@@ -45,9 +49,6 @@ const {
  * code takes the resolved map: `priorityEmoji(priority, settings.priorityEmojis)`.
  */
 const getEmoji = priority => priorityEmoji(priority, PRIORITY_EMOJI_DEFAULTS) || '🔵';
-
-/** The permissions a ticket participant gets. */
-const PARTICIPANT_ALLOW = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 
 /** Discord's ceiling for `rateLimitPerUser`, in seconds (6 hours). */
 const SLOWMODE_LIMIT = 21600;
@@ -526,24 +527,14 @@ async function moveTicket(client, {
 				number: ticket.number,
 			})),
 			parent: discordCategory,
-			permissionOverwrites: [
-				{
-					deny: ['ViewChannel'],
-					id: guild.roles.everyone,
+			permissionOverwrites: buildOverwrites({
+				access: {
+					roleIds: newCategory.staffRoles,
+					userIds: creator ? [creator.id] : [],
 				},
-				{
-					allow: PARTICIPANT_ALLOW,
-					id: client.user.id,
-				},
-				...(creator ? [{
-					allow: PARTICIPANT_ALLOW,
-					id: creator.id,
-				}] : []),
-				...newCategory.staffRoles.map(id => ({
-					allow: PARTICIPANT_ALLOW,
-					id,
-				})),
-			],
+				clientId: client.user.id,
+				guild,
+			}),
 			reason: `Moved by ${actorId ?? client.user.id}`,
 		});
 	}
@@ -793,9 +784,10 @@ async function removeTicketMember(client, {
 	};
 }
 
-// `managedPrefix` and `renderChannelName` are re-exported from ./naming so the
-// commands that already import them from here keep working; new code should
-// reach for the module that defines them.
+// `managedPrefix` and `renderChannelName` are re-exported from ./naming, and
+// `PARTICIPANT_ALLOW` from ./channels, so the commands that already import them
+// from here keep working; new code should reach for the module that defines
+// them.
 module.exports = {
 	PARTICIPANT_ALLOW,
 	SLOWMODE_LIMIT,
