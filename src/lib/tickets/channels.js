@@ -393,7 +393,12 @@ async function createChannel(client, {
 
 	if (mode === 'FORUM') {
 		// The starter message is the post itself, and its id is the thread's.
-		starter = await channel.messages.fetch(channel.id).catch(() => null);
+		// Logged rather than swallowed: a caller that needs the message back (the
+		// ticket opening message is one) has no other way to find out why.
+		starter = await channel.messages.fetch(channel.id).catch(error => {
+			client.log?.error?.(error);
+			return null;
+		});
 		if (Object.keys(access).length > 0) softReason ??= 'forum_access_ignored';
 	} else if (message) {
 		starter = await channel.send(message).catch(error => {

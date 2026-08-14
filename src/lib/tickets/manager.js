@@ -23,7 +23,6 @@ const {
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
-	ChannelType,
 	inlineCode,
 	ModalBuilder,
 	TextInputBuilder,
@@ -36,6 +35,10 @@ const {
 	rerenderOpeningMessage,
 } = require('./opening-message');
 const { resolveEmojiSettings } = require('./emoji-settings');
+const {
+	PARTICIPANT_ALLOW,
+	createChannel,
+} = require('./channels');
 const {
 	clampName,
 	managedPrefix,
@@ -90,6 +93,25 @@ const { crypto } = pools;
  * 	{feedback: import('@prisma/client').Feedback} &
  * 	{guild: import('@prisma/client').Guild}} TicketCategoryFeedbackGuild
  */
+
+/**
+ * What to tell a member whose ticket could not be created.
+ *
+ * Deliberately not internationalised, matching the two hardcoded English strings
+ * this replaced. Every one of these is a misconfiguration only an administrator
+ * can fix, so the useful half of the message is the instruction to go and get
+ * one, which the member understands in whichever language they were going to ask
+ * their question in anyway.
+ */
+const CREATION_ERRORS = {
+	channel_limit: 'This ticket category is full. Please contact an administrator.',
+	create_failed: 'The ticket could not be created. Please contact an administrator.',
+	invalid_name: 'This ticket category has an invalid channel name. Please contact an administrator.',
+	missing_permission: 'The bot is missing permissions to create the ticket. Please contact an administrator.',
+	no_parent: 'The ticket category is misconfigured. Please contact an administrator.',
+	rate_limited: 'Tickets are being created too quickly. Please try again in a moment.',
+	wrong_parent_type: 'The ticket category is misconfigured. Please contact an administrator.',
+};
 
 module.exports = class TicketManager {
 	constructor(client) {
@@ -596,99 +618,82 @@ module.exports = class TicketManager {
 				number,
 			}),
 		);
-		const allow = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 		const channelMode = category.channelMode || 'CHANNEL';
+		const createReason = `${creator.user.username} created a ticket`;
+		// Everyone who should be able to see the ticket. `createChannel` turns this
+		// into overwrites for a channel and into thread members for a thread, which
+		// is the difference the three branches here used to spell out by hand.
+		const access = {
+			allow: PARTICIPANT_ALLOW,
+			roleIds: category.staffRoles,
+			userIds: [creator.id],
+		};
+
+		/**
+		 * Tell the member their ticket could not be opened, and why.
+		 *
+		 * Creation used to sit outside the try that starts further down, so a
+		 * missing ManageChannels threw past this reply and into the framework's
+		 * dispatcher: the member was left looking at a deferred ephemeral that
+		 * never resolved. `createChannel` returns its failures instead, so every
+		 * one of them lands here.
+		 */
+		const creationFailed = reason => interaction.editReply({
+			embeds: [
+				new ExtendedEmbedBuilder({
+					iconURL: guild.iconURL(),
+					text: category.guild.footer,
+				})
+					.setColor(category.guild.errorColour)
+					.setTitle(getMessage('misc.error.title'))
+					.setDescription(CREATION_ERRORS[reason] ?? CREATION_ERRORS.create_failed),
+			],
+		});
 
 		/** @type {import("discord.js").TextChannel|import("discord.js").ThreadChannel} */
 		let channel;
-		/** @type {import("discord.js").ForumChannel|null} */
-		let forumChannel;
 
-		if (channelMode === 'THREAD') {
-			// Create a private/public thread inside an existing channel
-			const parentChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
-			if (!parentChannel) {
-				return await interaction.editReply({
-					embeds: [
-						new ExtendedEmbedBuilder({
-							iconURL: guild.iconURL(),
-							text: category.guild.footer,
-						})
-							.setColor(category.guild.errorColour)
-							.setTitle(getMessage('misc.error.title'))
-							.setDescription('Thread parent channel not found. Please contact an administrator.'),
-					],
-				});
-			}
-			channel = await parentChannel.threads.create({
-				autoArchiveDuration: 10080, // 7 days
-				invitable: false,
-				name: channelName,
-				reason: `${creator.user.username} created a ticket`,
-				type: ChannelType.PrivateThread,
-			});
-			// Add the creator, the bot, and every staff member to the private
-			// thread. A private thread is only visible to explicit members (or
-			// users with Manage Threads) — mentioning a role in the opening
-			// message does not grant its members access, so without this loop
-			// staff simply could not see THREAD-mode tickets at all.
-			//
-			// Failures are tolerated: the thread already exists at this point, and
-			// throwing here would abandon it with no database row.
-			const threadMemberIds = new Set([creator.id, this.client.user.id]);
-			for (const roleId of category.staffRoles) {
-				const role = guild.roles.cache.get(roleId);
-				if (!role) continue;
-				for (const staffMember of role.members.values()) threadMemberIds.add(staffMember.id);
-			}
-			for (const memberId of threadMemberIds) {
-				await channel.members.add(memberId).catch(error =>
-					this.client.log.warn('Could not add %s to ticket thread %s: %s', memberId, channel.id, error.message),
-				);
-			}
-		} else if (channelMode === 'FORUM') {
-			// Create a forum post (thread) in a forum channel
-			forumChannel = guild.channels.cache.get(category.threadChannelId || category.discordCategory);
-			if (!forumChannel) {
-				return await interaction.editReply({
-					embeds: [
-						new ExtendedEmbedBuilder({
-							iconURL: guild.iconURL(),
-							text: category.guild.footer,
-						})
-							.setColor(category.guild.errorColour)
-							.setTitle(getMessage('misc.error.title'))
-							.setDescription('Forum channel not found. Please contact an administrator.'),
-					],
-				});
+		if (channelMode === 'FORUM') {
+			// A forum post *is* its first message, so it cannot be made until the
+			// opening message has been rendered further down. Checking the forum
+			// exists here anyway keeps the early exit early: there is no reason to
+			// gather stats and render a message for a ticket that cannot be posted.
+			if (!guild.channels.cache.get(category.threadChannelId || category.discordCategory)) {
+				return await creationFailed('no_parent');
 			}
 		} else {
-			// Default: CHANNEL mode — create a new text channel in a Discord category
-			channel = await guild.channels.create({
-				name: channelName,
-				parent: category.discordCategory,
-				permissionOverwrites: [
-					{
-						deny: ['ViewChannel'],
-						id: guild.roles.everyone.id,
-					},
-					{
-						allow,
-						id: this.client.user.id,
-					},
-					{
-						allow,
-						id: creator.id,
-					},
-					...category.staffRoles.map(id => ({
-						allow,
-						id,
-					})),
-				],
-				rateLimitPerUser: category.ratelimit,
-				reason: `${creator.user.username} created a ticket`,
-				topic: `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}`,
+			const created = await createChannel(this.client, {
+				access,
+				guild,
+				// `memberCap` is left at Infinity, matching the loop this replaced.
+				// Capping it is worth doing, but it would change who can see a
+				// THREAD ticket in a guild with a very large staff role, and that
+				// belongs in a commit of its own rather than inside a refactor.
+				memberCap: Infinity,
+				mode: channelMode,
+				name: { text: channelName },
+				parentId: channelMode === 'THREAD'
+					? (category.threadChannelId || category.discordCategory)
+					: category.discordCategory,
+				// Only CHANNEL mode has ever applied the category's slow mode. The
+				// helper supports it everywhere, but widening it here would be a
+				// behaviour change smuggled into a refactor: THREAD-mode tickets
+				// silently ignoring `category.ratelimit` is its own bug to fix.
+				rateLimitPerUser: channelMode === 'CHANNEL' ? category.ratelimit : null,
+				reason: createReason,
+				thread: {
+					autoArchiveDuration: 10080, // 7 days
+					// Discord cannot nest a thread in a thread, and a category whose
+					// parent is one is misconfigured. Failing says so; quietly
+					// creating the ticket somewhere else would not.
+					climbToParent: false,
+					invitable: false,
+					private: true,
+				},
+				topic: channelMode === 'CHANNEL' ? `${creator}${topic?.length > 0 ? ` | ${topic}` : ''}` : null,
 			});
+			if (!created.ok) return await creationFailed(created.reason);
+			channel = created.channel;
 		}
 
 		// Scans the whole layout, not just `openingMessage` — once the text lives
@@ -755,16 +760,17 @@ module.exports = class TicketManager {
 		// For other modes, we send a new message
 		let sent;
 		if (channelMode === 'FORUM') {
-			channel = await forumChannel.threads.create({
-				autoArchiveDuration: 10080, // 7 days
+			const created = await createChannel(this.client, {
+				guild,
 				message: openingMessageData,
-				name: channelName,
-				reason: `${creator.user.username} created a ticket`,
+				mode: 'FORUM',
+				name: { text: channelName },
+				parentId: category.threadChannelId || category.discordCategory,
+				reason: createReason,
 			});
-			sent = await channel.messages.fetch(channel.id).catch(err => {
-				this.client.log.error(err);
-				return null;
-			});
+			if (!created.ok) return await creationFailed(created.reason);
+			channel = created.channel;
+			sent = created.message;
 			if (!sent) throw new Error(`Failed to fetch opening message for forum ticket ${channel.id}. The message may not exist or the bot may be missing permissions.`);
 		} else {
 			// CHANNEL and THREAD modes: send a new message with embeds and components
