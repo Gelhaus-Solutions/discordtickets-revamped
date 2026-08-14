@@ -1802,6 +1802,112 @@ function stubRunners(overrides = {}) {
 		assert.strictEqual(codeOf(g), 'missing_context');
 	});
 
+	/* ────────────────────────── creating a channel ────────────────────────── */
+
+	// `access` is required-with-a-default, the same shape as `subject` and
+	// `setSlowmode.ms`: the dashboard seeds it from the schema, so a graph
+	// arriving without it was not authored by the editor.
+	const createNode = (params = {}, id = 'c') => node('action.channel.create', {
+		access: 'write',
+		format: 'text',
+		name: 'war-room-{num}',
+		roleIds: ['820000000000000001'],
+		...params,
+	}, id);
+
+	/** cron -> create -> whatever comes next. */
+	const underCron = (rest, edges = []) => graph(
+		[
+			node('trigger.schedule.cron', {
+				cron: '0 9 * * *',
+				timezone: 'UTC',
+			}, 'a'),
+			...rest,
+		],
+		[edge('a', rest[0].id), ...edges],
+	);
+
+	await t('creating a channel needs only a server', () => {
+		// The default `includeStaff` is what would otherwise drag a ticket
+		// dependency in, so the fixture has to turn it off to mean "only a
+		// server". That is the behaviour, not an inconvenience.
+		assert.strictEqual(codeOf(underCron([createNode({ includeStaff: false })])), null);
+	});
+
+	await t('a private channel nobody can see is refused at save time', () => {
+		assert.strictEqual(codeOf(underCron([createNode({
+			includeStaff: false,
+			roleIds: [],
+		})])), 'required');
+
+		// Not private, so there is nobody to require: everyone can see it.
+		assert.strictEqual(codeOf(underCron([createNode({
+			includeStaff: false,
+			private: false,
+			roleIds: [],
+		})])), null);
+	});
+
+	await t('who a create node lets in decides what it needs', () => {
+		assert.deepStrictEqual(needsOf(createNode({ includeStaff: false })), ['guild']);
+		assert.ok(needsOf(createNode({ includeStaff: true })).includes('ticket'));
+		assert.ok(needsOf(createNode({ includeOpener: true })).includes('ticket'));
+		assert.ok(needsOf(createNode({ includeActor: true })).includes('member'));
+	});
+
+	await t('adding the staff roles is rejected under a trigger with no ticket', () => {
+		assert.strictEqual(codeOf(underCron([createNode({ includeStaff: true })])), 'missing_context');
+	});
+
+	await t('a created channel satisfies a later "send to the channel this happened in"', () => {
+		// The end-to-end version of the capability walk: a real node, a real
+		// downstream need, no synthetic type involved.
+		const send = node('action.message.send', {
+			...rich('hi'),
+			target: 'triggerChannel',
+		}, 'd');
+		assert.strictEqual(
+			codeOf(underCron([createNode({ includeStaff: false }), send], [edge('c', 'd')])),
+			null,
+		);
+
+		// And without the create in front of it, the same send is refused.
+		assert.strictEqual(codeOf(graph(
+			[
+				node('trigger.schedule.cron', {
+					cron: '0 9 * * *',
+					timezone: 'UTC',
+				}, 'a'),
+				send,
+			],
+			[edge('a', 'd')],
+		)), 'missing_context');
+	});
+
+	await t('a create node with no starter message needs no message', () => {
+		// The message is optional here, unlike a message node's: "make a war room"
+		// is a complete thing to want. But a half-authored one still validates.
+		assert.strictEqual(codeOf(underCron([createNode({
+			content: '',
+			includeStaff: false,
+		})])), null);
+		assert.strictEqual(codeOf(underCron([createNode({
+			...rich('welcome'),
+			includeStaff: false,
+		})])), null);
+	});
+
+	await t('every node type has a runner', () => {
+		// The interpreter dispatches with `runners[node.type]?.(...)`, so a type in
+		// the registry with no runner does not throw: it returns `{}` and traces as
+		// a success. A node that silently does nothing is the worst outcome
+		// available, and nothing else in this suite would notice.
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const missing = Object.keys(NODE_TYPES).filter(type => typeof runners[type] !== 'function');
+		assert.deepStrictEqual(missing, [], `no runner for: ${missing.join(', ')}`);
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {

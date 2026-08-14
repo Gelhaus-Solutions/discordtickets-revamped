@@ -684,6 +684,96 @@ const subjectField = (label = 'Who') => ({
 	type: 'select',
 });
 
+/**
+ * What a role or member may do in a channel a node creates.
+ *
+ * Three presets rather than a permission matrix. Discord has around forty flags,
+ * the editor has no widget for them and `FIELD_TYPES` has nothing to validate
+ * them with — and a matrix would let an admin hand a role `ManageChannels` or
+ * `MentionEveryone` through the bot. The flags each preset maps to live with the
+ * runner, in `actions.js`, because nothing here needs to know them.
+ */
+const ACCESS_LEVELS = [
+	{
+		label: 'Read only',
+		value: 'read',
+	},
+	{
+		label: 'Read and write',
+		value: 'write',
+	},
+	{
+		label: 'Read, write and manage messages',
+		value: 'manage',
+	},
+];
+
+/** Who gets into a channel a node creates. Shared by the three create nodes. */
+const accessParams = [
+	{
+		help: 'Anyone with one of these roles can see the channel.',
+		key: 'roleIds',
+		label: 'Roles',
+		maxItems: 20,
+		type: 'roles',
+	},
+	{
+		default: true,
+		key: 'includeStaff',
+		label: 'Add the ticket\'s staff roles',
+		type: 'boolean',
+	},
+	{
+		default: false,
+		key: 'includeOpener',
+		label: 'Add whoever opened the ticket',
+		type: 'boolean',
+	},
+	{
+		default: false,
+		key: 'includeActor',
+		label: 'Add whoever set this off',
+		type: 'boolean',
+	},
+	{
+		default: 'write',
+		key: 'access',
+		label: 'What they can do',
+		options: ACCESS_LEVELS,
+		required: true,
+		type: 'select',
+	},
+];
+
+/**
+ * The message a create node optionally posts in what it just made.
+ *
+ * Optional, unlike a message node's: "make a war room" is a complete thing to
+ * want. `content` and `layout` therefore only validate when one of them is
+ * actually in use, which each node's own `validate` decides.
+ */
+const starterParams = help => [
+	formatField,
+	contentField(help),
+	legacyButtonsField('Buttons on the first message.'),
+	layoutField('message', help),
+];
+
+/** Is a create node posting a first message at all? */
+const hasStarter = params => usesLayout(params) || Boolean(params?.content);
+
+/** The name a create node gives what it makes. */
+const channelNameField = {
+	// Discord's channel-name limit. The runner clamps to it as well, because a
+	// rendered placeholder can push a legal template over.
+	key: 'name',
+	label: 'Name',
+	maxLength: 100,
+	placeholders: 'automation',
+	required: true,
+	type: 'text',
+};
+
 const categoryFilter = {
 	help: 'Leave empty to match every category.',
 	key: 'categoryIds',
@@ -738,6 +828,66 @@ const NODE_TYPES = {
 			required: true,
 			type: 'automationKey',
 		}],
+	},
+	'action.channel.create': {
+		category: 'action',
+		description: 'Create a text channel, and use it for the rest of this automation. A test run does not make one, so the steps after it will still see the channel this started in.',
+		label: 'Create a channel',
+		needs: ['guild'],
+		outputs: ['out'],
+		params: [
+			{
+				// Type 4 is a Discord category. Declared here rather than guessed in
+				// the dashboard: `ChannelField` reads `channelTypes` straight off the
+				// catalogue, so this is the only place that decides.
+				channelTypes: [4],
+				help: 'Leave empty to create it at the top of the channel list.',
+				key: 'parentId',
+				label: 'Discord category',
+				type: 'channel',
+			},
+			channelNameField,
+			{
+				key: 'topic',
+				label: 'Topic',
+				maxLength: 1024,
+				placeholders: 'automation',
+				type: 'text',
+			},
+			{
+				default: true,
+				help: 'A private channel is hidden from everyone except the roles and people below.',
+				key: 'private',
+				label: 'Private',
+				type: 'boolean',
+			},
+			...accessParams,
+			{
+				default: 0,
+				key: 'slowmode',
+				label: 'Slow mode',
+				max: 21_600_000, // Discord's ceiling, 6 hours
+				min: 0,
+				type: 'duration',
+			},
+			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the channel without a first message.`),
+		],
+		provides: ['channel'],
+		validate: (params, push, path, options) => {
+			if (hasStarter(params)) validateMessage('message', { buttons: true })(params, push, path, options);
+			// A private channel with nobody in it is a channel only the bot can
+			// read. Same failure the category route guards with `no_staff_roles`:
+			// it saves cleanly and is only discovered by someone going looking.
+			if (
+				params?.private !== false &&
+				!params?.roleIds?.length &&
+				!params?.includeStaff &&
+				!params?.includeOpener &&
+				!params?.includeActor
+			) {
+				push(`${path}.roleIds`, 'required', 'Nobody would be able to see this channel: pick at least one role or person');
+			}
+		},
 	},
 	'action.log': {
 		category: 'action',
@@ -1578,6 +1728,14 @@ function needsOf(node) {
 		if (node.params?.target === 'ticket') needs.add('ticketChannel');
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
+
+	// Same reasoning for the create nodes: who they let in decides what they
+	// depend on. Ticking "add the staff roles" is what turns a node that needs a
+	// server into one that needs a ticket.
+	if (node.type?.startsWith('action.channel.create')) {
+		if (node.params?.includeStaff || node.params?.includeOpener) needs.add('ticket');
+		if (node.params?.includeActor) needs.add('member');
+	}
 	return [...needs];
 }
 
@@ -1619,6 +1777,7 @@ module.exports = {
 	NODE_TYPES,
 	SUBJECTS,
 	catalogue,
+	hasStarter,
 	isValidCron,
 	isValidTimezone,
 	regexError,

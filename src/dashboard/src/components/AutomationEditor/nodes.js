@@ -79,6 +79,7 @@ export const CATEGORY_ORDER = ['trigger', 'condition', 'flow', 'action'];
 /** Font Awesome icon per node type. The one thing the server catalogue does not carry. */
 export const NODE_ICONS = {
 	'action.automation.run': 'fa-diagram-project',
+	'action.channel.create': 'fa-hashtag',
 	'action.log': 'fa-file-lines',
 	'action.message.dm': 'fa-envelope',
 	'action.message.ephemeral': 'fa-eye-slash',
@@ -160,6 +161,9 @@ export function summarise(node, catalogue) {
 		if (params.mode === 'clear') return 'clear the emoji';
 		return `${params.emoji ?? ''}${params.mode === 'all' ? ' (whole prefix)' : ''}`;
 	}
+	// Ahead of the message cases below: a create node may also carry a starter
+	// message, but what tells two of them apart on the canvas is what they make.
+	if (node.type.startsWith('action.channel.create')) return String(params.name ?? '').slice(0, 60);
 	// A rich message keeps its text in blocks. Showing the first one is what makes
 	// two "Send a message" cards on the canvas tell each other apart. A node in
 	// the plain-text format still carries an unused default layout, so this has
