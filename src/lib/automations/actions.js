@@ -53,6 +53,7 @@ const {
 const {
 	addTicketMember,
 	moveTicket,
+	recordTicketChannel,
 	removeTicketMember,
 	renameTicket,
 	setPriority,
@@ -241,6 +242,20 @@ async function resolveAccess(node, ctx) {
 	};
 }
 
+/**
+ * Bind a channel a node just made to the rest of the run, and to the ticket.
+ *
+ * The recording is best-effort: the channel exists either way, and a run that
+ * fails here because the ticket row moved underneath it would be worse than one
+ * that leaves a channel behind. It is skipped entirely when the run has no
+ * ticket, which is a no-op rather than a misconfiguration.
+ */
+async function bindCreatedChannel(client, node, ctx, channel) {
+	ctx.setChannel(channel);
+	if (!ctx.ticketId || node.params?.cleanUpOnClose === false) return;
+	await recordTicketChannel(client, ctx.ticketId, channel.id).catch(() => null);
+}
+
 /** The first message a create node posts, or null when it was left empty. */
 async function starterMessage(client, node, ctx) {
 	if (!hasStarter(node.params)) return null;
@@ -395,7 +410,7 @@ function makeRunners(client, runNested) {
 			});
 			if (!result.ok) throw new Error(`could not create the channel: ${result.reason}`);
 
-			ctx.setChannel(result.channel);
+			await bindCreatedChannel(client, node, ctx, result.channel);
 			return { reason: result.reason };
 		}),
 
@@ -430,7 +445,7 @@ function makeRunners(client, runNested) {
 			});
 			if (!result.ok) throw new Error(`could not create the thread: ${result.reason}`);
 
-			ctx.setChannel(result.channel);
+			await bindCreatedChannel(client, node, ctx, result.channel);
 			return { reason: result.reason };
 		}),
 
@@ -451,7 +466,7 @@ function makeRunners(client, runNested) {
 			});
 			if (!result.ok) throw new Error(`could not create the forum post: ${result.reason}`);
 
-			ctx.setChannel(result.channel);
+			await bindCreatedChannel(client, node, ctx, result.channel);
 			return { reason: result.reason };
 		}),
 

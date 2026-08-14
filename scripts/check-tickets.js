@@ -907,6 +907,75 @@ const ticket = (over = {}) => ({
 				gateway.deferChannelRename = original;
 			}
 		});
+
+		/* ─────────────────── remembering a created channel ─────────────────── */
+
+		const { recordTicketChannel } = require(path.join(root, 'src', 'lib', 'tickets', 'mutations'));
+
+		/** A client whose ticket row is a plain object, and which counts refreshes. */
+		const recordingClient = (createdChannelIds, refreshed = []) => {
+			let row = createdChannelIds;
+			return {
+				prisma: {
+					ticket: {
+						findUnique: async () => (row === undefined ? null : { createdChannelIds: row }),
+						update: async ({ data }) => {
+							row = data.createdChannelIds;
+							return { createdChannelIds: row };
+						},
+					},
+				},
+				read: () => row,
+				tickets: { getTicket: async (id, force) => refreshed.push([id, force]) },
+			};
+		};
+
+		await t('a created channel is remembered against the ticket', async () => {
+			const refreshed = [];
+			const client = recordingClient([], refreshed);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), { ok: true });
+			assert.deepStrictEqual(client.read(), ['999']);
+			// The ticket cache is keyed for three minutes and nothing else clears
+			// it, so a later step in the same run would read the pre-write row.
+			assert.deepStrictEqual(refreshed, [['t1', true]]);
+		});
+
+		await t('a NULL column reads as an empty list', async () => {
+			// The column has no default, because MySQL cannot give a JSON column
+			// one. Every read has to cope with that rather than assume an array.
+			const client = recordingClient(null);
+			await recordTicketChannel(client, 't1', '999');
+			assert.deepStrictEqual(client.read(), ['999']);
+		});
+
+		await t('recording the same channel twice writes nothing', async () => {
+			const refreshed = [];
+			const client = recordingClient(['999'], refreshed);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), {
+				ok: true,
+				reason: 'noop',
+			});
+			assert.deepStrictEqual(refreshed, [], 'a no-op must not bust the cache');
+		});
+
+		await t('the list is capped, oldest first', async () => {
+			// Cleanup state, not a log: a runaway automation must not grow the row
+			// without bound, and the oldest ids are the likeliest to be dead.
+			const client = recordingClient(Array.from({ length: 25 }, (_, i) => `c${i}`));
+			await recordTicketChannel(client, 't1', 'new');
+			const stored = client.read();
+			assert.strictEqual(stored.length, 25);
+			assert.strictEqual(stored[24], 'new');
+			assert.strictEqual(stored[0], 'c1', 'the oldest entry should have been dropped');
+		});
+
+		await t('a ticket that has gone is reported, not thrown', async () => {
+			const client = recordingClient(undefined);
+			assert.deepStrictEqual(await recordTicketChannel(client, 't1', '999'), {
+				ok: false,
+				reason: 'unknown_ticket',
+			});
+		});
 	}
 
 	console.log(`\n${pass} passed\n`);

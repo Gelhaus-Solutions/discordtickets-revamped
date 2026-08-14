@@ -784,6 +784,54 @@ async function removeTicketMember(client, {
 	};
 }
 
+/** How many created channels one ticket will remember. */
+const CREATED_CHANNEL_LIMIT = 25;
+
+/**
+ * Remember a channel an automation made, so closing the ticket takes it down.
+ *
+ * Read-modify-write, not a transaction. Two automations creating channels for
+ * the same ticket in the same instant can lose one id; the cost of that is a
+ * channel that outlives the close and has to be deleted by hand, which is not
+ * worth a lock on the ticket row for. The cap is there because the column is
+ * cleanup state, not a log: a runaway automation should not grow the row without
+ * bound, and the oldest entries are the ones most likely to be gone already.
+ *
+ * @returns {Promise<{ok: boolean, reason?: string}>}
+ */
+async function recordTicketChannel(client, ticketId, channelId) {
+	const ticket = await client.prisma.ticket.findUnique({
+		select: { createdChannelIds: true },
+		where: { id: ticketId },
+	});
+	if (!ticket) {
+		return {
+			ok: false,
+			reason: 'unknown_ticket',
+		};
+	}
+
+	// NULL reads as an empty list, which is why the column has no default: MySQL
+	// cannot give a JSON column one.
+	const existing = Array.isArray(ticket.createdChannelIds) ? ticket.createdChannelIds : [];
+	if (existing.includes(channelId)) {
+		return {
+			ok: true,
+			reason: 'noop',
+		};
+	}
+
+	await client.prisma.ticket.update({
+		data: { createdChannelIds: [...existing, channelId].slice(-CREATED_CHANNEL_LIMIT) },
+		where: { id: ticketId },
+	});
+	// The ticket cache is keyed for three minutes and nothing else invalidates
+	// it, so a later step in the same run would otherwise read the pre-write row.
+	await client.tickets.getTicket(ticketId, true);
+
+	return { ok: true };
+}
+
 // `managedPrefix` and `renderChannelName` are re-exported from ./naming, and
 // `PARTICIPANT_ALLOW` from ./channels, so the commands that already import them
 // from here keep working; new code should reach for the module that defines
@@ -796,6 +844,7 @@ module.exports = {
 	getEmoji,
 	managedPrefix,
 	moveTicket,
+	recordTicketChannel,
 	removeTicketMember,
 	renameTicket,
 	renderChannelName,

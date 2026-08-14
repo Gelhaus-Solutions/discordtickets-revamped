@@ -763,6 +763,22 @@ const starterParams = help => [
 const hasStarter = params => usesLayout(params) || Boolean(params?.content);
 
 /**
+ * Whether the ticket should take this channel down with it.
+ *
+ * Not a `needs`: a run with no ticket simply has nowhere to record it, which is
+ * a no-op rather than a misconfiguration. Making it one would refuse a perfectly
+ * sensible "a member joined, make them a channel" automation for a tickbox they
+ * left at its default.
+ */
+const cleanUpField = noun => ({
+	default: true,
+	help: `Only applies when this automation is working on a ticket. The ${noun} is deleted when it closes, or archived if it is a thread.`,
+	key: 'cleanUpOnClose',
+	label: 'Remove it when the ticket closes',
+	type: 'boolean',
+});
+
+/**
  * Refuse a private channel or thread nobody was let into.
  *
  * The same failure the category route guards with `no_staff_roles`: it saves
@@ -904,6 +920,7 @@ const NODE_TYPES = {
 				type: 'duration',
 			},
 			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the channel without a first message.`),
+			cleanUpField('channel'),
 		],
 		provides: ['channel'],
 		validate: (params, push, path, options) => {
@@ -940,6 +957,7 @@ const NODE_TYPES = {
 			// No access params: a forum post inherits the forum's permissions, and
 			// there is nothing per-post to grant.
 			...starterParams(PLACEHOLDER_HELP),
+			cleanUpField('post'),
 		],
 		provides: ['channel'],
 		// Unlike the other two, the message is not optional: a forum post *is* its
@@ -1015,6 +1033,7 @@ const NODE_TYPES = {
 				type: 'duration',
 			},
 			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the thread without a first message.`),
+			cleanUpField('thread'),
 		],
 		provides: ['channel'],
 		validate: (params, push, path, options) => {
