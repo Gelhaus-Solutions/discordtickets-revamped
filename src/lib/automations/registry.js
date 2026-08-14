@@ -1038,6 +1038,25 @@ const NODE_TYPES = {
 			type: 'select',
 		}],
 	},
+	'action.ticket.setSlowmode': {
+		category: 'action',
+		description: 'Set how often members can post in the ticket. 0 turns slow mode off.',
+		label: 'Set the slow mode',
+		// A rate-limited channel edit, like the rename. A run that cannot slow a
+		// channel down should carry on rather than lose the rest of its branch.
+		needs: ['ticketChannel'],
+		onError: 'continue',
+		outputs: ['out'],
+		params: [{
+			default: 0,
+			key: 'ms',
+			label: 'Slow mode',
+			max: 21_600_000, // Discord's ceiling, 6 hours
+			min: 0,
+			required: true,
+			type: 'duration',
+		}],
+	},
 	'action.ticket.setTopic': {
 		category: 'action',
 		description: 'Replace the ticket\'s topic.',

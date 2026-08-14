@@ -49,6 +49,9 @@ const getEmoji = priority => priorityEmoji(priority, PRIORITY_EMOJI_DEFAULTS) ||
 /** The permissions a ticket participant gets. */
 const PARTICIPANT_ALLOW = ['ViewChannel', 'ReadMessageHistory', 'SendMessages', 'EmbedLinks', 'AttachFiles'];
 
+/** Discord's ceiling for `rateLimitPerUser`, in seconds (6 hours). */
+const SLOWMODE_LIMIT = 21600;
+
 /**
  * The resolved emoji settings for a ticket.
  *
@@ -333,6 +336,88 @@ async function setPriority(client, {
 		from: ticket.priority,
 		ok: true,
 		to: priority,
+	};
+}
+
+/**
+ * Set one ticket's slow mode.
+ *
+ * Discord owns this value: it is read back off the channel rather than stored.
+ * `Category.ratelimit` seeds `rateLimitPerUser` when the channel is created
+ * (`manager.js#create`) and nothing here ever writes it again, not even
+ * `moveTicket`, which reparents without touching it. A column would only mirror
+ * a number an admin can also change in Discord's own channel settings, and
+ * drift from it.
+ *
+ * @returns {Promise<{ok: boolean, reason?: string, from?: number, to?: number}>}
+ */
+async function setSlowmode(client, {
+	actorId, seconds, ticketId,
+}) {
+	const ticket = await client.prisma.ticket.findUnique({ where: { id: ticketId } });
+	if (!ticket) {
+		return {
+			ok: false,
+			reason: 'unknown_ticket',
+		};
+	}
+
+	if (!Number.isInteger(seconds) || seconds < 0 || seconds > SLOWMODE_LIMIT) {
+		return {
+			ok: false,
+			reason: 'invalid_duration',
+		};
+	}
+
+	const channel = await client.channels.fetch(ticketId).catch(() => null);
+	if (!channel) {
+		return {
+			ok: false,
+			reason: 'unknown_channel',
+		};
+	}
+
+	// Undefined on a channel type that has no slow mode, 0 when it is off. Both
+	// mean "off", so they collapse before the no-op check below compares them.
+	const original = channel.rateLimitPerUser ?? 0;
+	if (original === seconds) {
+		return {
+			from: original,
+			ok: true,
+			reason: 'noop',
+			to: seconds,
+		};
+	}
+
+	try {
+		await channel.setRateLimitPerUser(seconds, `Slow mode set by ${actorId ?? client.user.id}`);
+	} catch {
+		// Manage Channels can be missing on a single ticket long after it opened.
+		// That is a "could not", not a fault, so an automation skips the node
+		// rather than failing the branch.
+		return {
+			ok: false,
+			reason: 'missing_permissions',
+		};
+	}
+
+	logTicketEvent(client, {
+		action: 'update',
+		diff: {
+			original: { slowmode: original },
+			updated: { slowmode: seconds },
+		},
+		target: {
+			id: ticket.id,
+			name: `<#${ticket.id}>`,
+		},
+		userId: actorId ?? client.user.id,
+	});
+
+	return {
+		from: original,
+		ok: true,
+		to: seconds,
 	};
 }
 
@@ -713,6 +798,7 @@ async function removeTicketMember(client, {
 // reach for the module that defines them.
 module.exports = {
 	PARTICIPANT_ALLOW,
+	SLOWMODE_LIMIT,
 	addTicketMember,
 	emojiSettingsFor,
 	getEmoji,
@@ -722,6 +808,7 @@ module.exports = {
 	renameTicket,
 	renderChannelName,
 	setPriority,
+	setSlowmode,
 	setTicketEmoji,
 	syncChannelName,
 	takeRenameBudget,
