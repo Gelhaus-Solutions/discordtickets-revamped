@@ -33,7 +33,8 @@
  * @property {string[]} outputs     handle names, in canvas order
  * @property {ParamField[]} params
  * @property {boolean} [durable]    true ⇒ the run must be handed to Temporal here
- * @property {string[]} [provides]  triggers only: capabilities the run context will hold
+ * @property {string[]} [provides]  capabilities the run context holds *after* this
+ *   node: a trigger's are what the run starts with, an action's are what it makes
  * @property {string[]} [needs]     capabilities this node cannot run without
  * @property {'stop'|'continue'} [onError]  default 'stop' — stops this branch only
  * @property {(params, push, path) => void} [validate]  cross-field rules only;
@@ -44,6 +45,14 @@
  * `provides`/`needs` are what turn "reply to the message under a cron trigger"
  * from a mystery at 3am into a 400 at save time. A trigger declares what the run
  * context will contain; every reachable node's `needs` must be a subset of that.
+ *
+ * An action may provide too, which is how "create a channel, then post in it"
+ * works. It only counts downstream if it is provided on *every* path to the node
+ * that needs it: the interpreter joins on first arrival, so a channel created on
+ * one arm of a `flow.if` may not exist at the bottom of it. There is one channel
+ * per run rather than one per branch, so a sibling branch will see whatever was
+ * created last — the validator is stricter than the runtime here, and never
+ * approves a graph that will fail.
  */
 
 const { LIMITS } = require('./errors');

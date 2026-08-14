@@ -105,6 +105,35 @@ export function createsCycle(edges, connection) {
 	return false;
 }
 
+/**
+ * A topological order of the graph, for the capability walk.
+ *
+ * Kahn's, and deliberately cycle-tolerant: the canvas has no cycle check and can
+ * hold one mid-drag, so nodes inside a cycle are simply left out of the order
+ * rather than throwing. Callers must treat "absent from the order" as "do not
+ * check", or one stray edge paints the whole canvas red.
+ */
+export function topoOrder(graph) {
+	const indegree = new Map(graph.nodes.map((n) => [n.id, 0]));
+	const next = new Map(graph.nodes.map((n) => [n.id, []]));
+	for (const edge of graph.edges) {
+		if (!indegree.has(edge.from) || !indegree.has(edge.to)) continue;
+		indegree.set(edge.to, indegree.get(edge.to) + 1);
+		next.get(edge.from).push(edge.to);
+	}
+	const queue = graph.nodes.filter((n) => indegree.get(n.id) === 0).map((n) => n.id);
+	const order = [];
+	while (queue.length) {
+		const id = queue.shift();
+		order.push(id);
+		for (const to of next.get(id)) {
+			indegree.set(to, indegree.get(to) - 1);
+			if (indegree.get(to) === 0) queue.push(to);
+		}
+	}
+	return order;
+}
+
 /** Node ids reachable from the trigger, for the unreachable-node warning. */
 export function reachable(graph, roots = null) {
 	const starts =

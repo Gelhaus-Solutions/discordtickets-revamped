@@ -11,7 +11,7 @@
  * server's parameter schema.
  */
 
-import { reachable } from './graph.js';
+import { reachable, topoOrder } from './graph.js';
 import { describeLayout } from '$components/BlockEditor/blocks.js';
 
 const CAPABILITY_LABELS = {
@@ -34,6 +34,50 @@ const SUBJECT_NEEDS = {
 };
 
 const definitionOf = (catalogue, type) => catalogue?.types?.find((t) => t.type === type);
+
+/**
+ * What the context holds before each node under one trigger.
+ *
+ * The mirror of `capabilitiesFrom` in `src/lib/automations/validate.js`, and it
+ * has to stay one: if the two disagree, the editor either blocks a save the
+ * server would take or offers one it will reject with a 400.
+ *
+ * `IN(n)` is the intersection over predecessors of `OUT(p)`; `OUT(n)` is `IN(n)`
+ * plus what `n` provides. Intersection because the runtime joins on first
+ * arrival, so a channel made on one arm of a branch may not exist below it.
+ *
+ * @returns {Map<string, Set<string>>} node id -> capabilities available to it
+ */
+function capabilitiesFrom(graph, cone, order, byId, catalogue) {
+	const incoming = new Map();
+	for (const edge of graph.edges) {
+		if (!cone.has(edge.from) || !cone.has(edge.to)) continue;
+		if (!incoming.has(edge.to)) incoming.set(edge.to, []);
+		incoming.get(edge.to).push(edge.from);
+	}
+
+	const into = new Map();
+	const outOf = new Map();
+	for (const id of order) {
+		if (!cone.has(id)) continue;
+		const preds = incoming.get(id) ?? [];
+		let available;
+		if (preds.length === 0) {
+			available = new Set();
+		} else {
+			available = new Set(outOf.get(preds[0]) ?? []);
+			for (const pred of preds.slice(1)) {
+				const other = outOf.get(pred) ?? new Set();
+				for (const capability of [...available])
+					if (!other.has(capability)) available.delete(capability);
+			}
+		}
+		into.set(id, available);
+		const provides = definitionOf(catalogue, byId.get(id)?.type)?.provides ?? [];
+		outOf.set(id, new Set([...available, ...provides]));
+	}
+	return into;
+}
 
 /**
  * Does a field apply, given the rest of the node's params?
@@ -96,11 +140,16 @@ export function validate(graph, catalogue) {
 		add(null, `Too many connections (max ${limits.edges}).`);
 
 	const reached = reachable(graph);
-	// A node's context is only what *every* trigger that can reach it provides.
-	const feedersOf = (nodeId) =>
-		triggers.filter((t) =>
-			reachable({ edges: graph.edges, nodes: graph.nodes }, [t.id]).has(nodeId)
-		);
+	// A node's context is only what *every* trigger that can reach it provides,
+	// plus whatever every path from that trigger guarantees along the way. The
+	// mirror of `capabilitiesFrom` in src/lib/automations/validate.js: if one of
+	// these two walks changes, both must.
+	const order = topoOrder(graph);
+	const byId = new Map(graph.nodes.map((n) => [n.id, n]));
+	const feeders = triggers.map((trigger) => {
+		const cone = reachable(graph, [trigger.id]);
+		return { available: capabilitiesFrom(graph, cone, order, byId, catalogue), cone, trigger };
+	});
 
 	for (const node of graph.nodes) {
 		const definition = definitionOf(catalogue, node.type);
@@ -150,19 +199,22 @@ export function validate(graph, catalogue) {
 
 		if (triggers.some((t) => t.id === node.id)) continue;
 
-		const feeders = feedersOf(node.id);
-		if (feeders.length === 0) continue;
+		// A node inside a cycle has no place in the order and therefore no
+		// capability set. Skipping it means a mid-drag loop reads as one problem
+		// rather than as every node on it being broken.
+		if (!order.includes(node.id)) continue;
+
+		const reaching = feeders.filter((f) => f.cone.has(node.id));
+		if (reaching.length === 0) continue;
 		for (const capability of needsOf(node, catalogue)) {
-			const missing = feeders.filter(
-				(t) => !(definitionOf(catalogue, t.type)?.provides ?? []).includes(capability)
-			);
+			const missing = reaching.filter((f) => !f.available.get(node.id)?.has(capability));
 			if (missing.length === 0) continue;
 			const names = missing
-				.map((t) => `"${definitionOf(catalogue, t.type)?.label}"`)
+				.map((f) => `"${definitionOf(catalogue, f.trigger.type)?.label}"`)
 				.join(', ');
 			add(
 				node.id,
-				`"${definition.label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which ${names} ${missing.length > 1 ? 'do' : 'does'} not provide.`
+				`"${definition.label}" needs ${CAPABILITY_LABELS[capability] ?? capability}, which nothing before it under ${names} provides.`
 			);
 			break;
 		}

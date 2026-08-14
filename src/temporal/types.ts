@@ -126,12 +126,17 @@ export interface JobResult {
 export interface AutomationRunState {
 	runId: string;
 	automationId: number;
+	/** The automation's short key, so a button it posts can point back at it. */
+	automationKey: string | null;
 	guildId: string;
 	triggerType: string;
 	actorId: string | null;
 	ticketId: string | null;
+	/** The run's *current* channel: an action that provides one rewrites this. */
 	channelId: string | null;
 	messageId: string | null;
+	/** Where `messageId` lives, which `channelId` no longer implies. */
+	messageChannelId: string | null;
 	selection: string[] | null;
 	vars: Record<string, unknown>;
 	depth: number;
