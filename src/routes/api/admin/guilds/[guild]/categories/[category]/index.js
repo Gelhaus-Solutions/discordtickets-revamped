@@ -416,6 +416,7 @@ module.exports.patch = fastify => ({
 				'force-close',
 				'move',
 				'priority',
+				'private-channel',
 				'release',
 			].map(name =>
 				client.application.commands.permissions.set({
