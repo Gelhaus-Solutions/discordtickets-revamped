@@ -21,6 +21,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const N = require(path.join(root, 'src', 'lib', 'tickets', 'naming'));
 const { resolveEmojiSettings } = require(path.join(root, 'src', 'lib', 'tickets', 'emoji-settings'));
+const CD = require(path.join(root, 'src', 'lib', 'tickets', 'cooldown'));
 
 let pass = 0;
 const t = async (name, fn) => {
@@ -977,6 +978,60 @@ const ticket = (over = {}) => ({
 			});
 		});
 	}
+
+	/* ────────────────────────────── the cooldown ────────────────────────────── */
+
+	console.log('\nCategory cooldowns\n');
+
+	// The bug these exist for: an admin shortened a category's cooldown to test
+	// something and went on being told to wait three days, because the expiry
+	// had been computed at creation and cached. Deriving it at read time is the
+	// fix, and every case below is a way of asking "against which cooldown?".
+
+	const HOUR = 3_600_000;
+	const now = 1_770_000_000_000;
+
+	await t('a cooldown is measured against the category as it is now, not as it was', () => {
+		const created = now - 2 * HOUR;
+		// Opened under a three-day cooldown, which has since been cut to one hour.
+		assert.strictEqual(CD.cooldownExpiry(created, HOUR, now), null);
+	});
+
+	await t('lengthening a cooldown extends an existing wait', () => {
+		const created = now - 2 * HOUR;
+		assert.strictEqual(CD.cooldownExpiry(created, 5 * HOUR, now), created + 5 * HOUR);
+	});
+
+	await t('the expiry is when the wait ends, so the member is told how long is left', () => {
+		const created = now - HOUR;
+		assert.strictEqual(CD.cooldownExpiry(created, 3 * HOUR, now) - now, 2 * HOUR);
+	});
+
+	await t('a category with no cooldown never holds anybody up', () => {
+		assert.strictEqual(CD.cooldownExpiry(now, 0, now), null);
+		assert.strictEqual(CD.cooldownExpiry(now, null, now), null);
+	});
+
+	await t('a member who has never opened one here is not on cooldown', () => {
+		assert.strictEqual(CD.cooldownExpiry(null, HOUR, now), null);
+	});
+
+	await t('a Date reads the same as epoch milliseconds', () => {
+		const created = now - HOUR;
+		assert.strictEqual(CD.cooldownExpiry(new Date(created), 3 * HOUR, now), created + 3 * HOUR);
+	});
+
+	await t('a cache entry that is not a time is ignored rather than trusted', () => {
+		assert.strictEqual(CD.cooldownExpiry('later', HOUR, now), null);
+	});
+
+	await t('the key names the category and the member, and not the old shape', () => {
+		// The old key held an expiry. Both shapes are epoch milliseconds, so
+		// reading one as the other would silently double somebody's wait — which
+		// is why the fix moved namespace instead of reusing it.
+		assert.strictEqual(CD.cooldownKey(4, '123'), 'cooldowns/category-member-created:4-123');
+		assert.ok(!CD.cooldownKey(4, '123').startsWith('cooldowns/category-member:'));
+	});
 
 	console.log(`\n${pass} passed\n`);
 })();

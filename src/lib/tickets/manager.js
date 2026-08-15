@@ -36,6 +36,10 @@ const {
 } = require('./opening-message');
 const { resolveEmojiSettings } = require('./emoji-settings');
 const {
+	cooldownExpiry,
+	cooldownKey,
+} = require('./cooldown');
+const {
 	PARTICIPANT_ALLOW,
 	createChannel,
 } = require('./channels');
@@ -247,9 +251,44 @@ module.exports = class TicketManager {
 		return count;
 	}
 
-	async getCooldown(categoryId, memberId) {
-		const cacheKey = `cooldowns/category-member:${categoryId}-${memberId}`;
-		return await this.client.keyv.get(cacheKey);
+	/**
+	 * When this member may next open a ticket in this category, or null if now.
+	 *
+	 * The cache holds the last creation time and `cooldownExpiry` derives the
+	 * rest, so a category whose cooldown was just shortened stops turning people
+	 * away immediately — see src/lib/tickets/cooldown.js for why that is worth a
+	 * file of its own.
+	 *
+	 * A miss falls back to the database rather than to "no cooldown", so
+	 * *lengthening* one takes effect too: entries are written with the cooldown
+	 * of the moment as their TTL, and a longer one outlives its cache. Cheap
+	 * enough to be worth the correctness — this runs once per attempt to open a
+	 * ticket, behind the five-second ratelimit, and only for a category that
+	 * sets a cooldown at all.
+	 *
+	 * @param {CategoryGuildQuestions} category resolved, so `cooldown` is the
+	 * effective value rather than a NULL meaning "inherit"
+	 * @param {string} memberId
+	 * @returns {Promise<?number>} epoch ms, or null
+	 */
+	async getCooldown(category, memberId) {
+		if (!category?.cooldown) return null;
+		const cacheKey = cooldownKey(category.id, memberId);
+		let createdAt = await this.client.keyv.get(cacheKey);
+		if (!createdAt) {
+			const last = await this.client.prisma.ticket.findFirst({
+				orderBy: { createdAt: 'desc' },
+				select: { createdAt: true },
+				where: {
+					categoryId: category.id,
+					createdById: memberId,
+				},
+			});
+			if (!last) return null;
+			createdAt = last.createdAt.getTime();
+			await this.client.keyv.set(cacheKey, createdAt, category.cooldown);
+		}
+		return cooldownExpiry(createdAt, category.cooldown);
 	}
 
 	async getNextNumber(guildId) {
@@ -438,7 +477,7 @@ module.exports = class TicketManager {
 			});
 		}
 
-		const cooldown = staff ? null : await this.getCooldown(category.id, interaction.user.id);
+		const cooldown = staff ? null : await this.getCooldown(category, interaction.user.id);
 		if (cooldown) {
 			return await interaction.reply({
 				embeds: [
@@ -957,10 +996,12 @@ module.exports = class TicketManager {
 			}
 
 			if (category.cooldown) {
-				const cacheKey = `cooldowns/category-member:${category.id}-${ticket.createdById}`;
-				const expiresAt = ticket.createdAt.getTime() + category.cooldown;
-				const TTL = category.cooldown;
-				await this.client.keyv.set(cacheKey, expiresAt, TTL);
+				// The creation time, not the expiry it implies: `getCooldown` derives
+				// the expiry when the next ticket is attempted, so shortening a
+				// category's cooldown takes effect at once. The TTL is the cooldown of
+				// the moment, and a lengthened one outlives the entry.
+				const cacheKey = cooldownKey(category.id, ticket.createdById);
+				await this.client.keyv.set(cacheKey, ticket.createdAt.getTime(), category.cooldown);
 			}
 
 			if (category.guild.archive && message) {
