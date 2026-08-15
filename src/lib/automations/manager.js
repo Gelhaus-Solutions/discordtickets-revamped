@@ -153,6 +153,40 @@ class AutomationManager {
 	}
 
 	/**
+	 * Answer the button or menu that started a run, if nothing else did.
+	 *
+	 * `src/buttons/auto.js` opens an ephemeral `deferReply` before dispatching,
+	 * because the handler has three seconds and a run has no such limit. A graph
+	 * that posts something private fills that in — but a graph whose whole job is
+	 * to create a channel, add a role or close a ticket has nothing to say, so the
+	 * reply sat there spinning until Discord gave up on it. Whether the run
+	 * succeeded, failed or is still going, the person who pressed the button saw
+	 * exactly the same thing: nothing. Which is how "the create-a-thread step does
+	 * nothing" gets reported when the step may well have worked.
+	 *
+	 * Only ever the reply this bot opened and nobody used: a node that answered
+	 * has set `replied`, and `ack: 'none'` deferred an *update*, which needs no
+	 * answer at all.
+	 *
+	 * The failure text names no reason on purpose. Whoever pressed the button is
+	 * often the member a ticket belongs to, and "could not create the thread:
+	 * wrong_parent_type" is for the admin who built the graph — it is in the run
+	 * log, which the message points at.
+	 */
+	async acknowledge(ctx, result) {
+		const interaction = ctx?.interaction;
+		if (!interaction?.isRepliable?.()) return;
+		if (!interaction.ephemeral || !interaction.deferred || interaction.replied) return;
+
+		const content = {
+			[RUN.failed]: 'That did not go through. An administrator can see why in this automation\'s run log.',
+			[RUN.suspended]: 'Done — the rest of this runs later.',
+		}[result?.status] ?? 'Done.';
+
+		await interaction.editReply({ content }).catch(() => null);
+	}
+
+	/**
 	 * Write the outcome of a run, parking it in Temporal if it hit a `flow.wait`.
 	 */
 	async finish(runId, result, startedAt, ctx) {
@@ -161,11 +195,13 @@ class AutomationManager {
 			// Already inside an activity: the workflow owns the sleeping, so hand
 			// the remainder back up rather than starting a second workflow.
 			if (ctx?.durable) return result;
+			await this.acknowledge(ctx, result);
 			await this.park(runId, result);
 			return result;
 		}
 
 		await this.persist(runId, result, startedAt);
+		await this.acknowledge(ctx, result);
 		return result;
 	}
 
