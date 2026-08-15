@@ -37,6 +37,7 @@ function tagVars({
 		members: guild?.memberCount ?? '',
 		name: member?.id ? `<@${member.id}>` : '',
 		server: guild?.name ?? '',
+		userid: member?.id ?? '',
 	};
 }
 

@@ -236,6 +236,9 @@ class Context {
 			return {
 				num: ticket.number ?? '',
 				opener: user?.username ?? '',
+				// Straight off the row: unlike the three below it needs no member,
+				// so it survives the opener having left the server.
+				openerid: id ?? '',
 				openerdisplayname: member?.displayName ?? user?.displayName ?? user?.username ?? '',
 				openermention: id ? `<@${id}>` : '',
 			};
@@ -268,6 +271,10 @@ class Context {
 	async varsFor(text) {
 		const base = {
 			...this.guildVars(),
+			// The actor's id, which every trigger already knows and none of them
+			// passed on: `{name}` renders a mention or a username, and neither is
+			// what another bot's `!unban <id>` wants.
+			userid: this.actorId ?? '',
 			...this.vars,
 		};
 		if (!needsLazy(String(text ?? ''))) return base;

@@ -192,6 +192,10 @@ function renderChannelName(template, {
 	creator, fallback = '', number,
 }) {
 	return String(template ?? '')
+		// Before `{name}`, though the two cannot overlap — `(user)?name` will not
+		// match `userid` — because the same-prefix pair is exactly the shape that
+		// starts leaving `id` behind the day somebody loosens one of them.
+		.replace(/{+\s?(user|member)id\s?}+/gi, creator?.id ?? creator?.user?.id ?? fallback)
 		.replace(/{+\s?(user)?name\s?}+/gi, creator?.user?.username ?? fallback)
 		.replace(/{+\s?(nick|display)(name)?\s?}+/gi, creator?.displayName ?? fallback)
 		// 1488 is a neo-Nazi numeric symbol; upstream skips it.

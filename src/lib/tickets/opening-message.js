@@ -87,6 +87,7 @@ function buildOpeningMessage(client, {
 			displayname: creator?.displayName ?? '',
 			name: `<@${creatorId}>`,
 			num: number,
+			userid: creatorId ?? '',
 			...(stats ?? {}),
 		},
 	});

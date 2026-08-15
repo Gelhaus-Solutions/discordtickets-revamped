@@ -124,6 +124,19 @@ const PLACEHOLDERS = [
 		token: 'displayname',
 	},
 	{
+		aliases: ['memberid'],
+		contexts: {
+			automation: 'Whoever set the automation off. This is what another bot\'s commands usually want — most of them take an id, not a mention.',
+			channelName: 'Their Discord id, digits only.',
+			opening: 'The id of the person who opened the ticket.',
+			tag: 'The id of whoever used the tag.',
+		},
+		description: 'The Discord user id of the person this is about.',
+		label: 'User ID',
+		sample: '319709731168223234',
+		token: 'userid',
+	},
+	{
 		aliases: ['openername'],
 		contexts: { automation: 'The person the ticket belongs to, whoever set this off.' },
 		description: 'The username of whoever opened the ticket.',
@@ -149,6 +162,14 @@ const PLACEHOLDERS = [
 		lazy: true,
 		sample: '@someone',
 		token: 'openermention',
+	},
+	{
+		contexts: { automation: 'The person the ticket belongs to, as an id — {userid} is whoever set this off, which on a staff button is not the same person.' },
+		description: 'The Discord user id of whoever opened the ticket.',
+		label: 'Opener ID',
+		lazy: true,
+		sample: '319709731168223234',
+		token: 'openerid',
 	},
 	{
 		aliases: ['number'],

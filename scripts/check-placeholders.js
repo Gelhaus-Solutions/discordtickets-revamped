@@ -391,6 +391,35 @@ t('the automation context supplies the server variables itself', () => {
 	assert.strictEqual(vars.members, 9);
 });
 
+t('a user id renders as digits, wherever it is written', () => {
+	assert.strictEqual(
+		placeholders.substitute('!unban {userid}', { userid: '319709731168223234' }),
+		'!unban 319709731168223234',
+	);
+	// The alias, and the tolerance for `{{ x }}` that every other token has.
+	assert.strictEqual(placeholders.substitute('{memberid}', { userid: '111' }), '111');
+	assert.strictEqual(placeholders.substitute('{{ USERID }}', { userid: '111' }), '111');
+	// Neighbours that share a prefix must not be eaten by it.
+	assert.strictEqual(placeholders.substitute('{username}', {
+		name: 'bob',
+		userid: '111',
+	}), 'bob');
+	assert.strictEqual(renderChannelName('ticket-{userid}', {
+		creator: {
+			id: '111',
+			user: { username: 'bob' },
+		},
+		number: 1,
+	}), 'ticket-111');
+	assert.strictEqual(renderChannelName('{username}', {
+		creator: {
+			id: '111',
+			user: { username: 'bob' },
+		},
+		number: 1,
+	}), 'bob');
+});
+
 /* ───────────────────────── no second copy of the list ────────────────────── */
 
 t('nothing has re-grown its own hardcoded placeholder list', () => {
@@ -417,4 +446,38 @@ t('nothing has re-grown its own hardcoded placeholder list', () => {
 	}
 });
 
-console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);
+/* ─────────────────────────── and one that awaits ─────────────────────────── */
+
+// `varsFor` is the only supplier in this file that is async, so it gets a tail
+// of its own rather than an await-aware harness for one test.
+(async () => {
+	try {
+		// Asked for so a graph can hand another bot's command a user id: `!unban
+		// {userid}`. The actor's id is on the run context already, so it must
+		// arrive without opening the lazy path; `{openerid}` is the one that costs
+		// a ticket read.
+		const { Context } = require(path.join(root, 'src', 'lib', 'automations', 'context'));
+		const context = new Context({
+			guilds: {
+				cache: new Map([['1', {
+					memberCount: 9,
+					name: 'Test Server',
+				}]]),
+			},
+		}, {
+			actorId: '319709731168223234',
+			guildId: '1',
+		});
+		const vars = await context.varsFor('hello {userid}');
+		assert.strictEqual(vars.userid, '319709731168223234');
+		assert.ok(placeholders.needsLazy('{openerid}'), '{openerid} must open the ticket read');
+		assert.ok(!placeholders.needsLazy('{userid}'), '{userid} must not cost a ticket read');
+		pass++;
+		console.log('  ok  ', 'an automation run supplies the actor id without a database read');
+	} catch (e) {
+		console.log('  FAIL', 'an automation run supplies the actor id without a database read', '\n       ', e.message);
+		process.exitCode = 1;
+	}
+
+	console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);
+})();
