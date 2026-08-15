@@ -252,6 +252,57 @@ function resolveParent(client, {
 }
 
 /**
+ * A thread or forum post already on this parent, by name.
+ *
+ * For "post in the one that exists rather than opening a second": a forum used
+ * as a per-member record, whose posts are named after the member, otherwise
+ * grows a duplicate every time an automation runs.
+ *
+ * Matched on the name because that is the only thing an automation knows — it
+ * renders `{userid}` into a name and has no id to look one up by. Trimmed and
+ * case-insensitive, since Discord preserves both in a thread name and nobody
+ * means "Ticket" and "ticket " to be different posts. The first match wins;
+ * Discord allows two posts with the same name and the older one is the record.
+ *
+ * Three lookups, cheapest first: the cache, then the active threads, then the
+ * archived ones — a per-member forum post is archived far more often than not,
+ * so skipping that last call would find nothing in exactly the case this is for.
+ *
+ * @param {object} options
+ * @param {object} options.parent a forum, text or announcement channel
+ * @param {string} options.name the *resolved* name, as `createChannel` would use
+ * @param {boolean} [options.includeArchived]
+ * @returns {Promise<?object>} the thread, or null
+ */
+async function findThreadByName({
+	includeArchived = true, name, parent,
+}) {
+	if (!parent?.threads) return null;
+	const wanted = String(name ?? '').trim().toLowerCase();
+	if (!wanted) return null;
+
+	// Iterated rather than `Collection#find`, so this works against anything
+	// map-shaped: discord.js serves Collections, and nothing here needs more.
+	const match = collection => {
+		for (const thread of collection?.values?.() ?? []) {
+			if (thread?.name?.trim().toLowerCase() === wanted) return thread;
+		}
+		return null;
+	};
+
+	const cached = match(parent.threads.cache);
+	if (cached) return cached;
+
+	const active = await parent.threads.fetchActive().catch(() => null);
+	const found = match(active?.threads);
+	if (found) return found;
+
+	if (!includeArchived) return null;
+	const archived = await parent.threads.fetchArchived({ limit: 100 }).catch(() => null);
+	return match(archived?.threads);
+}
+
+/**
  * Create a channel, a private thread or a forum post.
  *
  * @param {import('client')} client
@@ -421,6 +472,7 @@ module.exports = {
 	buildOverwrites,
 	classifyError,
 	createChannel,
+	findThreadByName,
 	resolveName,
 	resolveParent,
 	threadMemberIds,

@@ -36,6 +36,8 @@ const {
 const {
 	PARTICIPANT_ALLOW,
 	createChannel,
+	findThreadByName,
+	resolveName,
 } = require('../tickets/channels');
 const temporal = require('../temporal');
 const {
@@ -256,6 +258,50 @@ async function bindCreatedChannel(client, node, ctx, channel) {
 	await recordTicketChannel(client, ctx.ticketId, channel.id).catch(() => null);
 }
 
+/**
+ * Post into the thread that already carries this name, if there is one.
+ *
+ * "We already have threads with the user id as the title" — a forum used as a
+ * per-member record. Without this, an automation that renders `{userid}` into a
+ * post name opens a second post beside the first every time it runs.
+ *
+ * The message goes in as an ordinary message rather than as a starter, because
+ * the post already has one. An archived post is unarchived first: Discord
+ * refuses a message to an archived thread, and a per-member record is archived
+ * most of the time it is looked for.
+ *
+ * The reused thread is **not** recorded for clean-up on close. It existed before
+ * this run and will outlive it; deleting somebody's record because a ticket
+ * closed is the one outcome worse than a duplicate post.
+ *
+ * @returns {Promise<?object>} the outcome to return, or null to carry on and create
+ */
+async function reuseExistingThread(client, node, ctx, {
+	name, parent,
+}) {
+	if (!node.params?.reuseExisting || !parent) return null;
+
+	const existing = await findThreadByName({
+		name,
+		parent,
+	});
+	if (!existing) return null;
+
+	if (existing.archived) {
+		const unarchived = await existing.setArchived(false).catch(error => {
+			client.log?.warn?.('Could not unarchive %s: %s', existing.id, error?.message ?? error);
+			return null;
+		});
+		if (!unarchived) return skip('thread_archived');
+	}
+
+	const message = await starterMessage(client, node, ctx);
+	if (message) await existing.send(message);
+
+	ctx.setChannel(existing);
+	return { reason: 'reused_existing' };
+}
+
 /** The first message a create node posts, or null when it was left empty. */
 async function starterMessage(client, node, ctx) {
 	if (!hasStarter(node.params)) return null;
@@ -426,13 +472,22 @@ function makeRunners(client, runNested) {
 			// carrying on with the wrong channel bound.
 			if (!parent) throw new Error('could not create the thread: no_parent');
 
+			const name = resolveName({ text: await render(node.params.name, ctx) });
+			// A thread asked for on a thread is created beside it, so that is where
+			// an existing one of the same name would be too.
+			const reused = await reuseExistingThread(client, node, ctx, {
+				name,
+				parent: parent.isThread?.() ? parent.parent : parent,
+			});
+			if (reused) return reused;
+
 			const result = await createChannel(client, {
 				access: await resolveAccess(node, ctx),
 				everyoneDenied: node.params?.private !== false,
 				guild,
 				message: await starterMessage(client, node, ctx),
 				mode: 'THREAD',
-				name: { text: await render(node.params.name, ctx) },
+				name: { text: name },
 				parentId: parent.id,
 				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
 				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),
@@ -453,13 +508,20 @@ function makeRunners(client, runNested) {
 			const guild = await ctx.getGuild();
 			if (!guild) return skip('unknown_guild');
 
+			const name = resolveName({ text: await render(node.params.name, ctx) });
+			const reused = await reuseExistingThread(client, node, ctx, {
+				name,
+				parent: resolveGuildChannel(ctx.client, ctx.guildId, node.params?.parentId),
+			});
+			if (reused) return reused;
+
 			const result = await createChannel(client, {
 				guild,
 				// Not optional here: a forum post is its first message, which is
 				// why the node's schema requires one.
 				message: await starterMessage(client, node, ctx),
 				mode: 'FORUM',
-				name: { text: await render(node.params.name, ctx) },
+				name: { text: name },
 				parentId: node.params?.parentId ?? null,
 				rateLimitPerUser: Math.round((node.params?.slowmode ?? 0) / 1000),
 				reason: `Automation ${ctx.automationKey ?? ''}`.trim(),

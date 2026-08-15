@@ -787,6 +787,114 @@ const ticket = (over = {}) => ({
 		assert.deepStrictEqual(result.channel.permissionOverwrites.map(o => o.id), ['g1', 'bot', 'r1']);
 	});
 
+	/* ──────────────────── finding a post that already exists ──────────────── */
+
+	// "We already have threads with the user id as the title": a forum used as a
+	// per-member record. The name is all an automation has to go on, since it
+	// renders one and never learns an id.
+
+	/** A parent whose threads live in three places, as Discord serves them. */
+	const forum = ({
+		active = [], archived = [], cached = [],
+	}) => ({
+		id: 'f1',
+		threads: {
+			cache: new Map(cached.map(t => [t.id, t])),
+			fetchActive: async () => ({ threads: new Map(active.map(t => [t.id, t])) }),
+			fetchArchived: async () => ({ threads: new Map(archived.map(t => [t.id, t])) }),
+		},
+		type: 15,
+	});
+	const thread = (id, name) => ({
+		id,
+		name,
+	});
+
+	await t('an existing post is found in the cache without a request', async () => {
+		const parent = forum({ cached: [thread('t1', '319709731168223234')] });
+		parent.threads.fetchActive = async () => {
+			throw new Error('the cache should have answered this');
+		};
+		const found = await C.findThreadByName({
+			name: '319709731168223234',
+			parent,
+		});
+		assert.strictEqual(found?.id, 't1');
+	});
+
+	await t('an archived post is found, because that is where old ones are', async () => {
+		// The case that matters most: a per-member record is archived far more
+		// often than not, so a search that stopped at the active threads would
+		// open a duplicate every time.
+		const found = await C.findThreadByName({
+			parent: forum({
+				active: [thread('t1', 'someone else')],
+				archived: [thread('t2', 'wanted')],
+			}),
+			name: 'wanted',
+		});
+		assert.strictEqual(found?.id, 't2');
+	});
+
+	await t('the archived list can be left out', async () => {
+		const found = await C.findThreadByName({
+			includeArchived: false,
+			name: 'wanted',
+			parent: forum({ archived: [thread('t2', 'wanted')] }),
+		});
+		assert.strictEqual(found, null);
+	});
+
+	await t('a name matches whatever its case and spacing', async () => {
+		const found = await C.findThreadByName({
+			name: 'Ticket-7',
+			parent: forum({ active: [thread('t1', ' ticket-7 ')] }),
+		});
+		assert.strictEqual(found?.id, 't1');
+	});
+
+	await t('nothing matching is null, not the first thread', async () => {
+		const found = await C.findThreadByName({
+			name: 'wanted',
+			parent: forum({ active: [thread('t1', 'something')] }),
+		});
+		assert.strictEqual(found, null);
+	});
+
+	await t('an empty name matches nothing, rather than everything', async () => {
+		// A name template that renders empty must not adopt an unrelated post.
+		const found = await C.findThreadByName({
+			name: '  ',
+			parent: forum({ active: [thread('t1', '')] }),
+		});
+		assert.strictEqual(found, null);
+	});
+
+	await t('a parent that cannot hold threads is not an error', async () => {
+		assert.strictEqual(await C.findThreadByName({
+			name: 'x',
+			parent: { id: 'c1' },
+		}), null);
+		assert.strictEqual(await C.findThreadByName({
+			name: 'x',
+			parent: null,
+		}), null);
+	});
+
+	await t('a failed lookup reads as "no match", so the post is still created', async () => {
+		const parent = forum({});
+		parent.threads.fetchActive = async () => {
+			throw new Error('missing access');
+		};
+		parent.threads.fetchArchived = async () => {
+			throw new Error('missing access');
+		};
+		assert.strictEqual(await C.findThreadByName({
+			name: 'wanted',
+			parent,
+		}), null);
+	});
+
 	/* ────────────────────────── the deferred rename ──────────────────────── */
 
 	// `syncChannelName` lives in `mutations.js`, which reaches the Temporal layer.

@@ -770,6 +770,24 @@ const hasStarter = params => usesLayout(params) || Boolean(params?.content);
  * sensible "a member joined, make them a channel" automation for a tickbox they
  * left at its default.
  */
+/**
+ * Post into the one that already exists, rather than opening another.
+ *
+ * For a forum used as a per-member record, whose posts are named after the
+ * member: without this, a name rendered from `{userid}` opens a second post
+ * beside the first every time the automation runs.
+ *
+ * Off by default. Two posts of the same name are legal in Discord, and an
+ * automation written before this existed meant "make one" every time it said so.
+ */
+const reuseExistingField = noun => ({
+	default: false,
+	help: `Look for a ${noun} with this exact name first, and add the message to it instead of opening a second one. Archived ones count, and are unarchived to post.`,
+	key: 'reuseExisting',
+	label: `Use the existing ${noun} if there is one`,
+	type: 'boolean',
+});
+
 const cleanUpField = noun => ({
 	default: true,
 	help: `Only applies when this automation is working on a ticket. The ${noun} is deleted when it closes, or archived if it is a thread.`,
@@ -957,6 +975,7 @@ const NODE_TYPES = {
 			// No access params: a forum post inherits the forum's permissions, and
 			// there is nothing per-post to grant.
 			...starterParams(PLACEHOLDER_HELP),
+			reuseExistingField('post'),
 			cleanUpField('post'),
 		],
 		provides: ['channel'],
@@ -1033,6 +1052,7 @@ const NODE_TYPES = {
 				type: 'duration',
 			},
 			...starterParams(`${PLACEHOLDER_HELP} Leave it empty to create the thread without a first message.`),
+			reuseExistingField('thread'),
 			cleanUpField('thread'),
 		],
 		provides: ['channel'],
