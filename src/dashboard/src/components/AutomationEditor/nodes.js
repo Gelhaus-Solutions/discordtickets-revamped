@@ -76,7 +76,14 @@ export const CATEGORY_META = {
 
 export const CATEGORY_ORDER = ['trigger', 'condition', 'flow', 'action'];
 
-/** Font Awesome icon per node type. The one thing the server catalogue does not carry. */
+/**
+ * Font Awesome icon per node type. The one thing the server catalogue does not carry.
+ *
+ * Free-tier names only. A Pro-only name is not an error anywhere — it renders as
+ * blank space, which is how `fa-gauge-low` sat on "Set the slow mode" looking
+ * like a node that had simply been forgotten. `scripts/check-automations.js`
+ * checks every name here against the installed metadata.
+ */
 export const NODE_ICONS = {
 	'action.automation.run': 'fa-diagram-project',
 	'action.channel.create': 'fa-hashtag',
@@ -98,7 +105,7 @@ export const NODE_ICONS = {
 	'action.ticket.rename': 'fa-i-cursor',
 	'action.ticket.setEmoji': 'fa-icons',
 	'action.ticket.setPriority': 'fa-flag',
-	'action.ticket.setSlowmode': 'fa-gauge-low',
+	'action.ticket.setSlowmode': 'fa-clock',
 	'action.ticket.setTopic': 'fa-pen',
 	'condition.filter': 'fa-filter',
 	'flow.if': 'fa-code-branch',
