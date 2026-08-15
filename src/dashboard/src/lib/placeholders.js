@@ -21,20 +21,51 @@ export function setPlaceholders(catalogue) {
 /** @returns {{contexts: any[], placeholders: any[]}} */
 export const placeholders = () => getContext(KEY) ?? { contexts: [], placeholders: [] };
 
+/**
+ * The block-editor kinds that are not placeholder contexts.
+ *
+ * Two different questions share the word "context" in this editor: which
+ * *blocks* a message may hold (`BLOCK_TYPES` in BlockEditor/blocks.js — dm,
+ * ephemeral, message, opening, panel) and which *placeholders* work in it (the
+ * catalogue's own ids — opening, panel, channelName, automation, tag). `opening`
+ * and `panel` are spelled the same in both, which is why handing one where the
+ * other belonged went unnoticed: it is right in two cases out of five.
+ *
+ * In the other three it was wrong in the worst available way. A message an
+ * automation sends is block kind `message`, no placeholder declares a `message`
+ * context, so *every* placeholder was listed under "Not available here" — in the
+ * one editor where all of them work. Nothing broke; the picker simply told
+ * people the opposite of the truth, and typing the same token by hand worked.
+ *
+ * Mapped here rather than at the call sites so a screen that gets its hands on a
+ * block kind cannot show the wrong list. Ids the catalogue already knows pass
+ * through untouched. `scripts/check-placeholders.js` checks every block kind is
+ * accounted for.
+ */
+const BLOCK_KIND_CONTEXTS = {
+	dm: 'automation',
+	ephemeral: 'automation',
+	message: 'automation'
+};
+
+/** The catalogue context a block kind (or a context id) means. */
+export const contextFor = (context) => BLOCK_KIND_CONTEXTS[context] ?? context;
+
 /** Everything available in one context, and everything that is not, with the reason. */
 export function groupsFor(catalogue, context) {
 	const all = catalogue?.placeholders ?? [];
+	const id = contextFor(context);
 	return {
-		available: all.filter((p) => context in (p.contexts ?? {})),
+		available: all.filter((p) => id in (p.contexts ?? {})),
 		// Shown greyed rather than hidden: that is what stops somebody typing
 		// {name} into a panel and watching it vanish when the panel is posted.
-		unavailable: all.filter((p) => !(context in (p.contexts ?? {})))
+		unavailable: all.filter((p) => !(id in (p.contexts ?? {})))
 	};
 }
 
 /** The per-context note, falling back to the general description. */
 export const noteFor = (placeholder, context) =>
-	placeholder?.contexts?.[context] || placeholder?.description || '';
+	placeholder?.contexts?.[contextFor(context)] || placeholder?.description || '';
 
 /**
  * Insert text at the caret of an input or textarea.
@@ -63,7 +94,8 @@ export function insertAtCaret(element, text) {
  */
 export function preview(catalogue, context, text) {
 	if (typeof text !== 'string' || !text) return text ?? '';
-	const available = (catalogue?.placeholders ?? []).filter((p) => context in (p.contexts ?? {}));
+	const id = contextFor(context);
+	const available = (catalogue?.placeholders ?? []).filter((p) => id in (p.contexts ?? {}));
 	let out = text;
 	for (const placeholder of available) {
 		const spellings = [placeholder.token, ...(placeholder.aliases ?? [])];

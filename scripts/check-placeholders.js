@@ -420,6 +420,43 @@ t('a user id renders as digits, wherever it is written', () => {
 	}), 'bob');
 });
 
+t('every block-editor kind resolves to a real placeholder context', () => {
+	// The bug this exists for: the block editor's `context` is a *block kind*
+	// (which blocks a message may hold), and it was handed straight to the
+	// placeholder picker, whose contexts are a different set. `opening` and
+	// `panel` are spelled the same in both, so it looked right — while an
+	// automation's message, block kind `message`, matched no context at all and
+	// listed every placeholder as "Not available here" in the one editor where
+	// all of them work.
+	const fs = require('fs');
+	const read = file => fs.readFileSync(path.join(root, file), 'utf8');
+
+	const kinds = read('src/dashboard/src/components/BlockEditor/blocks.js')
+		.match(/BLOCK_TYPES = \{([\s\S]*?)\n\};/)?.[1]
+		.match(/^\t(\w+):/gm)
+		?.map(line => line.trim().replace(':', ''));
+	assert.ok(kinds?.length >= 5, 'could not read the block kinds');
+
+	const lib = read('src/dashboard/src/lib/placeholders.js');
+	const mapped = Object.fromEntries(
+		(lib.match(/BLOCK_KIND_CONTEXTS = \{([\s\S]*?)\n\};/)?.[1].match(/(\w+): '(\w+)'/g) ?? [])
+			.map(entry => entry.split(': ').map(part => part.replace(/'/g, ''))),
+	);
+
+	const ids = new Set(placeholders.CONTEXTS.map(c => c.id));
+	for (const kind of kinds) {
+		const resolved = mapped[kind] ?? kind;
+		assert.ok(
+			ids.has(resolved),
+			`block kind "${kind}" resolves to "${resolved}", which is not a placeholder context`,
+		);
+	}
+	for (const [kind, resolved] of Object.entries(mapped)) {
+		assert.ok(kinds.includes(kind), `BLOCK_KIND_CONTEXTS maps "${kind}", which is not a block kind`);
+		assert.ok(ids.has(resolved), `BLOCK_KIND_CONTEXTS maps "${kind}" to a context that does not exist`);
+	}
+});
+
 /* ───────────────────────── no second copy of the list ────────────────────── */
 
 t('nothing has re-grown its own hardcoded placeholder list', () => {
