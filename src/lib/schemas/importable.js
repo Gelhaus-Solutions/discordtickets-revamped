@@ -54,6 +54,7 @@ const GUILD_SETTINGS_FIELDS = [
 	'ratelimit',
 	'reopenWindow',
 	'requiredRoles',
+	'skipCloseRequest',
 	'staffRoles',
 	'staleAfter',
 	'successColour',
@@ -97,6 +98,7 @@ const CATEGORY_FIELDS = [
 	'ratelimit',
 	'requiredRoles',
 	'requireTopic',
+	'skipCloseRequest',
 	'staffChannel',
 	'staffChannelMode',
 	// A snowflake that will not exist in an importing guild, the same as

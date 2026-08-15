@@ -11,6 +11,9 @@ buttons:
   close:
     emoji: ✖️
     text: Close
+  confirm_close:
+    emoji: ✖️
+    text: Close it
   confirm_open:
     emoji: ✅
     text: Create ticket
@@ -576,9 +579,14 @@ ticket:
     no_value: "*No response*"
   claimed: 🙌 {user} has claimed this ticket.
   close:
+    cancelled: ↩️ The ticket has been left open.
     closed:
       description: This ticket will be closed in a few seconds…
       title: ✅ Ticket closed
+    confirm:
+      description: |
+        {member} will not be asked — the ticket closes as soon as you confirm.
+      title: ❓ Close this ticket?
     forbidden:
       description: You don't have permission to close this ticket.
       title: ❌ Error

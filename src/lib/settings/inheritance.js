@@ -133,6 +133,14 @@ const INHERITED = {
 		guild: 'requiredRoles',
 		json: true,
 	},
+	// Close without asking the member. `false` is the behaviour every server has
+	// had until now — staff ask, the member accepts — and it is also a *choice* a
+	// guild can make against a category that skips, which is the whole reason
+	// both columns are nullable rather than NOT NULL DEFAULT false.
+	skipCloseRequest: {
+		builtin: () => false,
+		guild: 'skipCloseRequest',
+	},
 	staffRoles: {
 		builtin: () => [],
 		guild: 'staffRoles',

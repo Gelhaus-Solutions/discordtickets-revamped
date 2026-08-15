@@ -99,6 +99,12 @@ function validateJsonFields(data) {
 		throw new Error('channelName must be text, or null for no server default.');
 	}
 
+	// Three-state like the rest of the defaults: null is "no server default", and
+	// both booleans are answers a category can inherit.
+	if ('skipCloseRequest' in data && data.skipCloseRequest !== null && typeof data.skipCloseRequest !== 'boolean') {
+		throw new Error('skipCloseRequest must be true or false, or null for no server default.');
+	}
+
 	// The server-wide emoji defaults. Read on every channel-name write, so junk
 	// here breaks claim/release/priority/close for every category that inherits.
 	for (const field of STATE_FIELDS) {

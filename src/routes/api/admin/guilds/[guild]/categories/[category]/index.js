@@ -192,6 +192,7 @@ module.exports.patch = fastify => ({
 			ratelimit: true,
 			requireTopic: true,
 			requiredRoles: true,
+			skipCloseRequest: true,
 			staffChannel: true,
 			staffChannelMode: true,
 			staffChannelParent: true,
@@ -311,6 +312,21 @@ module.exports.patch = fastify => ({
 					statusCode: 400,
 				});
 			}
+		}
+
+		// Inheritable and three-state: null asks the server, and both booleans are
+		// answers. Anything else is a body Prisma would reject with a 500 where a
+		// 400 belongs.
+		if (
+			data.skipCloseRequest !== undefined &&
+			data.skipCloseRequest !== null &&
+			typeof data.skipCloseRequest !== 'boolean'
+		) {
+			return res.code(400).send({
+				code: 'invalid_setting',
+				errors: [{ message: 'skipCloseRequest must be true, false, or null to use the server default' }],
+				statusCode: 400,
+			});
 		}
 
 		// An empty template is meaningless, and the legacy dashboard sends '' for

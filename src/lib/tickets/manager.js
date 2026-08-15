@@ -1470,6 +1470,18 @@ module.exports = class TicketManager {
 			}));
 		}
 
+		// A category (or the server) can turn the request off for staff: they
+		// confirm privately and the ticket closes, rather than the member being
+		// asked to accept. Gated on `staff` because the request in the other
+		// direction — a member asking, staff accepting — is not what this is about.
+		//
+		// Placed after the feedback modal deliberately: a staff member closing
+		// their *own* ticket is asked for feedback first, exactly as today, and
+		// the modal's own path takes it from there.
+		if (staff && ticket.category.skipCloseRequest) {
+			return await this.confirmClose(interaction, reason);
+		}
+
 		// not showing feedback, so send the close request
 
 		// defer asap
@@ -1484,6 +1496,80 @@ module.exports = class TicketManager {
 		}
 
 		this.requestClose(interaction, reason);
+	}
+
+	/**
+	 * Ask the staff member who is closing, and nobody else.
+	 *
+	 * What `requestClose` does publicly, this does privately and in one step: an
+	 * ephemeral "close this ticket?" with Confirm and Cancel, which nobody but the
+	 * person who pressed can see or answer. Confirming goes through `acceptClose`,
+	 * the same path an accepted request takes, so the reopen window, the durable
+	 * close and the transcript all behave identically — the only thing skipped is
+	 * asking the member.
+	 *
+	 * The reason travels in `$closeRequests` rather than in the button's
+	 * custom_id, which holds 100 characters and already truncates reasons
+	 * elsewhere.
+	 *
+	 * No auto-close timeout is armed: there is no request sitting unanswered in a
+	 * channel for one to rescue, only an ephemeral message that expires by itself.
+	 *
+	 * @param {import("discord.js").ChatInputCommandInteraction
+	 * | import("discord.js").ButtonInteraction
+	 * | import("discord.js").ModalSubmitInteraction} interaction
+	 * @param {?string} reason
+	 */
+	async confirmClose(interaction, reason) {
+		const ticket = await this.getTicket(interaction.channel.id);
+		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
+
+		this.$closeRequests.set(ticket.id, {
+			closedBy: interaction.user.id,
+			reason,
+		});
+
+		const confirmButtonId = {
+			action: 'close',
+			expect: 'confirm',
+		};
+
+		return await interaction.reply({
+			components: [
+				new ActionRowBuilder()
+					.addComponents(
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({
+								accepted: true,
+								...confirmButtonId,
+							}))
+							.setStyle(ButtonStyle.Danger)
+							.setEmoji(getMessage('buttons.confirm_close.emoji'))
+							.setLabel(getMessage('buttons.confirm_close.text')),
+						new ButtonBuilder()
+							.setCustomId(JSON.stringify({
+								accepted: false,
+								...confirmButtonId,
+							}))
+							.setStyle(ButtonStyle.Secondary)
+							.setEmoji(getMessage('buttons.cancel.emoji'))
+							.setLabel(getMessage('buttons.cancel.text')),
+					),
+			],
+			embeds: [
+				new ExtendedEmbedBuilder({
+					iconURL: interaction.guild.iconURL(),
+					text: ticket.guild.footer,
+				})
+					.setColor(ticket.guild.primaryColour)
+					.setTitle(getMessage('ticket.close.confirm.title'))
+					.setDescription(
+						getMessage('ticket.close.confirm.description', { member: `<@${ticket.createdById}>` }) +
+						(ticket.guild.archive ? getMessage('ticket.close.staff_request.archived') : ''),
+					),
+			],
+			flags: MessageFlags.Ephemeral,
+		});
 	}
 
 	/**

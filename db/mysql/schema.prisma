@@ -186,6 +186,11 @@ model Category {
     ratelimit        Int?        // inheritable; 0 is an explicit "slow mode off"
     requiredRoles    Json?       // inheritable
     requireTopic     Boolean     @default(false)
+    // Close without asking the member: staff confirm privately and the ticket
+    // closes there and then, instead of a close request the member has to
+    // accept. Inheritable, so NULL asks the guild — which is why it is nullable
+    // rather than NOT NULL DEFAULT false like `staffChannel` above.
+    skipCloseRequest Boolean?    // inheritable
     staffRoles       Json?       // inheritable
     // Also open a private staff-only thread or channel when a ticket opens here.
     // Boolean rather than nullable-and-inheritable on purpose: the three-state
@@ -270,6 +275,7 @@ model Guild {
     ratelimit         Int?         // category default
     reopenWindow      Int          @default(0)
     requiredRoles     Json?        // category default
+    skipCloseRequest  Boolean?     // category default
     staffRoles        Json?        // category default
     staleAfter        Int?
     successColour     String       @default("Green")

@@ -28,6 +28,43 @@ module.exports = class CloseButton extends Button {
 			const getMessage = client.i18n.getLocale(ticket.guild.locale);
 			const staff = await isStaff(interaction.guild, interaction.user.id);
 
+			if (id.expect === 'confirm') {
+				// The private "close this ticket?" a category with
+				// `skipCloseRequest` shows instead of asking the member. Only the
+				// staff member who pressed close can see this message at all, so the
+				// check is for the one who has since stopped being staff.
+				if (!staff) {
+					return await interaction.reply({
+						embeds: [
+							new ExtendedEmbedBuilder()
+								.setColor(ticket.guild.errorColour)
+								.setDescription(getMessage('ticket.close.forbidden.description')),
+						],
+						flags: MessageFlags.Ephemeral,
+					});
+				}
+
+				if (!id.accepted) {
+					client.tickets.$closeRequests.delete(ticket.id);
+					return await interaction.update({
+						components: [],
+						embeds: [
+							new ExtendedEmbedBuilder()
+								.setColor(ticket.guild.errorColour)
+								.setDescription(getMessage('ticket.close.cancelled')),
+						],
+					});
+				}
+
+				// `deferUpdate`, not `deferReply`: `acceptClose` finishes with an
+				// `editReply`, which lands on this ephemeral message and turns the
+				// question into its own answer. A second reply would leave the
+				// question sitting there with its buttons still on it.
+				await interaction.deferUpdate();
+				await interaction.editReply({ components: [] });
+				return await client.tickets.acceptClose(interaction);
+			}
+
 			if (id.expect === 'staff' && !staff) {
 				return await interaction.reply({
 					embeds: [

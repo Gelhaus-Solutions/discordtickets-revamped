@@ -657,6 +657,21 @@
 		</p>
 		<div class="rounded-lg bg-gray-100 p-4 dark:bg-slate-800">
 			<div class="grid gap-4">
+				<label for="skipCloseRequest" class="font-medium">
+					Staff close without asking
+					<i
+						class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+						title="Closing normally asks the member to accept. With this on, staff confirm privately and the ticket closes straight away. A member closing their own ticket is unaffected."
+					></i>
+					<input
+						type="checkbox"
+						id="skipCloseRequest"
+						name="skipCloseRequest"
+						class="form-checkbox"
+						bind:checked={settings.skipCloseRequest}
+					/>
+				</label>
+
 				<label class="font-medium">
 					Channel name
 					<i

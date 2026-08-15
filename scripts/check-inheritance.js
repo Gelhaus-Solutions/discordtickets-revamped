@@ -146,6 +146,34 @@ const guildWith = overrides => {
 		assert.strictEqual(resolved.channelName, '');
 	});
 
+	t('false is an override, not an inherit', () => {
+		// `skipCloseRequest` is the first inheritable *boolean*, and it is the
+		// shape most likely to be "simplified" into a NOT NULL column later: a
+		// server that closes without asking, and one category that still wants the
+		// member asked, is the whole reason there are three states.
+		const resolved = I.resolveCategory(
+			{
+				...emptyCategory(),
+				skipCloseRequest: false,
+			},
+			guildWith({ skipCloseRequest: true }),
+		);
+		assert.strictEqual(resolved.skipCloseRequest, false);
+	});
+
+	t('a boolean inherits and defaults like everything else', () => {
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({ skipCloseRequest: true })).skipCloseRequest,
+			true,
+			'null at the category should take the server\'s answer',
+		);
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({})).skipCloseRequest,
+			false,
+			'unset everywhere is the close request every server has today',
+		);
+	});
+
 	t('a guild value of zero stops the chain at the guild', () => {
 		const resolved = I.resolveCategory(emptyCategory(), guildWith({ memberLimit: 0 }));
 		assert.strictEqual(resolved.memberLimit, 0);

@@ -123,6 +123,15 @@
 				: 'a private thread inside the ticket channel'
 	);
 
+	// Three states, not a checkbox: null asks the server, and both booleans are
+	// answers. A tickbox has two states and would turn "inherit" into "no" the
+	// first time anyone saved the page.
+	const closeRequestModes = [
+		{ value: null, label: 'Use the server setting' },
+		{ value: true, label: 'Close it straight away' },
+		{ value: false, label: 'Ask the member first' }
+	];
+
 	// A channel-mode staff channel hangs off a Discord category (type 4); a thread
 	// hangs off a text channel (type 0).
 	let staffParentChannels = $derived(
@@ -166,6 +175,11 @@
 	 * stands in — it answers the same question.
 	 */
 	const inherited = $derived(data.category.inherited ?? data.settings.inherited ?? {});
+
+	/** What "Use the server setting" resolves to, spelled out rather than implied. */
+	const inheritedCloseRequest = $derived(
+		inherited.skipCloseRequest ? 'close it straight away' : 'ask the member first'
+	);
 
 	const PRIORITY_EMOJI_FIELDS = [
 		{ key: 'HIGH', label: 'High' },
@@ -571,6 +585,26 @@
 						</label>
 					</div>
 				{/if}
+				<div>
+					<label class="font-medium">
+						When staff close a ticket
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="Closing normally asks the member to accept. Staff can instead be asked to confirm privately, and the ticket closes there and then."
+						></i>
+						<select class="input form-select" bind:value={category.skipCloseRequest}>
+							{#each closeRequestModes as mode}
+								<option value={mode.value} class="p-1">
+									{mode.label}
+								</option>
+							{/each}
+						</select>
+					</label>
+					<p class="text-sm text-gray-500 dark:text-slate-400">
+						The server setting is to {inheritedCloseRequest}. A member closing their own
+						ticket is unaffected.
+					</p>
+				</div>
 				<div>
 					{#if category.channelMode === 'CHANNEL'}
 						<label class="font-medium">
