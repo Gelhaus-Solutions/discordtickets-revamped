@@ -1,5 +1,5 @@
 <script>
-	import { placeholders, groupsFor, insertAtCaret, noteFor } from '$lib/placeholders.js';
+	import { placeholders, contextFor, groupsFor, insertAtCaret, noteFor } from '$lib/placeholders.js';
 
 	/**
 	 * The `{}` button that sits beside every placeholder-accepting field.
@@ -59,6 +59,21 @@
 	});
 
 	const groups = $derived(groupsFor(catalogue, context));
+
+	/**
+	 * Which kind of message this is, in the catalogue's own words.
+	 *
+	 * "Not available here" is true and useless on its own — a panel's list is
+	 * five entries long and the other twenty are greyed with no hint as to why,
+	 * and the heading saying so scrolls out of sight after two rows. A bug report
+	 * came in that could equally have been the real greying bug or a panel
+	 * behaving exactly as designed, and nothing on screen could tell the two
+	 * apart. So the section names the context and gives its reason, which the
+	 * catalogue already carries.
+	 */
+	const here = $derived(
+		(catalogue?.contexts ?? []).find((c) => c.id === contextFor(context)) ?? null
+	);
 
 	/**
 	 * Put the panel beside its button, in whichever direction it fits.
@@ -184,6 +199,12 @@
 			bind:value={search}
 		/>
 
+		{#if here}
+			<p class="mb-1 shrink-0 px-1.5 text-xs text-gray-500 dark:text-slate-400">
+				<span class="font-semibold">{here.label}</span> — {here.description}
+			</p>
+		{/if}
+
 		<div class="min-h-0 flex-1 overflow-y-auto">
 			{#each filter(groups.available) as placeholder (placeholder.token)}
 				<button
@@ -204,10 +225,16 @@
 			{/if}
 
 			{#if filter(groups.unavailable).length}
+				<!--
+					Sticky, because this heading is the only thing that says why the
+					entries under it are dull, and two rows of scrolling used to take it
+					off screen — which is how "it says {userid} is not available" gets
+					reported against an editor where the greying is correct.
+				-->
 				<p
-					class="mt-2 border-t border-gray-200 pt-2 text-xs font-semibold uppercase text-gray-500 dark:border-slate-600 dark:text-slate-400"
+					class="sticky top-0 mt-2 border-t border-gray-200 bg-white pt-2 text-xs font-semibold uppercase text-gray-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-400"
 				>
-					Not available here
+					Not available in {here?.label?.toLowerCase() ?? 'this message'}
 				</p>
 				{#each filter(groups.unavailable) as placeholder (placeholder.token)}
 					<div class="p-1.5 opacity-50">
