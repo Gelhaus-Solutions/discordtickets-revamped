@@ -89,12 +89,16 @@ module.exports = class AutomationButton extends Button {
 		});
 
 		emit(client, 'trigger.button.pressed', {
-			nodeId: node.id,
+			// The key as well as the node: node ids are unique within a graph, not
+			// across a guild, and duplicating an automation copies the graph as it
+			// stands. Without this, one press ran the original and every copy.
+			automationKey: automation.key,
 			categoryId: ticket?.categoryId,
 			channelId: interaction.channelId,
 			guildId: interaction.guildId,
 			interaction,
 			messageId: interaction.message?.id,
+			nodeId: node.id,
 			ticketId: ticket?.id,
 			userId: interaction.user.id,
 			vars: {

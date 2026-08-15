@@ -59,12 +59,15 @@ module.exports = class AutomationMenu extends Menu {
 		});
 
 		emit(client, 'trigger.menu.selected', {
-			nodeId: node.id,
+			// See the same line in src/buttons/auto.js: the node id alone would let
+			// a duplicate of this automation answer this menu too.
+			automationKey: automation.key,
 			categoryId: ticket?.categoryId,
 			channelId: interaction.channelId,
 			guildId: interaction.guildId,
 			interaction,
 			messageId: interaction.message?.id,
+			nodeId: node.id,
 			selection: interaction.values,
 			ticketId: ticket?.id,
 			userId: interaction.user.id,

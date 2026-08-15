@@ -32,7 +32,7 @@ const {
 } = require(path.join(root, 'src', 'lib', 'automations', 'runtime'));
 const { Context } = require(path.join(root, 'src', 'lib', 'automations', 'context'));
 const {
-	matches, triggerVars,
+	candidatesFor, matches, triggerVars,
 } = require(path.join(root, 'src', 'lib', 'automations', 'dispatcher'));
 const {
 	defaultMessageLayout, substitute,
@@ -1467,6 +1467,81 @@ function stubRunners(overrides = {}) {
 		}), payload), false);
 	});
 
+	console.log('\ntrigger dispatch\n');
+
+	/* ──────────────────────────── duplicated graphs ──────────────────────────── */
+
+	// Duplicating an automation copies its graph verbatim, node ids and all, so
+	// a node id says which step *within a graph* and nothing more. The reported
+	// symptom of forgetting that: an admin duplicated a confirmation automation
+	// twice as a template, and one button press opened all three confirmations.
+	const copies = () => {
+		const button = () => node('trigger.button.pressed', { label: 'Confirm' }, 'trigger');
+		return [
+			{
+				graph: graph([button()]),
+				key: 'aaa111',
+			},
+			{
+				graph: graph([button()]),
+				key: 'bbb222',
+			},
+			{
+				graph: graph([button()]),
+				key: 'ccc333',
+			},
+		];
+	};
+
+	await t('a button press only runs the automation its custom_id names', () => {
+		const found = candidatesFor(copies(), ['trigger.button.pressed'], {
+			automationKey: 'bbb222',
+			nodeId: 'trigger',
+		});
+		assert.strictEqual(found.length, 1);
+		assert.strictEqual(found[0].automation.key, 'bbb222');
+		assert.strictEqual(found[0].node.id, 'trigger');
+	});
+
+	await t('a node id alone would have run every copy', () => {
+		// Not an endorsement of the old behaviour — this pins *why* the key is
+		// needed, so a payload that quietly stops carrying one is noticed here.
+		const found = candidatesFor(copies(), ['trigger.button.pressed'], { nodeId: 'trigger' });
+		assert.strictEqual(found.length, 3);
+	});
+
+	await t('a key that no longer exists starts nothing', () => {
+		const found = candidatesFor(copies(), ['trigger.button.pressed'], {
+			automationKey: 'deleted',
+			nodeId: 'trigger',
+		});
+		assert.strictEqual(found.length, 0);
+	});
+
+	await t('a gateway event, which names no automation, still reaches them all', () => {
+		const closed = key => ({
+			graph: graph([node('trigger.ticket.closed', { categoryIds: [] })]),
+			key,
+		});
+		const found = candidatesFor([closed('aaa111'), closed('bbb222')], ['trigger.ticket.closed'], { guildId: 'g1' });
+		assert.strictEqual(found.length, 2);
+	});
+
+	await t('every button trigger in one graph is its own entry point', () => {
+		const one = {
+			graph: graph([
+				node('trigger.button.pressed', { label: 'Yes' }, 'yes'),
+				node('trigger.button.pressed', { label: 'No' }, 'no'),
+			]),
+			key: 'aaa111',
+		};
+		assert.strictEqual(candidatesFor([one], ['trigger.button.pressed'], { automationKey: 'aaa111' }).length, 2);
+		assert.strictEqual(candidatesFor([one], ['trigger.button.pressed'], {
+			automationKey: 'aaa111',
+			nodeId: 'no',
+		}).length, 1);
+	});
+
 	console.log('\ngraph upgrade\n');
 
 	/* ─────────────────────────── GRAPH_VERSION 1 → 2 ─────────────────────────── */
@@ -1995,6 +2070,27 @@ function stubRunners(overrides = {}) {
 			assert.ok(found, `the editor does not declare the ${key} limit`);
 			assert.strictEqual(Number(found[1]), PUBLIC_LIMITS[key], `the ${key} limit differs between the bot and the editor`);
 		}
+	});
+
+	await t('every node icon exists in the free icon set', () => {
+		// A Pro-only name is not an error anywhere in the stack: Font Awesome has
+		// no glyph for it, the class matches nothing, and the node renders with a
+		// blank space where its icon should be. `fa-gauge-low` sat on "Set the
+		// slow mode" that way until somebody asked why that one node had no icon.
+		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
+		const meta = path.join(root, 'src', 'dashboard', 'node_modules', '@fortawesome', 'fontawesome-free', 'metadata', 'icon-families.json');
+		if (!fs.existsSync(mirror) || !fs.existsSync(meta)) {
+			console.log('       (skipped: the editor or its Font Awesome metadata is not installed)');
+			return;
+		}
+		const icons = JSON.parse(fs.readFileSync(meta, 'utf8'));
+		const free = name => Object.keys(icons[name]?.familyStylesByLicense?.free ?? {}).length > 0;
+
+		const source = fs.readFileSync(mirror, 'utf8');
+		const used = [...new Set([...source.matchAll(/'fa-([a-z0-9-]+)'/g)].map(m => m[1]))];
+		assert.ok(used.length > 20, 'no icons were found to check');
+		const missing = used.filter(name => !free(name));
+		assert.deepStrictEqual(missing, [], `not in the free set: ${missing.join(', ')}`);
 	});
 
 	await t('the editor mirrors the capability walk', () => {

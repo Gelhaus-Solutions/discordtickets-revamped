@@ -206,6 +206,46 @@ async function rateLimited(client, guildId) {
 }
 
 /**
+ * The (automation, trigger node) pairs an event could start.
+ *
+ * An automation may hold several triggers, and more than one of them can be of
+ * this type — two "a button is pressed" nodes in one graph is the whole point of
+ * allowing it. Each is its own entry point, so each is its own run.
+ *
+ * `automationKey` is what a component interaction knows and a gateway event does
+ * not: `src/buttons/auto.js` and `src/menus/auto.js` have already resolved the
+ * automation out of the custom_id, and pass it on so nothing else can answer.
+ * Without it, `nodeId` alone decides — and node ids are only unique *within* a
+ * graph, so duplicating an automation, which copies the graph verbatim, made
+ * every copy answer the original's buttons. Three copies, three confirmations,
+ * from one press.
+ *
+ * Split out of `emit` so the scoping is testable without a client; see
+ * `scripts/check-automations.js`.
+ *
+ * @param {Array<{key: string, graph: object}>} all the guild's automations
+ * @param {string[]} triggerTypes
+ * @param {object} payload
+ */
+function candidatesFor(all, triggerTypes, payload) {
+	const candidates = [];
+	for (const automation of all) {
+		if (payload.automationKey && automation.key !== payload.automationKey) continue;
+		for (const node of triggerNodes(automation.graph)) {
+			if (!triggerTypes.includes(node.type)) continue;
+			// A button carries the node it belongs to, so only that one runs —
+			// otherwise pressing button A would also fire button B's branch.
+			if (payload.nodeId && node.id !== payload.nodeId) continue;
+			candidates.push({
+				automation,
+				node,
+			});
+		}
+	}
+	return candidates;
+}
+
+/**
  * Fire a trigger.
  *
  * @param {import("client")} client
@@ -225,22 +265,7 @@ async function emit(client, triggerType, payload) {
 		// The fast path, and the reason this is cheap enough for messageCreate.
 		if (!all.length) return;
 
-		// An automation may hold several triggers, and more than one of them can be
-		// of this type — two "a button is pressed" nodes in one graph is the whole
-		// point of allowing it. Each is its own entry point, so each is its own run.
-		const candidates = [];
-		for (const automation of all) {
-			for (const node of triggerNodes(automation.graph)) {
-				if (!triggerTypes.includes(node.type)) continue;
-				// A button carries the node it belongs to, so only that one runs —
-				// otherwise pressing button A would also fire button B's branch.
-				if (payload.nodeId && node.id !== payload.nodeId) continue;
-				candidates.push({
-					automation,
-					node,
-				});
-			}
-		}
+		const candidates = candidatesFor(all, triggerTypes, payload);
 		if (!candidates.length) return;
 
 		// A role change an automation just made must not re-trigger the automation
@@ -294,6 +319,7 @@ async function emit(client, triggerType, payload) {
 }
 
 module.exports = {
+	candidatesFor,
 	currentDepth,
 	emit,
 	flattenEmbeds,
