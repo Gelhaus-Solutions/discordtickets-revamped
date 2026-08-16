@@ -90,6 +90,8 @@ export const NODE_ICONS = {
 	'action.channel.createForumPost': 'fa-comments',
 	'action.channel.createThread': 'fa-comment-dots',
 	'action.log': 'fa-file-lines',
+	'action.member.ban': 'fa-gavel',
+	'action.member.kick': 'fa-right-from-bracket',
 	'action.message.dm': 'fa-envelope',
 	'action.message.ephemeral': 'fa-eye-slash',
 	'action.message.react': 'fa-face-smile',

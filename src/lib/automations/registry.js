@@ -685,6 +685,25 @@ const subjectField = (label = 'Who') => ({
 });
 
 /**
+ * The guard on the two nodes that cannot be undone.
+ *
+ * On by default, and deliberately the last field: a ban node behind a
+ * message-pattern trigger is one paste away from removing the moderator who
+ * quoted the phrase. Unticking it is supported — removing a rogue moderator is
+ * a real thing to want — but it has to be a decision rather than an oversight.
+ *
+ * "Staff" is whatever `isStaff` says, so it follows the same roles the rest of
+ * the bot's permission checks do, plus anyone with Manage Server.
+ */
+const protectStaffField = participle => ({
+	default: true,
+	help: `Staff are skipped rather than ${participle}, and the run log says so.`,
+	key: 'protectStaff',
+	label: 'Never do this to staff',
+	type: 'boolean',
+});
+
+/**
  * What a role or member may do in a channel a node creates.
  *
  * Three presets rather than a permission matrix. Discord has around forty flags,
@@ -1080,6 +1099,65 @@ const NODE_TYPES = {
 			required: true,
 			type: 'textarea',
 		}],
+	},
+	'action.member.ban': {
+		category: 'action',
+		description: 'Ban someone from the server.',
+		label: 'Ban someone',
+		needs: ['member'],
+		outputs: ['out'],
+		params: [subjectField('Ban'), {
+			key: 'reason',
+			label: 'Reason',
+			// Discord's own ceiling for an audit log reason. Longer and the API
+			// rejects the whole call, which would read as "the ban silently failed".
+			maxLength: 512,
+			placeholders: 'automation',
+			type: 'text',
+		}, {
+			default: 0,
+			help: 'Discord deletes their recent messages along with them.',
+			key: 'deleteMessageSeconds',
+			label: 'Also delete their messages from the last',
+			options: [{
+				label: 'Don\'t delete anything',
+				value: 0,
+			}, {
+				label: 'Hour',
+				value: 3600,
+			}, {
+				label: '6 hours',
+				value: 21_600,
+			}, {
+				label: '12 hours',
+				value: 43_200,
+			}, {
+				label: 'Day',
+				value: 86_400,
+			}, {
+				label: '3 days',
+				value: 259_200,
+			}, {
+				// Discord's maximum.
+				label: '7 days',
+				value: 604_800,
+			}],
+			type: 'select',
+		}, protectStaffField('banned')],
+	},
+	'action.member.kick': {
+		category: 'action',
+		description: 'Remove someone from the server. They can rejoin with a new invite.',
+		label: 'Kick someone',
+		needs: ['member'],
+		outputs: ['out'],
+		params: [subjectField('Kick'), {
+			key: 'reason',
+			label: 'Reason',
+			maxLength: 512,
+			placeholders: 'automation',
+			type: 'text',
+		}, protectStaffField('kicked')],
 	},
 	'action.message.dm': {
 		category: 'action',
