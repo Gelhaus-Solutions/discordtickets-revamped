@@ -1,0 +1,28 @@
+{
+	"feedback": {
+		"title": "Feedback - {guild}",
+		"heading": "Feedback",
+		"subheading": "How members have rated support in {guild}.",
+		"range_30": "30 days",
+		"range_90": "90 days",
+		"range_365": "12 months",
+		"average": "Average rating",
+		"out_of_five": "{rating} / 5",
+		"responses": "Responses",
+		"distribution": "Rating distribution",
+		"distribution_label": "Responses by rating",
+		"trend": "Ratings over time",
+		"trend_label": "Average rating per day",
+		"trend_series": "Average rating",
+		"stars": "{count} stars",
+		"star": "1 star",
+		"count_responses": "{count} responses",
+		"load_failed": "Feedback could not be loaded.",
+		"not_collecting": "This server does not ask for feedback when a ticket is closed.",
+		"not_collecting_hint": "Ratings are collected per category, and no category here has it enabled.",
+		"no_responses": "Nobody has left feedback in this period yet.",
+		"no_responses_hint": "Try a longer range.",
+		"no_average": "No rating yet",
+		"anonymous_note": "Only totals are shown here. Comments and who left them are never public."
+	}
+}
