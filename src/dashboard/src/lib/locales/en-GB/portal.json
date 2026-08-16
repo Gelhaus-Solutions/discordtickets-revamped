@@ -2,6 +2,11 @@
 	"home": {
 		"your_tickets": "Your tickets",
 		"your_tickets_desc": "Tickets you have opened in this server.",
+		"view_all_tickets": "View all",
+		"tiles": {
+			"tickets": "Your Tickets",
+			"feedback": "Feedback"
+		},
 		"no_open_tickets": "You have no open tickets here.",
 		"open_from_discord": "Tickets are opened from Discord, using this server's ticket panel or the /new command.",
 		"load_failed": "Your tickets could not be loaded.",
