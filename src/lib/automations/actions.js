@@ -50,6 +50,8 @@ const {
 const {
 	addRole,
 	automationCustomId,
+	banMember,
+	kickMember,
 	removeRole,
 } = require('./discord');
 const {
@@ -85,6 +87,19 @@ const render = async (content, ctx) => {
 	const text = String(content ?? '');
 	return substitute(text, await ctx.varsFor(text));
 };
+
+/**
+ * The audit log line a ban or a kick is recorded under.
+ *
+ * Trimmed to Discord's 512 characters *after* substitution, not before: the
+ * validator caps what an admin types, but `{opener}` and friends expand at run
+ * time, and an over-long reason is a rejected API call rather than a truncated
+ * one — which would read as the ban simply not happening.
+ */
+async function auditReason(node, ctx) {
+	const text = node.params?.reason ? (await render(node.params.reason, ctx)).slice(0, 512) : '';
+	return text || `Automation ${ctx.automationKey ?? ''}`.trim();
+}
 
 /** What Discord says when an interaction token is past its 15 minutes. */
 const EXPIRED_INTERACTION = [
@@ -419,6 +434,41 @@ function makeRunners(client, runNested) {
 				guildId: ctx.guildId,
 				reason: 'Automation',
 				roleId: node.params.roleId,
+				userId: member.id,
+			});
+			return result.ok ? { reason: result.reason } : skip(result.reason);
+		}),
+
+		/* ── moderation ──────────────────────────────────────────────────────── */
+
+		// Both skip on every precondition rather than throwing. A member the bot
+		// outranks, a staff member the guard caught, someone already banned:
+		// nothing is broken and nothing downstream depended on them being gone, so
+		// the branch carries on and the run log carries the reason. Every refusal
+		// these two can hit is listed in `checkModeration`.
+
+		'action.member.ban': real(async (node, ctx) => {
+			const member = await ctx.resolveSubject(node.params.subject);
+			if (!member) return skip('unknown_member');
+			const result = await banMember(client, {
+				deleteMessageSeconds: Number(node.params.deleteMessageSeconds ?? 0),
+				guildId: ctx.guildId,
+				// Absent means on: a graph saved before this field existed, or one
+				// whose author never touched it, must get the safe behaviour.
+				protectStaff: node.params.protectStaff !== false,
+				reason: await auditReason(node, ctx),
+				userId: member.id,
+			});
+			return result.ok ? { reason: result.reason } : skip(result.reason);
+		}),
+
+		'action.member.kick': real(async (node, ctx) => {
+			const member = await ctx.resolveSubject(node.params.subject);
+			if (!member) return skip('unknown_member');
+			const result = await kickMember(client, {
+				guildId: ctx.guildId,
+				protectStaff: node.params.protectStaff !== false,
+				reason: await auditReason(node, ctx),
 				userId: member.id,
 			});
 			return result.ok ? { reason: result.reason } : skip(result.reason);

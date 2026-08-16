@@ -2032,6 +2032,177 @@ function stubRunners(overrides = {}) {
 		assert.deepStrictEqual(needsOf(post({ content: 'hello' })), ['guild']);
 	});
 
+	/* ──────────────────────── banning and kicking ─────────────────────────── */
+
+	// The two nodes whose mistakes cannot be undone by re-running the graph, so
+	// the refusals are asserted here rather than trusted to Discord.
+
+	/**
+	 * A guild whose every safety question can be answered without a network.
+	 *
+	 * `bannable`/`kickable` are plain properties rather than discord.js getters,
+	 * which is the point: this pins what the helpers do with the answer, not how
+	 * discord.js arrives at it.
+	 */
+	const modClient = (member = {}, {
+		banned = false, permissions = true, staff = false,
+	} = {}) => {
+		const created = [];
+		const kicked = [];
+		const target = {
+			bannable: true,
+			id: '900000000000000001',
+			kick: async reason => kicked.push(reason),
+			kickable: true,
+			// What `isStaff` reads first: Manage Server makes someone staff
+			// wherever they are, without a database read.
+			permissions: { has: () => staff },
+			roles: { cache: new Map() },
+			...member,
+		};
+		const guild = {
+			bans: {
+				create: async (id, options) => created.push({
+					id,
+					...options,
+				}),
+				fetch: async () => (banned ? { user: { id: target.id } } : Promise.reject(new Error('Unknown Ban'))),
+			},
+			id: '1',
+			members: {
+				cache: new Map([[target.id, target]]),
+				fetch: async id => (id === target.id ? target : Promise.reject(new Error('Unknown Member'))),
+				me: { permissions: { has: () => permissions } },
+			},
+			ownerId: '900000000000000099',
+		};
+		const client = {
+			guilds: { cache: new Map([['1', guild]]) },
+			keyv: { set: async () => {} },
+			supers: [],
+			user: { id: 'bot' },
+		};
+		guild.client = client;
+		return {
+			client,
+			created,
+			kicked,
+			target,
+		};
+	};
+
+	const ban = (harness, params = {}) => {
+		const { banMember } = require(path.join(root, 'src', 'lib', 'automations', 'discord'));
+		return banMember(harness.client, {
+			guildId: '1',
+			userId: harness.target.id,
+			...params,
+		});
+	};
+
+	await t('a ban refuses everything Discord would allow but should not happen', async () => {
+		// The bot itself. Discord permits this, and it takes the ticket system and
+		// every other automation in the server down with it.
+		const self = modClient({ id: 'bot' });
+		assert.strictEqual((await ban(self, { userId: 'bot' })).reason, 'self');
+
+		// The owner, the hierarchy, and a bot without the permission — each named
+		// separately, because "it did nothing" is not an answer an admin can act on.
+		assert.strictEqual((await ban(modClient({ id: '900000000000000099' }), { userId: '900000000000000099' })).reason, 'guild_owner');
+		assert.strictEqual((await ban(modClient({ bannable: false }))).reason, 'member_too_high');
+		assert.strictEqual((await ban(modClient({}, { permissions: false }))).reason, 'missing_permissions');
+		assert.strictEqual((await ban(modClient(), { userId: '900000000000000404' })).reason, 'unknown_member');
+	});
+
+	await t('the staff guard is the one refusal an admin can waive', async () => {
+		// The mistake this exists for: a ban node behind a message-pattern trigger
+		// removing the moderator who quoted the phrase.
+		const guarded = modClient({}, { staff: true });
+		assert.strictEqual((await ban(guarded, { protectStaff: true })).reason, 'is_staff');
+		assert.deepStrictEqual(guarded.created, []);
+
+		// ...and off is a supported choice, for a graph built to remove a rogue one.
+		const waived = modClient({}, { staff: true });
+		assert.strictEqual((await ban(waived, { protectStaff: false })).ok, true);
+		assert.strictEqual(waived.created.length, 1);
+
+		// Somebody who is not staff is unaffected either way.
+		assert.strictEqual((await ban(modClient(), { protectStaff: true })).ok, true);
+	});
+
+	await t('a ban already in place is a noop, not a second audit log entry', async () => {
+		const harness = modClient({}, { banned: true });
+		const result = await ban(harness);
+		assert.strictEqual(result.ok, true);
+		assert.strictEqual(result.reason, 'noop');
+		assert.deepStrictEqual(harness.created, [], 'a ban was issued over an existing one');
+	});
+
+	await t('a ban passes the reason and the delete window through', async () => {
+		const harness = modClient();
+		assert.strictEqual((await ban(harness, {
+			deleteMessageSeconds: 604_800,
+			protectStaff: false,
+			reason: 'spam',
+		})).ok, true);
+		assert.deepStrictEqual(harness.created, [{
+			deleteMessageSeconds: 604_800,
+			id: harness.target.id,
+			reason: 'spam',
+		}]);
+	});
+
+	await t('a kick removes the member and records why', async () => {
+		const { kickMember } = require(path.join(root, 'src', 'lib', 'automations', 'discord'));
+		const harness = modClient();
+		const result = await kickMember(harness.client, {
+			guildId: '1',
+			protectStaff: false,
+			reason: 'asked to leave',
+			userId: harness.target.id,
+		});
+		assert.strictEqual(result.ok, true);
+		assert.deepStrictEqual(harness.kicked, ['asked to leave']);
+	});
+
+	await t('the staff guard defaults to on in the schema too', () => {
+		// Absent means protected: a node saved before the field existed, and one
+		// whose author never touched the checkbox, must both get the safe
+		// behaviour. `!== false` is what makes those two the same case.
+		const field = NODE_TYPES['action.member.ban'].params.find(p => p.key === 'protectStaff');
+		assert.strictEqual(field.default, true, 'the staff guard must default to on');
+		assert.strictEqual(field.type, 'boolean');
+		assert.ok(NODE_TYPES['action.member.kick'].params.some(p => p.key === 'protectStaff'));
+	});
+
+	await t('a ban or a kick needs somebody to act on', () => {
+		const banNode = (params = {}) => node('action.member.ban', {
+			subject: 'actor',
+			...params,
+		}, 'b');
+		// A cron trigger has a server and nothing else, so there is nobody to ban.
+		assert.strictEqual(codeOf(underCron([banNode()])), 'missing_context');
+		assert.deepStrictEqual(needsOf(banNode()), ['member']);
+		// Acting on the ticket's creator drags the ticket in with it.
+		assert.deepStrictEqual(needsOf(banNode({ subject: 'ticketCreator' })).sort(), ['member', 'ticket']);
+
+		const underMember = params => graph(
+			[node('trigger.member.joined', {}, 'a'), node('action.member.ban', params, 'b')],
+			[edge('a', 'b')],
+		);
+		assert.strictEqual(codeOf(underMember({ subject: 'actor' })), null);
+		// Discord's own ceilings, so an over-long value is a rejected API call
+		// rather than a truncated one.
+		assert.strictEqual(codeOf(underMember({
+			reason: 'x'.repeat(513),
+			subject: 'actor',
+		})), 'too_long');
+		assert.strictEqual(codeOf(underMember({
+			deleteMessageSeconds: 999_999,
+			subject: 'actor',
+		})), 'unknown_option');
+	});
+
 	await t('every node type has a runner', () => {
 		// The interpreter dispatches with `runners[node.type]?.(...)`, so a type in
 		// the registry with no runner does not throw: it returns `{}` and traces as
