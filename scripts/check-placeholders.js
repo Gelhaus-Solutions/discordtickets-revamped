@@ -308,10 +308,17 @@ t('the catalogue serialises without functions', () => {
 // advertises a placeholder and the code path that renders it never puts a value
 // in `vars`, so it silently becomes an empty string in somebody's server.
 
-/** Every token a context declares that is not resolved lazily or from stats. */
+/**
+ * Every token a context declares that some supplier has to put in `vars`.
+ *
+ * `derived` ones are exempt because there is no supplier to check: they work
+ * their value out from the clock and never read `vars` at all, so demanding
+ * that `panelVars` hand `{time}` a value would be asking for a value it cannot
+ * know. Their own test is below.
+ */
 const eagerTokens = context =>
 	placeholders.forContext(context)
-		.filter(p => !p.lazy && !p.stats)
+		.filter(p => !p.lazy && !p.stats && !p.derived)
 		.map(p => p.token);
 
 t('a panel supplies every variable it advertises', () => {
@@ -418,6 +425,43 @@ t('a user id renders as digits, wherever it is written', () => {
 		},
 		number: 1,
 	}), 'bob');
+});
+
+t('the clock placeholders resolve themselves, from no vars at all', () => {
+	// The point of `derived`: these are the only entries with no supplier, so
+	// they are the only ones that must render correctly against an empty `vars`.
+	const now = Math.floor(Date.now() / 1000);
+	const styles = {
+		date: 'd',
+		datetime: 'f',
+		relativetime: 'R',
+		time: 't',
+	};
+
+	for (const [token, style] of Object.entries(styles)) {
+		const rendered = placeholders.substitute(`{${token}}`, {});
+		const match = rendered.match(/^<t:(\d+):(\w)>$/);
+		assert.ok(match, `{${token}} rendered as ${JSON.stringify(rendered)}, not a Discord timestamp`);
+		assert.strictEqual(match[2], style, `{${token}} used the wrong Discord style`);
+		// Within a second of now, which is the whole claim being made.
+		assert.ok(Math.abs(Number(match[1]) - now) <= 1, `{${token}} is not the current time`);
+	}
+
+	// The alias, and the tolerance for `{{ x }}` every other token has.
+	assert.ok(/^<t:\d+:R>$/.test(placeholders.substitute('{timeago}', {})));
+	assert.ok(/^<t:\d+:f>$/.test(placeholders.substitute('{{ DATETIME }}', {})));
+	// `date` is a prefix of `datetime`; longest-first is what stops {datetime}
+	// rendering as a date with a stray "time" left behind it.
+	assert.ok(/^<t:\d+:f>$/.test(placeholders.substitute('{datetime}', {})));
+	assert.ok(/^<t:\d+:d>$/.test(placeholders.substitute('{date}', {})));
+
+	// A frozen clock is worse than none: a panel is substituted once, when it is
+	// saved, so it must not advertise them.
+	for (const token of Object.keys(styles)) {
+		const entry = placeholders.PLACEHOLDERS.find(p => p.token === token);
+		assert.ok(!('panel' in entry.contexts), `{${token}} must not be offered on a panel`);
+		assert.ok(!('channelName' in entry.contexts), `{${token}} cannot go in a channel name`);
+	}
 });
 
 t('every block-editor kind resolves to a real placeholder context', () => {

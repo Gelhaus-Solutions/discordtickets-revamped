@@ -87,10 +87,25 @@ const CONTEXTS = [
  * @property {boolean} [lazy]       costs a database read, so the automation
  *   context only resolves it when the text asks for it
  * @property {boolean} [stats]      costs a stats aggregation, likewise
+ * @property {boolean} [derived]    needs no `vars` at all — its `resolve` works
+ *   the value out from nothing but the clock. The one exemption from
+ *   "declared here, supplied over there": there is no supplier to check.
  * @property {string} [pattern]     a regex fragment, for a family like `match1..9`
  * @property {string} [sample]      what the dashboard preview substitutes
  * @property {(vars: object) => *} [resolve]  non-obvious lookups only
  */
+
+/**
+ * The current moment as a Discord timestamp tag.
+ *
+ * Discord renders `<t:1776…:f>` in each reader's own timezone and locale, which
+ * is the entire reason these placeholders exist: a bot that formatted the time
+ * itself would have to pick one timezone, and it would be wrong for everybody
+ * who does not live in it.
+ *
+ * @param {string} style one of Discord's style letters — t, d, f or R.
+ */
+const timestamp = style => `<t:${Math.floor(Date.now() / 1000)}:${style}>`;
 
 /** @type {Placeholder[]} */
 const PLACEHOLDERS = [
@@ -251,6 +266,69 @@ const PLACEHOLDERS = [
 		stats: true,
 		token: 'avgRating',
 	},
+	/* ── the clock ──────────────────────────────────────────────────────────── */
+	// The only placeholders that need nothing from the caller, so unlike every
+	// other entry they are `derived` and resolve themselves.
+	//
+	// Offered in the three contexts that are rendered at the moment they are
+	// posted. Deliberately **not** `panel`: a panel is substituted once, when it
+	// is saved, and stays that way — a clock on one would be frozen at whatever
+	// time an admin last pressed save, which is worse than having no clock. And
+	// not `channelName`, which cannot hold a `<t:…>` tag at all.
+	{
+		contexts: {
+			automation: null,
+			opening: null,
+			tag: null,
+		},
+		derived: true,
+		description: 'The time right now, shown in each reader\'s own timezone.',
+		label: 'Time',
+		resolve: () => timestamp('t'),
+		sample: '16:20',
+		token: 'time',
+	},
+	{
+		contexts: {
+			automation: null,
+			opening: null,
+			tag: null,
+		},
+		derived: true,
+		description: 'Today\'s date, in each reader\'s own format.',
+		label: 'Date',
+		resolve: () => timestamp('d'),
+		sample: '20/04/2026',
+		token: 'date',
+	},
+	{
+		contexts: {
+			automation: null,
+			opening: null,
+			tag: null,
+		},
+		derived: true,
+		description: 'The date and the time together.',
+		label: 'Date and time',
+		resolve: () => timestamp('f'),
+		sample: '20 April 2026 16:20',
+		token: 'datetime',
+	},
+	{
+		aliases: ['timeago'],
+		contexts: {
+			automation: null,
+			opening: 'Counts up on its own, so an opening message can say how long ago the ticket was opened however much later it is read.',
+			tag: null,
+		},
+		derived: true,
+		description: 'How long ago this was posted, counted from when it was sent.',
+		label: 'Relative time',
+		resolve: () => timestamp('R'),
+		sample: 'a few seconds ago',
+		token: 'relativetime',
+	},
+
 	{
 		contexts: { automation: 'From the (brackets) in the trigger\'s pattern: {match1} is the first, {match2} the second, and so on up to {match9}.' },
 		description: 'A capture group from the message that set the automation off.',
