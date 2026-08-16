@@ -18,8 +18,9 @@ export async function load({ fetch, parent }) {
 		// and must not be rendered as though the queue were empty. A failure here
 		// degrades to no strip rather than taking the page down.
 		counts: counts?.ok ? (await counts.json()).counts : null,
-		// Likewise: null is "could not load", [] is "you have none".
-		tickets: mine.ok ? await mine.json() : null,
+		// Likewise: null is "could not load", [] is "you have none". Only the
+		// first page — this is a teaser, and the tickets page owns the archive.
+		tickets: mine.ok ? (await mine.json()).tickets : null,
 		translations: importJSON(
 			await import(`../../../lib/locales/${locale}/_common.json`),
 			await import(`../../../lib/locales/${locale}/portal.json`)

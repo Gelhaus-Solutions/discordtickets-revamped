@@ -63,7 +63,7 @@
 			const res = await fetch(`/api/guilds/${guild.id}/tickets/@me?status=open`, {
 				credentials: 'include'
 			});
-			if (res.ok) refetched = await res.json();
+			if (res.ok) refetched = (await res.json()).tickets;
 		} finally {
 			retrying = false;
 		}
@@ -77,7 +77,7 @@
 			const res = await fetch(`/api/guilds/${guild.id}/tickets/@me?status=closed&limit=20`, {
 				credentials: 'include'
 			});
-			closed = res.ok ? await res.json() : [];
+			closed = res.ok ? (await res.json()).tickets : [];
 		} finally {
 			loadingClosed = false;
 		}
@@ -96,8 +96,27 @@
 -->
 <div class="grid grid-cols-1 gap-12 md:grid-cols-2">
 	<div>
-		{#if guild.privilegeLevel > 0}
-			<div class="grid grid-cols-2 gap-4 text-center sm:grid-cols-3">
+		<!--
+			The tiles every member gets come first, so a level-0 visitor sees a grid
+			rather than an empty column. The staff and admin destinations are added
+			to the same grid rather than living in one of their own.
+		-->
+		<div class="grid grid-cols-2 gap-4 text-center sm:grid-cols-3">
+			<a
+				href={`/${slug}/tickets`}
+				class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+			>
+				<i class="fas fa-ticket mb-4 text-4xl"></i>
+				<p class="text-center text-lg font-semibold">{t('home.tiles.tickets')}</p>
+			</a>
+			<a
+				href={`/${slug}/feedback`}
+				class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+			>
+				<i class="fas fa-star mb-4 text-4xl"></i>
+				<p class="text-center text-lg font-semibold">{t('home.tiles.feedback')}</p>
+			</a>
+			{#if guild.privilegeLevel > 0}
 				<a
 					href={`/${slug}/staff`}
 					class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
@@ -105,18 +124,18 @@
 					<i class="fas fa-user-group mb-4 text-4xl"></i>
 					<p class="text-center text-lg font-semibold">{t('common:staff_dashboard')}</p>
 				</a>
-				{#if guild.privilegeLevel >= 2}
-					<!-- The real snowflake, deliberately: this one belongs to /settings. -->
-					<a
-						href={`/settings/${guild.id}`}
-						class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
-					>
-						<i class="fas fa-gear mb-4 text-4xl"></i>
-						<p class="text-center text-lg font-semibold">{t('common:settings_panel')}</p>
-					</a>
-				{/if}
-			</div>
-		{/if}
+			{/if}
+			{#if guild.privilegeLevel >= 2}
+				<!-- The real snowflake, deliberately: this one belongs to /settings. -->
+				<a
+					href={`/settings/${guild.id}`}
+					class="link rounded-xl bg-gray-100 p-4 shadow-sm dark:bg-slate-800"
+				>
+					<i class="fas fa-gear mb-4 text-4xl"></i>
+					<p class="text-center text-lg font-semibold">{t('common:settings_panel')}</p>
+				</a>
+			{/if}
+		</div>
 	</div>
 
 	<div>
@@ -156,7 +175,16 @@
 </div>
 
 <div class="mt-12">
-	<h2 class="text-xl font-bold">{t('home.your_tickets')}</h2>
+	<div class="flex flex-wrap items-baseline justify-between gap-2">
+		<h2 class="text-xl font-bold">{t('home.your_tickets')}</h2>
+		<!-- This list is the first page of open tickets; the archive lives there. -->
+		<a
+			href={`/${slug}/tickets`}
+			class="link text-sm underline decoration-dotted hover:decoration-solid"
+		>
+			{t('home.view_all_tickets')}
+		</a>
+	</div>
 	<p class="mb-3 text-base text-gray-500 dark:text-slate-400">{t('home.your_tickets_desc')}</p>
 
 	{#if tickets === null}

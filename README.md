@@ -106,3 +106,13 @@ See [SECURITY.md](.github/SECURITY.md) for how to report a vulnerability.
 ## License
 
 GPL-3.0-or-later, inherited from the upstream project by [eartharoid](https://github.com/eartharoid). See [LICENSE](LICENSE).
+
+Upstream copyright is unchanged and stays with its authors. Changes made in this
+fork are copyright (c) 2026 Gelhaus Solutions (Enno Gelhaus), released under the
+same licence.
+
+## Maintainer
+
+This fork is maintained by [Gelhaus Solutions](https://ennogelhaus.de) (Enno
+Gelhaus). It is not affiliated with, sponsored by, or endorsed by the upstream
+project; for upstream itself, see [discordtickets.app](https://discordtickets.app).
