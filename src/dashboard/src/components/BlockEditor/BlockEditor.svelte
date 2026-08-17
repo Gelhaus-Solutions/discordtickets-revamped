@@ -33,14 +33,19 @@
 	let expanded = $state(null);
 	let adding = $state(false);
 
-	// Containers cannot nest, and the dynamic blocks only make sense once, at the
-	// top level of an opening message.
+	// Containers cannot nest. That is the *only* nesting rule — `validateBlock` in
+	// src/lib/components-v2.js rejects `nested_container` and nothing else.
+	//
+	// The dynamic blocks (answers, mentions, controls) used to be filtered out in
+	// here too, on the theory that they only make sense once, at the top level.
+	// Both halves of that were wrong. Nothing enforces "once" anywhere, in here or
+	// on the server, so two Answers blocks side by side have always been one click
+	// away. And `defaultOpeningLayout` puts `answers` *inside* the container it
+	// seeds, so the rule contradicted the layout this editor ships with: a category
+	// built by the seeder showed an Answers block in its container that could not be
+	// put back once removed, on that category or any other.
 	const addable = $derived(
-		BLOCK_TYPES[context].filter((type) => {
-			if (nested && type === 'container') return false;
-			if (nested && BLOCK_META[type]?.dynamic) return false;
-			return true;
-		})
+		BLOCK_TYPES[context].filter((type) => !(nested && type === 'container'))
 	);
 
 	const atLimit = $derived(!nested && blocks.length >= LIMITS.topBlocks);
@@ -65,9 +70,15 @@
 	});
 
 	const add = (type) => {
-		blocks = [...blocks, newBlock(type)];
+		// Keep hold of the block rather than reading it back out of `blocks`. Inside
+		// a container `blocks` is a bindable prop two hops from the state it writes
+		// to, and on an empty list a read-back that has not landed yet makes
+		// `blocks[-1].id` a TypeError — thrown after `adding` is already false, so
+		// the picker closes and nothing appears.
+		const block = newBlock(type);
+		blocks = [...blocks, block];
 		adding = false;
-		expanded = blocks[blocks.length - 1].id;
+		expanded = block.id;
 	};
 
 	const remove = (id) => {
@@ -187,7 +198,16 @@
 </div>
 
 {#if blocks.length === 0}
-	<p class="py-2 text-sm text-gray-500 dark:text-slate-400">No blocks yet — add one below.</p>
+	{#if nested}
+		<!-- The server refuses to save this ('A container needs at least one block'),
+		     so say so here rather than letting Save be the one to mention it. -->
+		<p class="py-2 text-sm text-red-500">
+			<i class="fa-solid fa-triangle-exclamation"></i>
+			A container needs at least one block — add one below, or remove the container.
+		</p>
+	{:else}
+		<p class="py-2 text-sm text-gray-500 dark:text-slate-400">No blocks yet — add one below.</p>
+	{/if}
 {/if}
 
 <div class="mt-2">
