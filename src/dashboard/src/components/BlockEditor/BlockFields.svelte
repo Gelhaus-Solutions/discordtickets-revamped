@@ -164,9 +164,14 @@
 	<div class="flex flex-col gap-2">
 		{#each block.items as item, i}
 			<div class="flex items-center gap-2">
+				<!-- Not `type="url"`: this field takes placeholders, and native
+				     constraint validation would refuse to submit the form for a
+				     perfectly good `{avatar}`. The server validates it properly,
+				     skipping anything with braces until render time. -->
 				<input
 					bind:this={galleryEls[i]}
-					type="url"
+					type="text"
+					inputmode="url"
 					class="input form-input text-sm"
 					placeholder="https://example.com/image.png"
 					bind:value={item.url}
@@ -227,9 +232,13 @@
 		</label>
 
 		{#if block.accessory?.kind === 'thumbnail'}
+			<!-- `type="text"`, for the reason given on the gallery field above: the
+			     default opening layout ships `{avatar}` in exactly this input, so
+			     `type="url"` made Save a no-op on an untouched category. -->
 			<input
 				bind:this={accessoryEl}
-				type="url"
+				type="text"
+				inputmode="url"
 				class="input form-input text-sm"
 				placeholder="https://example.com/image.png"
 				bind:value={block.accessory.url}

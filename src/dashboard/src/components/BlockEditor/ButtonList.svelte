@@ -128,9 +128,12 @@
 				{:else}
 					<label class="text-sm">
 						<span class="font-medium">URL</span>
+						<!-- `type="text"`: a link button's URL takes placeholders, and
+						     native validation would block the form over one. -->
 						<input
 							bind:this={urlEls[i]}
-							type="url"
+							type="text"
+							inputmode="url"
 							class="input form-input text-sm"
 							bind:value={button.url}
 						/>

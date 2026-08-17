@@ -251,6 +251,15 @@
 			if (json.description.length > 100)
 				throw new Error(`The description is too long (${json.description.length}>100).`);
 
+			// The form is `novalidate` for the block editor's sake and the API only
+			// allow-lists `image` without checking it, so this is the only check it
+			// gets. Placeholders pass, on the same reasoning as the server's `url()`
+			// in src/lib/components-v2.js: this value is seeded into a gallery block
+			// by `defaultOpeningLayout`, and gallery URLs are substituted at render.
+			const image = String(json.image ?? '').trim();
+			if (image !== '' && !/{[^{}]*}/.test(image) && !/^https?:\/\/\S+$/i.test(image))
+				throw new Error('The image must be an http(s) URL.');
+
 			json.questions = qS.questions.map((q) => {
 				const problem = validateQuestion(q);
 				if (problem) throw new Error(`The "${q.label}" question ${problem}`);
@@ -349,7 +358,16 @@
 	{#if error}
 		<ErrorBox {error} />
 	{/if}
-	<form onsubmit={preventDefault(() => submit())} onchange={() => (modified = true)} class="my-4">
+	<!-- `novalidate`: the block editor's URL fields accept placeholders, which the
+	     browser scores as invalid and then blocks submission over, silently. The
+	     API validates the layout; `image` is checked in `submit()` because the API
+	     only allow-lists that one. -->
+	<form
+		novalidate
+		onsubmit={preventDefault(() => submit())}
+		onchange={() => (modified = true)}
+		class="my-4"
+	>
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-12">
 			<div class="grid grid-cols-1 gap-8">
 				<div>

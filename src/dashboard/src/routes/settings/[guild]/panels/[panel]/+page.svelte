@@ -87,7 +87,10 @@
 		<ErrorBox {error} />
 	{/if}
 
-	<form onsubmit={preventDefault(() => submit())} class="flex flex-col gap-4">
+	<!-- `novalidate`: the block editor's URL fields accept placeholders, which the
+	     browser scores as invalid and then blocks submission over, silently. The
+	     API validates the whole layout and reports through ErrorBox. -->
+	<form novalidate onsubmit={preventDefault(() => submit())} class="flex flex-col gap-4">
 		<div class="rounded-xl bg-white p-4 shadow-sm dark:bg-slate-700">
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<label>
