@@ -146,7 +146,20 @@ module.exports = class extends Listener {
 			await bootstrapTemporal(client);
 			temporalReady = true;
 		} catch (error) {
-			client.log.error('Temporal is unavailable: durable work (stale tickets, scheduled closes, exports) is degraded until it recovers');
+			// The address is in the message on purpose: the failure is nearly
+			// always "the bot is not pointed where Temporal actually is" or
+			// "Temporal was not up yet", and neither is obvious from the SDK's
+			// own error.
+			client.log.error(
+				'Temporal at %s is unavailable: durable work (stale tickets, scheduled closes, exports) is degraded until it recovers',
+				(() => {
+					try {
+						return temporal.getTemporalConfig().address;
+					} catch {
+						return 'the configured address';
+					}
+				})(),
+			);
 			client.log.error(error);
 			retryTemporalBootstrap(client);
 		}

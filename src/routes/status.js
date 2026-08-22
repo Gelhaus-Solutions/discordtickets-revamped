@@ -12,6 +12,17 @@ module.exports.get = () => ({
 			temporalHealthy = false;
 		}
 
+		// Reported separately from the worker because the two fail for different
+		// reasons and want different responses: no client at all means the
+		// gateway never connected (and is retrying), while a connected client
+		// with no worker means nothing is executing what it starts.
+		let clientConnected = false;
+		try {
+			clientConnected = temporal.temporalClientReady();
+		} catch {
+			clientConnected = false;
+		}
+
 		const shardsReady = client.ws.status === 0;
 
 		// The status code reflects *this process* only. Dockerfile's HEALTHCHECK
@@ -38,6 +49,7 @@ module.exports.get = () => ({
 							return null;
 						}
 					})(),
+					clientConnected,
 					workerRunning: temporalHealthy,
 				},
 			});
