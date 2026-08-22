@@ -4,7 +4,7 @@
  * sandboxed workflow code into the Node process.
  */
 import type { WorkflowHandle } from '@temporalio/client';
-import { getTemporalClient } from './client';
+import { ensureTemporalClient } from './client';
 import { getTemporalConfig } from './config';
 import { buildSearchAttributes } from './search-attributes';
 import {
@@ -51,7 +51,7 @@ function taskQueue(): string {
  * resets the inactivity timer via the `newActivity` signal.
  */
 export async function signalTicketActivity(input: StaleTicketInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	await client.workflow.signalWithStart(WorkflowType.staleTicket, {
 		workflowId: staleWorkflowId(input.ticketId),
 		taskQueue: taskQueue(),
@@ -75,7 +75,7 @@ export async function signalTicketActivity(input: StaleTicketInput): Promise<voi
  * earlier.
  */
 export async function deferChannelRename(input: DeferredRenameInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	await client.workflow.signalWithStart(WorkflowType.deferredRename, {
 		workflowId: renameWorkflowId(input.ticketId),
 		taskQueue: taskQueue(),
@@ -98,7 +98,7 @@ export async function deferChannelRename(input: DeferredRenameInput): Promise<vo
  * was queued while the ticket was still open.
  */
 export async function cancelDeferredRename(ticketId: string): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const handle = client.workflow.getHandle(renameWorkflowId(ticketId));
 	await handle.terminate('superseded').catch(() => undefined);
 }
@@ -110,7 +110,7 @@ export async function cancelDeferredRename(ticketId: string): Promise<void> {
  * workflow already counting down rather than a rename per message.
  */
 export async function scheduleAwaitingRename(input: AwaitingRenameInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	await client.workflow.signalWithStart(WorkflowType.awaitingRename, {
 		workflowId: awaitingRenameWorkflowId(input.ticketId),
 		taskQueue: taskQueue(),
@@ -134,14 +134,14 @@ export async function scheduleAwaitingRename(input: AwaitingRenameInput): Promis
  * fetch and keeps the Temporal UI free of workflows for closed tickets.
  */
 export async function cancelAwaitingRename(ticketId: string): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const handle = client.workflow.getHandle(awaitingRenameWorkflowId(ticketId));
 	await handle.terminate('ticket closed').catch(() => undefined);
 }
 
 /** Start the per-ticket stale workflow when a ticket opens (idempotent). */
 export async function ensureStaleWorkflow(input: StaleTicketInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.start(WorkflowType.staleTicket, {
 			workflowId: staleWorkflowId(input.ticketId),
@@ -160,7 +160,7 @@ export async function ensureStaleWorkflow(input: StaleTicketInput): Promise<void
 
 /** Best-effort cancel of a stale workflow (manual close, claim, channel gone). */
 export async function cancelStaleWorkflow(ticketId: string): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.getHandle(staleWorkflowId(ticketId)).signal(SignalName.cancelStale);
 	} catch {
@@ -170,7 +170,7 @@ export async function cancelStaleWorkflow(ticketId: string): Promise<void> {
 
 /** Query the live state of a ticket's stale workflow (null when not running). */
 export async function queryStaleState(ticketId: string): Promise<StaleState | null> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		return await client.workflow
 			.getHandle(staleWorkflowId(ticketId))
@@ -185,7 +185,7 @@ export async function queryStaleState(ticketId: string): Promise<StaleState | nu
  * Best-effort: returns false when the workflow isn't running (nothing to do).
  */
 export async function reconfigureStaleWorkflow(ticketId: string, staleAfterMs: number): Promise<boolean> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow
 			.getHandle(staleWorkflowId(ticketId))
@@ -198,7 +198,7 @@ export async function reconfigureStaleWorkflow(ticketId: string, staleAfterMs: n
 
 /** Start (idempotently) the durable close workflow for a ticket. */
 export async function startCloseTicket(input: CloseTicketInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.start(WorkflowType.closeTicket, {
 			workflowId: closeWorkflowId(input.ticketId),
@@ -220,7 +220,7 @@ export async function startCloseTicket(input: CloseTicketInput): Promise<void> {
  * terminal close at the deadline unless the `reopen` signal arrives first.
  */
 export async function startReopenWindow(input: ReopenWindowInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.start(WorkflowType.reopenWindow, {
 			workflowId: reopenWorkflowId(input.ticketId),
@@ -240,7 +240,7 @@ export async function startReopenWindow(input: ReopenWindowInput): Promise<void>
 
 /** Reopen a soft-closed ticket. Returns false when no grace window is active. */
 export async function signalReopenTicket(ticketId: string): Promise<boolean> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.getHandle(reopenWorkflowId(ticketId)).signal(SignalName.reopen);
 		return true;
@@ -251,7 +251,7 @@ export async function signalReopenTicket(ticketId: string): Promise<boolean> {
 
 /** Query the reopen grace window (deadline + whether already reopened). */
 export async function queryReopenState(ticketId: string): Promise<ReopenState | null> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		return await client.workflow
 			.getHandle(reopenWorkflowId(ticketId))
@@ -277,7 +277,7 @@ export async function startCloseRequestTimeout(
 		reopenWindowMs?: number | null;
 	},
 ): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const reopenWindowMs = Number(input.reopenWindowMs ?? 0);
 
 	// A ticket closed by *accepting* the request goes through the reopen grace
@@ -321,7 +321,7 @@ export async function startCloseRequestTimeout(
 }
 
 export async function cancelCloseRequestTimeout(ticketId: string): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.getHandle(`close-request-${ticketId}`).terminate('close request resolved');
 	} catch {
@@ -330,7 +330,7 @@ export async function cancelCloseRequestTimeout(ticketId: string): Promise<void>
 }
 
 export async function startBulkClose(input: BulkCloseInput): Promise<WorkflowHandle> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	return client.workflow.start(WorkflowType.bulkClose, {
 		workflowId: `bulk-close-${Date.now()}`,
 		taskQueue: taskQueue(),
@@ -343,7 +343,7 @@ export async function startBulkClose(input: BulkCloseInput): Promise<WorkflowHan
 }
 
 export async function startCascadeCloseUser(input: CascadeCloseUserInput): Promise<WorkflowHandle> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	return client.workflow.start(WorkflowType.cascadeCloseUser, {
 		workflowId: `cascade-close-${input.guildId}-${input.userId}`,
 		taskQueue: taskQueue(),
@@ -361,7 +361,7 @@ export async function startCascadeCloseUser(input: CascadeCloseUserInput): Promi
  * export for this guild is already running (callers map this to HTTP 429).
  */
 export async function startExportGuild(input: ExportGuildInput): Promise<WorkflowHandle> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	return client.workflow.start(WorkflowType.exportGuild, {
 		workflowId: exportWorkflowId(input.guildId),
 		taskQueue: taskQueue(),
@@ -379,7 +379,7 @@ export async function startExportGuild(input: ExportGuildInput): Promise<Workflo
  * import for this guild is already running (callers map this to HTTP 429).
  */
 export async function startImportGuild(input: ImportGuildInput): Promise<WorkflowHandle> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	return client.workflow.start(WorkflowType.importGuild, {
 		workflowId: importWorkflowId(input.guildId),
 		taskQueue: taskQueue(),
@@ -398,7 +398,7 @@ export function isWorkflowAlreadyStarted(err: unknown): boolean {
 }
 
 export async function startGenerateTranscript(input: GenerateTranscriptInput): Promise<WorkflowHandle> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	return client.workflow.start(WorkflowType.generateTranscript, {
 		workflowId: `transcript-${input.ticketId}-${Date.now()}`,
 		taskQueue: taskQueue(),
@@ -418,7 +418,7 @@ export async function startGenerateTranscript(input: GenerateTranscriptInput): P
  * error is swallowed rather than raised.
  */
 export async function startAutomationRun(input: AutomationRunInput): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	try {
 		await client.workflow.start(WorkflowType.automationRun, {
 			args: [input],

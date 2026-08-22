@@ -1675,6 +1675,9 @@ module.exports = class TicketManager {
 		// no .catch() — so with Temporal unreachable the handler threw after the
 		// user had already been shown "✅ Ticket closed", and the ticket stayed
 		// open indefinitely.
+		const closedBy = pending.closedBy ?? interaction.user.id;
+		const reason = pending.reason ?? null;
+		let durable = true;
 		try {
 			// Cancel the durable "auto-close if ignored" timeout, then close now.
 			await temporal.cancelCloseRequestTimeout(ticketId);
@@ -1682,32 +1685,31 @@ module.exports = class TicketManager {
 			if (reopenWindow > 0) {
 				// Grace window: soft-close now, terminal close when the window expires.
 				await temporal.startReopenWindow({
-					closedBy: pending.closedBy ?? interaction.user.id,
+					closedBy,
 					guildId: ticket.guildId,
-					reason: pending.reason ?? null,
+					reason,
 					ticketId,
 					windowMs: reopenWindow,
 				});
 			} else {
 				await temporal.startCloseTicket({
-					closedBy: pending.closedBy ?? interaction.user.id,
-					reason: pending.reason ?? null,
+					closedBy,
+					reason,
 					ticketId,
 				});
 			}
 		} catch (error) {
-			this.client.log.error('Failed to start close for ticket %s: %s', ticketId, error?.message ?? error);
-			return await interaction.editReply({
-				embeds: [
-					new ExtendedEmbedBuilder({
-						iconURL: interaction.guild.iconURL(),
-						text: ticket.guild.footer,
-					})
-						.setColor(ticket.guild.errorColour)
-						.setTitle(getMessage('misc.error.title'))
-						.setDescription(getMessage('misc.error.description')),
-				],
-			});
+			// Closing a ticket is the one thing that must not depend on Temporal
+			// being reachable: an outage used to answer every close with "an
+			// unexpected error occurred" and leave the channel open, which is what
+			// the ticket buttons are *for*. Fall back to the same close the
+			// activity would have run, in this process, and say so in the log.
+			durable = false;
+			this.client.log.warn(
+				'Temporal is unavailable, closing ticket %s in-process (no reopen window): %s',
+				ticketId,
+				error?.message ?? error,
+			);
 		}
 
 		this.$closeRequests.delete(ticketId);
@@ -1723,6 +1725,18 @@ module.exports = class TicketManager {
 					.setDescription(getMessage('ticket.close.closed.description')),
 			],
 		});
+
+		// After the reply, never before: a CHANNEL ticket's close deletes the
+		// channel the interaction lives in, so editing afterwards would fail.
+		// `finallyClose` claims the close with a conditional update, so a Temporal
+		// close-request timeout that was orphaned by the outage and fires later
+		// finds the ticket already closed and no-ops.
+		if (!durable) {
+			this.finallyClose(ticketId, {
+				closedBy,
+				reason,
+			}).catch(error => this.client.log.error('In-process close of ticket %s failed: %s', ticketId, error?.message ?? error));
+		}
 	}
 
 	/**

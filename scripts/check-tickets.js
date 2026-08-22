@@ -1141,5 +1141,152 @@ const ticket = (over = {}) => ({
 		assert.ok(!CD.cooldownKey(4, '123').startsWith('cooldowns/category-member:'));
 	});
 
+	/* ─────────────────── closing when Temporal is unreachable ───────────── */
+
+	// The reason this suite grew a section that needs the compiled layer: a
+	// Temporal that was unreachable answered every close with "an unexpected
+	// error occurred" and left the ticket open. Closing is the one thing that
+	// has to work whether or not the durable machinery is up.
+	if (!fs.existsSync(path.join(root, 'dist', 'temporal'))) {
+		console.log('  skip  closing during a Temporal outage (run `npm run temporal.build` to include these)');
+	} else {
+		const gateway = require(path.join(root, 'dist', 'temporal', 'gateway'));
+		const TicketManager = require(path.join(root, 'src', 'lib', 'tickets', 'manager'));
+
+		const closingTicket = (over = {}) => ({
+			categoryId: 1,
+			createdById: 'u1',
+			guild: {
+				errorColour: '#ff0000',
+				footer: 'footer',
+				locale: 'en-GB',
+				primaryColour: '#0000ff',
+				reopenWindow: 0,
+				successColour: '#00ff00',
+			},
+			guildId: 'g1',
+			id: 'c1',
+			...over,
+		});
+
+		/** Enough of a manager for `acceptClose`, plus a record of what it did. */
+		const managerFor = ticket => {
+			const record = {
+				closed: [],
+				replies: [],
+				warnings: [],
+			};
+			const self = {
+				$closeRequests: new Map(),
+				client: {
+					i18n: { getLocale: () => (key => key) },
+					log: {
+						error: (...args) => record.warnings.push(args),
+						warn: (...args) => record.warnings.push(args),
+					},
+				},
+				finallyClose: async (ticketId, opts) => {
+					record.closed.push({
+						ticketId,
+						...opts,
+					});
+				},
+				getTicket: async () => ticket,
+			};
+			const interaction = {
+				channel: { id: ticket.id },
+				editReply: async payload => record.replies.push(payload),
+				guild: { iconURL: () => null },
+				user: { id: 'u2' },
+			};
+			return {
+				interaction,
+				record,
+				self,
+			};
+		};
+
+		const withGateway = async (stubs, fn) => {
+			const originals = {};
+			for (const [name, impl] of Object.entries(stubs)) {
+				originals[name] = gateway[name];
+				gateway[name] = impl;
+			}
+			try {
+				return await fn();
+			} finally {
+				for (const [name, impl] of Object.entries(originals)) gateway[name] = impl;
+			}
+		};
+
+		await t('an unreachable Temporal closes the ticket here instead of erroring', async () => {
+			const {
+				interaction, record, self,
+			} = managerFor(closingTicket());
+			self.$closeRequests.set('c1', {
+				closedBy: 'u9',
+				reason: 'solved',
+			});
+			await withGateway({
+				cancelCloseRequestTimeout: async () => {
+					throw new Error('Temporal client has not been initialised. Call initTemporalClient() first.');
+				},
+				startCloseTicket: async () => {
+					throw new Error('unreachable');
+				},
+			}, () => TicketManager.prototype.acceptClose.call(self, interaction));
+
+			assert.strictEqual(record.closed.length, 1, 'the ticket must still be closed');
+			assert.deepStrictEqual(record.closed[0], {
+				closedBy: 'u9',
+				reason: 'solved',
+				ticketId: 'c1',
+			});
+			assert.strictEqual(record.replies.length, 1);
+			// The success embed, not `misc.error.title`.
+			assert.strictEqual(record.replies[0].embeds[0].data.title, 'ticket.close.closed.title');
+			assert.strictEqual(record.warnings.length, 1, 'the outage should be logged, not swallowed');
+			assert.strictEqual(self.$closeRequests.has('c1'), false);
+		});
+
+		await t('a reachable Temporal still owns the close', async () => {
+			const {
+				interaction, record, self,
+			} = managerFor(closingTicket());
+			const started = [];
+			await withGateway({
+				cancelCloseRequestTimeout: async () => undefined,
+				startCloseTicket: async input => started.push(input),
+			}, () => TicketManager.prototype.acceptClose.call(self, interaction));
+
+			assert.strictEqual(started.length, 1);
+			assert.strictEqual(started[0].ticketId, 'c1');
+			// Closing twice is what the in-process fallback must not do when the
+			// workflow has it.
+			assert.strictEqual(record.closed.length, 0);
+			assert.strictEqual(record.replies[0].embeds[0].data.title, 'ticket.close.closed.title');
+		});
+
+		await t('a grace window falls back to closing now, not to staying open', async () => {
+			const {
+				interaction, record, self,
+			} = managerFor(closingTicket({
+				guild: {
+					...closingTicket().guild,
+					reopenWindow: 60_000,
+				},
+			}));
+			await withGateway({
+				cancelCloseRequestTimeout: async () => undefined,
+				startReopenWindow: async () => {
+					throw new Error('unreachable');
+				},
+			}, () => TicketManager.prototype.acceptClose.call(self, interaction));
+
+			assert.strictEqual(record.closed.length, 1);
+			assert.strictEqual(record.closed[0].closedBy, 'u2', 'the presser closes it when no request is pending');
+		});
+	}
+
 	console.log(`\n${pass} passed\n`);
 })();

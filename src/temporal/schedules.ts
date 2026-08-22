@@ -1,5 +1,5 @@
 import { ScheduleOverlapPolicy } from '@temporalio/client';
-import { getTemporalClient } from './client';
+import { ensureTemporalClient } from './client';
 import { getTemporalConfig } from './config';
 import {
 	WorkflowType,
@@ -32,7 +32,7 @@ const nameIs = (err: unknown, name: string): boolean =>
 
 /** Idempotently create (or remove, when disabled) the recurring Temporal Schedules. */
 export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const { taskQueue } = getTemporalConfig();
 
 	const schedules: ScheduleDef[] = [
@@ -123,7 +123,7 @@ export interface AutomationSchedule {
  * in place — the spec is the only thing that can have changed.
  */
 export async function upsertAutomationSchedule(input: AutomationSchedule): Promise<void> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const { taskQueue } = getTemporalConfig();
 	const scheduleId = automationScheduleId(input.guildId, input.key, input.nodeId);
 
@@ -165,7 +165,7 @@ export async function upsertAutomationSchedule(input: AutomationSchedule): Promi
 
 export async function deleteAutomationSchedule(guildId: string, key: string, nodeId: string): Promise<void> {
 	try {
-		await getTemporalClient().schedule.getHandle(automationScheduleId(guildId, key, nodeId)).delete();
+		await (await ensureTemporalClient()).schedule.getHandle(automationScheduleId(guildId, key, nodeId)).delete();
 	} catch {
 		// not found — fine
 	}
@@ -187,7 +187,7 @@ export async function deleteAutomationSchedule(guildId: string, key: string, nod
 export async function reconcileAutomationSchedules(
 	rows: AutomationSchedule[],
 ): Promise<{ deleted: number; upserted: number }> {
-	const client = getTemporalClient();
+	const client = await ensureTemporalClient();
 	const expected = new Set<string>();
 	let upserted = 0;
 

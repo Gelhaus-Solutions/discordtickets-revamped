@@ -6,8 +6,10 @@
 export { getTemporalConfig, resolveBuildId } from './config';
 export {
 	closeTemporalClient,
+	ensureTemporalClient,
 	getTemporalClient,
 	initTemporalClient,
+	temporalClientReady,
 } from './client';
 export {
 	isWorkerRunning,

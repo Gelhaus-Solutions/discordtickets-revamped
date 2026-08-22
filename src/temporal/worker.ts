@@ -91,6 +91,13 @@ function isUnimplemented(err: unknown): boolean {
 export async function startWorker(deps: ActivityDeps): Promise<Worker> {
 	if (_worker) return _worker;
 	const cfg = getTemporalConfig();
+	// A previous attempt that dialled successfully and then failed further down
+	// (Worker.create, a bad bundle) left its connection behind. Startup is
+	// retried now, so drop it rather than leaking a native connection per try.
+	if (_connection) {
+		await _connection.close().catch(() => undefined);
+		_connection = null;
+	}
 	_connection = await createWorkerConnection();
 
 	const options: WorkerOptions = {

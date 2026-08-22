@@ -48,6 +48,72 @@ async function reconcileAutomationSchedules(client) {
 	}
 }
 
+/**
+ * Connect to Temporal, start the embedded worker, and ensure schedules.
+ * All durable/async/scheduled work runs through Temporal from here on.
+ *
+ * Every step is idempotent, so this can be retried until it succeeds.
+ */
+async function bootstrapTemporal(client) {
+	await temporal.initTemporalClient();
+	await temporal.startWorker({
+		checkForUpdates,
+		client,
+		saveHtmlTranscript,
+		sendToHouston,
+	});
+	await temporal.ensureSchedules({
+		stats: !!client.config.stats,
+		updates: !!client.config.updates,
+	});
+	// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
+	// before sync() starts workflows, so those starts are tagged. Non-fatal:
+	// when registration fails, starts simply omit the attributes.
+	// The logger is passed in so the *reason* is reported: this used to
+	// swallow the error and warn with no cause attached, which made the
+	// failure impossible to diagnose from the logs.
+	const saOk = await temporal.ensureSearchAttributes(client.log);
+	if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged (retrying in the background)');
+	client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
+
+	// Make Temporal's schedules match the database: the routes keep them
+	// in step as automations are edited, but best-effort, so this is what
+	// guarantees convergence and cleans up after guilds removed while the
+	// bot was down.
+	//
+	// Deliberately *not* awaited. It walks every schedule in the namespace,
+	// which is unbounded work against Temporal's visibility store, and putting
+	// that in front of `sync()` means a slow or half-up Temporal delays
+	// re-arming every open ticket's stale workflow. Nothing else waits on
+	// the result, so it runs alongside startup and reports when it lands.
+	reconcileAutomationSchedules(client);
+}
+
+/**
+ * Keep trying to bring Temporal up, in the background, for ever.
+ *
+ * The bootstrap used to be a single attempt at `ready`: a Temporal that was
+ * still starting (or restarting) at that moment left the process with no
+ * client, no worker and no schedules until an operator noticed and restarted
+ * the bot, which is exactly how an outage lasting seconds turned into hours of
+ * tickets that could not be closed. Backs off to a few minutes so a long
+ * outage is not also a log flood, and is unref'd so it never holds shutdown up.
+ */
+function retryTemporalBootstrap(client) {
+	let delay = ms('15s');
+	const maxDelay = ms('5m');
+	const attempt = () => {
+		bootstrapTemporal(client)
+			.then(() => client.log.success('Temporal recovered; durable work is running again'))
+			.catch(error => {
+				client.log.warn('Temporal is still unreachable (retrying in %s): %s', ms(delay, { long: true }), error?.message ?? error);
+				delay = Math.min(maxDelay, delay * 2);
+				setTimeout(attempt, delay).unref();
+			});
+	};
+	setTimeout(attempt, delay).unref();
+}
+
 module.exports = class extends Listener {
 	constructor(client, options) {
 		super(client, {
@@ -77,42 +143,12 @@ module.exports = class extends Listener {
 		// open-count and cooldown caches, with no commands published.
 		let temporalReady = false;
 		try {
-			await temporal.initTemporalClient();
-			await temporal.startWorker({
-				checkForUpdates,
-				client,
-				saveHtmlTranscript,
-				sendToHouston,
-			});
-			await temporal.ensureSchedules({
-				stats: !!client.config.stats,
-				updates: !!client.config.updates,
-			});
-			// Register custom Search Attributes (TicketId/GuildId/UserId/WorkflowKind)
-			// before sync() starts workflows, so those starts are tagged. Non-fatal:
-			// when registration fails, starts simply omit the attributes.
-			// The logger is passed in so the *reason* is reported: this used to
-			// swallow the error and warn with no cause attached, which made the
-			// failure impossible to diagnose from the logs.
-			const saOk = await temporal.ensureSearchAttributes(client.log);
-			if (!saOk) client.log.warn('Temporal search attributes could not be registered; workflows will not be tagged (retrying in the background)');
-			client.log.success('Temporal worker started (build %s)', temporal.getTemporalConfig().buildId);
+			await bootstrapTemporal(client);
 			temporalReady = true;
-
-			// Make Temporal's schedules match the database: the routes keep them
-			// in step as automations are edited, but best-effort, so this is what
-			// guarantees convergence and cleans up after guilds removed while the
-			// bot was down.
-			//
-			// Deliberately *not* awaited. It walks every schedule in the namespace,
-			// which is unbounded work against Temporal's visibility store — putting
-			// that in front of `sync()` means a slow or half-up Temporal delays
-			// re-arming every open ticket's stale workflow. Nothing else waits on
-			// the result, so it runs alongside startup and reports when it lands.
-			reconcileAutomationSchedules(client);
 		} catch (error) {
-			client.log.error('Temporal is unavailable — durable work (stale tickets, scheduled closes, exports) is disabled until it recovers');
+			client.log.error('Temporal is unavailable: durable work (stale tickets, scheduled closes, exports) is degraded until it recovers');
 			client.log.error(error);
+			retryTemporalBootstrap(client);
 		}
 
 		// Tell the operator now if the bucket is unreachable, rather than at the
@@ -222,7 +258,7 @@ module.exports = class extends Listener {
 		} else if (temporalReady) {
 			client.log.info('Stale ticket handling runs via per-ticket Temporal workflows');
 		} else {
-			client.log.warn('Stale ticket handling is unavailable until Temporal is reachable; restart the bot once it is back');
+			client.log.warn('Stale ticket handling is unavailable until Temporal is reachable; the bot keeps retrying in the background');
 		}
 	}
 };
