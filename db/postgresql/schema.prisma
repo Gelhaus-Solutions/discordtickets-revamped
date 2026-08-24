@@ -165,6 +165,12 @@ model Category {
     discordCategory  String       @db.VarChar(19)
     emoji            String
     enableFeedback   Boolean      @default(false)
+    // The feedback form for tickets in this category, as a JSON array of the
+    // same question shape `questions` uses. Inheritable: NULL asks the guild,
+    // and NULL at both levels means the built-in rating-and-comment form every
+    // server has had. `[]` is a different answer — ask nothing — which is why
+    // this is a nullable column rather than a relation plus an override flag.
+    feedbackQuestions Json?
     guild            Guild        @relation(fields: [guildId], references: [id], onDelete: Cascade)
     guildId          String       @db.VarChar(19)
     id               Int          @id @default(autoincrement())
@@ -215,18 +221,58 @@ model Category {
     unclaimedEmoji   String?
 }
 
+// `rating` and `comment` are *projections*, not the record.
+//
+// `answers` below is the complete submission, one row per answered question.
+// These two columns are maintained copies of the first RATING and the first TEXT
+// answer, kept because every existing reader wants them cheaply and none of them
+// wants the whole form: the aggregate queries group by `rating`, the closing DM
+// and the staff log embed show it beside the comment, the HTML transcript
+// renders both, and `{avgRating}` averages the column. Deriving those from
+// `answers` would mean a join and a decrypt on paths that currently do neither.
+//
+// `rating` is nullable because a server can now build a form with no rating
+// question in it. Every consumer has to treat "no rating" and "rated 0"
+// differently — see `getAvgRating` and the `ratingBelow` automation filter.
 model Feedback {
+    answers   FeedbackAnswer[]
     comment   String?  @db.Text
     createdAt DateTime @default(now())
     guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
     guildId   String   @db.VarChar(19)
-    rating    Int
+    rating    Int?
     ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
     ticketId  String   @id @db.VarChar(19)
     user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
     userId    String?  @db.VarChar(19)
 
     @@map("feedback")
+}
+
+// One answer to one feedback question.
+//
+// Deliberately not a foreign key to a question row: feedback questions live in a
+// JSON column, so there is nothing to point at. `label` and `type` are therefore
+// snapshotted at submission time, which is also what makes an answer survive the
+// question being reworded or removed — a stored answer is a record of what
+// somebody was asked, and editing the form must not rewrite history.
+//
+// The cascade is from `Feedback`, whose primary key is `ticketId`, so deleting a
+// submission takes its answers with it.
+model FeedbackAnswer {
+    createdAt  DateTime     @default(now())
+    feedback   Feedback     @relation(fields: [ticketId], references: [ticketId], onDelete: Cascade)
+    id         Int          @id @default(autoincrement())
+    label      String       @db.VarChar(45)
+    questionId String
+    ticketId   String       @db.VarChar(19)
+    type       QuestionType
+    // Encrypted, exactly like `QuestionAnswer.value`, and stored in the same
+    // per-type shapes `src/lib/tickets/questions.js` documents.
+    value      String?      @db.Text
+
+    @@index([ticketId])
+    @@map("feedbackAnswers")
 }
 
 // The columns marked "category default" are the server-wide fallback for the
@@ -262,6 +308,7 @@ model Guild {
     disableDMs        Boolean      @default(false)
     errorColour       String       @default("Red")
     feedback          Feedback[]
+    feedbackQuestions Json?        // category default
     footer            String?      @default("Discord Tickets by eartharoid™ & egelhaus™")
     id                String       @id @db.VarChar(19)
     locale            String       @default("en-GB")
@@ -472,4 +519,8 @@ enum QuestionType {
     FILE_UPLOAD
     // Not an input: static markdown rendered in the modal, no answer stored.
     TEXT_DISPLAY
+    // A 1-to-N scale, rendered as a radio group. Its answer is stored like the
+    // other choice types (a JSON array holding one value), and the first RATING
+    // question in a feedback form is the one projected onto `Feedback.rating`.
+    RATING
 }

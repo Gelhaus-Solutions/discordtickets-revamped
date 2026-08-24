@@ -10,6 +10,14 @@ const {
 } = require('../../../../../lib/settings/inheritance');
 const { updateStaffRoles } = require('../../../../../lib/users');
 const { isValidChannelEmoji } = require('../../../../../lib/emoji');
+const {
+	QuestionError,
+	validateQuestions,
+} = require('../../../../../lib/questions-validate');
+const {
+	LIMIT: FEEDBACK_LIMIT,
+	defaultFeedbackQuestions,
+} = require('../../../../../lib/tickets/feedback');
 const { STATE_FIELDS } = require('../../../../../lib/tickets/emoji-settings');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
@@ -36,6 +44,12 @@ module.exports.get = fastify => ({
 		// them drifting.
 		return {
 			...settings,
+			// The built-in feedback form, worded in this server's locale, so the
+			// builder can be seeded with the questions members are asked today
+			// rather than with a blank list. Built here because the labels come from
+			// the bot's translations, which the dashboard has no copy of. Derived;
+			// the PATCH allow-list drops it on the way back in.
+			feedbackDefault: defaultFeedbackQuestions(client.i18n.getLocale(settings.locale)),
 			inheritable: INHERITED_FIELDS,
 			inherited: guildDefaults(settings),
 		};
@@ -103,6 +117,24 @@ function validateJsonFields(data) {
 	// both booleans are answers a category can inherit.
 	if ('skipCloseRequest' in data && data.skipCloseRequest !== null && typeof data.skipCloseRequest !== 'boolean') {
 		throw new Error('skipCloseRequest must be true or false, or null for no server default.');
+	}
+
+	// The server-wide feedback form. null is "no server default", which resolves
+	// to the built-in rating-and-comment form. An out-of-range question makes
+	// Discord reject the modal, so the failure would land on a member closing a
+	// ticket rather than on the admin who saved it.
+	if ('feedbackQuestions' in data && data.feedbackQuestions !== null) {
+		try {
+			validateQuestions(data.feedbackQuestions, {
+				max: FEEDBACK_LIMIT,
+				what: 'feedback questions',
+			});
+		} catch (error) {
+			if (error instanceof QuestionError) {
+				throw new Error(`The feedback form is not valid. ${error.errors.map(e => e.message).join('; ')}`);
+			}
+			throw error;
+		}
 	}
 
 	// The server-wide emoji defaults. Read on every channel-name write, so junk

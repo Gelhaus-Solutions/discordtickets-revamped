@@ -19,6 +19,10 @@ const {
 	QuestionError,
 	validateQuestions,
 } = require('../../../../../../../lib/questions-validate');
+const {
+	LIMIT: FEEDBACK_LIMIT,
+	defaultFeedbackQuestions,
+} = require('../../../../../../../lib/tickets/feedback');
 const { ApplicationCommandPermissionType } = require('discord.js');
 
 /**
@@ -134,6 +138,10 @@ module.exports.get = fastify => ({
 		} = category;
 		return {
 			...raw,
+			// The built-in form in this server's locale, for seeding the builder
+			// when neither the category nor the guild has one. Derived, and stripped
+			// again on the way back in.
+			feedbackDefault: defaultFeedbackQuestions(client.i18n.getLocale(guild.locale)),
 			inheritable: INHERITED_FIELDS,
 			inherited: guildDefaults(guild),
 		};
@@ -164,6 +172,7 @@ module.exports.patch = fastify => ({
 			discordCategory: true,
 			emoji: true,
 			enableFeedback: true,
+			feedbackQuestions: true,
 			guildId: true,
 			id: true,
 			image: true,
@@ -216,6 +225,7 @@ module.exports.patch = fastify => ({
 		// arg" throw rather than a quiet drop.
 		delete data.inherited;
 		delete data.inheritable;
+		delete data.feedbackDefault;
 
 		// A malformed opening-message layout must be rejected here: stored, it
 		// would break ticket creation for the whole category, and the failure
@@ -237,6 +247,31 @@ module.exports.patch = fastify => ({
 							message: e.path ? `${e.path}: ${e.message}` : e.message,
 							type: e.code,
 						})),
+						statusCode: 400,
+					});
+				}
+				throw error;
+			}
+		}
+
+		// The feedback form, same rules and the same validator. NULL means "ask the
+		// guild" and is not a form to check; `[]` is a category that deliberately
+		// asks nothing, which is valid.
+		//
+		// Unlike `questions` above, the count cap is enforced: a sixth question
+		// makes Discord reject the modal outright, and this form is new, so there
+		// is no existing over-long set to start rejecting.
+		if (data.feedbackQuestions !== undefined && data.feedbackQuestions !== null) {
+			try {
+				validateQuestions(data.feedbackQuestions, {
+					max: FEEDBACK_LIMIT,
+					what: 'feedback questions',
+				});
+			} catch (error) {
+				if (error instanceof QuestionError) {
+					return res.code(400).send({
+						code: 'invalid_feedback_questions',
+						errors: error.errors,
 						statusCode: 400,
 					});
 				}

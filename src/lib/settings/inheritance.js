@@ -109,6 +109,19 @@ const INHERITED = {
 		builtin: () => null,
 		guild: 'cooldown',
 	},
+	// The feedback form, as a question set of the same shape `Category.questions`
+	// uses. The built-in is NULL rather than the default form, for the same
+	// reason `closeRequestLayout`'s is: this file has no locale in scope and the
+	// built-in questions are translated. `feedbackQuestionsFor` in
+	// `src/lib/tickets/feedback.js` turns the NULL into the real default, where
+	// `getMessage` exists.
+	//
+	// `[]` is a category that deliberately asks nothing, and must not fall back.
+	feedbackQuestions: {
+		builtin: () => null,
+		guild: 'feedbackQuestions',
+		json: true,
+	},
 	memberLimit: {
 		builtin: () => 1,
 		guild: 'memberLimit',

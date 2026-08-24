@@ -103,7 +103,11 @@ function matches(node, payload) {
 		return !params.to || params.to === payload.priority;
 
 	case 'trigger.ticket.feedback':
-		return params.ratingBelow === undefined || params.ratingBelow === null || payload.rating < params.ratingBelow;
+		if (params.ratingBelow === undefined || params.ratingBelow === null) return true;
+		// A feedback form need not contain a rating question at all, so `rating`
+		// can be null — and `null < 3` is true, which would fire every "rating
+		// below N" automation on a submission that never rated anything.
+		return typeof payload.rating === 'number' && payload.rating < params.ratingBelow;
 
 	case 'trigger.member.roleAdded':
 	case 'trigger.member.roleRemoved':

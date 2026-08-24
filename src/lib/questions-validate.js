@@ -43,10 +43,15 @@ const OPTION_RANGE = {
 
 /**
  * @param {?object[]} questions
+ * @param {object} [options]
+ * @param {?number} [options.max] the most questions allowed, or null for no cap
+ * @param {string} [options.what] what to call them in an error message
  * @throws {QuestionError} if anything is out of range
  * @returns {void}
  */
-function validateQuestions(questions) {
+function validateQuestions(questions, {
+	max = null, what = 'questions',
+} = {}) {
 	if (questions === undefined || questions === null) return;
 	const errors = [];
 	const add = (index, message) => errors.push({
@@ -54,7 +59,18 @@ function validateQuestions(questions) {
 		path: `questions[${index}]`,
 	});
 
-	if (!Array.isArray(questions)) throw new QuestionError([{ message: 'questions must be an array' }]);
+	if (!Array.isArray(questions)) throw new QuestionError([{ message: `${what} must be an array` }]);
+
+	// A modal holds at most five top-level components, and Discord rejects the
+	// whole thing rather than truncating — so an over-long set fails when a
+	// *member* opens the modal, not when the admin saved it.
+	//
+	// Opt-in rather than always on: the category-question builder has only ever
+	// enforced its cap in the dashboard, and turning it on here would start
+	// rejecting saves that succeed today.
+	if (max !== null && questions.length > max) {
+		throw new QuestionError([{ message: `a modal holds at most ${max} ${what}` }]);
+	}
 
 	questions.forEach((question, i) => {
 		if (!question || typeof question !== 'object') return add(i, 'must be an object');
@@ -113,6 +129,25 @@ function validateQuestions(questions) {
 			if (!Array.isArray(config.channelTypes) || config.channelTypes.some(type => !Number.isInteger(type))) {
 				add(i, 'channelTypes must be an array of channel type numbers');
 			}
+		}
+
+		if (kind === 'rating') {
+			// The options are generated from the scale rather than authored, so the
+			// scale is the only thing there is to get wrong. `questions.js#scaleOf`
+			// clamps it anyway; this is what turns a typo into a 400 the admin sees
+			// instead of a silently different form.
+			if (config.scale !== undefined && config.scale !== null && config.scale !== '') {
+				const scale = toInt(config.scale, NaN);
+				if (!Number.isInteger(scale) || scale < LIMITS.ratingScaleMin || scale > LIMITS.ratingScaleMax) {
+					add(i, `the scale must be a whole number between ${LIMITS.ratingScaleMin} and ${LIMITS.ratingScaleMax}`);
+				}
+			}
+			for (const end of ['minLabel', 'maxLabel']) {
+				if (config[end] && String(config[end]).length > LIMITS.optionLabel) {
+					add(i, `${end} must be at most ${LIMITS.optionLabel} characters`);
+				}
+			}
+			return;
 		}
 
 		// Ranges: `RADIO_GROUP` and `CHECKBOX` take exactly one answer and have no

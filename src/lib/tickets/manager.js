@@ -34,6 +34,11 @@ const {
 	categoryNeedsStats,
 	rerenderOpeningMessage,
 } = require('./opening-message');
+const {
+	asksAnything,
+	feedbackQuestionsFor,
+	formatFeedbackAnswers,
+} = require('./feedback');
 const { resolveEmojiSettings } = require('./emoji-settings');
 const {
 	cooldownExpiry,
@@ -1367,38 +1372,33 @@ module.exports = class TicketManager {
 		});
 	}
 
-	buildFeedbackModal(locale, id) {
+	/**
+	 * The feedback modal for a ticket's category.
+	 *
+	 * The form used to be two hard-coded text inputs. It is now a question set
+	 * resolved through the inheritance chain — the category's, the guild's, or the
+	 * built-in one — and built by the same `buildQuestionComponents` a ticket's
+	 * opening questions use.
+	 *
+	 * @param {object} category the *resolved* category (see `getTicket`)
+	 * @param {string} locale
+	 * @param {object} id extra fields for the modal's custom id, e.g. `{next}`
+	 * @returns {?ModalBuilder} null when the category asks nothing
+	 */
+	buildFeedbackModal(category, locale, id) {
 		const getMessage = this.client.i18n.getLocale(locale);
+		const questions = feedbackQuestionsFor(category, getMessage);
+		// A category can deliberately ask nothing (an empty set, as opposed to an
+		// absent one). There is no such thing as an empty modal, so the caller has
+		// to skip it rather than show a form with no questions in it.
+		if (!asksAnything(questions)) return null;
 		return new ModalBuilder()
 			.setCustomId(JSON.stringify({
 				action: 'feedback',
 				...id,
 			}))
 			.setTitle(getMessage('modals.feedback.title'))
-			.setComponents(
-				new ActionRowBuilder()
-					.setComponents(
-						new TextInputBuilder()
-							.setCustomId('rating')
-							.setLabel(getMessage('modals.feedback.rating.label'))
-							.setStyle(TextInputStyle.Short)
-							.setMaxLength(3)
-							.setMinLength(1)
-							.setPlaceholder(getMessage('modals.feedback.rating.placeholder'))
-							.setRequired(true),
-					),
-				new ActionRowBuilder()
-					.setComponents(
-						new TextInputBuilder()
-							.setCustomId('comment')
-							.setLabel(getMessage('modals.feedback.comment.label'))
-							.setStyle(TextInputStyle.Paragraph)
-							.setMaxLength(1000)
-							.setMinLength(4)
-							.setPlaceholder(getMessage('modals.feedback.comment.placeholder'))
-							.setRequired(false),
-					),
-			);
+			.setComponents(buildQuestionComponents(questions));
 	}
 
 
@@ -1464,10 +1464,14 @@ module.exports = class TicketManager {
 			!ticket.feedback &&
 			typeof interaction.showModal === 'function'
 		) {
-			return await interaction.showModal(this.buildFeedbackModal(ticket.guild.locale, {
+			// null when the category's feedback form is deliberately empty, in which
+			// case there is nothing to ask and the close carries on as if feedback
+			// were off.
+			const modal = this.buildFeedbackModal(ticket.category, ticket.guild.locale, {
 				next: 'requestClose',
 				reason, // known issue: a reason longer than a few words will cause an error due to 100 character custom_id limit
-			}));
+			});
+			if (modal) return await interaction.showModal(modal);
 		}
 
 		// A category (or the server) can turn the request off for staff: they
@@ -2007,7 +2011,11 @@ module.exports = class TicketManager {
 					archivedMessages: true,
 					archivedRoles: true,
 					archivedUsers: true,
-					feedback: true,
+					// With the answers: they are the submission, and `comment` on the
+					// row is only a projection of one of them. An export without them
+					// would round-trip a rating and silently lose everything else the
+					// server asked.
+					feedback: { include: { answers: { orderBy: { id: 'asc' } } } },
 					questionAnswers: true,
 				},
 				orderBy: { id: 'asc' },
@@ -2431,7 +2439,9 @@ module.exports = class TicketManager {
 			ticket = await this.client.prisma.ticket.findUnique({
 				include: {
 					category: true,
-					feedback: true,
+					// The answers, not just the two projected columns: the staff log
+					// shows whatever the server actually asked.
+					feedback: { include: { answers: { orderBy: { id: 'asc' } } } },
 					guild: true,
 				},
 				where: { id: ticket.id },
@@ -2637,7 +2647,10 @@ module.exports = class TicketManager {
 				name: getMessage('dm.closed.fields.created'),
 				value: `<t:${Math.floor(ticket.createdAt / 1000)}:f>`,
 			},
-			feedback: ticket.feedback && {
+			// Only when there is a rating to show. A server can now build a feedback
+			// form with no rating question in it, and `Array(null)` is `[null]`,
+			// which rendered as "⭐ (null/5)".
+			feedback: typeof ticket.feedback?.rating === 'number' && {
 				inline: true,
 				name: getMessage('dm.closed.fields.feedback'),
 				value: Array(ticket.feedback.rating).fill('⭐').join(' ') + ` (${ticket.feedback.rating}/5)`,
@@ -2675,7 +2688,7 @@ module.exports = class TicketManager {
 		if (ticket.topic) dmEmbed.addFields(fields.topic);
 		dmEmbed.addFields(fields.created, fields.closed);
 		if (ticket.firstResponseAt) dmEmbed.addFields(fields.firstResponseAt);
-		if (ticket.feedback) dmEmbed.addFields(fields.feedback);
+		if (fields.feedback) dmEmbed.addFields(fields.feedback);
 		if (ticket.closedById) dmEmbed.addFields(fields.closedById);
 		if (reason) dmEmbed.addFields(fields.reason);
 
@@ -2700,7 +2713,27 @@ module.exports = class TicketManager {
 		if (ticket.topic) fieldsArray.push(fields.topic);
 		fieldsArray.push(fields.created, fields.closed);
 		if (ticket.firstResponseAt) fieldsArray.push(fields.firstResponseAt);
-		if (fields.feedback) {
+		// Every answer the member gave, under the labels they were asked. Read from
+		// `FeedbackAnswer` rather than the two projected columns, because a server
+		// can now ask more than a rating and a comment — and each answer snapshots
+		// its own label, so this renders correctly even for a question that has
+		// since been reworded or removed from the form.
+		if (ticket.feedback?.answers?.length) {
+			const decrypted = await Promise.all(ticket.feedback.answers.map(async answer => ({
+				label: answer.label,
+				type: answer.type,
+				value: answer.value ? await crypto.queue(w => w.decrypt(answer.value)) : null,
+			})));
+			for (const answer of formatFeedbackAnswers(decrypted, { getMessage })) {
+				fieldsArray.push({
+					inline: true,
+					name: answer.label,
+					value: answer.value,
+				});
+			}
+		} else if (fields.feedback) {
+			// A submission stored before this shipped has no answer rows, only the
+			// two columns. Those rows keep rendering the way they always did.
 			fieldsArray.push(
 				{
 					...fields.feedback,

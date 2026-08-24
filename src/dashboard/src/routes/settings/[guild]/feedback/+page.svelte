@@ -154,6 +154,13 @@
 					></i>
 				{/each}
 			</div>
+			{#if data.stats.rated < data.stats.total}
+				<!-- A form without a rating question still collects responses, and an
+				     average over "all of them" would be wrong. -->
+				<div class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+					From {data.stats.rated} of {data.stats.total} responses
+				</div>
+			{/if}
 		</div>
 
 		<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">

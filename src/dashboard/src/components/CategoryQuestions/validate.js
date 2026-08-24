@@ -28,6 +28,19 @@ export function validateQuestion(question) {
 		return null;
 	}
 
+	if (kind === 'rating') {
+		const scale = Number(config.scale ?? 0);
+		if (!Number.isInteger(scale) || scale < LIMITS.ratingScaleMin || scale > LIMITS.ratingScaleMax) {
+			return `needs a scale between ${LIMITS.ratingScaleMin} and ${LIMITS.ratingScaleMax}.`;
+		}
+		for (const end of ['minLabel', 'maxLabel']) {
+			if ((config[end] ?? '').length > LIMITS.optionLabel) {
+				return `has an end label longer than ${LIMITS.optionLabel} characters.`;
+			}
+		}
+		return null;
+	}
+
 	if (kind === 'text') {
 		const value = question.value ?? '';
 		if (value.length > 0 && value.length < question.minLength) {

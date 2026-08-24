@@ -9,9 +9,30 @@
 	import EntityQuestion from './EntityQuestion.svelte';
 	import UploadQuestion from './UploadQuestion.svelte';
 	import TextDisplayQuestion from './TextDisplayQuestion.svelte';
+	import RatingQuestion from './RatingQuestion.svelte';
 	import Required from '../Required.svelte';
-	import { questionsState as qS } from '../state.svelte.js';
+	import { questionsState } from '../state.svelte.js';
 	import { QUESTION_TYPES, applyTypeDefaults, kindOf } from './types.js';
+
+	/**
+	 * @typedef {Object} Props
+	 * @property {{questions: any[]}} [store] which question list to edit. The
+	 *   category page edits two — its ticket questions and its feedback form — so
+	 *   this cannot be the module singleton it used to read directly.
+	 * @property {?string} [deleteEndpoint] where a saved question is DELETEd from.
+	 *   Category questions are rows and are removed out of band; a feedback form
+	 *   is a single JSON column, so there is nothing to call and removing one is
+	 *   just editing the list. `null` means the latter.
+	 * @property {string[]} [types] which question types to offer.
+	 */
+
+	/** @type {Props} */
+	let { store = questionsState, deleteEndpoint = null, types = null } = $props();
+	const qS = $derived(store);
+
+	const offered = $derived(
+		types ? QUESTION_TYPES.filter((t) => types.includes(t.value)) : QUESTION_TYPES
+	);
 
 	let loading = $state({});
 	let expanded = $state(null);
@@ -23,6 +44,7 @@
 		choice: ChoiceQuestion,
 		display: TextDisplayQuestion,
 		entity: EntityQuestion,
+		rating: RatingQuestion,
 		select: MenuQuestion,
 		text: TextQuestion,
 		upload: UploadQuestion
@@ -51,11 +73,15 @@
 	});
 
 	const del = async (q) => {
-		if (q._real !== false) {
+		// A question that has been saved as its own row is deleted server-side
+		// straight away, because the save payload has no way to say "this one is
+		// gone". A feedback question is part of a JSON column that is written
+		// whole, so removing it from the list *is* the delete.
+		if (q._real !== false && deleteEndpoint) {
 			const confirmed = confirm('Are you sure? This will delete all responses.');
 			if (!confirmed) return false;
 			loading[q.id] = true;
-			const url = `/api/admin/guilds/${$page.params.guild}/categories/${$page.params.category}/questions/${q.id}`;
+			const url = `${deleteEndpoint}/${q.id}`;
 			const response = await fetch(url, {
 				credentials: 'include',
 				method: 'DELETE'
@@ -128,7 +154,7 @@
 										onchange={() => applyTypeDefaults(qS.questions[i])}
 									>
 										<option value={null} class="p-1" disabled>Select an input type</option>
-										{#each QUESTION_TYPES as type (type.value)}
+										{#each offered as type (type.value)}
 											<option value={type.value} class="p-1">{type.label}</option>
 										{/each}
 									</select>

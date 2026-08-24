@@ -14,6 +14,8 @@ export const LIMITS = {
 	optionLabel: 100,
 	optionValue: 100,
 	placeholder: 150,
+	ratingScaleMax: 10,
+	ratingScaleMin: 2,
 	selectOptions: 25,
 	selectValues: 25,
 	textPlaceholder: 100,
@@ -91,8 +93,17 @@ export const QUESTION_TYPES = [
 		label: 'Text block (no input)',
 		kind: 'display',
 		hint: 'Static text shown in the modal — asks nothing and stores nothing'
+	},
+	{
+		value: 'RATING',
+		label: 'Rating scale',
+		kind: 'rating',
+		hint: 'A 1-to-N scale. The first one in a feedback form is the score the charts use'
 	}
 ];
+
+/** The scale a rating uses when nothing is set. What feedback has always been. */
+export const DEFAULT_RATING_SCALE = 5;
 
 export const kindOf = (type) => QUESTION_TYPES.find((t) => t.value === type)?.kind ?? null;
 
@@ -160,5 +171,11 @@ export function applyTypeDefaults(question) {
 	} else if (kind === 'upload') {
 		question.config.maxFiles ??= 1;
 		question.config.minFiles ??= 0;
+	} else if (kind === 'rating') {
+		// Its options are generated from the scale, so any authored ones are dead
+		// weight — and `maxLength` would otherwise still mean "characters".
+		question.config.scale ??= DEFAULT_RATING_SCALE;
+		question.maxLength = 1;
+		question.minLength = question.required ? 1 : 0;
 	}
 }

@@ -111,13 +111,23 @@ module.exports.get = fastify => ({
 			5: 0,
 		};
 		let totalRating = 0;
-		let totalCount = 0;
+		let ratedCount = 0;
+		let unratedCount = 0;
 		for (const group of allFeedback) {
+			// A server can build a feedback form with no rating question, so a
+			// submission can be genuinely unrated. It is not a zero, and averaging
+			// it as one would drag every server's score down the moment they added a
+			// comment-only question. Counted separately instead, so the dashboard
+			// can say how many of the responses carried a rating.
+			if (typeof group.rating !== 'number') {
+				unratedCount += group._count.rating;
+				continue;
+			}
 			ratingCounts[group.rating] = group._count.rating;
 			totalRating += group.rating * group._count.rating;
-			totalCount += group._count.rating;
+			ratedCount += group._count.rating;
 		}
-		const avgRating = totalCount > 0 ? Math.round((totalRating / totalCount) * 100) / 100 : null;
+		const avgRating = ratedCount > 0 ? Math.round((totalRating / ratedCount) * 100) / 100 : null;
 
 		// Trend: feedback per day. Bounded — this is aggregated in memory below,
 		// so a guild with a very long history would otherwise load every row.
@@ -138,15 +148,22 @@ module.exports.get = fastify => ({
 				trendMap[day] = {
 					count: 0,
 					day,
+					rated: 0,
 					totalRating: 0,
 				};
 			}
+			// `count` is every response that day; `rated` is the ones that carried a
+			// rating, and only those may reach the average. Adding `null` to
+			// `totalRating` makes it NaN and the whole line vanishes from the chart.
 			trendMap[day].count++;
-			trendMap[day].totalRating += f.rating;
+			if (typeof f.rating === 'number') {
+				trendMap[day].rated++;
+				trendMap[day].totalRating += f.rating;
+			}
 		}
 		const trend = Object.values(trendMap)
 			.map(d => ({
-				avgRating: Math.round((d.totalRating / d.count) * 100) / 100,
+				avgRating: d.rated > 0 ? Math.round((d.totalRating / d.rated) * 100) / 100 : null,
 				count: d.count,
 				date: d.day,
 			}))
@@ -165,9 +182,14 @@ module.exports.get = fastify => ({
 				since: sinceDate.toISOString(),
 				until: untilDate.toISOString(),
 			},
+			// How many of `totalCount` carried a rating, so the dashboard can say
+			// "12 of 30 responses included a rating" rather than implying the
+			// average covers all of them.
+			ratedCount,
 			ratingCounts,
-			totalCount,
+			totalCount: ratedCount + unratedCount,
 			trend,
+			unratedCount,
 		};
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],

@@ -13,6 +13,7 @@ const {
 	QuestionError,
 	validateQuestions,
 } = require('../../../../../../lib/questions-validate');
+const { LIMIT: FEEDBACK_LIMIT } = require('../../../../../../lib/tickets/feedback');
 const {
 	ApplicationCommandPermissionType,
 	ChannelType: { GuildCategory },
@@ -193,6 +194,25 @@ module.exports.post = fastify => ({
 		}
 		if (data.staffChannelMode === '') data.staffChannelMode = null;
 		if (data.staffChannelParent === '') data.staffChannelParent = null;
+
+		// The feedback form, same validator, same reasoning. NULL means "ask the
+		// guild", which is what a new category starts with.
+		if (data.feedbackQuestions !== undefined && data.feedbackQuestions !== null) {
+			try {
+				validateQuestions(data.feedbackQuestions, {
+					max: FEEDBACK_LIMIT,
+					what: 'feedback questions',
+				});
+			} catch (error) {
+				if (error instanceof QuestionError) {
+					const badRequest = new Error('Invalid feedback questions');
+					badRequest.statusCode = 400;
+					badRequest.errors = error.errors;
+					throw badRequest;
+				}
+				throw error;
+			}
+		}
 
 		// Same reasoning as the PATCH route: an out-of-range question or an
 		// unresolvable emoji is only discovered when a member tries to open a

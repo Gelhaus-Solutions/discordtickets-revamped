@@ -326,6 +326,34 @@ const guildWith = overrides => {
 		assert.ok(I.CATEGORY_JSON_NULLABLE.includes('messageLayout'));
 	});
 
+	t('a feedback form inherits, and an empty one is still an answer', () => {
+		// `[]` means this category asks nothing, and must not read as "not set".
+		// The rest of the form's behaviour is in `check-feedback.js`; this is the
+		// half that belongs to the inheritance chain.
+		const guildForm = [{
+			id: 'q1',
+			label: 'How was it?',
+			type: 'RATING',
+		}];
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({ feedbackQuestions: guildForm })).feedbackQuestions,
+			guildForm,
+		);
+		assert.deepStrictEqual(
+			I.resolveCategory({
+				...emptyCategory(),
+				feedbackQuestions: [],
+			}, guildWith({ feedbackQuestions: guildForm })).feedbackQuestions,
+			[],
+		);
+		// Unset everywhere is null, which `feedbackQuestionsFor` reads as "the
+		// built-in form" — not as "ask nothing".
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({})).feedbackQuestions,
+			null,
+		);
+	});
+
 	/* ───────────────────────────── the schema ───────────────────────────── */
 
 	t('every inheritable Category column is nullable with no default', () => {
