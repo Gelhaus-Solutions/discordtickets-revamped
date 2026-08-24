@@ -1,5 +1,5 @@
 'use strict';
-const { pools } = require('../../../../../lib/threads');
+const { pools } = require('../../../../../../lib/threads');
 const { crypto } = pools;
 
 /** Upper bound on feedback rows loaded to build the per-day trend. */

@@ -308,4 +308,49 @@ t('every answerable type a form can hold renders as something', () => {
 	}
 });
 
+/* ─────────────────────────── deleting a submission ────────────────────────── */
+
+// The route itself is exercised against a real database by hand; what is worth
+// pinning here is the shape, because both parts of it fail silently. A missing
+// decorator is an open endpoint, and a route file in the wrong place registers
+// at the wrong path or shadows the GET.
+
+t('deleting feedback is admin-only, like every other admin route', () => {
+	const route = require(path.join(root, 'src', 'routes', 'api', 'admin', 'guilds', '[guild]', 'feedback', '[ticket]'));
+	assert.deepStrictEqual(Object.keys(route), ['delete'], 'the file must export only a DELETE');
+
+	// `fastify.authenticate` and `fastify.isAdmin` are decorators looked up off
+	// the instance, so a stand-in is enough to see which were asked for.
+	const named = name => Object.assign(() => {}, { decorator: name });
+	const fastify = new Proxy({}, { get: (_, name) => named(name) });
+	const { onRequest } = route.delete(fastify);
+	assert.deepStrictEqual(
+		onRequest.map(fn => fn.decorator),
+		['authenticate', 'isAdmin'],
+		'a DELETE that is not behind isAdmin lets any member wipe a review',
+	);
+});
+
+t('the read route still answers on its original path', () => {
+	// Moving `feedback.js` to `feedback/index.js` is what makes room for
+	// `feedback/[ticket].js`. The loader strips `/index`, so the URL is unchanged
+	// — but only if the file is named `index.js`.
+	const { collectRouteFiles } = require(path.join(root, 'src', 'lib', 'routes'));
+	const dir = path.join(root, 'src', 'routes');
+	const paths = {};
+	for (const file of collectRouteFiles(dir)) {
+		const url = file
+			.slice(0, -3)
+			.slice(dir.length)
+			.replace(/\\/g, '/')
+			.replace(/\[(\w+)\]/gi, ':$1')
+			.replace('/index', '') || '/';
+		if (url.includes('feedback')) paths[url] = Object.keys(require(file));
+	}
+	assert.deepStrictEqual(paths['/api/admin/guilds/:guild/feedback'], ['get']);
+	assert.deepStrictEqual(paths['/api/admin/guilds/:guild/feedback/:ticket'], ['delete']);
+	// The members-only totals endpoint is untouched, and stays a read.
+	assert.deepStrictEqual(paths['/api/guilds/:guild/feedback'], ['get']);
+});
+
 console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);
