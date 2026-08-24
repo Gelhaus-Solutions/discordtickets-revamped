@@ -12,6 +12,7 @@ export async function load({ fetch, params }) {
 		body = {
 			channelName: null,
 			claiming: false,
+			closeRequestLayout: null,
 			cooldown: null,
 			description: '',
 			discordCategory: 'new',

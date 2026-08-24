@@ -84,6 +84,7 @@ const STATIC_BLOCKS = ['container', 'text', 'separator', 'buttons', 'section', '
  * no `syncPanel`, and no way to re-render or delete it from the panels page.
  */
 const BLOCK_TYPES = {
+	closeRequest: [...STATIC_BLOCKS],
 	dm: [...STATIC_BLOCKS],
 	ephemeral: [...STATIC_BLOCKS],
 	message: [...STATIC_BLOCKS],
@@ -104,6 +105,7 @@ const BLOCK_TYPES = {
  * A link button produces no interaction at all and is the one kind that is inert.
  */
 const BUTTON_KINDS = {
+	closeRequest: ['link'],
 	dm: ['link'],
 	ephemeral: ['ticket', 'link', 'automation'],
 	message: ['ticket', 'link', 'automation'],
@@ -113,6 +115,18 @@ const BUTTON_KINDS = {
 
 /** Why a DM only takes link buttons. Named so the test can assert the wording. */
 const DM_BUTTON_HELP = 'Only link buttons work in a DM: a direct message is not in any server, so the bot cannot tell which server the button belongs to.';
+
+/** Why a close request only takes link buttons. Same reason it takes no `controls` block. */
+const CLOSE_REQUEST_BUTTON_HELP = 'Only link buttons work in a close request: the Accept and Reject buttons are added by the bot, and another interactive button beside them would compete with the answer the member is being asked for.';
+
+/**
+ * Per-kind explanation for a button that is not allowed, keyed so a new kind
+ * adds its reasoning here rather than growing the ternary at the call site.
+ */
+const BUTTON_HELP = {
+	closeRequest: CLOSE_REQUEST_BUTTON_HELP,
+	dm: DM_BUTTON_HELP,
+};
 
 /**
  * Contexts where an automation button may continue *this* graph by node id
@@ -266,6 +280,58 @@ const defaultPanelLayout = ({
 		blocks: [{
 			accentColour: null,
 			blocks: inner,
+			id: blockId('container'),
+			type: 'container',
+		}],
+		version: LAYOUT_VERSION,
+	};
+};
+
+/**
+ * The layout equivalent of the built-in close request: a coloured container
+ * holding the title and, when staff are the ones asking, the explanation and the
+ * archive note.
+ *
+ * `Guild/Category.closeRequestLayout` is nullable and the embed in
+ * `manager.js#requestClose` is the fallback, so this is only ever used to seed
+ * the editor: opening it starts from what the server already sees rather than
+ * from a blank message.
+ *
+ * The staff wording is seeded rather than the member wording because a layout is
+ * one message and the embed is two. The embed picks its title by who pressed
+ * close and shows the description only for staff; a saved layout is static, and
+ * `{closerdisplayname}` / `{closermention}` cover the difference the title was
+ * making. Staff asking the member is also the case the buttons exist for.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.archive] whether to append the "messages will be archived" note
+ * @param {Function} [options.getMessage] from `client.i18n.getLocale(guild.locale)`
+ */
+const defaultCloseRequestLayout = ({
+	archive = false,
+	getMessage = null,
+} = {}) => {
+	const t = getMessage ?? (key => key);
+	const title = t('ticket.close.staff_request.title', { requestedBy: '{closerdisplayname}' });
+	const description =
+		t('ticket.close.staff_request.description', { requestedBy: '{closermention}' }) +
+		(archive ? t('ticket.close.staff_request.archived') : '');
+
+	return {
+		blocks: [{
+			accentColour: null, // falls back to the guild's primaryColour, as the embed did
+			blocks: [
+				{
+					content: `## ${title}`,
+					id: blockId('text'),
+					type: 'text',
+				},
+				{
+					content: description,
+					id: blockId('text'),
+					type: 'text',
+				},
+			],
 			id: blockId('container'),
 			type: 'container',
 		}],
@@ -540,7 +606,7 @@ const validateLayout = (layout, {
 			return push(
 				`${path}.kind`,
 				'not_allowed',
-				`A ${button.kind} button is not allowed in a ${kind} message. ${kind === 'dm' ? DM_BUTTON_HELP : ''}`.trim(),
+				`A ${button.kind} button is not allowed in a ${kind} message. ${BUTTON_HELP[kind] ?? ''}`.trim(),
 			);
 		}
 		if (button.kind === 'link') {
@@ -1158,6 +1224,7 @@ const buildMessage = (layout, ctx) => {
 module.exports = {
 	BLOCK_TYPES,
 	BUTTON_KINDS,
+	CLOSE_REQUEST_BUTTON_HELP,
 	DM_BUTTON_HELP,
 	LAYOUT_VERSION,
 	LIMITS,
@@ -1167,6 +1234,7 @@ module.exports = {
 	collectLayoutButtons,
 	countComponents,
 	countText,
+	defaultCloseRequestLayout,
 	defaultMessageLayout,
 	defaultOpeningLayout,
 	defaultPanelLayout,

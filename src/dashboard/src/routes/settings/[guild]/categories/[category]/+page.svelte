@@ -221,6 +221,23 @@
 			: 'a rating and a comment'
 	);
 
+	/**
+	 * What a new custom close request starts from: the server's own, if it has
+	 * one, and otherwise the built-in message rendered in this guild's locale.
+	 *
+	 * Cloned rather than referenced. `inherited.closeRequestLayout` is what the
+	 * "Inherited: …" line describes, and editing it in place would rewrite what
+	 * this field claims it would fall back to. The API serves the default because
+	 * it is worded from the bot's translations, which the dashboard has no copy
+	 * of — see the `closeRequestDefault` sidecar.
+	 */
+	const closeRequestSeed = () =>
+		structuredClone(
+			inherited.closeRequestLayout ??
+				data.category.closeRequestDefault ??
+				data.settings.closeRequestDefault
+		);
+
 	/** What "Use the server setting" resolves to, spelled out rather than implied. */
 	const inheritedCloseRequest = $derived(
 		inherited.skipCloseRequest ? 'close it straight away' : 'ask the member first'
@@ -679,6 +696,57 @@
 						The server setting is to {inheritedCloseRequest}. A member closing their own
 						ticket is unaffected.
 					</p>
+				</div>
+				<div class:opacity-50={category.skipCloseRequest === true}>
+					<Inheritable
+						label="Close request message"
+						title="What the member sees when staff ask to close their ticket."
+						mode="placeholder"
+						bind:value={category.closeRequestLayout}
+						inherited={inherited.closeRequestLayout}
+						format={(v) => (v ? 'a custom message' : 'the built-in message')}
+					>
+						{#snippet control({ value, setValue, inheriting })}
+							{#if inheriting}
+								<button
+									type="button"
+									class="mt-1 block text-sm text-blurple underline"
+									onclick={() => setValue(closeRequestSeed())}
+								>
+									<i class="fa-solid fa-table-cells-large"></i>
+									Write a custom close request
+								</button>
+							{:else}
+								<p class="mb-2 mt-1 text-sm text-gray-500 dark:text-slate-400">
+									The Accept and Reject buttons are added by the bot, so you do not
+									need to build them.
+								</p>
+								<BlockEditor
+									bind:blocks={value.blocks}
+									categories={[]}
+									automations={data.automations}
+									context="closeRequest"
+								/>
+								<div class="mt-3">
+									<Preview
+										layout={value}
+										categories={[]}
+										context="closeRequest"
+										primaryColour={data.settings.primaryColour}
+										footer={data.settings.footer ?? ''}
+										roles={data.roles}
+										channels={data.channels}
+									/>
+								</div>
+							{/if}
+						{/snippet}
+						{#snippet help()}
+							{#if category.skipCloseRequest === true}
+								This category closes without asking, so the member never sees this
+								message.
+							{/if}
+						{/snippet}
+					</Inheritable>
 				</div>
 				<div>
 					{#if category.channelMode === 'CHANNEL'}

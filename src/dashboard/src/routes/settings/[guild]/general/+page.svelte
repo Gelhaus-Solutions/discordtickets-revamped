@@ -32,6 +32,11 @@
 
 	/** A modal holds five components, and Discord rejects a sixth. */
 	const FEEDBACK_LIMIT = 5;
+
+	import { modals } from 'svelte-modals';
+	import LayoutModal from '$components/AutomationEditor/LayoutModal.svelte';
+	import { summariseLayout } from '$components/BlockEditor/blocks.js';
+	import { placeholders } from '$lib/placeholders.js';
 	/**
 	 * @typedef {Object} Props
 	 * @property {import('./$types').PageData} data
@@ -41,6 +46,11 @@
 	let { data } = $props();
 
 	let modified = $state(false);
+
+	// Read here, inside the tree that provides it, and handed to the modal, which
+	// svelte-modals renders outside that tree.
+	const catalogue = placeholders();
+
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -85,6 +95,35 @@
 	fqS.questions = Array.isArray(data.settings.feedbackQuestions)
 		? data.settings.feedbackQuestions
 		: [];
+
+	/**
+	 * The server-wide close request, edited in a modal rather than inline.
+	 *
+	 * This page is a long form and the block editor needs the width, which is the
+	 * same reason the automation editor opens one. `null` is the common state and
+	 * means "use the built-in message", so the summary line has to say that rather
+	 * than render an empty editor.
+	 */
+	const openCloseRequest = () =>
+		modals.open(LayoutModal, {
+			automations: [],
+			catalogue,
+			categories: [],
+			channels: data.channels ?? [],
+			context: 'closeRequest',
+			footer: settings.footer ?? '',
+			// Seeded from the bot's own wording, in this server's locale, so opening
+			// the editor starts from the message the server already sends.
+			layout: settings.closeRequestLayout ?? data.settings.closeRequestDefault,
+			nodeTargets: [],
+			onsave: (layout) => {
+				settings.closeRequestLayout = layout;
+				modified = true;
+			},
+			primaryColour: settings.primaryColour ?? '#009999',
+			roles: data.roles ?? [],
+			title: 'Close request'
+		});
 
 	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 	const expanded = $state({ workingHours: false });
@@ -794,6 +833,47 @@
 							>
 								Write your own
 							</button>
+						</p>
+					{/if}
+				</div>
+
+				<div class:opacity-50={settings.skipCloseRequest}>
+					<span class="font-medium">
+						Close request message
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="What the member sees when staff ask to close their ticket. The Accept and Reject buttons are added by the bot."
+						></i>
+					</span>
+					<div class="mt-1 rounded-lg bg-gray-100/60 p-2 dark:bg-slate-800/50">
+						<p class="truncate text-xs text-gray-500 dark:text-slate-400">
+							{settings.closeRequestLayout
+								? summariseLayout(settings.closeRequestLayout)
+								: 'The built-in message.'}
+						</p>
+						<button type="button" class="link mt-1 text-sm" onclick={openCloseRequest}>
+							<i class="fa-solid fa-pen-to-square"></i>
+							{settings.closeRequestLayout ? 'Edit message' : 'Write a custom message'}
+						</button>
+						{#if settings.closeRequestLayout}
+							<button
+								type="button"
+								class="ml-3 mt-1 text-sm text-gray-500 underline dark:text-slate-400"
+								onclick={() => {
+									if (confirm('Go back to the built-in close request? Your blocks will be lost.')) {
+										settings.closeRequestLayout = null;
+										modified = true;
+									}
+								}}
+							>
+								Use the built-in message
+							</button>
+						{/if}
+					</div>
+					{#if settings.skipCloseRequest}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Staff close without asking, so no member sees this message unless a
+							category overrides that.
 						</p>
 					{/if}
 				</div>

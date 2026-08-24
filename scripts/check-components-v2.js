@@ -2,6 +2,7 @@ const assert = require('assert');
 const path = require('path');
 const djs = require('discord.js');
 const v2 = require(path.join(__dirname, '..', 'src', 'lib', 'components-v2'));
+const closeRequest = require(path.join(__dirname, '..', 'src', 'lib', 'tickets', 'close-request'));
 const emojiLib = require(path.join(__dirname, '..', 'src', 'lib', 'emoji'));
 
 const messages = {
@@ -765,7 +766,7 @@ t('a 💁 category emoji survives a real panel build', () => {
 // rules live in the same two tables the panel and opening contexts use.
 
 t('every kind declares both a block set and a button set', () => {
-	const kinds = ['dm', 'ephemeral', 'message', 'opening', 'panel'];
+	const kinds = ['closeRequest', 'dm', 'ephemeral', 'message', 'opening', 'panel'];
 	assert.deepStrictEqual(Object.keys(v2.BLOCK_TYPES).sort(), [...kinds].sort());
 	assert.deepStrictEqual(Object.keys(v2.BUTTON_KINDS).sort(), [...kinds].sort());
 	for (const kind of kinds) {
@@ -1004,6 +1005,192 @@ t('collectLayoutButtons finds buttons wherever they are nested', () => {
 		'blocks[1].accessory.button',
 		'blocks[2].buttons[0]',
 	]);
+});
+
+/* ─────────────────────────────── close request ───────────────────────────── */
+
+// The close request is the one authored message whose buttons are not authored.
+// Accept and Reject are appended by `src/lib/tickets/close-request.js` and carry
+// the custom ids `src/buttons/close.js` parses, so the rules below are what stop
+// a saved layout putting anything beside them that could take the press instead.
+
+console.log('\n== close request ==');
+
+const closeRequestMessages = {
+	'buttons.accept_close_request.emoji': '✅',
+	'buttons.accept_close_request.text': 'Accept',
+	'buttons.reject_close_request.emoji': '✖️',
+	'buttons.reject_close_request.text': 'Reject',
+	'ticket.close.staff_request.archived': '\nThe messages in this channel will be archived.\n',
+	'ticket.close.staff_request.description': '{requestedBy} wants to close this ticket.\n',
+	'ticket.close.staff_request.title': '❓ Can this ticket be closed?',
+	'ticket.close.user_request.title': '❓ {requestedBy} wants to close this ticket',
+};
+const closeRequestMessage = (key, vars = {}) => {
+	let out = closeRequestMessages[key] ?? `<<${key}>>`;
+	for (const [name, value] of Object.entries(vars)) out = out.split(`{${name}}`).join(value);
+	return out;
+};
+
+const closeRequestParty = {
+	archive: true,
+	closer: {
+		displayName: 'Staff Member',
+		id: '222',
+		username: 'staffmember',
+	},
+	getMessage: closeRequestMessage,
+	guild: {
+		footer: 'Discord Tickets',
+		memberCount: 10,
+		name: 'Test Server',
+	},
+	opener: {
+		avatarURL: 'https://cdn.example.com/a.png',
+		displayName: 'Alice',
+		id: '111',
+		username: 'alice',
+	},
+	primaryColour: '#009999',
+	reason: 'Resolved',
+	staff: true,
+	ticket: { number: 7 },
+};
+
+t('the default layout says what the embed says', () => {
+	// The point of seeding the editor from this is that opening it changes
+	// nothing. If the two ever diverge, every guild that switches gets a silently
+	// different message than the one they were looking at.
+	const layout = v2.defaultCloseRequestLayout({
+		archive: true,
+		getMessage: closeRequestMessage,
+	});
+	v2.validateLayout(layout, { kind: 'closeRequest' });
+
+	const embed = closeRequest.buildCloseRequest({
+		...closeRequestParty,
+		layout: null,
+	}).embeds[0].toJSON();
+	const built = closeRequest.buildCloseRequest({
+		...closeRequestParty,
+		layout,
+	});
+	const text = built.components
+		.map(c => c.toJSON())
+		.filter(c => c.type === 17)
+		.flatMap(c => c.components)
+		.filter(c => c.type === 10)
+		.map(c => c.content)
+		.join('\n');
+
+	assert.ok(text.includes(embed.title), `title missing from the layout: ${text}`);
+	assert.ok(text.includes(embed.description.trim()), `description missing from the layout: ${text}`);
+	// The container falls back to the guild colour, which is what the embed used.
+	const container = built.components.map(c => c.toJSON()).find(c => c.type === 17);
+	assert.strictEqual(container.accent_color, embed.color);
+});
+
+t('the accept and reject buttons survive whatever was authored', () => {
+	for (const layout of [null, v2.defaultCloseRequestLayout({ getMessage: closeRequestMessage })]) {
+		const built = closeRequest.buildCloseRequest({
+			...closeRequestParty,
+			layout,
+		});
+		const row = built.components.map(c => c.toJSON()).find(c => c.type === 1);
+		assert.ok(row, 'no action row');
+		assert.deepStrictEqual(row.components.map(b => b.custom_id), [
+			JSON.stringify({
+				accepted: true,
+				action: 'close',
+				expect: 'user',
+			}),
+			JSON.stringify({
+				accepted: false,
+				action: 'close',
+				expect: 'user',
+			}),
+		]);
+	}
+});
+
+t('a member closing their own ticket waits on staff, and is not pinged', () => {
+	const built = closeRequest.buildCloseRequest({
+		...closeRequestParty,
+		layout: null,
+		staff: false,
+	});
+	const row = built.components[0].toJSON();
+	assert.ok(row.components.every(b => JSON.parse(b.custom_id).expect === 'staff'));
+	assert.strictEqual(built.content, '');
+	// ...and the description, which only explains a staff request, is absent.
+	assert.strictEqual(built.embeds[0].toJSON().description, undefined);
+});
+
+t('a layout still pings the member, because a v2 message has no content', () => {
+	// The regression this guards: `content` is where Discord parses mentions
+	// from, and a Components v2 message may not have one. Without the prepended
+	// mention the member is never told, and the request sits until auto-close.
+	const built = closeRequest.buildCloseRequest({
+		...closeRequestParty,
+		layout: v2.defaultCloseRequestLayout({ getMessage: closeRequestMessage }),
+	});
+	assert.strictEqual(built.content, undefined, 'a v2 message must not carry content');
+	assert.strictEqual(built.components[0].toJSON().content, '<@111>');
+	assert.deepStrictEqual(built.allowedMentions, {
+		roles: [],
+		users: ['111'],
+	});
+});
+
+t('nothing interactive may be authored beside Accept and Reject', () => {
+	// A ticket or automation button renders perfectly well here — the refusal is
+	// not about whether it works, but about a second thing to press in a message
+	// whose entire purpose is one yes-or-no answer.
+	for (const kind of ['ticket', 'automation']) {
+		assert.throws(
+			() => v2.validateLayout(withButton({
+				automationKey: 'k',
+				categoryId: 1,
+				kind,
+				label: 'B',
+			}), {
+				automationKeys: ['k'],
+				categoryIds: categories,
+				kind: 'closeRequest',
+			}),
+			e => e.errors.some(x => x.code === 'not_allowed' && x.message.includes(v2.CLOSE_REQUEST_BUTTON_HELP)),
+			`a ${kind} button was allowed in a close request`,
+		);
+	}
+	// A link button is inert, so it is the one kind that is fine.
+	v2.validateLayout(withButton({
+		kind: 'link',
+		label: 'Docs',
+		url: 'https://example.com',
+	}), { kind: 'closeRequest' });
+});
+
+t('the dynamic blocks belong to the messages that have their data', () => {
+	// `controls` reads `ctx.opening`, `answers` reads the ticket's answers and
+	// `select` needs a Panel row. A close request has none of the three, so each
+	// would render to nothing at all rather than fail loudly.
+	for (const type of ['controls', 'answers', 'mentions', 'select']) {
+		assert.ok(
+			!v2.BLOCK_TYPES.closeRequest.includes(type),
+			`a close request must not allow a ${type} block`,
+		);
+		assert.throws(
+			() => v2.validateLayout({
+				blocks: [{
+					id: 'x',
+					type,
+				}],
+				version: 1,
+			}, { kind: 'closeRequest' }),
+			e => e.errors.some(x => x.code === 'not_allowed'),
+			`a ${type} block was allowed in a close request`,
+		);
+	}
 });
 
 console.log(`\n${pass} checks passed${process.exitCode ? ' (with failures above)' : ''}\n`);

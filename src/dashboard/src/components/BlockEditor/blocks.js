@@ -92,6 +92,7 @@ const STATIC_BLOCKS = ['container', 'text', 'separator', 'buttons', 'section', '
  * Mirrors `BLOCK_TYPES` in src/lib/components-v2.js — the server is the authority.
  */
 export const BLOCK_TYPES = {
+	closeRequest: [...STATIC_BLOCKS],
 	dm: [...STATIC_BLOCKS],
 	ephemeral: [...STATIC_BLOCKS],
 	message: [...STATIC_BLOCKS],
@@ -106,8 +107,13 @@ export const BLOCK_TYPES = {
  * A DM is not in any server, so the bot cannot tell which server an automation
  * or ticket button belongs to; the server rejects both, and offering them here
  * would only let an admin build something that fails on save.
+ *
+ * A close request refuses them for a different reason: the Accept and Reject
+ * buttons are added by the bot and are the whole point of the message, so a
+ * second thing to press would compete with the answer it is asking for.
  */
 export const BUTTON_KINDS = {
+	closeRequest: ['link'],
 	dm: ['link'],
 	ephemeral: ['ticket', 'link', 'automation'],
 	message: ['ticket', 'link', 'automation'],

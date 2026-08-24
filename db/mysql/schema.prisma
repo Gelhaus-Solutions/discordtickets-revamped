@@ -159,6 +159,10 @@ model Category {
     // Only ever visible on THREAD/FORUM categories: a channel-mode ticket has
     // its channel deleted on close, so there is no name left to prefix.
     closedEmoji      String?
+    // Components v2 block layout for the close request message. NULL means "ask
+    // the guild", and NULL at both levels means the built-in embed, which is
+    // what every server has had until now. Inheritable.
+    closeRequestLayout Json?
     createdAt        DateTime    @default(now())
     cooldown         Int?        // inheritable; 0 is an explicit "no cooldown"
     customTopic      String?
@@ -304,6 +308,7 @@ model Guild {
     closedEmoji       String?      // category default
     closeButton       Boolean      @default(false)
     closeReasonButton Boolean      @default(false)
+    closeRequestLayout Json?     // category default
     cooldown          Int?         // category default
     createdAt         DateTime     @default(now())
     disableDMs        Boolean      @default(false)

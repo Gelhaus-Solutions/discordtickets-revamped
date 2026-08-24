@@ -3,6 +3,7 @@ const { updateStaffRoles } = require('../../../../../../../lib/users');
 const { STATE_FIELDS } = require('../../../../../../../lib/tickets/emoji-settings');
 const {
 	LayoutError,
+	defaultCloseRequestLayout,
 	validateLayout,
 } = require('../../../../../../../lib/components-v2');
 const {
@@ -138,9 +139,16 @@ module.exports.get = fastify => ({
 		} = category;
 		return {
 			...raw,
-			// The built-in form in this server's locale, for seeding the builder
-			// when neither the category nor the guild has one. Derived, and stripped
-			// again on the way back in.
+			// What each builder starts from when it is opened. Built here rather
+			// than in the dashboard because both are worded from the guild's own
+			// locale, and the dashboard has no copy of the bot's translations — an
+			// admin whose server runs in German would otherwise be seeded an English
+			// message and have to translate the bot's own default by hand. Derived,
+			// and stripped again on the way back in.
+			closeRequestDefault: defaultCloseRequestLayout({
+				archive: guild.archive,
+				getMessage: client.i18n.getLocale(guild.locale),
+			}),
 			feedbackDefault: defaultFeedbackQuestions(client.i18n.getLocale(guild.locale)),
 			inheritable: INHERITED_FIELDS,
 			inherited: guildDefaults(guild),
@@ -166,6 +174,7 @@ module.exports.patch = fastify => ({
 			channelMode: true,
 			channelName: true,
 			claiming: true,
+			closeRequestLayout: true,
 			cooldown: true,
 			// createdAt: true,
 			description: true,
@@ -225,6 +234,7 @@ module.exports.patch = fastify => ({
 		// arg" throw rather than a quiet drop.
 		delete data.inherited;
 		delete data.inheritable;
+		delete data.closeRequestDefault;
 		delete data.feedbackDefault;
 
 		// A malformed opening-message layout must be rejected here: stored, it
@@ -254,11 +264,33 @@ module.exports.patch = fastify => ({
 			}
 		}
 
+		// The same for the close request, minus the automation keys: a close
+		// request takes link buttons only, so there is no key to check against.
+		// NULL is the common case and means "ask the guild", so it is not a layout
+		// to validate — see `src/lib/settings/inheritance.js`.
+		if (data.closeRequestLayout !== undefined && data.closeRequestLayout !== null) {
+			try {
+				validateLayout(data.closeRequestLayout, { kind: 'closeRequest' });
+			} catch (error) {
+				if (error instanceof LayoutError) {
+					return res.code(400).send({
+						code: 'invalid_close_request_layout',
+						errors: error.errors.map(e => ({
+							message: e.path ? `${e.path}: ${e.message}` : e.message,
+							type: e.code,
+						})),
+						statusCode: 400,
+					});
+				}
+				throw error;
+			}
+		}
+
 		// The feedback form, same rules and the same validator. NULL means "ask the
 		// guild" and is not a form to check; `[]` is a category that deliberately
 		// asks nothing, which is valid.
 		//
-		// Unlike `questions` above, the count cap is enforced: a sixth question
+		// Unlike `questions` below, the count cap is enforced: a sixth question
 		// makes Discord reject the modal outright, and this form is new, so there
 		// is no existing over-long set to start rejecting.
 		if (data.feedbackQuestions !== undefined && data.feedbackQuestions !== null) {

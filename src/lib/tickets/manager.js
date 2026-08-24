@@ -39,6 +39,7 @@ const {
 	feedbackQuestionsFor,
 	formatFeedbackAnswers,
 } = require('./feedback');
+const { buildCloseRequest } = require('./close-request');
 const { resolveEmojiSettings } = require('./emoji-settings');
 const {
 	cooldownExpiry,
@@ -1587,49 +1588,43 @@ module.exports = class TicketManager {
 		const ticket = await this.getTicket(interaction.channel.id);
 		const getMessage = this.client.i18n.getLocale(ticket.guild.locale);
 		const staff = interaction.user.id !== ticket.createdById && await isStaff(interaction.guild, interaction.user.id);
-		const closeButtonId = {
-			action: 'close',
-			expect: staff ? 'user' : 'staff',
-		};
-		const embed = new ExtendedEmbedBuilder(/* {
-			iconURL: interaction.guild.iconURL(),
-			text: ticket.guild.footer,
-		} */)
-			.setColor(ticket.guild.primaryColour)
-			.setTitle(getMessage(`ticket.close.${staff ? 'staff' : 'user'}_request.title`, { requestedBy: interaction.member.displayName }));
+		// Resolved through `resolveCategory`, so this is the category's layout, or
+		// the guild's, or null for the embed this has always been.
+		const layout = ticket.category.closeRequestLayout ?? null;
+		// `beforeRequestClose` has already fetched the opener (and closed the
+		// ticket outright if they had left), so the cache hit is the normal path
+		// and the fetch is only here for the routes that reach `requestClose`
+		// directly. Only needed for a layout: the embed names the closer alone.
+		const opener = layout
+			? interaction.guild.members.cache.get(ticket.createdById) ??
+				await interaction.guild.members.fetch(ticket.createdById).catch(() => null)
+			: null;
 
-		if (staff) {
-			embed.setDescription(
-				getMessage('ticket.close.staff_request.description', { requestedBy: interaction.user.toString() }) +
-				(ticket.guild.archive ? getMessage('ticket.close.staff_request.archived') : ''),
-			);
-		}
-
-		await interaction.editReply({
-			components: [
-				new ActionRowBuilder()
-					.addComponents(
-						new ButtonBuilder()
-							.setCustomId(JSON.stringify({
-								accepted: true,
-								...closeButtonId,
-							}))
-							.setStyle(ButtonStyle.Success)
-							.setEmoji(getMessage('buttons.accept_close_request.emoji'))
-							.setLabel(getMessage('buttons.accept_close_request.text')),
-						new ButtonBuilder()
-							.setCustomId(JSON.stringify({
-								accepted: false,
-								...closeButtonId,
-							}))
-							.setStyle(ButtonStyle.Danger)
-							.setEmoji(getMessage('buttons.reject_close_request.emoji'))
-							.setLabel(getMessage('buttons.reject_close_request.text')),
-					),
-			],
-			content: staff ? `<@${ticket.createdById}>` : '', // ticket.category.pingRoles.map(r => `<@&${r}>`).join(' ')
-			embeds: [embed],
-		});
+		await interaction.editReply(buildCloseRequest({
+			archive: ticket.guild.archive,
+			closer: {
+				displayName: interaction.member?.displayName ?? interaction.user.username,
+				id: interaction.user.id,
+				username: interaction.user.username,
+			},
+			getMessage,
+			guild: {
+				footer: ticket.guild.footer,
+				memberCount: interaction.guild.memberCount,
+				name: interaction.guild.name,
+			},
+			layout,
+			opener: {
+				avatarURL: opener?.displayAvatarURL() ?? null,
+				displayName: opener?.displayName ?? null,
+				id: ticket.createdById,
+				username: opener?.user?.username ?? null,
+			},
+			primaryColour: ticket.guild.primaryColour,
+			reason,
+			staff,
+			ticket: { number: ticket.number },
+		}));
 
 		this.$closeRequests.set(ticket.id, {
 			closedBy: interaction.user.id,

@@ -354,6 +354,45 @@ const guildWith = overrides => {
 		);
 	});
 
+	t('a close request layout inherits, and an empty one is still an answer', () => {
+		// The distinction the whole column exists for. NULL at both levels means
+		// the built-in embed; a layout with no blocks is a category that has been
+		// given one and emptied it, and it must not silently fall back to the
+		// server's — that is the `??`-versus-`||` bug this file was written for.
+		const guildLayout = {
+			blocks: [{
+				content: 'server default',
+				id: 'a',
+				type: 'text',
+			}],
+			version: 1,
+		};
+		const emptied = {
+			blocks: [],
+			version: 1,
+		};
+
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({ closeRequestLayout: guildLayout })).closeRequestLayout,
+			guildLayout,
+			'a category with no layout of its own must use the guild\'s',
+		);
+		assert.deepStrictEqual(
+			I.resolveCategory({
+				...emptyCategory(),
+				closeRequestLayout: emptied,
+			}, guildWith({ closeRequestLayout: guildLayout })).closeRequestLayout,
+			emptied,
+			'an emptied category layout must override the guild\'s',
+		);
+		// ...and unset everywhere is null, which `requestClose` reads as "use the
+		// embed", not as "post an empty message".
+		assert.strictEqual(
+			I.resolveCategory(emptyCategory(), guildWith({})).closeRequestLayout,
+			null,
+		);
+	});
+
 	/* ───────────────────────────── the schema ───────────────────────────── */
 
 	t('every inheritable Category column is nullable with no default', () => {

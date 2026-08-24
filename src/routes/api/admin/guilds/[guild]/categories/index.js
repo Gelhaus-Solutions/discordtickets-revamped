@@ -15,6 +15,10 @@ const {
 } = require('../../../../../../lib/questions-validate');
 const { LIMIT: FEEDBACK_LIMIT } = require('../../../../../../lib/tickets/feedback');
 const {
+	LayoutError,
+	validateLayout,
+} = require('../../../../../../lib/components-v2');
+const {
 	ApplicationCommandPermissionType,
 	ChannelType: { GuildCategory },
 } = require('discord.js');
@@ -206,6 +210,28 @@ module.exports.post = fastify => ({
 			} catch (error) {
 				if (error instanceof QuestionError) {
 					const badRequest = new Error('Invalid feedback questions');
+					badRequest.statusCode = 400;
+					badRequest.errors = error.errors;
+					throw badRequest;
+				}
+				throw error;
+			}
+		}
+
+		// Stored, a malformed close request would break every close in the
+		// category, and the failure lands on a member rather than on the admin who
+		// caused it. NULL is the common case for a new category and means "ask the
+		// guild", so there is nothing to validate.
+		//
+		// `messageLayout` is deliberately not checked here, only on PATCH. That is
+		// a pre-existing gap rather than a decision, and fixing it would start
+		// rejecting creates that succeed today.
+		if (data.closeRequestLayout !== undefined && data.closeRequestLayout !== null) {
+			try {
+				validateLayout(data.closeRequestLayout, { kind: 'closeRequest' });
+			} catch (error) {
+				if (error instanceof LayoutError) {
+					const badRequest = new Error('Invalid close request layout');
 					badRequest.statusCode = 400;
 					badRequest.errors = error.errors;
 					throw badRequest;

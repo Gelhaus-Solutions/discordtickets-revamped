@@ -18,6 +18,11 @@ const {
 	LIMIT: FEEDBACK_LIMIT,
 	defaultFeedbackQuestions,
 } = require('../../../../../lib/tickets/feedback');
+const {
+	LayoutError,
+	defaultCloseRequestLayout,
+	validateLayout,
+} = require('../../../../../lib/components-v2');
 const { STATE_FIELDS } = require('../../../../../lib/tickets/emoji-settings');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
@@ -44,11 +49,14 @@ module.exports.get = fastify => ({
 		// them drifting.
 		return {
 			...settings,
-			// The built-in feedback form, worded in this server's locale, so the
-			// builder can be seeded with the questions members are asked today
-			// rather than with a blank list. Built here because the labels come from
-			// the bot's translations, which the dashboard has no copy of. Derived;
-			// the PATCH allow-list drops it on the way back in.
+			// Both derived from the bot's own translations, which the dashboard has
+			// no copy of, so the builders can be seeded with what the server already
+			// sends rather than with a blank form. The PATCH allow-list drops them on
+			// the way back in.
+			closeRequestDefault: defaultCloseRequestLayout({
+				archive: settings.archive,
+				getMessage: client.i18n.getLocale(settings.locale),
+			}),
 			feedbackDefault: defaultFeedbackQuestions(client.i18n.getLocale(settings.locale)),
 			inheritable: INHERITED_FIELDS,
 			inherited: guildDefaults(settings),
@@ -132,6 +140,21 @@ function validateJsonFields(data) {
 		} catch (error) {
 			if (error instanceof QuestionError) {
 				throw new Error(`The feedback form is not valid. ${error.errors.map(e => e.message).join('; ')}`);
+			}
+			throw error;
+		}
+	}
+
+	// The server-wide close request. null is "no server default, use the built-in
+	// embed". Anything malformed reaching the column would break closing a ticket
+	// in every category that inherits it, and the failure would land on a member
+	// pressing Close rather than on the admin who saved it.
+	if ('closeRequestLayout' in data && data.closeRequestLayout !== null) {
+		try {
+			validateLayout(data.closeRequestLayout, { kind: 'closeRequest' });
+		} catch (error) {
+			if (error instanceof LayoutError) {
+				throw new Error(`closeRequestLayout is not valid. ${error.errors.map(e => (e.path ? `${e.path}: ${e.message}` : e.message)).join('; ')}`);
 			}
 			throw error;
 		}
