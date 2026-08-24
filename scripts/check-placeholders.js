@@ -23,6 +23,7 @@ const v2 = require(path.join(root, 'src', 'lib', 'components-v2'));
 const { renderChannelName } = require(path.join(root, 'src', 'lib', 'tickets', 'naming'));
 const { panelVars } = require(path.join(root, 'src', 'lib', 'panels'));
 const { tagVars } = require(path.join(root, 'src', 'lib', 'tags'));
+const { closeRequestVars } = require(path.join(root, 'src', 'lib', 'tickets', 'close-request'));
 
 let pass = 0;
 const t = (name, fn) => {
@@ -379,6 +380,68 @@ t('a channel name substitutes every variable it advertises', () => {
 		creator,
 		number: 1,
 	}), 'Bobby');
+});
+
+t('a close request supplies every variable it advertises', () => {
+	const vars = closeRequestVars({
+		closer: {
+			displayName: 'Staff Member',
+			id: '222',
+			username: 'staffmember',
+		},
+		guild: {
+			memberCount: 10,
+			name: 'Test Server',
+		},
+		opener: {
+			avatarURL: 'https://cdn.example.com/a.png',
+			displayName: 'Alice',
+			id: '111',
+			username: 'alice',
+		},
+		reason: 'Resolved',
+		ticket: { number: 7 },
+	});
+	for (const token of eagerTokens('closeRequest')) {
+		assert.ok(token in vars, `a close request advertises {${token}} but never supplies it`);
+	}
+	// The two people this message is about, and the thing that makes it the only
+	// context needing a second set of name placeholders at all.
+	assert.strictEqual(vars.name, '<@111>', '{name} is the opener, as it is in an opening message');
+	assert.strictEqual(vars.openermention, '<@111>');
+	assert.strictEqual(vars.closermention, '<@222>');
+	assert.strictEqual(vars.closerdisplayname, 'Staff Member');
+	assert.strictEqual(vars.closer, 'staffmember');
+	assert.strictEqual(vars.reason, 'Resolved');
+});
+
+t('a close request with no reason renders no braces', () => {
+	// `{reason}` is the one token that is routinely absent rather than unknown.
+	// Supplying '' rather than leaving it out keeps "Reason: {reason}" collapsing
+	// to "Reason: " instead of leaking the braces into somebody's server.
+	const vars = closeRequestVars({
+		closer: {
+			displayName: null,
+			id: '222',
+			username: 'staffmember',
+		},
+		guild: {
+			memberCount: 10,
+			name: 'Test Server',
+		},
+		opener: {
+			avatarURL: null,
+			displayName: null,
+			id: '111',
+			username: null,
+		},
+		reason: null,
+		ticket: { number: 7 },
+	});
+	assert.strictEqual(vars.reason, '');
+	assert.strictEqual(placeholders.substitute('Reason: {reason}', vars), 'Reason: ');
+	// A staff member with no nickname still gets a name.
+	assert.strictEqual(placeholders.substitute('{closerdisplayname}', vars), 'staffmember');
 });
 
 t('the automation context supplies the server variables itself', () => {

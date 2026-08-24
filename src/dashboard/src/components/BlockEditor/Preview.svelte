@@ -241,6 +241,8 @@
 	<p class="mt-2 text-xs text-gray-500 dark:text-slate-400">
 		An approximation — {context === 'opening'
 			? 'mentions, answers and controls are filled in per ticket'
-			: 'Discord renders spacing and colours slightly differently'}.
+			: context === 'closeRequest'
+				? 'the Accept and Reject buttons are added by the bot and are not shown here'
+				: 'Discord renders spacing and colours slightly differently'}.
 	</p>
 </div>

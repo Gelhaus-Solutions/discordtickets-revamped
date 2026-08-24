@@ -1,9 +1,60 @@
 <script>
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
+	import { toasts, ToastContainer, BootstrapToast } from 'svelte-toasts';
 
 	/** @type {import('./$types').PageData} */
 	let { data } = $props();
+
+	/** Which submissions are mid-delete, keyed by ticket id. */
+	let deleting = $state({});
+
+	/**
+	 * Remove one submission.
+	 *
+	 * The DM and the staff log embed were sent when the ticket closed and are not
+	 * edited — there is no message to go back and change. Everything else derives
+	 * from the table, so the charts and averages correct themselves on the next
+	 * read. The confirm says so, because it is not obvious and it is not undoable.
+	 */
+	const del = async (feedback) => {
+		const which = feedback.ticketNumber ? `ticket #${feedback.ticketNumber}` : 'this ticket';
+		const confirmed = confirm(
+			`Delete the feedback for ${which}?\n\n` +
+				'It is removed from this page and from every average and chart. ' +
+				'The closing message the member and your staff already received is not changed. ' +
+				'This cannot be undone.'
+		);
+		if (!confirmed) return;
+
+		deleting[feedback.ticketId] = true;
+		try {
+			const response = await fetch(
+				`/api/admin/guilds/${$page.params.guild}/feedback/${feedback.ticketId}`,
+				{
+					credentials: 'include',
+					method: 'DELETE'
+				}
+			);
+			const body = await response.json();
+			if (!response.ok) throw body;
+
+			// Spliced out locally rather than re-fetching: the stat cards and the
+			// charts are recomputed by `refreshData`, and re-running the whole load
+			// for one removed row would reset the filters the admin had set.
+			const i = data.feedback.findIndex((f) => f.ticketId === feedback.ticketId);
+			if (i !== -1) data.feedback.splice(i, 1);
+			await refreshData();
+			toasts.add({ description: 'Feedback deleted', type: 'success' });
+		} catch (error) {
+			toasts.add({
+				description: error?.message ?? 'Could not delete that feedback',
+				type: 'error'
+			});
+		} finally {
+			deleting[feedback.ticketId] = false;
+		}
+	};
 
 	let sinceDate = $state(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
 	let untilDate = $state(new Date());
@@ -41,11 +92,19 @@
 				credentials: 'include'
 			});
 
-			if (res.ok) {
+			// A failed refresh used to be swallowed here, leaving the page showing
+			// the previous period's numbers under the new filter dates — which reads
+			// as data rather than as an error.
+			if (!res.ok) throw await res.json().catch(() => new Error('Could not load feedback'));
+
+			{
 				const newData = await res.json();
 				data.feedback = newData.feedback;
 				data.stats = {
 					total: newData.totalCount,
+					// How many of those carried a rating, so the average card can say
+					// what it actually covers.
+					rated: newData.ratedCount ?? newData.totalCount,
 					avgRating: newData.avgRating,
 					byRating: newData.ratingCounts
 				};
@@ -62,6 +121,11 @@
 				});
 				data.feedbackByCategory = feedbackByCategory;
 			}
+		} catch (error) {
+			toasts.add({
+				description: error?.message ?? 'Could not load feedback',
+				type: 'error'
+			});
 		} finally {
 			isLoading = false;
 		}
@@ -154,6 +218,13 @@
 					></i>
 				{/each}
 			</div>
+			{#if data.stats.rated < data.stats.total}
+				<!-- A form without a rating question still collects responses, and an
+				     average over "all of them" would be wrong. -->
+				<div class="mt-2 text-xs text-gray-500 dark:text-slate-400">
+					From {data.stats.rated} of {data.stats.total} responses
+				</div>
+			{/if}
 		</div>
 
 		<div class="rounded-lg bg-white p-6 shadow-sm dark:bg-slate-700">
@@ -296,6 +367,19 @@
 									{/each}
 								</div>
 								<span class="font-semibold">{feedback.rating}/5</span>
+								<button
+									type="button"
+									disabled={deleting[feedback.ticketId]}
+									class="text-red-300 transition duration-300 hover:text-red-500 disabled:cursor-not-allowed dark:text-red-500/50 dark:hover:text-red-500"
+									title="Delete this feedback"
+									onclick={() => del(feedback)}
+								>
+									{#if deleting[feedback.ticketId]}
+										<i class="fa-solid fa-spinner animate-spin"></i>
+									{:else}
+										<i class="fa-solid fa-xmark"></i>
+									{/if}
+								</button>
 							</div>
 						</div>
 						{#if feedback.comment}
@@ -329,3 +413,9 @@
 		</a>
 	</div>
 </div>
+
+<ToastContainer duration={3000} theme={data.theme}>
+	{#snippet children({ data: toasted })}
+		<BootstrapToast data={toasted} />
+	{/snippet}
+</ToastContainer>

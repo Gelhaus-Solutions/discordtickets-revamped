@@ -10,6 +10,33 @@
 	import { onMount } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import ErrorBox from '$components/ErrorBox.svelte';
+	import CategoryQuestions from '$components/CategoryQuestions/Questions.svelte';
+	import { feedbackQuestionsState as fqS } from '$components/state.svelte';
+	import { validateQuestion } from '$components/CategoryQuestions/validate.js';
+	import { v4 as uuidv4 } from 'uuid';
+
+	/**
+	 * The types a feedback form may use — narrower than a ticket question's. A
+	 * file upload or a channel picker in a "how did we do?" form is noise, and an
+	 * entity select's answer is a list of snowflakes nothing aggregates.
+	 */
+	const FEEDBACK_QUESTION_TYPES = [
+		'RATING',
+		'TEXT',
+		'MENU',
+		'RADIO_GROUP',
+		'CHECKBOX_GROUP',
+		'CHECKBOX',
+		'TEXT_DISPLAY'
+	];
+
+	/** A modal holds five components, and Discord rejects a sixth. */
+	const FEEDBACK_LIMIT = 5;
+
+	import { modals } from 'svelte-modals';
+	import LayoutModal from '$components/AutomationEditor/LayoutModal.svelte';
+	import { summariseLayout } from '$components/BlockEditor/blocks.js';
+	import { placeholders } from '$lib/placeholders.js';
 	/**
 	 * @typedef {Object} Props
 	 * @property {import('./$types').PageData} data
@@ -19,6 +46,11 @@
 	let { data } = $props();
 
 	let modified = $state(false);
+
+	// Read here, inside the tree that provides it, and handed to the modal, which
+	// svelte-modals renders outside that tree.
+	const catalogue = placeholders();
+
 
 	beforeNavigate((navigation) => {
 		if (modified && !confirm('You have unsaved changes; are you sure you want to leave?')) {
@@ -48,6 +80,50 @@
 	// discard what the user had typed.
 	// svelte-ignore state_referenced_locally
 	let { settings, channels, locales, roles } = $state(data);
+
+	/**
+	 * Has this server set a feedback form of its own?
+	 *
+	 * `null` means categories fall through to the built-in rating-and-comment
+	 * form; a list — including an empty one — is a server-wide decision. A
+	 * checkbox over `fqS.questions.length` could not tell "not set" from "ask
+	 * nothing", so clearing the builder would silently revert to the built-in.
+	 */
+	// svelte-ignore state_referenced_locally
+	let overridesFeedback = $state(Array.isArray(data.settings.feedbackQuestions));
+	// svelte-ignore state_referenced_locally
+	fqS.questions = Array.isArray(data.settings.feedbackQuestions)
+		? data.settings.feedbackQuestions
+		: [];
+
+	/**
+	 * The server-wide close request, edited in a modal rather than inline.
+	 *
+	 * This page is a long form and the block editor needs the width, which is the
+	 * same reason the automation editor opens one. `null` is the common state and
+	 * means "use the built-in message", so the summary line has to say that rather
+	 * than render an empty editor.
+	 */
+	const openCloseRequest = () =>
+		modals.open(LayoutModal, {
+			automations: [],
+			catalogue,
+			categories: [],
+			channels: data.channels ?? [],
+			context: 'closeRequest',
+			footer: settings.footer ?? '',
+			// Seeded from the bot's own wording, in this server's locale, so opening
+			// the editor starts from the message the server already sends.
+			layout: settings.closeRequestLayout ?? data.settings.closeRequestDefault,
+			nodeTargets: [],
+			onsave: (layout) => {
+				settings.closeRequestLayout = layout;
+				modified = true;
+			},
+			primaryColour: settings.primaryColour ?? '#009999',
+			roles: data.roles ?? [],
+			title: 'Close request'
+		});
 
 	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 	const expanded = $state({ workingHours: false });
@@ -281,10 +357,22 @@
 			// Empty means "no server default", so it goes back as null rather than 0.
 			const cooldown = String(defaultCooldown ?? '').trim();
 			json.cooldown = cooldown === '' ? null : ms(cooldown) || 0;
+			// `null` keeps the built-in form; a list — even an empty one — is a
+			// server-wide decision. The whole form is sent, so a removed question is
+			// simply absent from it.
+			json.feedbackQuestions = overridesFeedback
+				? fqS.questions.map((q) => {
+						const problem = validateQuestion(q);
+						if (problem) throw new Error(`The "${q.label}" feedback question ${problem}`);
+						delete q._real;
+						return q;
+					})
+				: null;
 			// Derived sidecars from the GET; the API ignores them, but they have no
 			// business in the request or in the audit-log diff.
 			delete json.inherited;
 			delete json.inheritable;
+			delete json.feedbackDefault;
 
 			const response = await fetch(`/api/admin/guilds/${$page.params.guild}/settings`, {
 				method: 'PATCH',
@@ -671,6 +759,124 @@
 						bind:checked={settings.skipCloseRequest}
 					/>
 				</label>
+
+				<div>
+					<span class="font-medium">
+						Feedback form
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="What a member is asked when their ticket closes, in any category that does not set its own. The first rating question is the score the charts use."
+						></i>
+					</span>
+					{#if overridesFeedback}
+						<div class="mt-2">
+							<CategoryQuestions store={fqS} types={FEEDBACK_QUESTION_TYPES} />
+						</div>
+						{#if fqS.questions.length < FEEDBACK_LIMIT}
+							<div class="mt-2 text-center">
+								<button
+									type="button"
+									class="rounded-lg p-2 px-5 font-medium text-green-500 transition duration-300 hover:text-green-300"
+									onclick={() => {
+										fqS.questions.push({
+											config: {},
+											id: uuidv4(),
+											label: `Question ${fqS.questions.length + 1}`,
+											maxLength: 1000,
+											minLength: 0,
+											options: [],
+											order: fqS.questions.length,
+											placeholder: '',
+											required: false,
+											style: 2,
+											type: null,
+											value: '',
+											_real: false
+										});
+									}}
+								>
+									<i class="fa-solid fa-circle-plus"></i>
+									Add
+								</button>
+							</div>
+						{/if}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							{#if fqS.questions.length === 0}
+								An empty form asks the member nothing.
+							{/if}
+							<button
+								type="button"
+								class="underline"
+								onclick={() => {
+									overridesFeedback = false;
+									modified = true;
+								}}
+							>
+								Use the built-in form instead
+							</button>
+						</p>
+					{:else}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Using the built-in form: a 1-5 rating and an optional comment.
+							<button
+								type="button"
+								class="underline"
+								onclick={() => {
+									// Seeded with the built-in questions, so editing starts from
+									// what members are asked today rather than from a blank form.
+									fqS.questions = structuredClone(
+										$state.snapshot(data.settings.feedbackDefault ?? [])
+									);
+									overridesFeedback = true;
+									modified = true;
+								}}
+							>
+								Write your own
+							</button>
+						</p>
+					{/if}
+				</div>
+
+				<div class:opacity-50={settings.skipCloseRequest}>
+					<span class="font-medium">
+						Close request message
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="What the member sees when staff ask to close their ticket. The Accept and Reject buttons are added by the bot."
+						></i>
+					</span>
+					<div class="mt-1 rounded-lg bg-gray-100/60 p-2 dark:bg-slate-800/50">
+						<p class="truncate text-xs text-gray-500 dark:text-slate-400">
+							{settings.closeRequestLayout
+								? summariseLayout(settings.closeRequestLayout)
+								: 'The built-in message.'}
+						</p>
+						<button type="button" class="link mt-1 text-sm" onclick={openCloseRequest}>
+							<i class="fa-solid fa-pen-to-square"></i>
+							{settings.closeRequestLayout ? 'Edit message' : 'Write a custom message'}
+						</button>
+						{#if settings.closeRequestLayout}
+							<button
+								type="button"
+								class="ml-3 mt-1 text-sm text-gray-500 underline dark:text-slate-400"
+								onclick={() => {
+									if (confirm('Go back to the built-in close request? Your blocks will be lost.')) {
+										settings.closeRequestLayout = null;
+										modified = true;
+									}
+								}}
+							>
+								Use the built-in message
+							</button>
+						{/if}
+					</div>
+					{#if settings.skipCloseRequest}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Staff close without asking, so no member sees this message unless a
+							category overrides that.
+						</p>
+					{/if}
+				</div>
 
 				<label class="font-medium">
 					Channel name

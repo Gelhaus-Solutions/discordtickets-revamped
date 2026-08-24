@@ -85,12 +85,17 @@ module.exports = class CloseButton extends Button {
 				});
 			} else {
 				if (id.accepted) {
-					if (
+					// null when the category's feedback form is empty on purpose, which
+					// closes the ticket exactly as if feedback were switched off.
+					const feedbackModal = (
 						ticket.createdById === interaction.user.id &&
 						ticket.category.enableFeedback &&
 						!ticket.feedback
-					) {
-						return await interaction.showModal(client.tickets.buildFeedbackModal(ticket.guild.locale, { next: 'acceptClose' }));
+					)
+						? client.tickets.buildFeedbackModal(ticket.category, ticket.guild.locale, { next: 'acceptClose' })
+						: null;
+					if (feedbackModal) {
+						return await interaction.showModal(feedbackModal);
 					} else {
 						await interaction.deferReply();
 						await client.tickets.acceptClose(interaction);

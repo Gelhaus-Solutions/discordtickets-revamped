@@ -18,6 +18,13 @@ expose({
 			// why is feedback the only one with a guild relation? 😕
 			delete ticket.feedback.guildId;
 			ticket.feedback.comment &&= decrypt(ticket.feedback.comment);
+			// The answers are the submission; `comment` above is only a projection
+			// of one of them. Each carries its own snapshotted label and type, so an
+			// exported answer is readable without the form it was given against.
+			ticket.feedback.answers = (ticket.feedback.answers ?? []).map(answer => {
+				answer.value &&= decrypt(answer.value);
+				return answer;
+			});
 		}
 
 		ticket.closedReason &&= decrypt(ticket.closedReason);

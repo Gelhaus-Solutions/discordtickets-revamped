@@ -81,13 +81,22 @@ module.exports.get = fastify => ({
 			5: 0,
 		};
 		let totalRating = 0;
-		let totalCount = 0;
+		let ratedCount = 0;
+		let unratedCount = 0;
 		for (const group of groups) {
+			// A server's feedback form need not contain a rating question, so a
+			// submission can be genuinely unrated. Counting it as a zero would drag
+			// the public average down; counting it in `totalCount` but not in the
+			// average is what the numbers actually mean.
+			if (typeof group.rating !== 'number') {
+				unratedCount += group._count.rating;
+				continue;
+			}
 			ratingCounts[group.rating] = group._count.rating;
 			totalRating += group.rating * group._count.rating;
-			totalCount += group._count.rating;
+			ratedCount += group._count.rating;
 		}
-		const avgRating = totalCount > 0 ? Math.round((totalRating / totalCount) * 100) / 100 : null;
+		const avgRating = ratedCount > 0 ? Math.round((totalRating / ratedCount) * 100) / 100 : null;
 
 		const trendMap = {};
 		for (const row of rows) {
@@ -96,15 +105,22 @@ module.exports.get = fastify => ({
 				trendMap[day] = {
 					count: 0,
 					day,
+					rated: 0,
 					totalRating: 0,
 				};
 			}
+			// `count` is every response that day, `rated` only the ones that carried
+			// a rating. Adding `null` to `totalRating` makes it NaN, and a NaN point
+			// takes the whole line off the chart.
 			trendMap[day].count++;
-			trendMap[day].totalRating += row.rating;
+			if (typeof row.rating === 'number') {
+				trendMap[day].rated++;
+				trendMap[day].totalRating += row.rating;
+			}
 		}
 		const trend = Object.values(trendMap)
 			.map(d => ({
-				avgRating: Math.round((d.totalRating / d.count) * 100) / 100,
+				avgRating: d.rated > 0 ? Math.round((d.totalRating / d.rated) * 100) / 100 : null,
 				count: d.count,
 				date: d.day,
 			}))
@@ -117,8 +133,9 @@ module.exports.get = fastify => ({
 				since: sinceDate.toISOString(),
 				until: untilDate.toISOString(),
 			},
+			ratedCount,
 			ratingCounts,
-			totalCount,
+			totalCount: ratedCount + unratedCount,
 			trend,
 		};
 	},

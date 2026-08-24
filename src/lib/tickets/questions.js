@@ -69,12 +69,19 @@ const LIMITS = {
 	optionLabel: 100,
 	optionValue: 100,
 	placeholder: 150,
+	// A RATING renders as a radio group, so its ceiling is the choice-option
+	// ceiling; the floor is 2 because a one-point scale asks nothing.
+	ratingScaleMax: 10,
+	ratingScaleMin: 2,
 	selectOptions: 25,
 	selectValues: 25,
 	textPlaceholder: 100,
 	textValue: 4000,
 	uploadFiles: 10,
 };
+
+/** The scale a RATING question uses when its `config` does not say. */
+const DEFAULT_RATING_SCALE = 5;
 
 /**
  * What each `QuestionType` *is*, so the rest of the file can switch on a small
@@ -90,6 +97,10 @@ const KINDS = {
 	// name so no rows have to be migrated.
 	MENU: 'string-select',
 	RADIO_GROUP: 'choice',
+	// Its own kind rather than a 'choice': the options are generated from a scale
+	// rather than authored, and a stored answer has to render as stars wherever a
+	// rating used to.
+	RATING: 'rating',
 	ROLE_SELECT: 'entity-select',
 	TEXT: 'text',
 	TEXT_DISPLAY: 'display',
@@ -170,6 +181,43 @@ function optionsOf(question) {
 }
 
 /** Parse a stored answer that should be a JSON array, tolerating anything else. */
+/**
+ * The scale of a RATING question: how many points it offers.
+ *
+ * Clamped rather than trusted. `config.scale` is untyped JSON written by the
+ * dashboard, and a value outside the range makes `RadioGroupBuilder` throw when
+ * a *member* opens the modal, not when the admin saved it.
+ */
+function scaleOf(question) {
+	const { scale } = configOf(question);
+	const parsed = Number.parseInt(scale, 10);
+	if (!Number.isInteger(parsed)) return DEFAULT_RATING_SCALE;
+	return clamp(parsed, LIMITS.ratingScaleMin, LIMITS.ratingScaleMax);
+}
+
+/**
+ * A RATING's options, generated from its scale.
+ *
+ * Values are the numbers as strings, matching how the other choice types store
+ * theirs, which is what lets `Feedback.rating` be `Number(value)` and nothing
+ * more. `config.minLabel` and `config.maxLabel` name the two ends ("Terrible",
+ * "Excellent") without turning the scale into a hand-authored option list.
+ */
+function ratingOptionsOf(question) {
+	const scale = scaleOf(question);
+	const config = configOf(question);
+	return Array.from({ length: scale }, (_, i) => {
+		const point = i + 1;
+		const option = {
+			label: String(point),
+			value: String(point),
+		};
+		const end = point === 1 ? config.minLabel : point === scale ? config.maxLabel : null;
+		if (end) option.description = truncate(String(end), LIMITS.optionLabel);
+		return option;
+	});
+}
+
 function parseList(value) {
 	if (!value) return [];
 	try {
@@ -265,6 +313,11 @@ function buildQuestionComponent(question, {
 				customId,
 				value,
 			}));
+	case 'rating':
+		return label.setRadioGroupComponent(buildRating(question, {
+			customId,
+			value,
+		}));
 	case 'upload':
 		return label.setFileUploadComponent(buildFileUpload(question, {
 			config,
@@ -392,6 +445,26 @@ function buildRadioGroup(question, {
 		.setOptions(options.map(option => choiceOption(new RadioGroupOptionBuilder(), option, selected)));
 }
 
+/**
+ * A rating scale, as a radio group.
+ *
+ * Deliberately the same component a RADIO_GROUP uses: exactly one answer,
+ * rendered as buttons rather than a dropdown, which is what the old 1-5 text
+ * input was pretending to be. The difference is only where the options come
+ * from — see {@link ratingOptionsOf}.
+ */
+function buildRating(question, {
+	customId, value,
+}) {
+	const options = ratingOptionsOf(question);
+	const [chosen] = parseList(value).map(String);
+	const selected = new Set(chosen === undefined ? [] : [chosen]);
+	return new RadioGroupBuilder()
+		.setCustomId(customId)
+		.setRequired(Boolean(question.required))
+		.setOptions(options.map(option => choiceOption(new RadioGroupOptionBuilder(), option, selected)));
+}
+
 function choiceOption(builder, option, selected) {
 	builder.setLabel(option.label).setValue(option.value);
 	if (option.description) builder.setDescription(option.description);
@@ -465,6 +538,9 @@ function readAnswers(interaction, questions, { customIdFor = question => questio
 				break;
 			case 'checkbox':
 				value = String(interaction.fields.getCheckbox(customId));
+				break;
+			case 'rating':
+				value = JSON.stringify([interaction.fields.getRadioGroup(customId)].filter(v => v !== null && v !== undefined));
 				break;
 			case 'choice':
 				value = JSON.stringify(
@@ -541,6 +617,13 @@ function formatAnswer(question, value, { getMessage = null } = {}) {
 		return value;
 	case 'checkbox':
 		return value === 'true' ? '✅' : '❌';
+	case 'rating': {
+		const [point] = parseList(value).map(Number);
+		if (!Number.isInteger(point)) return empty;
+		const scale = scaleOf(question);
+		// The wording the closing DM and the staff log embed have always used.
+		return Array(clamp(point, 0, scale)).fill('⭐').join(' ') + ` (${point}/${scale})`;
+	}
 	case 'string-select':
 	case 'choice': {
 		const labels = new Map(optionsOf(question).map(option => [option.value, option.label]));
@@ -569,6 +652,7 @@ function formatAnswer(question, value, { getMessage = null } = {}) {
 }
 
 module.exports = {
+	DEFAULT_RATING_SCALE,
 	KINDS,
 	LIMITS,
 	buildQuestionComponents,
@@ -577,5 +661,7 @@ module.exports = {
 	isAnswerable,
 	optionsOf,
 	parseList,
+	ratingOptionsOf,
 	readAnswers,
+	scaleOf,
 };

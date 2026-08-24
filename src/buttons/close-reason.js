@@ -68,9 +68,14 @@ module.exports = class CloseReasonButton extends Button {
 			ticket.category.enableFeedback &&
 			!ticket.feedback
 		) {
-			return await interaction.showModal(
-				client.tickets.buildFeedbackModal(ticket.guild.locale, { next: 'requestClose' }),
+			// null when the category's feedback form is empty on purpose; fall
+			// through to the reason modal rather than showing nothing.
+			const feedbackModal = client.tickets.buildFeedbackModal(
+				ticket.category,
+				ticket.guild.locale,
+				{ next: 'requestClose' },
 			);
+			if (feedbackModal) return await interaction.showModal(feedbackModal);
 		}
 
 		await interaction.showModal(

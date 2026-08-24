@@ -10,6 +10,19 @@ const {
 } = require('../../../../../lib/settings/inheritance');
 const { updateStaffRoles } = require('../../../../../lib/users');
 const { isValidChannelEmoji } = require('../../../../../lib/emoji');
+const {
+	QuestionError,
+	validateQuestions,
+} = require('../../../../../lib/questions-validate');
+const {
+	LIMIT: FEEDBACK_LIMIT,
+	defaultFeedbackQuestions,
+} = require('../../../../../lib/tickets/feedback');
+const {
+	LayoutError,
+	defaultCloseRequestLayout,
+	validateLayout,
+} = require('../../../../../lib/components-v2');
 const { STATE_FIELDS } = require('../../../../../lib/tickets/emoji-settings');
 const { resolveGuildChannel } = require('../../../../../lib/misc');
 
@@ -36,6 +49,15 @@ module.exports.get = fastify => ({
 		// them drifting.
 		return {
 			...settings,
+			// Both derived from the bot's own translations, which the dashboard has
+			// no copy of, so the builders can be seeded with what the server already
+			// sends rather than with a blank form. The PATCH allow-list drops them on
+			// the way back in.
+			closeRequestDefault: defaultCloseRequestLayout({
+				archive: settings.archive,
+				getMessage: client.i18n.getLocale(settings.locale),
+			}),
+			feedbackDefault: defaultFeedbackQuestions(client.i18n.getLocale(settings.locale)),
 			inheritable: INHERITED_FIELDS,
 			inherited: guildDefaults(settings),
 		};
@@ -103,6 +125,39 @@ function validateJsonFields(data) {
 	// both booleans are answers a category can inherit.
 	if ('skipCloseRequest' in data && data.skipCloseRequest !== null && typeof data.skipCloseRequest !== 'boolean') {
 		throw new Error('skipCloseRequest must be true or false, or null for no server default.');
+	}
+
+	// The server-wide feedback form. null is "no server default", which resolves
+	// to the built-in rating-and-comment form. An out-of-range question makes
+	// Discord reject the modal, so the failure would land on a member closing a
+	// ticket rather than on the admin who saved it.
+	if ('feedbackQuestions' in data && data.feedbackQuestions !== null) {
+		try {
+			validateQuestions(data.feedbackQuestions, {
+				max: FEEDBACK_LIMIT,
+				what: 'feedback questions',
+			});
+		} catch (error) {
+			if (error instanceof QuestionError) {
+				throw new Error(`The feedback form is not valid. ${error.errors.map(e => e.message).join('; ')}`);
+			}
+			throw error;
+		}
+	}
+
+	// The server-wide close request. null is "no server default, use the built-in
+	// embed". Anything malformed reaching the column would break closing a ticket
+	// in every category that inherits it, and the failure would land on a member
+	// pressing Close rather than on the admin who saved it.
+	if ('closeRequestLayout' in data && data.closeRequestLayout !== null) {
+		try {
+			validateLayout(data.closeRequestLayout, { kind: 'closeRequest' });
+		} catch (error) {
+			if (error instanceof LayoutError) {
+				throw new Error(`closeRequestLayout is not valid. ${error.errors.map(e => (e.path ? `${e.path}: ${e.message}` : e.message)).join('; ')}`);
+			}
+			throw error;
+		}
 	}
 
 	// The server-wide emoji defaults. Read on every channel-name write, so junk

@@ -97,6 +97,14 @@ const ALL = [
 		},
 	}),
 	question('TEXT_DISPLAY', { config: { content: '**Read this first.**' } }),
+	question('RATING', {
+		config: {
+			maxLabel: 'Excellent',
+			minLabel: 'Terrible',
+			scale: 5,
+		},
+		required: true,
+	}),
 ];
 
 const buildModal = qs => new ModalBuilder()
@@ -253,6 +261,7 @@ const submission = fakeInteraction({
 	},
 	'q-MENU': ['one'],
 	'q-RADIO_GROUP': 'two',
+	'q-RATING': '4',
 	'q-ROLE_SELECT': ['200'],
 	'q-TEXT': 'it is broken',
 	'q-USER_SELECT': ['100', '101'],
@@ -344,6 +353,68 @@ t('a pre-existing plain-text answer still renders', () => {
 	assert.strictEqual(questions.formatAnswer(q, 'it is broken'), 'it is broken');
 });
 
+console.log('\n== a rating scale ==');
+
+// The feedback form's rating used to be a text input that accepted anything and
+// ran `parseInt` over it, so a typo became a 1-star review. It is a radio group
+// now, generated from a scale rather than a hand-authored option list.
+
+const rating = extra => question('RATING', extra);
+
+t('the scale generates the options, one per point', () => {
+	const built = buildModal([rating({ config: { scale: 7 } })]);
+	const group = built.components[0].component;
+	assert.strictEqual(group.type, ComponentType.RadioGroup);
+	assert.deepStrictEqual(group.options.map(o => o.value), ['1', '2', '3', '4', '5', '6', '7']);
+});
+
+t('the default scale is five, as the old form was', () => {
+	assert.strictEqual(questions.scaleOf({ type: 'RATING' }), questions.DEFAULT_RATING_SCALE);
+	assert.strictEqual(questions.DEFAULT_RATING_SCALE, 5);
+});
+
+t('a scale out of range is clamped rather than thrown at a member', () => {
+	// `RadioGroupBuilder` rejects an empty or over-long option list when the
+	// *member* opens the modal, not when the admin saved it.
+	assert.strictEqual(questions.scaleOf({
+		config: { scale: 99 },
+		type: 'RATING',
+	}), questions.LIMITS.ratingScaleMax);
+	assert.strictEqual(questions.scaleOf({
+		config: { scale: 0 },
+		type: 'RATING',
+	}), questions.LIMITS.ratingScaleMin);
+	buildModal([rating({ config: { scale: 99 } })]);
+});
+
+t('only the two ends are labelled', () => {
+	const built = buildModal([rating({
+		config: {
+			maxLabel: 'Great',
+			minLabel: 'Awful',
+			scale: 4,
+		},
+	})]);
+	const { options } = built.components[0].component;
+	assert.strictEqual(options[0].description, 'Awful');
+	assert.strictEqual(options[3].description, 'Great');
+	assert.strictEqual(options[1].description, undefined);
+});
+
+t('a submitted rating round-trips as one JSON value', () => {
+	const answer = answerFor('RATING');
+	assert.strictEqual(answer.value, JSON.stringify(['4']));
+});
+
+t('a stored rating renders as the stars the closing DM has always shown', () => {
+	const q = rating({ config: { scale: 5 } });
+	assert.strictEqual(questions.formatAnswer(q, JSON.stringify(['4'])), '⭐ ⭐ ⭐ ⭐ (4/5)');
+	assert.strictEqual(
+		questions.formatAnswer(q, null, { getMessage: () => '*No response*' }),
+		'*No response*',
+	);
+});
+
 console.log('\n== validation rejects what Discord would ==');
 
 const rejects = (q, why) => {
@@ -390,6 +461,34 @@ t('a required question that allows zero choices', () => rejects({
 }));
 
 t('an unknown type', () => rejects({ type: 'NOT_A_TYPE' }));
+
+t('a rating scale below two', () => rejects({
+	config: { scale: 1 },
+	type: 'RATING',
+}));
+
+t('a rating scale above ten', () => rejects({
+	config: { scale: 11 },
+	type: 'RATING',
+}));
+
+t('a rating scale that is not a number', () => rejects({
+	config: { scale: 'lots' },
+	type: 'RATING',
+}));
+
+t('more questions than a modal holds, when a cap is asked for', () => {
+	// Opt-in: category questions have only ever been capped in the dashboard, and
+	// enforcing it here would start rejecting saves that succeed today. The
+	// feedback form passes the cap because it is new.
+	const five = Array.from({ length: 5 }, () => rating({}));
+	validateQuestions([...five, rating({})]); // no cap: fine
+	assert.throws(
+		() => validateQuestions([...five, rating({})], { max: 5 }),
+		e => e instanceof QuestionError,
+	);
+	validateQuestions(five, { max: 5 });
+});
 
 t('an empty text block', () => rejects({
 	config: {},

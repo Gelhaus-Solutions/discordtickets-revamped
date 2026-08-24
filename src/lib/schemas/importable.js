@@ -41,9 +41,11 @@ const GUILD_SETTINGS_FIELDS = [
 	'closeButton',
 	'closedEmoji',
 	'closeReasonButton',
+	'closeRequestLayout',
 	'cooldown',
 	'disableDMs',
 	'errorColour',
+	'feedbackQuestions',
 	'footer',
 	'locale',
 	'logChannel',
@@ -82,12 +84,14 @@ const CATEGORY_FIELDS = [
 	'claimedEmoji',
 	'claiming',
 	'closedEmoji',
+	'closeRequestLayout',
 	'cooldown',
 	'customTopic',
 	'description',
 	'discordCategory',
 	'emoji',
 	'enableFeedback',
+	'feedbackQuestions',
 	'image',
 	'memberLimit',
 	'messageLayout',
@@ -211,6 +215,18 @@ const FEEDBACK_FIELDS = [
 	'userId',
 ];
 
+// `label` and `type` are snapshots taken at submission time, not references to
+// a question row — feedback questions live in a JSON column, so there is nothing
+// to point at. They are exported because they are the answer: without them an
+// imported submission would be a value with no question attached.
+const FEEDBACK_ANSWER_FIELDS = [
+	'createdAt',
+	'label',
+	'questionId',
+	'type',
+	'value',
+];
+
 const QUESTION_ANSWER_FIELDS = [
 	'createdAt',
 	'questionId',
@@ -251,6 +267,7 @@ module.exports = {
 	ARCHIVED_ROLE_FIELDS,
 	ARCHIVED_USER_FIELDS,
 	CATEGORY_FIELDS,
+	FEEDBACK_ANSWER_FIELDS,
 	FEEDBACK_FIELDS,
 	GUILD_FIELDS,
 	GUILD_SETTINGS_FIELDS,

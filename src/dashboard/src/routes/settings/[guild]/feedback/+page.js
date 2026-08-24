@@ -19,6 +19,10 @@ export async function load({ fetch, params }) {
 		// Calculate feedback statistics
 		const stats = {
 			total: feedbackData.totalCount || feedback.length,
+			// How many of those carried a rating. A server can now build a feedback
+			// form with no rating question, so the average no longer covers every
+			// response and the card has to say so rather than imply it does.
+			rated: feedbackData.ratedCount ?? feedbackData.totalCount ?? feedback.length,
 			avgRating:
 				feedbackData.avgRating ||
 				(feedback.length > 0
@@ -60,6 +64,7 @@ export async function load({ fetch, params }) {
 			feedback: [],
 			stats: {
 				total: 0,
+				rated: 0,
 				avgRating: 0,
 				byRating: {
 					5: 0,

@@ -5,6 +5,7 @@ const {
 	ARCHIVED_MESSAGE_FIELDS,
 	ARCHIVED_ROLE_FIELDS,
 	ARCHIVED_USER_FIELDS,
+	FEEDBACK_ANSWER_FIELDS,
 	FEEDBACK_FIELDS,
 	QUESTION_ANSWER_FIELDS,
 	TICKET_FIELDS,
@@ -102,9 +103,18 @@ expose({
 		ticket.closedReason &&= encrypt(ticket.closedReason);
 
 		if (raw.feedback) {
-			const feedback = pick(raw.feedback, FEEDBACK_FIELDS, 'feedback', ['guildId', 'ticketId']);
+			const feedback = pick(raw.feedback, FEEDBACK_FIELDS, 'feedback', ['guildId', 'ticketId', 'answers']);
 			feedback.guild = { connect: { id: guildId } };
 			feedback.comment &&= encrypt(feedback.comment);
+			if (raw.feedback.answers?.length) {
+				feedback.answers = {
+					create: raw.feedback.answers.map(row => {
+						const answer = pick(row, FEEDBACK_ANSWER_FIELDS, 'feedback answer', ['id', 'ticketId']);
+						answer.value &&= encrypt(answer.value);
+						return answer;
+					}),
+				};
+			}
 			if (feedback.userId) {
 				feedback.user = {
 					connectOrCreate: {

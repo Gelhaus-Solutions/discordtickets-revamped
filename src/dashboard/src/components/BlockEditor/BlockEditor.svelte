@@ -13,7 +13,7 @@
 	 * @property {any[]} blocks
 	 * @property {any[]} categories
 	 * @property {any[]} [automations] automations a button press can start
-	 * @property {string} [context] one of the five kinds in blocks.js#BLOCK_TYPES
+	 * @property {string} [context] one of the kinds in blocks.js#BLOCK_TYPES
 	 * @property {any[]} [nodeTargets] `{id, label}` button triggers in the
 	 *   automation being edited, which a button here may continue
 	 * @property {boolean} [nested] true inside a container (no further nesting)

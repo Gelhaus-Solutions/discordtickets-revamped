@@ -36,6 +36,7 @@
  * | `automation`  | any `action.message.*` layout, and the text params        |
  * | `tag`         | a tag's content                                           |
  * | `presence`    | the bot's presence activity names, from `config.yml`      |
+ * | `closeRequest`| the message asking a member to confirm closing a ticket   |
  *
  * A context appears as a **key** of an entry's `contexts` map when the
  * placeholder works there; its value is the note the picker shows, or `null`
@@ -74,6 +75,11 @@ const CONTEXTS = [
 		description: 'The bot\'s status, set in config.yml.',
 		id: 'presence',
 		label: 'Presence',
+	},
+	{
+		description: 'The message asking a member to confirm closing their ticket.',
+		id: 'closeRequest',
+		label: 'Close request',
 	},
 ];
 
@@ -114,6 +120,7 @@ const PLACEHOLDERS = [
 		contexts: {
 			automation: 'Whoever set the automation off. On a button press that is the staff member who pressed it, not the person the ticket belongs to — use {opener} for them.',
 			channelName: 'Their username. A channel name cannot contain a mention.',
+			closeRequest: 'A mention of the person who opened the ticket. Use {closermention} for whoever asked to close it.',
 			opening: 'A mention of the person who opened the ticket.',
 			tag: 'A mention of whoever used the tag.',
 		},
@@ -127,6 +134,7 @@ const PLACEHOLDERS = [
 		contexts: {
 			automation: null,
 			channelName: 'Also accepts {nick} and {display} here.',
+			closeRequest: 'The ticket opener\'s display name.',
 			opening: null,
 			tag: null,
 		},
@@ -143,6 +151,7 @@ const PLACEHOLDERS = [
 		contexts: {
 			automation: 'Whoever set the automation off. This is what another bot\'s commands usually want — most of them take an id, not a mention.',
 			channelName: 'Their Discord id, digits only.',
+			closeRequest: 'The id of the person who opened the ticket.',
 			opening: 'The id of the person who opened the ticket.',
 			tag: 'The id of whoever used the tag.',
 		},
@@ -153,7 +162,10 @@ const PLACEHOLDERS = [
 	},
 	{
 		aliases: ['openername'],
-		contexts: { automation: 'The person the ticket belongs to, whoever set this off.' },
+		contexts: {
+			automation: 'The person the ticket belongs to, whoever set this off.',
+			closeRequest: 'The same person as {name}, spelled the way an automation would.',
+		},
 		description: 'The username of whoever opened the ticket.',
 		label: 'Ticket opener',
 		lazy: true,
@@ -162,7 +174,10 @@ const PLACEHOLDERS = [
 	},
 	{
 		aliases: ['openernickname'],
-		contexts: { automation: null },
+		contexts: {
+			automation: null,
+			closeRequest: null,
+		},
 		description: 'The ticket opener\'s nickname in this server.',
 		label: 'Opener display name',
 		lazy: true,
@@ -171,7 +186,10 @@ const PLACEHOLDERS = [
 		token: 'openerdisplayname',
 	},
 	{
-		contexts: { automation: 'Pings them. Use {opener} for their name in plain text.' },
+		contexts: {
+			automation: 'Pings them. Use {opener} for their name in plain text.',
+			closeRequest: 'Pings them. The bot already pings them above the message when staff ask.',
+		},
 		description: 'A mention of whoever opened the ticket.',
 		label: 'Opener mention',
 		lazy: true,
@@ -179,7 +197,10 @@ const PLACEHOLDERS = [
 		token: 'openermention',
 	},
 	{
-		contexts: { automation: 'The person the ticket belongs to, as an id — {userid} is whoever set this off, which on a staff button is not the same person.' },
+		contexts: {
+			automation: 'The person the ticket belongs to, as an id — {userid} is whoever set this off, which on a staff button is not the same person.',
+			closeRequest: 'The same id as {userid}. Use {closerid} for whoever asked to close it.',
+		},
 		description: 'The Discord user id of whoever opened the ticket.',
 		label: 'Opener ID',
 		lazy: true,
@@ -191,6 +212,7 @@ const PLACEHOLDERS = [
 		contexts: {
 			automation: null,
 			channelName: null,
+			closeRequest: null,
 			opening: null,
 		},
 		description: 'The ticket\'s number in this server.',
@@ -200,15 +222,64 @@ const PLACEHOLDERS = [
 		token: 'num',
 	},
 	{
-		contexts: { opening: 'Only useful as an image URL — put it in a thumbnail or an image block.' },
+		contexts: {
+			closeRequest: 'The ticket opener\'s avatar. Only useful as an image URL — put it in a thumbnail or an image block.',
+			opening: 'Only useful as an image URL — put it in a thumbnail or an image block.',
+		},
 		description: 'The URL of the ticket creator\'s avatar.',
 		label: 'Avatar URL',
 		sample: 'https://cdn.discordapp.com/embed/avatars/0.png',
 		token: 'avatar',
 	},
+	/* ── who asked to close, and why ────────────────────────────────────────── */
+	// The close request is the one message with two people in it, and until now
+	// the embed only ever named one of them. `{name}` and its siblings stay the
+	// ticket *opener*, matching the opening message, so a layout moved between
+	// the two does not silently change who it is talking about.
+	{
+		aliases: ['closername'],
+		contexts: { closeRequest: 'Their username, in plain text. Use {closermention} to ping them.' },
+		description: 'The username of whoever asked to close the ticket.',
+		label: 'Closer',
+		sample: 'staffmember',
+		token: 'closer',
+	},
+	{
+		aliases: ['closernickname'],
+		contexts: { closeRequest: 'This is the name the built-in close request has always shown.' },
+		description: 'The nickname in this server of whoever asked to close the ticket.',
+		label: 'Closer display name',
+		// Same fallback as {displayname}: a staff member with no nickname still
+		// gets a name rather than an empty string.
+		resolve: vars => vars.closerdisplayname ?? vars.closer ?? '',
+		sample: 'Staff Member',
+		token: 'closerdisplayname',
+	},
+	{
+		contexts: { closeRequest: 'Pings them. Use {closer} for their name in plain text.' },
+		description: 'A mention of whoever asked to close the ticket.',
+		label: 'Closer mention',
+		sample: '<@319709731168223234>',
+		token: 'closermention',
+	},
+	{
+		contexts: { closeRequest: null },
+		description: 'The Discord user id of whoever asked to close the ticket.',
+		label: 'Closer ID',
+		sample: '319709731168223234',
+		token: 'closerid',
+	},
+	{
+		contexts: { closeRequest: 'Empty when the ticket is being closed without one, so put any wording like "Reason:" in the same block and it will disappear with it.' },
+		description: 'The reason given for closing, if there was one.',
+		label: 'Close reason',
+		sample: 'Resolved',
+		token: 'reason',
+	},
 	{
 		contexts: {
 			automation: null,
+			closeRequest: null,
 			opening: null,
 			panel: null,
 			tag: null,
@@ -221,6 +292,7 @@ const PLACEHOLDERS = [
 	{
 		contexts: {
 			automation: null,
+			closeRequest: null,
 			opening: null,
 			panel: null,
 			tag: null,
@@ -369,7 +441,7 @@ const PLACEHOLDERS = [
 ];
 
 /** Contexts whose text is rendered by {@link substitute}. Presence is not one. */
-const SUBSTITUTED_CONTEXTS = ['opening', 'panel', 'channelName', 'automation', 'tag'];
+const SUBSTITUTED_CONTEXTS = ['opening', 'panel', 'channelName', 'automation', 'tag', 'closeRequest'];
 
 const isSubstituted = placeholder =>
 	Object.keys(placeholder.contexts).some(id => SUBSTITUTED_CONTEXTS.includes(id));

@@ -7,8 +7,28 @@
 	import { renderMarkdown } from '$lib/markdown.js';
 	import { v4 as uuidv4 } from 'uuid';
 	import CategoryQuestions from '$components/CategoryQuestions/Questions.svelte';
-	import { questionsState as qS } from '$components/state.svelte';
+	import { questionsState as qS, feedbackQuestionsState as fqS } from '$components/state.svelte';
 	import { validateQuestion } from '$components/CategoryQuestions/validate.js';
+
+	/**
+	 * The types a feedback form may use.
+	 *
+	 * Narrower than a ticket question's on purpose: a file upload or a channel
+	 * picker in a "how did we do?" form is noise, and an entity select's answer is
+	 * a list of snowflakes nothing aggregates.
+	 */
+	const FEEDBACK_QUESTION_TYPES = [
+		'RATING',
+		'TEXT',
+		'MENU',
+		'RADIO_GROUP',
+		'CHECKBOX_GROUP',
+		'CHECKBOX',
+		'TEXT_DISPLAY'
+	];
+
+	/** A modal holds five components, and Discord rejects a sixth. */
+	const FEEDBACK_LIMIT = 5;
 	import Required from '$components/Required.svelte';
 	import Inheritable from '$components/Inheritable.svelte';
 	import { onMount } from 'svelte';
@@ -139,6 +159,11 @@
 	);
 
 	qS.questions = category.questions;
+	// The feedback form is a JSON column, not rows, so an unset one is `null` and
+	// the builder edits an empty list until the admin opts in. Which of the two
+	// it is stays on `category.feedbackQuestions` — see `overridesFeedback`.
+	// svelte-ignore state_referenced_locally
+	fqS.questions = Array.isArray(category.feedbackQuestions) ? category.feedbackQuestions : [];
 	// Filter channels based on channel mode - will be updated reactively
 	let filteredChannels = $derived.by(() => {
 		if (category.channelMode === 'FORUM') {
@@ -175,6 +200,43 @@
 	 * stands in — it answers the same question.
 	 */
 	const inherited = $derived(data.category.inherited ?? data.settings.inherited ?? {});
+
+	/**
+	 * Does this category have a feedback form of its own?
+	 *
+	 * Three states in one column, and the distinction is the point: `null` asks
+	 * the server, `[]` asks the member nothing, and a list is a form. A checkbox
+	 * over `fqS.questions.length` could not tell the first two apart, so an admin
+	 * who cleared the builder would silently go back to inheriting.
+	 */
+	// svelte-ignore state_referenced_locally
+	let overridesFeedback = $state(Array.isArray(data.category?.feedbackQuestions));
+
+	/** What the server default asks, for the "Inherited: …" line. */
+	const inheritedFeedback = $derived(
+		Array.isArray(inherited.feedbackQuestions)
+			? inherited.feedbackQuestions.length === 0
+				? 'nothing'
+				: `${inherited.feedbackQuestions.length} question${inherited.feedbackQuestions.length === 1 ? '' : 's'}`
+			: 'a rating and a comment'
+	);
+
+	/**
+	 * What a new custom close request starts from: the server's own, if it has
+	 * one, and otherwise the built-in message rendered in this guild's locale.
+	 *
+	 * Cloned rather than referenced. `inherited.closeRequestLayout` is what the
+	 * "Inherited: …" line describes, and editing it in place would rewrite what
+	 * this field claims it would fall back to. The API serves the default because
+	 * it is worded from the bot's translations, which the dashboard has no copy
+	 * of — see the `closeRequestDefault` sidecar.
+	 */
+	const closeRequestSeed = () =>
+		structuredClone(
+			inherited.closeRequestLayout ??
+				data.category.closeRequestDefault ??
+				data.settings.closeRequestDefault
+		);
 
 	/** What "Use the server setting" resolves to, spelled out rather than implied. */
 	const inheritedCloseRequest = $derived(
@@ -266,6 +328,18 @@
 				delete q._real;
 				return q;
 			});
+
+			// `null` keeps inheriting; a list — even an empty one — is an override.
+			// Unlike the questions above there is no per-row DELETE, so what is sent
+			// is the whole form and a removed question is simply absent from it.
+			json.feedbackQuestions = overridesFeedback
+				? fqS.questions.map((q) => {
+						const problem = validateQuestion(q);
+						if (problem) throw new Error(`The "${q.label}" feedback question ${problem}`);
+						delete q._real;
+						return q;
+					})
+				: null;
 
 			// Only a text question can supply the topic — every other type stores
 			// JSON, and a channel topic of `["urgent"]` helps nobody.
@@ -623,6 +697,57 @@
 						ticket is unaffected.
 					</p>
 				</div>
+				<div class:opacity-50={category.skipCloseRequest === true}>
+					<Inheritable
+						label="Close request message"
+						title="What the member sees when staff ask to close their ticket."
+						mode="placeholder"
+						bind:value={category.closeRequestLayout}
+						inherited={inherited.closeRequestLayout}
+						format={(v) => (v ? 'a custom message' : 'the built-in message')}
+					>
+						{#snippet control({ value, setValue, inheriting })}
+							{#if inheriting}
+								<button
+									type="button"
+									class="mt-1 block text-sm text-blurple underline"
+									onclick={() => setValue(closeRequestSeed())}
+								>
+									<i class="fa-solid fa-table-cells-large"></i>
+									Write a custom close request
+								</button>
+							{:else}
+								<p class="mb-2 mt-1 text-sm text-gray-500 dark:text-slate-400">
+									The Accept and Reject buttons are added by the bot, so you do not
+									need to build them.
+								</p>
+								<BlockEditor
+									bind:blocks={value.blocks}
+									categories={[]}
+									automations={data.automations}
+									context="closeRequest"
+								/>
+								<div class="mt-3">
+									<Preview
+										layout={value}
+										categories={[]}
+										context="closeRequest"
+										primaryColour={data.settings.primaryColour}
+										footer={data.settings.footer ?? ''}
+										roles={data.roles}
+										channels={data.channels}
+									/>
+								</div>
+							{/if}
+						{/snippet}
+						{#snippet help()}
+							{#if category.skipCloseRequest === true}
+								This category closes without asking, so the member never sees this
+								message.
+							{/if}
+						{/snippet}
+					</Inheritable>
+				</div>
 				<div>
 					{#if category.channelMode === 'CHANNEL'}
 						<label class="font-medium">
@@ -793,6 +918,92 @@
 							bind:checked={category.enableFeedback}
 						/>
 					</label>
+				</div>
+				<div class="md:col-span-2" class:opacity-50={!category.enableFeedback}>
+					<span class="font-medium">
+						Feedback form
+						<i
+							class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+							title="What the member is asked when their ticket closes. The first rating question is the score the charts use."
+						></i>
+					</span>
+					{#if overridesFeedback}
+						<div class="mt-2">
+							<CategoryQuestions
+								store={fqS}
+								types={FEEDBACK_QUESTION_TYPES}
+							/>
+						</div>
+						{#if fqS.questions.length < FEEDBACK_LIMIT}
+							<div class="mt-2 text-center">
+								<button
+									type="button"
+									class="rounded-lg p-2 px-5 font-medium text-green-500 transition duration-300 hover:text-green-300"
+									onclick={() => {
+										fqS.questions.push({
+											config: {},
+											id: uuidv4(),
+											label: `Question ${fqS.questions.length + 1}`,
+											maxLength: 1000,
+											minLength: 0,
+											options: [],
+											order: fqS.questions.length,
+											placeholder: '',
+											required: false,
+											style: 2,
+											type: null,
+											value: '',
+											_real: false
+										});
+									}}
+								>
+									<i class="fa-solid fa-circle-plus"></i>
+									Add
+								</button>
+							</div>
+						{/if}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Overridden for this category.
+							{#if fqS.questions.length === 0}
+								An empty form asks the member nothing.
+							{/if}
+							<button
+								type="button"
+								class="underline"
+								onclick={() => {
+									overridesFeedback = false;
+									modified = true;
+								}}
+							>
+								Reset to server default
+							</button>
+						</p>
+					{:else}
+						<p class="mt-1 text-sm text-gray-500 dark:text-slate-400">
+							Using the server default, which asks {inheritedFeedback}.
+							<button
+								type="button"
+								class="underline"
+								onclick={() => {
+									// Seeded with a copy of what it would have inherited, so
+									// "override" starts from the form the member sees today
+									// rather than from a blank one. A copy, because the inherited
+									// list is what the line above describes.
+									fqS.questions = Array.isArray(inherited.feedbackQuestions)
+										? structuredClone($state.snapshot(inherited.feedbackQuestions))
+										: structuredClone(
+												$state.snapshot(
+													data.category.feedbackDefault ?? data.settings.feedbackDefault ?? []
+												)
+											);
+									overridesFeedback = true;
+									modified = true;
+								}}
+							>
+								Override
+							</button>
+						</p>
+					{/if}
 				</div>
 				<div>
 					<label class="font-medium">

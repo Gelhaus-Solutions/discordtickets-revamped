@@ -96,6 +96,16 @@ const INHERITED = {
 		builtin: () => '✅',
 		guild: 'claimedEmoji',
 	},
+	// The Components v2 layout for the close request message. The built-in is
+	// NULL rather than a layout, because "unset" here does not mean "empty
+	// message": it means fall back to the embed `manager.js#requestClose` has
+	// always built. A layout with no blocks is a different answer, and a
+	// deliberate one, which is why this cannot be a boolean plus a column.
+	closeRequestLayout: {
+		builtin: () => null,
+		guild: 'closeRequestLayout',
+		json: true,
+	},
 	// Nothing by default: a channel-mode ticket's channel is deleted on close, so
 	// this only ever shows on threads and forums, and it did not exist before.
 	closedEmoji: {
@@ -108,6 +118,19 @@ const INHERITED = {
 	cooldown: {
 		builtin: () => null,
 		guild: 'cooldown',
+	},
+	// The feedback form, as a question set of the same shape `Category.questions`
+	// uses. The built-in is NULL rather than the default form, for the same
+	// reason `closeRequestLayout`'s is: this file has no locale in scope and the
+	// built-in questions are translated. `feedbackQuestionsFor` in
+	// `src/lib/tickets/feedback.js` turns the NULL into the real default, where
+	// `getMessage` exists.
+	//
+	// `[]` is a category that deliberately asks nothing, and must not fall back.
+	feedbackQuestions: {
+		builtin: () => null,
+		guild: 'feedbackQuestions',
+		json: true,
 	},
 	memberLimit: {
 		builtin: () => 1,
