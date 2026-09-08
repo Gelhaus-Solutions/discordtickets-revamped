@@ -2343,6 +2343,94 @@ function stubRunners(overrides = {}) {
 		);
 	});
 
+	await t('the reopen node routes every outcome and never bypasses the workflow', async () => {
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const gatewayPath = path.join(root, 'dist', 'temporal', 'gateway');
+		if (!fs.existsSync(path.join(root, 'dist', 'temporal'))) {
+			console.log('       (skipped: run `npm run temporal.build` to include this)');
+			return;
+		}
+		const gateway = require(gatewayPath);
+
+		const type = NODE_TYPES['action.ticket.reopen'];
+		assert.deepStrictEqual(type.outputs, ['reopened', 'notReopened']);
+		assert.deepStrictEqual(type.needs, ['ticket']);
+
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.ticket.reopen'];
+		const ctxFor = ticket => ({
+			guildId: '451',
+			getTicket: async () => ticket,
+			vars: {},
+		});
+		const soft = {
+			id: 't1',
+			open: true,
+			pendingCloseAt: new Date(),
+		};
+
+		const original = gateway.signalReopenTicket;
+		const withOutcome = async (outcome, ticket = soft) => {
+			gateway.signalReopenTicket = async () => outcome;
+			try {
+				return await run({ params: {} }, ctxFor(ticket));
+			} finally {
+				gateway.signalReopenTicket = original;
+			}
+		};
+
+		const ok = await withOutcome('reopened');
+		assert.strictEqual(ok.handle, undefined, 'a reopen takes the first output');
+		assert.strictEqual(ok.status, undefined);
+
+		// The distinction the gateway was changed to preserve: a window that has
+		// gone is terminal, an outage is worth retrying, and an admin reading the
+		// run log needs to know which happened.
+		const gone = await withOutcome('no_window');
+		assert.strictEqual(gone.handle, 'notReopened');
+		assert.strictEqual(gone.reason, 'no_window');
+
+		const down = await withOutcome('unavailable');
+		assert.strictEqual(down.handle, 'notReopened');
+		assert.strictEqual(down.reason, 'temporal_unavailable');
+
+		// Guards, each of which must route rather than throw or silently continue.
+		for (const [ticket, reason] of [
+			[null, 'unknown_ticket'],
+			[{
+				id: 't1',
+				open: false,
+				pendingCloseAt: null,
+			}, 'already_closed'],
+			[{
+				id: 't1',
+				open: true,
+				pendingCloseAt: null,
+			}, 'not_closing'],
+		]) {
+			const result = await withOutcome('reopened', ticket);
+			assert.strictEqual(result.handle, 'notReopened', `${reason} must route`);
+			assert.strictEqual(result.reason, reason);
+			assert.strictEqual(result.status, 'skip', `${reason} reads as SKIPPED`);
+		}
+	});
+
+	await t('the reopen node reaches Temporal and nothing else', () => {
+		// Calling `client.tickets.reopen()` directly would reopen the ticket out
+		// from under the grace-window workflow, which keeps waiting and then
+		// terminally closes it anyway when the window expires. A reopen that
+		// silently re-closes ten minutes later is the worst outcome available, so
+		// this is worth pinning rather than trusting to review.
+		const source = fs.readFileSync(path.join(root, 'src', 'lib', 'automations', 'actions.js'), 'utf8');
+		const runner = source.slice(source.indexOf('\'action.ticket.reopen\''));
+		const body = runner.slice(0, runner.indexOf('\'action.ticket.claim\''));
+		assert.ok(body.includes('temporal.signalReopenTicket'), 'the reopen node must signal the workflow');
+		assert.ok(
+			!/tickets\.reopen\s*\(/.test(body),
+			'the reopen node must not call client.tickets.reopen() directly',
+		);
+	});
+
 	await t('the thread variables are declared placeholders, or they post literally', () => {
 		// `substitute()` builds one regex from the PLACEHOLDERS table and expands
 		// nothing else, so setting `ctx.vars.threadurl` without a table entry

@@ -1447,6 +1447,24 @@ const NODE_TYPES = {
 			type: 'text',
 		}],
 	},
+	'action.ticket.reopen': {
+		category: 'action',
+		description: 'Cancel a pending close and reopen the ticket, while its reopen window is still running. The unlock happens a moment after this step, so hang anything that talks to the member off the "ticket is reopened" trigger rather than the next step here.',
+		label: 'Reopen the ticket',
+		// `ticket`, not `ticketChannel`: the natural trigger for this is a close
+		// request or a button on the soft-close prompt, and being stricter buys
+		// nothing when the signal is addressed by ticket id.
+		needs: ['ticket'],
+		outputLabels: {
+			notReopened: 'not reopened',
+			reopened: 'reopened',
+		},
+		// Two outputs rather than a bare skip: a skip continues the branch, so a
+		// single-output version would post "Reopened!" even when the window had
+		// gone. That is the lie the reopen button carefully avoids.
+		outputs: ['reopened', 'notReopened'],
+		params: [],
+	},
 	'action.ticket.setEmoji': {
 		category: 'action',
 		description: 'Pin an emoji to the front of the ticket\'s channel name, or clear it so the claim and priority emoji show again.',

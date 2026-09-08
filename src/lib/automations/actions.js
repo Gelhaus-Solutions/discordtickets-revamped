@@ -761,6 +761,49 @@ function makeRunners(client, runNested) {
 			return {};
 		}),
 
+		// Signal-only, deliberately. `client.tickets.reopen()` is self-contained and
+		// Temporal-free, but calling it directly would reopen the ticket out from
+		// under the grace-window workflow, which keeps waiting and then terminally
+		// closes the ticket anyway when the window expires. The signal is not an
+		// implementation detail of reopening: it is what cancels the pending close.
+		'action.ticket.reopen': real(async (node, ctx) => {
+			const ticket = await ctx.getTicket();
+			if (!ticket) {
+				return {
+					...skip('unknown_ticket'),
+					handle: 'notReopened',
+				};
+			}
+			// The window already ran out: the child close workflow deleted or
+			// archived the channel, so there is nothing left to unlock. Restoring a
+			// fully closed ticket is a different feature.
+			if (!ticket.open) {
+				return {
+					...skip('already_closed'),
+					handle: 'notReopened',
+				};
+			}
+			// Open and not closing, so there is no pending close to cancel.
+			if (!ticket.pendingCloseAt) {
+				return {
+					...skip('not_closing'),
+					handle: 'notReopened',
+				};
+			}
+
+			const outcome = await temporal.signalReopenTicket(ticket.id);
+			if (outcome !== 'reopened') {
+				return {
+				// `no_window` and `temporal_unavailable` are kept apart in the run
+				// log for the same reason the button keeps them apart for a member:
+				// one is terminal, the other is worth trying again.
+					...skip(outcome === 'unavailable' ? 'temporal_unavailable' : 'no_window'),
+					handle: 'notReopened',
+				};
+			}
+			return {};
+		}),
+
 		'action.ticket.claim': real(async (node, ctx) => {
 			const member = await ctx.resolveSubject(node.params.subject);
 			const channel = await ctx.getTicketChannel();
