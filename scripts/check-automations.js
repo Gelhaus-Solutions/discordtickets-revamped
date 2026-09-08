@@ -2214,6 +2214,99 @@ function stubRunners(overrides = {}) {
 		assert.deepStrictEqual(missing, [], `no runner for: ${missing.join(', ')}`);
 	});
 
+	await t('the transcript node needs a ticket, and a channel only when it posts to one', () => {
+		const type = NODE_TYPES['action.ticket.sendTranscript'];
+		assert.deepStrictEqual(type.needs, ['ticket']);
+
+		// Under `trigger.ticket.closed` there may be no channel left at all, which
+		// is the whole reason the dependency is conditional rather than declared.
+		const needsFor = destination => needsOf({
+			params: { destination },
+			type: 'action.ticket.sendTranscript',
+		});
+		assert.ok(!needsFor('opener').includes('ticketChannel'));
+		assert.ok(!needsFor('channel').includes('ticketChannel'));
+		assert.ok(needsFor('ticket').includes('ticketChannel'), 'posting into the ticket needs its channel');
+	});
+
+	await t('the transcript node sends a file, and skips rather than throwing', async () => {
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const transcripts = require(path.join(root, 'src', 'lib', 'tickets', 'transcript-html'));
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.ticket.sendTranscript'];
+
+		const sent = [];
+		const member = { send: async payload => sent.push(payload) };
+		const ctxFor = over => ({
+			client: {},
+			getSettings: async () => ({ disableDMs: false }),
+			getTicket: async () => ({
+				createdById: 'u1',
+				id: 't1',
+				number: 12,
+			}),
+			getTicketChannel: async () => member,
+			guildId: '451',
+			resolveSubject: async () => member,
+			vars: {},
+			...over,
+		});
+
+		const original = transcripts.readHtmlTranscript;
+		const withHtml = async (html, ctx = ctxFor({}), params = { destination: 'opener' }) => {
+			transcripts.readHtmlTranscript = async () => html;
+			try {
+				return await run({ params }, ctx);
+			} finally {
+				transcripts.readHtmlTranscript = original;
+			}
+		};
+
+		sent.length = 0;
+		const ok = await withHtml('<html>hi</html>');
+		assert.strictEqual(ok.status, undefined, 'a delivered transcript is not a skip');
+		assert.strictEqual(sent.length, 1);
+		assert.strictEqual(sent[0].files.length, 1);
+		assert.strictEqual(
+			sent[0].files[0].name,
+			'ticket-12-transcript.html',
+			'the file is named after the ticket number, not its id',
+		);
+
+		// A guild that turned DMs off means it, the same as `action.message.dm`.
+		sent.length = 0;
+		const off = await withHtml('<html>hi</html>', ctxFor({ getSettings: async () => ({ disableDMs: true }) }));
+		assert.strictEqual(off.reason, 'dms_disabled');
+		assert.strictEqual(sent.length, 0, 'nothing should be sent, and no transcript rendered');
+
+		// Posting into a channel is not a DM, so the guild's DM setting is silent.
+		sent.length = 0;
+		const toChannel = await withHtml(
+			'<html>hi</html>',
+			ctxFor({ getSettings: async () => ({ disableDMs: true }) }),
+			{ destination: 'ticket' },
+		);
+		assert.strictEqual(toChannel.status, undefined, 'disableDMs must not block a channel post');
+		assert.strictEqual(sent.length, 1);
+
+		sent.length = 0;
+		const none = await withHtml(null);
+		assert.strictEqual(none.reason, 'no_transcript');
+		assert.strictEqual(sent.length, 0);
+
+		// Discord refuses the upload, so the node refuses it first and says so.
+		sent.length = 0;
+		const huge = await withHtml('x'.repeat(9 * 1024 * 1024));
+		assert.strictEqual(huge.reason, 'too_large');
+		assert.strictEqual(huge.status, 'skip', 'an oversized transcript is an outcome, not a fault');
+		assert.strictEqual(sent.length, 0);
+
+		sent.length = 0;
+		const gone = await withHtml('<html>hi</html>', ctxFor({ resolveSubject: async () => null }));
+		assert.strictEqual(gone.reason, 'unknown_member');
+		assert.strictEqual(sent.length, 0);
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {

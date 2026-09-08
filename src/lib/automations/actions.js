@@ -40,8 +40,10 @@ const {
 	resolveName,
 } = require('../tickets/channels');
 const temporal = require('../temporal');
+const transcripts = require('../tickets/transcript-html');
 const {
 	ActionRowBuilder,
+	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	MessageFlags,
@@ -65,6 +67,16 @@ const {
 	setTicketEmoji,
 } = require('../tickets/mutations');
 const { evaluateClauses } = require('./conditions');
+
+/**
+ * Discord's attachment ceiling on an unboosted server.
+ *
+ * A flat conservative number rather than the guild's actual tier limit: a
+ * transcript refused on upload has already cost a render and a storage read,
+ * and "too_large" in the run log is a better answer for an admin than a
+ * gateway error.
+ */
+const TRANSCRIPT_LIMIT = 8 * 1024 * 1024;
 
 const skip = reason => ({
 	reason,
@@ -705,6 +717,41 @@ function makeRunners(client, runNested) {
 			const channel = await ctx.getTicketChannel();
 			if (!member || !channel) return skip('unavailable');
 			await client.tickets.autoClaim(channel, member.id);
+			return {};
+		}),
+
+		'action.ticket.sendTranscript': real(async (node, ctx) => {
+			const ticket = await ctx.getTicket();
+			if (!ticket) return skip('unknown_ticket');
+
+			const destination = node.params?.destination ?? 'opener';
+			const dm = destination === 'opener' || destination === 'actor';
+
+			// Resolved before the transcript is rendered: there is no point paying
+			// for a render nobody can be sent.
+			let target = null;
+			if (dm) {
+				// A guild that turned DMs off means it, the same as `action.message.dm`.
+				const settings = await ctx.getSettings();
+				if (settings?.disableDMs) return skip('dms_disabled');
+				target = await ctx.resolveSubject(destination === 'actor' ? 'actor' : 'ticketCreator');
+			} else if (destination === 'channel') {
+				target = resolveGuildChannel(ctx.client, ctx.guildId, node.params?.channelId);
+			} else {
+				target = await ctx.getTicketChannel();
+			}
+			if (!target?.send) return skip(dm ? 'unknown_member' : 'unknown_channel');
+
+			// Reads the stored copy when there is one and regenerates when there is
+			// not. Under `trigger.ticket.closed` the close path has just written
+			// it, so the common case is a storage read and no render at all.
+			const html = await transcripts.readHtmlTranscript(client, ticket.id);
+			if (!html) return skip('no_transcript');
+
+			const file = Buffer.from(html, 'utf8');
+			if (file.byteLength > TRANSCRIPT_LIMIT) return skip('too_large');
+
+			await target.send({ files: [new AttachmentBuilder().setFile(file).setName(`ticket-${ticket.number}-transcript.html`)] });
 			return {};
 		}),
 

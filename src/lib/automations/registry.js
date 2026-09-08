@@ -1376,6 +1376,56 @@ const NODE_TYPES = {
 			type: 'text',
 		}],
 	},
+	'action.ticket.sendTranscript': {
+		category: 'action',
+		description: 'Attach the ticket\'s transcript to a message. Under the "ticket is closed" trigger this is how a server sends the opener their copy, which is what that trigger fires last for.',
+		label: 'Send the transcript',
+		// `ticket`, not `ticketChannel`: the headline use is under
+		// `trigger.ticket.closed`, which provides no channel because there may no
+		// longer be one. `needsOf` adds the channel back only when the transcript
+		// is being posted into the ticket itself.
+		needs: ['ticket'],
+		outputs: ['out'],
+		params: [
+			{
+				default: 'opener',
+				key: 'destination',
+				label: 'Send it to',
+				options: [{
+					label: 'The person who opened the ticket (DM)',
+					value: 'opener',
+				}, {
+					label: 'Whoever set this off (DM)',
+					value: 'actor',
+				}, {
+					label: 'The ticket channel',
+					value: 'ticket',
+				}, {
+					label: 'A specific channel',
+					value: 'channel',
+				}],
+				required: true,
+				type: 'select',
+			},
+			{
+				channelTypes: [0, 5],
+				key: 'channelId',
+				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'destination',
+				},
+				type: 'channel',
+			},
+		],
+		validate: (params, push, path) => {
+			// Same reason as the channel nodes: `channelId` applies to one of four
+			// destinations and `validateParams` cannot see which was picked.
+			if (params?.destination === 'channel' && !params?.channelId) {
+				push(`${path}.channelId`, 'required', 'Channel is required');
+			}
+		},
+	},
 	'action.ticket.setEmoji': {
 		category: 'action',
 		description: 'Pin an emoji to the front of the ticket\'s channel name, or clear it so the claim and priority emoji show again.',
@@ -1982,6 +2032,13 @@ function needsOf(node) {
 	if (node.type === 'action.message.send') {
 		if (node.params?.target === 'ticket') needs.add('ticketChannel');
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
+	}
+
+	// The transcript can be posted into the ticket channel, which is the only
+	// destination that needs one. Under `trigger.ticket.closed` there may not be
+	// a channel any more, which is exactly why this is conditional.
+	if (node.type === 'action.ticket.sendTranscript' && node.params?.destination === 'ticket') {
+		needs.add('ticketChannel');
 	}
 
 	// Same reasoning for the create nodes: who they let in decides what they
