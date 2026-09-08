@@ -657,6 +657,8 @@ ticket:
     reopened:
       description: "{user} reopened this ticket."
       title: 🔓 Ticket reopened
+  staff_channel:
+    ping: "Ticket #{number} is open. This channel is private to staff."
   working_hours:
     next:
       description:
