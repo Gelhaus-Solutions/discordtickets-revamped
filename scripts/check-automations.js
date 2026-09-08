@@ -2582,6 +2582,37 @@ function stubRunners(overrides = {}) {
 		}
 	});
 
+	await t('node icons are fixed-width wherever one is drawn beside a label', () => {
+		// The icons range from `fa-i-cursor` at 256 units to `fa-user-plus` at 640,
+		// a 2.5x spread. Every one of these is a flex row with the label after the
+		// icon, so without `fa-fw` the titles start at a different offset on each
+		// node and a column of them reads as ragged. That is what the "align the
+		// nodes" report was.
+		const dir = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor');
+		if (!fs.existsSync(dir)) {
+			console.log('       (skipped: the editor is not installed)');
+			return;
+		}
+		const files = [
+			path.join(dir, 'nodes', 'BaseNode.svelte'),
+			path.join(dir, 'NodePalette.svelte'),
+			path.join(dir, 'Inspector.svelte'),
+			path.join(dir, 'RunLog.svelte'),
+		];
+		for (const file of files) {
+			const source = fs.readFileSync(file, 'utf8');
+			// Only the lines that render a *node type's* icon; the fixed decorative
+			// ones (a chevron, a bin) are beside nothing and do not need it.
+			for (const line of source.split('\n')) {
+				if (!line.includes('iconFor(')) continue;
+				assert.ok(
+					line.includes('fa-fw'),
+					`${path.basename(file)} draws a node icon without fa-fw: ${line.trim()}`,
+				);
+			}
+		}
+	});
+
 	await t('every node icon exists in the free icon set', () => {
 		// A Pro-only name is not an error anywhere in the stack: Font Awesome has
 		// no glyph for it, the class matches nothing, and the node renders with a

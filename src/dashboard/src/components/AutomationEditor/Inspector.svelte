@@ -47,7 +47,7 @@
 		</p>
 	{:else}
 		<div class="mb-3 flex items-start gap-2">
-			<i class="fa-solid {iconFor(node.data.type)} mt-1 {skin.icon}"></i>
+			<i class="fa-solid fa-fw {iconFor(node.data.type)} mt-1 {skin.icon}"></i>
 			<div class="min-w-0 flex-1">
 				<p class="truncate font-semibold">{definition?.label ?? node.data.type}</p>
 				<p class="text-xs text-gray-500 dark:text-slate-400">{definition?.description ?? ''}</p>

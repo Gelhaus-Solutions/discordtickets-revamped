@@ -49,7 +49,7 @@
 							class="flex items-start gap-2 rounded-lg p-2 text-left transition duration-200 hover:bg-gray-100 dark:hover:bg-slate-800"
 							onclick={() => onadd(item.type)}
 						>
-							<i class="fa-solid {iconFor(item.type)} mt-0.5 {skin.icon}"></i>
+							<i class="fa-solid fa-fw {iconFor(item.type)} mt-0.5 {skin.icon}"></i>
 							<span class="min-w-0">
 								<span class="block truncate text-sm font-medium">{item.label}</span>
 								<span class="block truncate text-xs text-gray-500 dark:text-slate-400">
