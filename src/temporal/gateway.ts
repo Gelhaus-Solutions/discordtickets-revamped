@@ -3,7 +3,7 @@
  * workflows. Uses string workflow-type names so this module never imports the
  * sandboxed workflow code into the Node process.
  */
-import type { WorkflowHandle } from '@temporalio/client';
+import type { Client, WorkflowHandle } from '@temporalio/client';
 import { ensureTemporalClient } from './client';
 import { getTemporalConfig } from './config';
 import { buildSearchAttributes } from './search-attributes';
@@ -32,6 +32,7 @@ import type {
 	ExportGuildInput,
 	GenerateTranscriptInput,
 	ImportGuildInput,
+	ReopenOutcome,
 	ReopenState,
 	ReopenWindowInput,
 	StaleState,
@@ -238,21 +239,38 @@ export async function startReopenWindow(input: ReopenWindowInput): Promise<void>
 	}
 }
 
-/** Reopen a soft-closed ticket. Returns false when no grace window is active. */
-export async function signalReopenTicket(ticketId: string): Promise<boolean> {
-	const client = await ensureTemporalClient();
+/**
+ * Reopen a soft-closed ticket by cancelling its pending close.
+ *
+ * Three outcomes, deliberately not a boolean: `ensureTemporalClient` throws when
+ * Temporal is unreachable (including from its own retry cooldown), and that used
+ * to escape this function entirely, past the `catch` below (which only ever
+ * covered the signal itself), and reach the reopen button as an unexpected
+ * error. Telling "no live window" apart from "could not ask" is the caller's
+ * whole decision: the first is terminal, the second is worth retrying.
+ */
+export async function signalReopenTicket(ticketId: string): Promise<ReopenOutcome> {
+	let client: Client;
+	try {
+		client = await ensureTemporalClient();
+	} catch {
+		return 'unavailable';
+	}
 	try {
 		await client.workflow.getHandle(reopenWorkflowId(ticketId)).signal(SignalName.reopen);
-		return true;
+		return 'reopened';
 	} catch {
-		return false;
+		return 'no_window';
 	}
 }
 
 /** Query the reopen grace window (deadline + whether already reopened). */
 export async function queryReopenState(ticketId: string): Promise<ReopenState | null> {
-	const client = await ensureTemporalClient();
 	try {
+		// Inside the try: the stale sweep's caller documents "an unreachable one
+		// answers null, which is the case this sweep exists for", and that was
+		// only true of the query, not of the connection it needs first.
+		const client = await ensureTemporalClient();
 		return await client.workflow
 			.getHandle(reopenWorkflowId(ticketId))
 			.query<ReopenState>(QueryName.reopenState);

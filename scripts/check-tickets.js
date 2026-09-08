@@ -1286,6 +1286,155 @@ const ticket = (over = {}) => ({
 			assert.strictEqual(record.closed.length, 1);
 			assert.strictEqual(record.closed[0].closedBy, 'u2', 'the presser closes it when no request is pending');
 		});
+
+		/* ────────────── reopening when Temporal is unreachable ────────────── */
+
+		// Same failure as closing, found later: `signalReopenTicket` connected
+		// *outside* its own try, so an unreachable Temporal threw past the button
+		// and answered a member's reopen with "an unexpected error occurred".
+		// Reopen cannot fall back in-process (only the grace-window workflow knows
+		// the close is pending), so the fix is an honest third outcome instead.
+		const temporalClient = require(path.join(root, 'dist', 'temporal', 'client'));
+
+		const withConnect = async (impl, fn) => {
+			const original = temporalClient.ensureTemporalClient;
+			temporalClient.ensureTemporalClient = impl;
+			try {
+				return await fn();
+			} finally {
+				temporalClient.ensureTemporalClient = original;
+			}
+		};
+
+		// A client whose signal resolves (window live) or rejects (no such workflow).
+		const clientWhoseSignal = result => ({
+			workflow: {
+				getHandle: () => ({
+					query: async () => {
+						if (result instanceof Error) throw result;
+						return result;
+					},
+					signal: async () => {
+						if (result instanceof Error) throw result;
+					},
+				}),
+			},
+		});
+
+		await t('an unreachable Temporal answers "unavailable", not a throw', async () => {
+			const outcome = await withConnect(
+				async () => {
+					throw new Error('Temporal is unreachable: the last connection attempt failed, and the next is not due yet.');
+				},
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'unavailable');
+		});
+
+		await t('a refused signal still answers "no_window"', async () => {
+			const outcome = await withConnect(
+				async () => clientWhoseSignal(new Error('workflow not found')),
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'no_window');
+		});
+
+		await t('a delivered signal answers "reopened"', async () => {
+			const outcome = await withConnect(
+				async () => clientWhoseSignal(undefined),
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'reopened');
+		});
+
+		await t('queryReopenState answers null when Temporal is unreachable', async () => {
+			// The stale sweep's caller documents exactly this: "an unreachable one
+			// answers null, which is the case this sweep exists for."
+			const state = await withConnect(
+				async () => {
+					throw new Error('unreachable');
+				},
+				() => gateway.queryReopenState('t1'),
+			);
+			assert.strictEqual(state, null);
+		});
+
+		/* the button's side of it */
+
+		const ReopenButton = require(path.join(root, 'src', 'buttons', 'reopen'));
+
+		const pressReopen = async outcome => {
+			const replies = [];
+			const updates = [];
+			const warnings = [];
+			const self = {
+				client: {
+					i18n: { getLocale: () => (key => key) },
+					log: { warn: (...args) => warnings.push(args) },
+					tickets: {
+						getTicket: async () => ({
+							createdById: 'u1',
+							guild: {
+								errorColour: '#ff0000',
+								footer: '',
+								locale: 'en-GB',
+								successColour: '#00ff00',
+							},
+							id: 't1',
+						}),
+					},
+				},
+			};
+			const interaction = {
+				channel: { id: 't1' },
+				guild: { iconURL: () => null },
+				reply: async payload => replies.push(payload),
+				update: async payload => updates.push(payload),
+				// The creator, so the staff lookup is short-circuited.
+				user: { id: 'u1' },
+			};
+			await withGateway(
+				{ signalReopenTicket: async () => outcome },
+				() => ReopenButton.prototype.run.call(self, {}, interaction),
+			);
+			return {
+				replies,
+				updates,
+				warnings,
+			};
+		};
+
+		await t('an outage does not tell the member the window expired', async () => {
+			const {
+				replies, updates, warnings,
+			} = await pressReopen('unavailable');
+			assert.strictEqual(updates.length, 0, 'nothing was reopened, so the prompt must stay');
+			assert.strictEqual(replies.length, 1);
+			assert.strictEqual(
+				replies[0].embeds[0].data.title,
+				'ticket.reopen.unavailable.title',
+				'"the window has expired" during an outage costs the member the ticket',
+			);
+			assert.strictEqual(warnings.length, 1, 'the outage should be logged');
+		});
+
+		await t('a genuinely expired window still says so', async () => {
+			const {
+				replies, updates, warnings,
+			} = await pressReopen('no_window');
+			assert.strictEqual(updates.length, 0);
+			assert.strictEqual(replies[0].embeds[0].data.title, 'ticket.reopen.no_window.title');
+			assert.strictEqual(warnings.length, 0, 'an expired window is not an outage');
+		});
+
+		await t('a reopened ticket replaces the prompt with a confirmation', async () => {
+			const {
+				replies, updates,
+			} = await pressReopen('reopened');
+			assert.strictEqual(replies.length, 0);
+			assert.strictEqual(updates.length, 1);
+			assert.strictEqual(updates[0].embeds[0].data.title, 'ticket.reopen.reopened.title');
+		});
 	}
 
 	console.log(`\n${pass} passed\n`);

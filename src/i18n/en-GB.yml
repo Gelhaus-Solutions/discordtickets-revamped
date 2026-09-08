@@ -657,6 +657,11 @@ ticket:
     reopened:
       description: "{user} reopened this ticket."
       title: 🔓 Ticket reopened
+    unavailable:
+      description: |
+        This ticket couldn't be reopened right now. Please try again in a few minutes.
+        If it keeps failing, ask an administrator to check the bot's logs.
+      title: ⏳ Can't reopen this ticket right now
   working_hours:
     next:
       description:
