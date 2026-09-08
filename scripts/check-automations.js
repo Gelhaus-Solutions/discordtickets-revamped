@@ -2214,6 +2214,164 @@ function stubRunners(overrides = {}) {
 		assert.deepStrictEqual(missing, [], `no runner for: ${missing.join(', ')}`);
 	});
 
+	await t('the "find a thread" node routes, sets its variables and claims nothing', async () => {
+		// The three things this node gets wrong if anyone rewrites it: routing a
+		// miss to the wrong branch, forgetting the variables, and declaring
+		// `provides: ['channel']`.
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const type = NODE_TYPES['action.channel.findThread'];
+
+		assert.deepStrictEqual(type.outputs, ['found', 'notFound']);
+		assert.deepStrictEqual(
+			type.provides ?? [],
+			[],
+			'a channel claimed here would credit the notFound branch with one too',
+		);
+
+		const thread = {
+			id: '999',
+			name: '319709731168223234',
+		};
+		const parent = {
+			threads: {
+				cache: new Map([['999', thread]]),
+				fetchActive: async () => ({ threads: new Map() }),
+				fetchArchived: async () => ({ threads: new Map() }),
+			},
+		};
+		const ctxFor = over => ({
+			automationKey: 'a1',
+			client: {},
+			getChannel: async () => parent,
+			getTicketChannel: async () => parent,
+			guildId: '451',
+			varsFor: async () => ({}),
+			vars: {},
+			...over,
+		});
+
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.channel.findThread'];
+
+		const hit = ctxFor({});
+		const found = await run({
+			params: {
+				name: '319709731168223234',
+				target: 'triggerChannel',
+			},
+		}, hit);
+		assert.strictEqual(found.handle, undefined, 'a hit takes the first output');
+		assert.strictEqual(found.status, undefined, 'a hit is not a skip');
+		assert.strictEqual(hit.vars.threadid, '999');
+		assert.strictEqual(hit.vars.threadname, '319709731168223234');
+		assert.strictEqual(hit.vars.threadurl, 'https://discord.com/channels/451/999');
+
+		const missCtx = ctxFor({});
+		const miss = await run({
+			params: {
+				name: 'nobody',
+				target: 'triggerChannel',
+			},
+		}, missCtx);
+		assert.strictEqual(miss.handle, 'notFound', 'a miss must be routable, not a bare skip');
+		assert.strictEqual(miss.status, 'skip', 'a miss reads as SKIPPED, not SUCCESS');
+		assert.strictEqual(missCtx.vars.threadurl, undefined, 'a miss must not leave a stale link');
+
+		// A read-only node runs during a test, so the test button reports the
+		// branch the real run would take.
+		const dry = ctxFor({ dryRun: true });
+		const tested = await run({
+			params: {
+				name: '319709731168223234',
+				target: 'triggerChannel',
+			},
+		}, dry);
+		assert.strictEqual(tested.reason, 'found', 'a lookup is safe to run in a test');
+		assert.strictEqual(dry.vars.threadurl, 'https://discord.com/channels/451/999');
+	});
+
+	await t('a "find a thread" graph validates, and its notFound branch is not given a channel', () => {
+		// The capability walk has no per-handle granularity, so a node that
+		// declared `provides: ['channel']` here would credit *both* branches. This
+		// graph is the proof: a cron trigger supplies no channel, so "post to the
+		// channel this happened in" hung off notFound must still be rejected.
+		const good = graph([
+			node('trigger.schedule.cron', {
+				cron: '0 * * * *',
+				timezone: 'Europe/London',
+			}, 'c'),
+			node('action.channel.findThread', {
+				name: '{openerid}',
+				parentId: '451745464480432129',
+				target: 'channel',
+			}, 'f'),
+			node('action.log', { content: 'Here: {threadurl}' }, 'hit'),
+			node('action.log', { content: 'No record.' }, 'miss'),
+		], [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'notFound'),
+		]);
+		assert.doesNotThrow(() => validateGraph(good, {}), 'a plain lookup graph should save');
+
+		const wrongHandle = graph(good.nodes, [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'nope'),
+		]);
+		assert.throws(
+			() => validateGraph(wrongHandle, {}),
+			/unknown_handle|not an output/,
+			'an edge from a handle the node does not have must be refused',
+		);
+
+		const claimsChannel = graph([
+			...good.nodes.filter(n => n.id !== 'miss'),
+			node('action.message.send', {
+				...plain('posting into thin air'),
+				target: 'triggerChannel',
+			}, 'miss'),
+		], [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'notFound'),
+		]);
+		assert.throws(
+			() => validateGraph(claimsChannel, {}),
+			/channel/i,
+			'the notFound branch has no channel, and the walk must still say so',
+		);
+	});
+
+	await t('the thread variables are declared placeholders, or they post literally', () => {
+		// `substitute()` builds one regex from the PLACEHOLDERS table and expands
+		// nothing else, so setting `ctx.vars.threadurl` without a table entry
+		// would post the literal string `{threadurl}` into somebody's ticket.
+		const { substitute } = require(path.join(root, 'src', 'lib', 'placeholders'));
+		for (const token of ['threadurl', 'threadid', 'threadname']) {
+			assert.strictEqual(
+				substitute(`<{${token}}>`, { [token]: 'value' }),
+				'<value>',
+				`{${token}} is not declared in the placeholders table`,
+			);
+		}
+	});
+
+	await t('a branching node labels its outputs for the canvas', () => {
+		// The editor renders the first output green and the rest red, and takes
+		// its text from `outputLabels`. Without one, a handle name reaches the
+		// canvas raw and an admin reads "notFound".
+		for (const [name, type] of Object.entries(NODE_TYPES)) {
+			if ((type.outputs ?? []).length < 2) continue;
+			for (const handle of type.outputs) {
+				assert.ok(
+					type.outputLabels?.[handle] || handle === handle.toLowerCase(),
+					`${name} has no readable label for its "${handle}" output`,
+				);
+			}
+		}
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {

@@ -111,6 +111,18 @@ function needsOf(node, catalogue) {
 		if (node.params?.target === 'ticket') needs.add('ticketChannel');
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
+
+	// The channel nodes' dynamic cases, which this mirror was missing: the server
+	// has checked them since the create nodes landed, so a graph could look clean
+	// here and then be rejected on save.
+	if (node.type?.startsWith('action.channel.create')) {
+		if (node.params?.includeStaff || node.params?.includeOpener) needs.add('ticket');
+		if (node.params?.includeActor) needs.add('member');
+	}
+	if (node.type?.startsWith('action.channel.create') || node.type === 'action.channel.findThread') {
+		if (node.params?.target === 'ticket') needs.add('ticketChannel');
+		if (node.params?.target === 'triggerChannel') needs.add('channel');
+	}
 	return [...needs];
 }
 

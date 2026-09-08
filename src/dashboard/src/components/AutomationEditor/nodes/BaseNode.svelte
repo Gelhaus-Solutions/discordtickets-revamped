@@ -19,6 +19,15 @@
 
 	const outputs = $derived(definition?.outputs ?? ['out']);
 	const hasInput = $derived(category !== 'trigger');
+
+	// The first output is the node's positive branch and the rest are its
+	// negative ones. That is exactly what `flow.if` (`['true', 'false']`) already
+	// looked like when the names were hardcoded here, and it generalises to any
+	// node that branches: `findThread` is `['found', 'notFound']`. Display text
+	// comes from the registry's `outputLabels`, so a handle name never leaks a
+	// camelCase identifier like "notFound" onto the canvas.
+	const labelFor = handle => definition?.outputLabels?.[handle] ?? handle;
+	const isPositive = i => i === 0;
 </script>
 
 {#if hasInput}
@@ -57,20 +66,22 @@
 		id={handle}
 		position={Position.Right}
 		style={outputs.length > 1 ? `top: ${30 + i * 40}%` : ''}
-		class="!border-white dark:!border-slate-800 {handle === 'true'
-			? '!bg-green-500'
-			: handle === 'false'
-				? '!bg-red-400'
-				: skin.handle}"
+		class="!border-white dark:!border-slate-800 {outputs.length === 1
+			? skin.handle
+			: isPositive(i)
+				? '!bg-green-500'
+				: '!bg-red-400'}"
 	/>
 	{#if outputs.length > 1}
 		<span
-			class="pointer-events-none absolute -right-11 text-[10px] font-semibold {handle === 'true'
+			class="pointer-events-none absolute left-full ml-2 whitespace-nowrap text-[10px] font-semibold {isPositive(
+				i
+			)
 				? 'text-green-600 dark:text-green-400'
 				: 'text-red-500 dark:text-red-400'}"
 			style="top: calc({30 + i * 40}% - 7px)"
 		>
-			{handle}
+			{labelFor(handle)}
 		</span>
 	{/if}
 {/each}

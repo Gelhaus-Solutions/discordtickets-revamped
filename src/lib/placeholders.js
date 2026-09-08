@@ -402,6 +402,28 @@ const PLACEHOLDERS = [
 	},
 
 	{
+		contexts: { automation: 'The link to the thread the "Find a thread" step matched. Empty until one runs, and empty on its "not found" branch.' },
+		description: 'A link to the thread found earlier in this automation.',
+		label: 'Found thread link',
+		sample: 'https://discord.com/channels/451745464480432129/1234567890',
+		token: 'threadurl',
+	},
+	{
+		contexts: { automation: 'The id of the thread the "Find a thread" step matched.' },
+		description: 'The id of the thread found earlier in this automation.',
+		label: 'Found thread ID',
+		sample: '1234567890',
+		token: 'threadid',
+	},
+	{
+		contexts: { automation: 'The name of the thread the "Find a thread" step matched.' },
+		description: 'The name of the thread found earlier in this automation.',
+		label: 'Found thread name',
+		sample: '319709731168223234',
+		token: 'threadname',
+	},
+
+	{
 		contexts: { automation: 'From the (brackets) in the trigger\'s pattern: {match1} is the first, {match2} the second, and so on up to {match9}.' },
 		description: 'A capture group from the message that set the automation off.',
 		label: 'Pattern match',

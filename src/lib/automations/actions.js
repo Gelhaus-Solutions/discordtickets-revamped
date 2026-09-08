@@ -296,7 +296,7 @@ async function reuseExistingThread(client, node, ctx, {
 }) {
 	if (!node.params?.reuseExisting || !parent) return null;
 
-	const existing = await findThreadByName({
+	const existing = await lookupThread(node, {
 		name,
 		parent,
 	});
@@ -326,6 +326,25 @@ async function starterMessage(client, node, ctx) {
 		allowedMentions: { parse: ['users', 'roles'] },
 		...await renderMessage(client, node, ctx, 'message'),
 	};
+}
+
+/**
+ * Find an existing thread or forum post by name.
+ *
+ * A thin wrapper so the lookup-only node and the create nodes' `reuseExisting`
+ * flag agree on what "the same name" means. `includeArchived` defaults to true
+ * because a forum used as a per-member record is archived most of the time it
+ * is looked for; only the lookup node exposes the choice.
+ */
+async function lookupThread(node, {
+	name, parent,
+}) {
+	if (!parent) return null;
+	return findThreadByName({
+		includeArchived: node.params?.includeArchived !== false,
+		name,
+		parent,
+	});
 }
 
 /** Resolve what a thread node hangs its thread from. */
@@ -581,6 +600,48 @@ function makeRunners(client, runNested) {
 			await bindCreatedChannel(client, node, ctx, result.channel);
 			return { reason: result.reason };
 		}),
+
+		// Deliberately not wrapped in `real()`. Every other action is, because a
+		// test run must not change the server, but this one only reads: letting it
+		// run for real is what makes the test button tell the truth about which
+		// branch a graph takes. Wrapped, a dry run returns no handle, so the
+		// interpreter would fall to the first output and every test would report
+		// "found" with no variables set.
+		'action.channel.findThread': async (node, ctx) => {
+			const parent = await resolveThreadParent(node, ctx);
+			// Unlike the create nodes, a missing parent is a skip rather than a
+			// throw: this node binds nothing, so there is no wrong channel left
+			// behind for the next step to post into.
+			if (!parent) {
+				return {
+					...skip('no_parent'),
+					handle: 'notFound',
+				};
+			}
+
+			const name = resolveName({ text: await render(node.params.name, ctx) });
+			const found = await lookupThread(node, {
+				name,
+				// A thread cannot hold a thread, so a lookup asked for on one looks
+				// beside it, which is where `createThread` would have put it.
+				parent: parent.isThread?.() ? parent.parent : parent,
+			});
+			if (!found) {
+				return {
+					...skip('not_found'),
+					handle: 'notFound',
+				};
+			}
+
+			// Variables, not `provides: ['channel']`: see the registry entry. These
+			// are declared in `lib/placeholders.js` as well, because `substitute`
+			// only expands tokens the table knows about, so setting them here alone
+			// would post `{threadurl}` literally.
+			ctx.vars.threadid = found.id;
+			ctx.vars.threadname = found.name ?? '';
+			ctx.vars.threadurl = `https://discord.com/channels/${ctx.guildId}/${found.id}`;
+			return { reason: 'found' };
+		},
 
 		/* ── messages ────────────────────────────────────────────────────────── */
 

@@ -89,6 +89,7 @@ export const NODE_ICONS = {
 	'action.channel.create': 'fa-hashtag',
 	'action.channel.createForumPost': 'fa-comments',
 	'action.channel.createThread': 'fa-comment-dots',
+	'action.channel.findThread': 'fa-magnifying-glass',
 	'action.log': 'fa-file-lines',
 	'action.member.ban': 'fa-gavel',
 	'action.member.kick': 'fa-right-from-bracket',
