@@ -3,7 +3,7 @@
 const ms = require('ms');
 const { formatAnswer } = require('./questions');
 const {
-	formatRef, keyFor,
+	formatRef, keyFor, parseRef,
 } = require('../storage');
 
 // Lazy-loaded: `pools` only exists inside the full bot process, and this module
@@ -1114,7 +1114,11 @@ async function generateHtmlTranscript(client, ticketId) {
 async function saveHtmlTranscript(client, ticketId) {
 	const html = await generateHtmlTranscript(client, ticketId);
 	if (!html) return null;
+	return storeHtmlTranscript(client, ticketId, html);
+}
 
+/** Put rendered HTML in storage and point the row at it. @returns {Promise<string>} the ref */
+async function storeHtmlTranscript(client, ticketId, html) {
 	const key = keyFor(ticketId);
 	await client.storage.put(key, html);
 	const ref = formatRef(client.storage.name, key);
@@ -1127,9 +1131,65 @@ async function saveHtmlTranscript(client, ticketId) {
 	return ref;
 }
 
+/**
+ * The transcript for a ticket as HTML, from wherever it already is.
+ *
+ * The same three-way resolution the transcript route does: a stored object, a
+ * legacy inline row, or generate it. This returns a string rather than a stream,
+ * which is what a Discord attachment needs; the route keeps its own streaming
+ * version because streaming a large file to a browser is worth that much
+ * duplication. The *order* is the part that matters and it is the same.
+ *
+ * The row is read fresh rather than taken from a caller's ticket object:
+ * `TicketManager#getTicket` is a three-minute cache, and the close path writes
+ * `htmlTranscript` moments before an automation could ask for it.
+ *
+ * A storage failure degrades to regenerating rather than failing, because the
+ * archived messages are still in the database.
+ *
+ * @param {import('client')} client
+ * @param {string} ticketId
+ * @returns {Promise<string|null>} the HTML, or null when there is nothing to render
+ */
+async function readHtmlTranscript(client, ticketId) {
+	const row = await client.prisma.ticket.findUnique({
+		select: { htmlTranscript: true },
+		where: { id: ticketId },
+	});
+	const ref = parseRef(row?.htmlTranscript);
+
+	if (ref?.kind === 'object') {
+		try {
+			const driver = client.storage.for(ref.driver);
+			// `stat` before `get`, matching the route: an object that has gone
+			// should fall through to regeneration rather than throw.
+			if (await driver.stat(ref.key)) {
+				const stored = await driver.get(ref.key);
+				if (stored) return String(stored);
+			}
+		} catch (error) {
+			client.log?.warn?.('Could not read the stored transcript for %s, regenerating: %s', ticketId, error.message);
+		}
+	}
+
+	if (ref?.kind === 'inline') return ref.html;
+
+	const html = await generateHtmlTranscript(client, ticketId);
+	if (!html) return null;
+
+	// Best effort: the caller asked for the transcript, not for it to be cached.
+	try {
+		await storeHtmlTranscript(client, ticketId, html);
+	} catch (error) {
+		client.log?.warn?.('Could not store the transcript for %s: %s', ticketId, error.message);
+	}
+	return html;
+}
+
 module.exports = {
 	buildHtml,
 	generateHtmlTranscript,
+	readHtmlTranscript,
 	// Exported for `scripts/check-transcript-v2.js`.
 	renderComponents,
 	renderEmbed,
