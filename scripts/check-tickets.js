@@ -1141,6 +1141,82 @@ const ticket = (over = {}) => ({
 		assert.ok(!CD.cooldownKey(4, '123').startsWith('cooldowns/category-member:'));
 	});
 
+	/* ──────────────────────── the staff channel ping ─────────────────────── */
+
+	console.log('\nStaff channel ping\n');
+
+	{
+		const { staffChannelPingMessage } = require(path.join(root, 'src', 'lib', 'tickets', 'mutations'));
+		const say = (key, vars) => `${key}:${vars?.number}`;
+		const build = (category, staffRoles = ['1', '2']) => staffChannelPingMessage({
+			category,
+			number: 7,
+			say,
+			staffRoles,
+		});
+
+		await t('a category that has not asked for a ping gets no message', () => {
+			assert.strictEqual(build({ staffChannelPing: false }), null);
+			assert.strictEqual(build({}), null);
+			assert.strictEqual(build(null), null);
+		});
+
+		await t('the ping mentions every staff role', () => {
+			const message = build({ staffChannelPing: true });
+			assert.ok(message.content.startsWith('<@&1> <@&2> '), message.content);
+			assert.ok(message.content.endsWith('ticket.staff_channel.ping:7'), message.content);
+		});
+
+		await t('the mention carries permission to notify, or it is a grey pill', () => {
+			// The whole point of the feature. A bot cannot ping a role that is not
+			// "mentionable" unless the message names it in allowed_mentions, and a
+			// Components v2 message derives no mention parsing at all. Either way
+			// the failure is silent: the message posts and nobody is notified.
+			const message = build({ staffChannelPing: true });
+			assert.deepStrictEqual(message.allowedMentions, { roles: ['1', '2'] });
+			for (const id of ['1', '2']) {
+				assert.ok(
+					message.content.includes(`<@&${id}>`),
+					'every allowed role should actually be mentioned',
+				);
+			}
+		});
+
+		await t('roles are de-duplicated and stringified', () => {
+			const message = staffChannelPingMessage({
+				category: { staffChannelPing: true },
+				number: 7,
+				say,
+				// Ids arrive from a JSON column, so numbers are possible.
+				staffRoles: ['1', '1', 2],
+			});
+			assert.deepStrictEqual(message.allowedMentions.roles, ['1', '2']);
+			assert.ok(message.content.startsWith('<@&1> <@&2> '), message.content);
+		});
+
+		await t('a category with no staff roles pings nobody rather than posting an empty mention', () => {
+			assert.strictEqual(build({ staffChannelPing: true }, []), null);
+			// Called directly: `build`'s default argument would mask an absent list.
+			assert.strictEqual(staffChannelPingMessage({
+				category: { staffChannelPing: true },
+				number: 7,
+				say,
+			}), null);
+		});
+
+		await t('the ping string is a real, resolvable i18n key', () => {
+			// `say` is stubbed above, so nothing else here would notice the key
+			// being renamed or never added.
+			const yaml = require('yaml');
+			const locale = yaml.parse(fs.readFileSync(path.join(root, 'src', 'i18n', 'en-GB.yml'), 'utf8'));
+			const text = locale?.ticket?.staff_channel?.ping;
+			assert.ok(text, 'ticket.staff_channel.ping is missing from en-GB');
+			// `#` opens a comment in YAML, so an unquoted "Ticket #{number}" parses
+			// as "Ticket" and the ping loses its number silently.
+			assert.ok(text.includes('{number}'), `the ping lost its {number} placeholder: ${text}`);
+		});
+	}
+
 	/* ─────────────────── closing when Temporal is unreachable ───────────── */
 
 	// The reason this suite grew a section that needs the compiled layer: a

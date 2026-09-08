@@ -216,6 +216,11 @@ model Category {
     // Where to put it, overriding that default. A Discord category for a
     // channel-mode staff channel, a text channel for a thread.
     staffChannelParent String?   @db.VarChar(19)
+    // Ping the staff roles in the staff channel when it is opened. Same
+    // reasoning as `staffChannel` above: NOT NULL DEFAULT false, because there
+    // is no NULL to mean "ask the guild" and so no three-state trap. Off by
+    // default, which is what every existing category does today.
+    staffChannelPing Boolean     @default(false)
     threadChannelId  String?     @db.VarChar(19)
     tickets          Ticket[]
     totalLimit       Int?        // inheritable

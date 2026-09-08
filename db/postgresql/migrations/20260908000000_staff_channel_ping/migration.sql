@@ -1,0 +1,22 @@
+-- Migration: 20260908000000_staff_channel_ping
+-- Adds: categories.staffChannelPing — mention the staff roles in the private
+--         staff channel when it is opened
+--
+-- Staff were made visible in a staff thread by being *added as members*
+-- (`threadMemberIds()` in src/lib/tickets/channels.js expands the category's
+-- staffRoles into individual user ids), which puts the thread in their list but
+-- never notifies them. Servers asked to be pinged instead.
+--
+-- NOT NULL DEFAULT false, matching `staffChannel` beside it rather than the
+-- nullable-and-inheritable columns elsewhere in this table. The reasoning is the
+-- one 20260814000001_category_staff_channel set out: the three-state trap
+-- `src/lib/settings/inheritance.js` exists to police — NULL asks the level
+-- above, false is a decision, and only the resolver can tell them apart — does
+-- not arise when there is no NULL. No Guild column, no INHERITED entry, and a
+-- server-wide default stays purely additive if anyone wants one later.
+--
+-- Existing categories get false, which is what they all do today: no ping.
+-- The column is meaningless while `staffChannel` is false, and is read only
+-- where the staff channel is actually created.
+
+ALTER TABLE "categories" ADD COLUMN IF NOT EXISTS "staffChannelPing" BOOLEAN NOT NULL DEFAULT false;

@@ -662,6 +662,8 @@ ticket:
         This ticket couldn't be reopened right now. Please try again in a few minutes.
         If it keeps failing, ask an administrator to check the bot's logs.
       title: ⏳ Can't reopen this ticket right now
+  staff_channel:
+    ping: "Ticket #{number} is open. This channel is private to staff."
   working_hours:
     next:
       description:

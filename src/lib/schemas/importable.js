@@ -110,6 +110,7 @@ const CATEGORY_FIELDS = [
 	// they are: an export within one guild round-trips, and the alternative is an
 	// exception nobody would remember the rule for.
 	'staffChannelParent',
+	'staffChannelPing',
 	'staffRoles',
 	'threadChannelId',
 	'totalLimit',

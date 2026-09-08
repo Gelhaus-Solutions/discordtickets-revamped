@@ -60,6 +60,7 @@ module.exports = class PrivateChannelSlashCommand extends SlashCommand {
 		// one made automatically are the same channel in the same place.
 		const result = await ensureStaffChannel(client, {
 			actorId: interaction.user.id,
+			getMessage,
 			ticket,
 		});
 

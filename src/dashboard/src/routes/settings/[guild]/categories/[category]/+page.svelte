@@ -676,6 +676,22 @@
 							</select>
 						</label>
 					</div>
+					<div>
+						<label for="staffChannelPing" class="font-medium">
+							Ping the staff roles in it
+							<i
+								class="fa-solid fa-circle-question cursor-help text-gray-500 dark:text-slate-400"
+								title="Mention the staff roles in the staff channel when it opens. Staff are added to it either way, but being added does not notify them."
+							></i>
+							<input
+								type="checkbox"
+								id="staffChannelPing"
+								name="staffChannelPing"
+								class="form-checkbox"
+								bind:checked={category.staffChannelPing}
+							/>
+						</label>
+					</div>
 				{/if}
 				<div>
 					<label class="font-medium">

@@ -835,8 +835,36 @@ function staffChannelTarget(ticket, category) {
  *
  * @returns {Promise<{ok: true, channel: object, created: boolean}|{ok: false, reason: string}>}
  */
+/**
+ * The first message in a staff channel, when the category asks for a ping.
+ *
+ * Being added to a thread puts it in a staff member's list; it does not notify
+ * them. `threadMemberIds()` has always done the adding, and servers asked to be
+ * pinged as well, so this is the opt-in.
+ *
+ * `allowedMentions.roles` is not optional. Without it Discord renders the
+ * mention as an inert grey pill: a bot cannot ping a role that is not
+ * "mentionable" unless the message names it in allowed_mentions. Being silently
+ * unnotified is the exact failure this feature exists to fix, so the mention and
+ * the permission to send it are built in one place and cannot drift apart.
+ *
+ * @returns {?{content: string, allowedMentions: {roles: string[]}}} null when the
+ *   category has not asked for a ping
+ */
+function staffChannelPingMessage({
+	category, number, say, staffRoles,
+}) {
+	if (!category?.staffChannelPing) return null;
+	const roleIds = [...new Set(staffRoles ?? [])].map(String);
+	if (roleIds.length === 0) return null;
+	return {
+		allowedMentions: { roles: roleIds },
+		content: `${roleIds.map(id => `<@&${id}>`).join(' ')} ${say('ticket.staff_channel.ping', { number })}`,
+	};
+}
+
 async function ensureStaffChannel(client, {
-	actorId = null, ticket,
+	actorId = null, getMessage = null, ticket,
 }) {
 	const guild = client.guilds.cache.get(ticket.guildId);
 	if (!guild) {
@@ -881,6 +909,16 @@ async function ensureStaffChannel(client, {
 	} = staffChannelTarget(ticket, category);
 	const creator = await guild.members.fetch(ticket.createdById).catch(() => null);
 
+	// The locale comes from the caller when it has one (both do) and falls back
+	// to the ticket's guild; `getLocale` resolves anything unknown to en-GB.
+	const say = getMessage ?? client.i18n.getLocale(ticket.guild?.locale);
+	const message = staffChannelPingMessage({
+		category,
+		number: ticket.number,
+		say,
+		staffRoles,
+	});
+
 	const result = await createChannel(client, {
 		// Staff only: the opener is deliberately never added. That is the whole
 		// point of the channel.
@@ -889,6 +927,7 @@ async function ensureStaffChannel(client, {
 			roleIds: staffRoles,
 		},
 		guild,
+		message,
 		mode,
 		name: {
 			creator,
@@ -1002,6 +1041,7 @@ module.exports = {
 	setPriority,
 	setSlowmode,
 	setTicketEmoji,
+	staffChannelPingMessage,
 	syncChannelName,
 	takeRenameBudget,
 };
