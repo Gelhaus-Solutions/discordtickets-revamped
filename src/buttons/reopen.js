@@ -36,15 +36,23 @@ module.exports = class ReopenButton extends Button {
 			});
 		}
 
-		// Signal the durable grace-window workflow; false = window already gone.
-		const signalled = await temporal.signalReopenTicket(ticket.id);
-		if (!signalled) {
+		// Signal the durable grace-window workflow. Three outcomes, and the two
+		// failures must not share a message: `no_window` means the ticket is gone
+		// for good, `unavailable` means Temporal could not be asked and the window
+		// may well still be open. Telling the member the window "has expired"
+		// during an outage is a lie that costs them the ticket.
+		const outcome = await temporal.signalReopenTicket(ticket.id);
+		if (outcome !== 'reopened') {
+			const key = outcome === 'unavailable' ? 'unavailable' : 'no_window';
+			if (outcome === 'unavailable') {
+				client.log.warn('Temporal is unavailable, cannot reopen ticket %s', ticket.id);
+			}
 			return await interaction.reply({
 				embeds: [
 					new ExtendedEmbedBuilder()
 						.setColor(ticket.guild.errorColour)
-						.setTitle(getMessage('ticket.reopen.no_window.title'))
-						.setDescription(getMessage('ticket.reopen.no_window.description')),
+						.setTitle(getMessage(`ticket.reopen.${key}.title`))
+						.setDescription(getMessage(`ticket.reopen.${key}.description`)),
 				],
 				flags: MessageFlags.Ephemeral,
 			});
