@@ -37,7 +37,13 @@
 			: skin.border}"
 >
 	<div class="flex items-center gap-2">
-		<i class="fa-solid {iconFor(data.type)} {skin.icon}"></i>
+		<!--
+			`fa-fw` is load-bearing, not decoration. The node icons range from
+			`fa-i-cursor` at 256 units to `fa-user-plus` and friends at 640, and
+			this is a flex row, so without a fixed width every node's title starts
+			at a different offset and a column of nodes reads as ragged.
+		-->
+		<i class="fa-solid fa-fw {iconFor(data.type)} {skin.icon}"></i>
 		<span class="min-w-0 flex-1 truncate font-medium">{definition?.label ?? data.type}</span>
 		{#if broken}
 			<i class="fa-solid fa-triangle-exclamation text-red-500" title={problems[0].message}></i>

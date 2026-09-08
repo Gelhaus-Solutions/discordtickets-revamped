@@ -54,7 +54,7 @@
 					<div class="mt-2 flex flex-col gap-1">
 						{#each run.steps ?? [] as step, i (i)}
 							<div class="flex items-center gap-2 text-xs">
-								<i class="fa-solid {iconFor(step.t)} text-gray-400 dark:text-slate-500"></i>
+								<i class="fa-solid fa-fw {iconFor(step.t)} text-gray-400 dark:text-slate-500"></i>
 								<span class="min-w-0 flex-1 truncate">{labelFor(step.t)}</span>
 								{#if step.r}
 									<span class="text-gray-500 dark:text-slate-400">{step.r}</span>
