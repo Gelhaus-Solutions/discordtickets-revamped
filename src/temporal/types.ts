@@ -80,6 +80,16 @@ export interface ReopenWindowInput {
 	lock?: boolean;
 }
 
+/**
+ * Why a reopen attempt ended the way it did.
+ *
+ * `no_window` and `unavailable` both mean "not reopened", but they are not the
+ * same thing to a user: one says the ticket is gone for good, the other says to
+ * try again in a minute. Collapsing them into a boolean is what let a Temporal
+ * outage answer the reopen button with "the reopen window has expired".
+ */
+export type ReopenOutcome = 'reopened' | 'no_window' | 'unavailable';
+
 /** State exposed by the `getReopenState` Query. */
 export interface ReopenState {
 	/** Epoch ms the grace window ends and the ticket is terminally closed. */

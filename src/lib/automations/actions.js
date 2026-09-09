@@ -40,8 +40,10 @@ const {
 	resolveName,
 } = require('../tickets/channels');
 const temporal = require('../temporal');
+const transcripts = require('../tickets/transcript-html');
 const {
 	ActionRowBuilder,
+	AttachmentBuilder,
 	ButtonBuilder,
 	ButtonStyle,
 	MessageFlags,
@@ -65,6 +67,16 @@ const {
 	setTicketEmoji,
 } = require('../tickets/mutations');
 const { evaluateClauses } = require('./conditions');
+
+/**
+ * Discord's attachment ceiling on an unboosted server.
+ *
+ * A flat conservative number rather than the guild's actual tier limit: a
+ * transcript refused on upload has already cost a render and a storage read,
+ * and "too_large" in the run log is a better answer for an admin than a
+ * gateway error.
+ */
+const TRANSCRIPT_LIMIT = 8 * 1024 * 1024;
 
 const skip = reason => ({
 	reason,
@@ -296,7 +308,7 @@ async function reuseExistingThread(client, node, ctx, {
 }) {
 	if (!node.params?.reuseExisting || !parent) return null;
 
-	const existing = await findThreadByName({
+	const existing = await lookupThread(node, {
 		name,
 		parent,
 	});
@@ -326,6 +338,25 @@ async function starterMessage(client, node, ctx) {
 		allowedMentions: { parse: ['users', 'roles'] },
 		...await renderMessage(client, node, ctx, 'message'),
 	};
+}
+
+/**
+ * Find an existing thread or forum post by name.
+ *
+ * A thin wrapper so the lookup-only node and the create nodes' `reuseExisting`
+ * flag agree on what "the same name" means. `includeArchived` defaults to true
+ * because a forum used as a per-member record is archived most of the time it
+ * is looked for; only the lookup node exposes the choice.
+ */
+async function lookupThread(node, {
+	name, parent,
+}) {
+	if (!parent) return null;
+	return findThreadByName({
+		includeArchived: node.params?.includeArchived !== false,
+		name,
+		parent,
+	});
 }
 
 /** Resolve what a thread node hangs its thread from. */
@@ -582,6 +613,48 @@ function makeRunners(client, runNested) {
 			return { reason: result.reason };
 		}),
 
+		// Deliberately not wrapped in `real()`. Every other action is, because a
+		// test run must not change the server, but this one only reads: letting it
+		// run for real is what makes the test button tell the truth about which
+		// branch a graph takes. Wrapped, a dry run returns no handle, so the
+		// interpreter would fall to the first output and every test would report
+		// "found" with no variables set.
+		'action.channel.findThread': async (node, ctx) => {
+			const parent = await resolveThreadParent(node, ctx);
+			// Unlike the create nodes, a missing parent is a skip rather than a
+			// throw: this node binds nothing, so there is no wrong channel left
+			// behind for the next step to post into.
+			if (!parent) {
+				return {
+					...skip('no_parent'),
+					handle: 'notFound',
+				};
+			}
+
+			const name = resolveName({ text: await render(node.params.name, ctx) });
+			const found = await lookupThread(node, {
+				name,
+				// A thread cannot hold a thread, so a lookup asked for on one looks
+				// beside it, which is where `createThread` would have put it.
+				parent: parent.isThread?.() ? parent.parent : parent,
+			});
+			if (!found) {
+				return {
+					...skip('not_found'),
+					handle: 'notFound',
+				};
+			}
+
+			// Variables, not `provides: ['channel']`: see the registry entry. These
+			// are declared in `lib/placeholders.js` as well, because `substitute`
+			// only expands tokens the table knows about, so setting them here alone
+			// would post `{threadurl}` literally.
+			ctx.vars.threadid = found.id;
+			ctx.vars.threadname = found.name ?? '';
+			ctx.vars.threadurl = `https://discord.com/channels/${ctx.guildId}/${found.id}`;
+			return { reason: 'found' };
+		},
+
 		/* ── messages ────────────────────────────────────────────────────────── */
 
 		'action.message.send': real(async (node, ctx) => {
@@ -700,11 +773,89 @@ function makeRunners(client, runNested) {
 			return {};
 		}),
 
+		// Signal-only, deliberately. `client.tickets.reopen()` is self-contained and
+		// Temporal-free, but calling it directly would reopen the ticket out from
+		// under the grace-window workflow, which keeps waiting and then terminally
+		// closes the ticket anyway when the window expires. The signal is not an
+		// implementation detail of reopening: it is what cancels the pending close.
+		'action.ticket.reopen': real(async (node, ctx) => {
+			const ticket = await ctx.getTicket();
+			if (!ticket) {
+				return {
+					...skip('unknown_ticket'),
+					handle: 'notReopened',
+				};
+			}
+			// The window already ran out: the child close workflow deleted or
+			// archived the channel, so there is nothing left to unlock. Restoring a
+			// fully closed ticket is a different feature.
+			if (!ticket.open) {
+				return {
+					...skip('already_closed'),
+					handle: 'notReopened',
+				};
+			}
+			// Open and not closing, so there is no pending close to cancel.
+			if (!ticket.pendingCloseAt) {
+				return {
+					...skip('not_closing'),
+					handle: 'notReopened',
+				};
+			}
+
+			const outcome = await temporal.signalReopenTicket(ticket.id);
+			if (outcome !== 'reopened') {
+				return {
+				// `no_window` and `temporal_unavailable` are kept apart in the run
+				// log for the same reason the button keeps them apart for a member:
+				// one is terminal, the other is worth trying again.
+					...skip(outcome === 'unavailable' ? 'temporal_unavailable' : 'no_window'),
+					handle: 'notReopened',
+				};
+			}
+			return {};
+		}),
+
 		'action.ticket.claim': real(async (node, ctx) => {
 			const member = await ctx.resolveSubject(node.params.subject);
 			const channel = await ctx.getTicketChannel();
 			if (!member || !channel) return skip('unavailable');
 			await client.tickets.autoClaim(channel, member.id);
+			return {};
+		}),
+
+		'action.ticket.sendTranscript': real(async (node, ctx) => {
+			const ticket = await ctx.getTicket();
+			if (!ticket) return skip('unknown_ticket');
+
+			const destination = node.params?.destination ?? 'opener';
+			const dm = destination === 'opener' || destination === 'actor';
+
+			// Resolved before the transcript is rendered: there is no point paying
+			// for a render nobody can be sent.
+			let target = null;
+			if (dm) {
+				// A guild that turned DMs off means it, the same as `action.message.dm`.
+				const settings = await ctx.getSettings();
+				if (settings?.disableDMs) return skip('dms_disabled');
+				target = await ctx.resolveSubject(destination === 'actor' ? 'actor' : 'ticketCreator');
+			} else if (destination === 'channel') {
+				target = resolveGuildChannel(ctx.client, ctx.guildId, node.params?.channelId);
+			} else {
+				target = await ctx.getTicketChannel();
+			}
+			if (!target?.send) return skip(dm ? 'unknown_member' : 'unknown_channel');
+
+			// Reads the stored copy when there is one and regenerates when there is
+			// not. Under `trigger.ticket.closed` the close path has just written
+			// it, so the common case is a storage read and no render at all.
+			const html = await transcripts.readHtmlTranscript(client, ticket.id);
+			if (!html) return skip('no_transcript');
+
+			const file = Buffer.from(html, 'utf8');
+			if (file.byteLength > TRANSCRIPT_LIMIT) return skip('too_large');
+
+			await target.send({ files: [new AttachmentBuilder().setFile(file).setName(`ticket-${ticket.number}-transcript.html`)] });
 			return {};
 		}),
 

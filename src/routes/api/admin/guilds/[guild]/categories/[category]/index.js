@@ -214,6 +214,7 @@ module.exports.patch = fastify => ({
 			staffChannel: true,
 			staffChannelMode: true,
 			staffChannelParent: true,
+			staffChannelPing: true,
 			staffRoles: true,
 			totalLimit: true,
 		};

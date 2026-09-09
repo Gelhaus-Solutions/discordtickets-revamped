@@ -2214,6 +2214,345 @@ function stubRunners(overrides = {}) {
 		assert.deepStrictEqual(missing, [], `no runner for: ${missing.join(', ')}`);
 	});
 
+	await t('the "find a thread" node routes, sets its variables and claims nothing', async () => {
+		// The three things this node gets wrong if anyone rewrites it: routing a
+		// miss to the wrong branch, forgetting the variables, and declaring
+		// `provides: ['channel']`.
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const type = NODE_TYPES['action.channel.findThread'];
+
+		assert.deepStrictEqual(type.outputs, ['found', 'notFound']);
+		assert.deepStrictEqual(
+			type.provides ?? [],
+			[],
+			'a channel claimed here would credit the notFound branch with one too',
+		);
+
+		const thread = {
+			id: '999',
+			name: '319709731168223234',
+		};
+		const parent = {
+			threads: {
+				cache: new Map([['999', thread]]),
+				fetchActive: async () => ({ threads: new Map() }),
+				fetchArchived: async () => ({ threads: new Map() }),
+			},
+		};
+		const ctxFor = over => ({
+			automationKey: 'a1',
+			client: {},
+			getChannel: async () => parent,
+			getTicketChannel: async () => parent,
+			guildId: '451',
+			varsFor: async () => ({}),
+			vars: {},
+			...over,
+		});
+
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.channel.findThread'];
+
+		const hit = ctxFor({});
+		const found = await run({
+			params: {
+				name: '319709731168223234',
+				target: 'triggerChannel',
+			},
+		}, hit);
+		assert.strictEqual(found.handle, undefined, 'a hit takes the first output');
+		assert.strictEqual(found.status, undefined, 'a hit is not a skip');
+		assert.strictEqual(hit.vars.threadid, '999');
+		assert.strictEqual(hit.vars.threadname, '319709731168223234');
+		assert.strictEqual(hit.vars.threadurl, 'https://discord.com/channels/451/999');
+
+		const missCtx = ctxFor({});
+		const miss = await run({
+			params: {
+				name: 'nobody',
+				target: 'triggerChannel',
+			},
+		}, missCtx);
+		assert.strictEqual(miss.handle, 'notFound', 'a miss must be routable, not a bare skip');
+		assert.strictEqual(miss.status, 'skip', 'a miss reads as SKIPPED, not SUCCESS');
+		assert.strictEqual(missCtx.vars.threadurl, undefined, 'a miss must not leave a stale link');
+
+		// A read-only node runs during a test, so the test button reports the
+		// branch the real run would take.
+		const dry = ctxFor({ dryRun: true });
+		const tested = await run({
+			params: {
+				name: '319709731168223234',
+				target: 'triggerChannel',
+			},
+		}, dry);
+		assert.strictEqual(tested.reason, 'found', 'a lookup is safe to run in a test');
+		assert.strictEqual(dry.vars.threadurl, 'https://discord.com/channels/451/999');
+	});
+
+	await t('a "find a thread" graph validates, and its notFound branch is not given a channel', () => {
+		// The capability walk has no per-handle granularity, so a node that
+		// declared `provides: ['channel']` here would credit *both* branches. This
+		// graph is the proof: a cron trigger supplies no channel, so "post to the
+		// channel this happened in" hung off notFound must still be rejected.
+		const good = graph([
+			node('trigger.schedule.cron', {
+				cron: '0 * * * *',
+				timezone: 'Europe/London',
+			}, 'c'),
+			node('action.channel.findThread', {
+				name: '{openerid}',
+				parentId: '451745464480432129',
+				target: 'channel',
+			}, 'f'),
+			node('action.log', { content: 'Here: {threadurl}' }, 'hit'),
+			node('action.log', { content: 'No record.' }, 'miss'),
+		], [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'notFound'),
+		]);
+		assert.doesNotThrow(() => validateGraph(good, {}), 'a plain lookup graph should save');
+
+		const wrongHandle = graph(good.nodes, [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'nope'),
+		]);
+		assert.throws(
+			() => validateGraph(wrongHandle, {}),
+			/unknown_handle|not an output/,
+			'an edge from a handle the node does not have must be refused',
+		);
+
+		const claimsChannel = graph([
+			...good.nodes.filter(n => n.id !== 'miss'),
+			node('action.message.send', {
+				...plain('posting into thin air'),
+				target: 'triggerChannel',
+			}, 'miss'),
+		], [
+			edge('c', 'f'),
+			edge('f', 'hit', 'found'),
+			edge('f', 'miss', 'notFound'),
+		]);
+		assert.throws(
+			() => validateGraph(claimsChannel, {}),
+			/channel/i,
+			'the notFound branch has no channel, and the walk must still say so',
+		);
+	});
+
+	await t('the reopen node routes every outcome and never bypasses the workflow', async () => {
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const gatewayPath = path.join(root, 'dist', 'temporal', 'gateway');
+		if (!fs.existsSync(path.join(root, 'dist', 'temporal'))) {
+			console.log('       (skipped: run `npm run temporal.build` to include this)');
+			return;
+		}
+		const gateway = require(gatewayPath);
+
+		const type = NODE_TYPES['action.ticket.reopen'];
+		assert.deepStrictEqual(type.outputs, ['reopened', 'notReopened']);
+		assert.deepStrictEqual(type.needs, ['ticket']);
+
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.ticket.reopen'];
+		const ctxFor = ticket => ({
+			guildId: '451',
+			getTicket: async () => ticket,
+			vars: {},
+		});
+		const soft = {
+			id: 't1',
+			open: true,
+			pendingCloseAt: new Date(),
+		};
+
+		const original = gateway.signalReopenTicket;
+		const withOutcome = async (outcome, ticket = soft) => {
+			gateway.signalReopenTicket = async () => outcome;
+			try {
+				return await run({ params: {} }, ctxFor(ticket));
+			} finally {
+				gateway.signalReopenTicket = original;
+			}
+		};
+
+		const ok = await withOutcome('reopened');
+		assert.strictEqual(ok.handle, undefined, 'a reopen takes the first output');
+		assert.strictEqual(ok.status, undefined);
+
+		// The distinction the gateway was changed to preserve: a window that has
+		// gone is terminal, an outage is worth retrying, and an admin reading the
+		// run log needs to know which happened.
+		const gone = await withOutcome('no_window');
+		assert.strictEqual(gone.handle, 'notReopened');
+		assert.strictEqual(gone.reason, 'no_window');
+
+		const down = await withOutcome('unavailable');
+		assert.strictEqual(down.handle, 'notReopened');
+		assert.strictEqual(down.reason, 'temporal_unavailable');
+
+		// Guards, each of which must route rather than throw or silently continue.
+		for (const [ticket, reason] of [
+			[null, 'unknown_ticket'],
+			[{
+				id: 't1',
+				open: false,
+				pendingCloseAt: null,
+			}, 'already_closed'],
+			[{
+				id: 't1',
+				open: true,
+				pendingCloseAt: null,
+			}, 'not_closing'],
+		]) {
+			const result = await withOutcome('reopened', ticket);
+			assert.strictEqual(result.handle, 'notReopened', `${reason} must route`);
+			assert.strictEqual(result.reason, reason);
+			assert.strictEqual(result.status, 'skip', `${reason} reads as SKIPPED`);
+		}
+	});
+
+	await t('the reopen node reaches Temporal and nothing else', () => {
+		// Calling `client.tickets.reopen()` directly would reopen the ticket out
+		// from under the grace-window workflow, which keeps waiting and then
+		// terminally closes it anyway when the window expires. A reopen that
+		// silently re-closes ten minutes later is the worst outcome available, so
+		// this is worth pinning rather than trusting to review.
+		const source = fs.readFileSync(path.join(root, 'src', 'lib', 'automations', 'actions.js'), 'utf8');
+		const runner = source.slice(source.indexOf('\'action.ticket.reopen\''));
+		const body = runner.slice(0, runner.indexOf('\'action.ticket.claim\''));
+		assert.ok(body.includes('temporal.signalReopenTicket'), 'the reopen node must signal the workflow');
+		assert.ok(
+			!/tickets\.reopen\s*\(/.test(body),
+			'the reopen node must not call client.tickets.reopen() directly',
+		);
+	});
+
+	await t('the thread variables are declared placeholders, or they post literally', () => {
+		// `substitute()` builds one regex from the PLACEHOLDERS table and expands
+		// nothing else, so setting `ctx.vars.threadurl` without a table entry
+		// would post the literal string `{threadurl}` into somebody's ticket.
+		const { substitute } = require(path.join(root, 'src', 'lib', 'placeholders'));
+		for (const token of ['threadurl', 'threadid', 'threadname']) {
+			assert.strictEqual(
+				substitute(`<{${token}}>`, { [token]: 'value' }),
+				'<value>',
+				`{${token}} is not declared in the placeholders table`,
+			);
+		}
+	});
+
+	await t('a branching node labels its outputs for the canvas', () => {
+		// The editor renders the first output green and the rest red, and takes
+		// its text from `outputLabels`. Without one, a handle name reaches the
+		// canvas raw and an admin reads "notFound".
+		for (const [name, type] of Object.entries(NODE_TYPES)) {
+			if ((type.outputs ?? []).length < 2) continue;
+			for (const handle of type.outputs) {
+				assert.ok(
+					type.outputLabels?.[handle] || handle === handle.toLowerCase(),
+					`${name} has no readable label for its "${handle}" output`,
+				);
+			}
+		}
+	});
+
+	await t('the transcript node needs a ticket, and a channel only when it posts to one', () => {
+		const type = NODE_TYPES['action.ticket.sendTranscript'];
+		assert.deepStrictEqual(type.needs, ['ticket']);
+
+		// Under `trigger.ticket.closed` there may be no channel left at all, which
+		// is the whole reason the dependency is conditional rather than declared.
+		const needsFor = destination => needsOf({
+			params: { destination },
+			type: 'action.ticket.sendTranscript',
+		});
+		assert.ok(!needsFor('opener').includes('ticketChannel'));
+		assert.ok(!needsFor('channel').includes('ticketChannel'));
+		assert.ok(needsFor('ticket').includes('ticketChannel'), 'posting into the ticket needs its channel');
+	});
+
+	await t('the transcript node sends a file, and skips rather than throwing', async () => {
+		const { makeRunners } = require(path.join(root, 'src', 'lib', 'automations', 'actions'));
+		const transcripts = require(path.join(root, 'src', 'lib', 'tickets', 'transcript-html'));
+		const runners = makeRunners({ user: { id: 'bot' } }, async () => {});
+		const run = runners['action.ticket.sendTranscript'];
+
+		const sent = [];
+		const member = { send: async payload => sent.push(payload) };
+		const ctxFor = over => ({
+			client: {},
+			getSettings: async () => ({ disableDMs: false }),
+			getTicket: async () => ({
+				createdById: 'u1',
+				id: 't1',
+				number: 12,
+			}),
+			getTicketChannel: async () => member,
+			guildId: '451',
+			resolveSubject: async () => member,
+			vars: {},
+			...over,
+		});
+
+		const original = transcripts.readHtmlTranscript;
+		const withHtml = async (html, ctx = ctxFor({}), params = { destination: 'opener' }) => {
+			transcripts.readHtmlTranscript = async () => html;
+			try {
+				return await run({ params }, ctx);
+			} finally {
+				transcripts.readHtmlTranscript = original;
+			}
+		};
+
+		sent.length = 0;
+		const ok = await withHtml('<html>hi</html>');
+		assert.strictEqual(ok.status, undefined, 'a delivered transcript is not a skip');
+		assert.strictEqual(sent.length, 1);
+		assert.strictEqual(sent[0].files.length, 1);
+		assert.strictEqual(
+			sent[0].files[0].name,
+			'ticket-12-transcript.html',
+			'the file is named after the ticket number, not its id',
+		);
+
+		// A guild that turned DMs off means it, the same as `action.message.dm`.
+		sent.length = 0;
+		const off = await withHtml('<html>hi</html>', ctxFor({ getSettings: async () => ({ disableDMs: true }) }));
+		assert.strictEqual(off.reason, 'dms_disabled');
+		assert.strictEqual(sent.length, 0, 'nothing should be sent, and no transcript rendered');
+
+		// Posting into a channel is not a DM, so the guild's DM setting is silent.
+		sent.length = 0;
+		const toChannel = await withHtml(
+			'<html>hi</html>',
+			ctxFor({ getSettings: async () => ({ disableDMs: true }) }),
+			{ destination: 'ticket' },
+		);
+		assert.strictEqual(toChannel.status, undefined, 'disableDMs must not block a channel post');
+		assert.strictEqual(sent.length, 1);
+
+		sent.length = 0;
+		const none = await withHtml(null);
+		assert.strictEqual(none.reason, 'no_transcript');
+		assert.strictEqual(sent.length, 0);
+
+		// Discord refuses the upload, so the node refuses it first and says so.
+		sent.length = 0;
+		const huge = await withHtml('x'.repeat(9 * 1024 * 1024));
+		assert.strictEqual(huge.reason, 'too_large');
+		assert.strictEqual(huge.status, 'skip', 'an oversized transcript is an outcome, not a fault');
+		assert.strictEqual(sent.length, 0);
+
+		sent.length = 0;
+		const gone = await withHtml('<html>hi</html>', ctxFor({ resolveSubject: async () => null }));
+		assert.strictEqual(gone.reason, 'unknown_member');
+		assert.strictEqual(sent.length, 0);
+	});
+
 	await t('the editor registry mirrors the bot registry', () => {
 		const mirror = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor', 'nodes.js');
 		if (!fs.existsSync(mirror)) {
@@ -2240,6 +2579,37 @@ function stubRunners(overrides = {}) {
 			const found = source.match(new RegExp(`${key}:\\s*(\\d+)`));
 			assert.ok(found, `the editor does not declare the ${key} limit`);
 			assert.strictEqual(Number(found[1]), PUBLIC_LIMITS[key], `the ${key} limit differs between the bot and the editor`);
+		}
+	});
+
+	await t('node icons are fixed-width wherever one is drawn beside a label', () => {
+		// The icons range from `fa-i-cursor` at 256 units to `fa-user-plus` at 640,
+		// a 2.5x spread. Every one of these is a flex row with the label after the
+		// icon, so without `fa-fw` the titles start at a different offset on each
+		// node and a column of them reads as ragged. That is what the "align the
+		// nodes" report was.
+		const dir = path.join(root, 'src', 'dashboard', 'src', 'components', 'AutomationEditor');
+		if (!fs.existsSync(dir)) {
+			console.log('       (skipped: the editor is not installed)');
+			return;
+		}
+		const files = [
+			path.join(dir, 'nodes', 'BaseNode.svelte'),
+			path.join(dir, 'NodePalette.svelte'),
+			path.join(dir, 'Inspector.svelte'),
+			path.join(dir, 'RunLog.svelte'),
+		];
+		for (const file of files) {
+			const source = fs.readFileSync(file, 'utf8');
+			// Only the lines that render a *node type's* icon; the fixed decorative
+			// ones (a chevron, a bin) are beside nothing and do not need it.
+			for (const line of source.split('\n')) {
+				if (!line.includes('iconFor(')) continue;
+				assert.ok(
+					line.includes('fa-fw'),
+					`${path.basename(file)} draws a node icon without fa-fw: ${line.trim()}`,
+				);
+			}
 		}
 	});
 

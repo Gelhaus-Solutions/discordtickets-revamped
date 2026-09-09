@@ -1141,6 +1141,82 @@ const ticket = (over = {}) => ({
 		assert.ok(!CD.cooldownKey(4, '123').startsWith('cooldowns/category-member:'));
 	});
 
+	/* ──────────────────────── the staff channel ping ─────────────────────── */
+
+	console.log('\nStaff channel ping\n');
+
+	{
+		const { staffChannelPingMessage } = require(path.join(root, 'src', 'lib', 'tickets', 'mutations'));
+		const say = (key, vars) => `${key}:${vars?.number}`;
+		const build = (category, staffRoles = ['1', '2']) => staffChannelPingMessage({
+			category,
+			number: 7,
+			say,
+			staffRoles,
+		});
+
+		await t('a category that has not asked for a ping gets no message', () => {
+			assert.strictEqual(build({ staffChannelPing: false }), null);
+			assert.strictEqual(build({}), null);
+			assert.strictEqual(build(null), null);
+		});
+
+		await t('the ping mentions every staff role', () => {
+			const message = build({ staffChannelPing: true });
+			assert.ok(message.content.startsWith('<@&1> <@&2> '), message.content);
+			assert.ok(message.content.endsWith('ticket.staff_channel.ping:7'), message.content);
+		});
+
+		await t('the mention carries permission to notify, or it is a grey pill', () => {
+			// The whole point of the feature. A bot cannot ping a role that is not
+			// "mentionable" unless the message names it in allowed_mentions, and a
+			// Components v2 message derives no mention parsing at all. Either way
+			// the failure is silent: the message posts and nobody is notified.
+			const message = build({ staffChannelPing: true });
+			assert.deepStrictEqual(message.allowedMentions, { roles: ['1', '2'] });
+			for (const id of ['1', '2']) {
+				assert.ok(
+					message.content.includes(`<@&${id}>`),
+					'every allowed role should actually be mentioned',
+				);
+			}
+		});
+
+		await t('roles are de-duplicated and stringified', () => {
+			const message = staffChannelPingMessage({
+				category: { staffChannelPing: true },
+				number: 7,
+				say,
+				// Ids arrive from a JSON column, so numbers are possible.
+				staffRoles: ['1', '1', 2],
+			});
+			assert.deepStrictEqual(message.allowedMentions.roles, ['1', '2']);
+			assert.ok(message.content.startsWith('<@&1> <@&2> '), message.content);
+		});
+
+		await t('a category with no staff roles pings nobody rather than posting an empty mention', () => {
+			assert.strictEqual(build({ staffChannelPing: true }, []), null);
+			// Called directly: `build`'s default argument would mask an absent list.
+			assert.strictEqual(staffChannelPingMessage({
+				category: { staffChannelPing: true },
+				number: 7,
+				say,
+			}), null);
+		});
+
+		await t('the ping string is a real, resolvable i18n key', () => {
+			// `say` is stubbed above, so nothing else here would notice the key
+			// being renamed or never added.
+			const yaml = require('yaml');
+			const locale = yaml.parse(fs.readFileSync(path.join(root, 'src', 'i18n', 'en-GB.yml'), 'utf8'));
+			const text = locale?.ticket?.staff_channel?.ping;
+			assert.ok(text, 'ticket.staff_channel.ping is missing from en-GB');
+			// `#` opens a comment in YAML, so an unquoted "Ticket #{number}" parses
+			// as "Ticket" and the ping loses its number silently.
+			assert.ok(text.includes('{number}'), `the ping lost its {number} placeholder: ${text}`);
+		});
+	}
+
 	/* ─────────────────── closing when Temporal is unreachable ───────────── */
 
 	// The reason this suite grew a section that needs the compiled layer: a
@@ -1285,6 +1361,155 @@ const ticket = (over = {}) => ({
 
 			assert.strictEqual(record.closed.length, 1);
 			assert.strictEqual(record.closed[0].closedBy, 'u2', 'the presser closes it when no request is pending');
+		});
+
+		/* ────────────── reopening when Temporal is unreachable ────────────── */
+
+		// Same failure as closing, found later: `signalReopenTicket` connected
+		// *outside* its own try, so an unreachable Temporal threw past the button
+		// and answered a member's reopen with "an unexpected error occurred".
+		// Reopen cannot fall back in-process (only the grace-window workflow knows
+		// the close is pending), so the fix is an honest third outcome instead.
+		const temporalClient = require(path.join(root, 'dist', 'temporal', 'client'));
+
+		const withConnect = async (impl, fn) => {
+			const original = temporalClient.ensureTemporalClient;
+			temporalClient.ensureTemporalClient = impl;
+			try {
+				return await fn();
+			} finally {
+				temporalClient.ensureTemporalClient = original;
+			}
+		};
+
+		// A client whose signal resolves (window live) or rejects (no such workflow).
+		const clientWhoseSignal = result => ({
+			workflow: {
+				getHandle: () => ({
+					query: async () => {
+						if (result instanceof Error) throw result;
+						return result;
+					},
+					signal: async () => {
+						if (result instanceof Error) throw result;
+					},
+				}),
+			},
+		});
+
+		await t('an unreachable Temporal answers "unavailable", not a throw', async () => {
+			const outcome = await withConnect(
+				async () => {
+					throw new Error('Temporal is unreachable: the last connection attempt failed, and the next is not due yet.');
+				},
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'unavailable');
+		});
+
+		await t('a refused signal still answers "no_window"', async () => {
+			const outcome = await withConnect(
+				async () => clientWhoseSignal(new Error('workflow not found')),
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'no_window');
+		});
+
+		await t('a delivered signal answers "reopened"', async () => {
+			const outcome = await withConnect(
+				async () => clientWhoseSignal(undefined),
+				() => gateway.signalReopenTicket('t1'),
+			);
+			assert.strictEqual(outcome, 'reopened');
+		});
+
+		await t('queryReopenState answers null when Temporal is unreachable', async () => {
+			// The stale sweep's caller documents exactly this: "an unreachable one
+			// answers null, which is the case this sweep exists for."
+			const state = await withConnect(
+				async () => {
+					throw new Error('unreachable');
+				},
+				() => gateway.queryReopenState('t1'),
+			);
+			assert.strictEqual(state, null);
+		});
+
+		/* the button's side of it */
+
+		const ReopenButton = require(path.join(root, 'src', 'buttons', 'reopen'));
+
+		const pressReopen = async outcome => {
+			const replies = [];
+			const updates = [];
+			const warnings = [];
+			const self = {
+				client: {
+					i18n: { getLocale: () => (key => key) },
+					log: { warn: (...args) => warnings.push(args) },
+					tickets: {
+						getTicket: async () => ({
+							createdById: 'u1',
+							guild: {
+								errorColour: '#ff0000',
+								footer: '',
+								locale: 'en-GB',
+								successColour: '#00ff00',
+							},
+							id: 't1',
+						}),
+					},
+				},
+			};
+			const interaction = {
+				channel: { id: 't1' },
+				guild: { iconURL: () => null },
+				reply: async payload => replies.push(payload),
+				update: async payload => updates.push(payload),
+				// The creator, so the staff lookup is short-circuited.
+				user: { id: 'u1' },
+			};
+			await withGateway(
+				{ signalReopenTicket: async () => outcome },
+				() => ReopenButton.prototype.run.call(self, {}, interaction),
+			);
+			return {
+				replies,
+				updates,
+				warnings,
+			};
+		};
+
+		await t('an outage does not tell the member the window expired', async () => {
+			const {
+				replies, updates, warnings,
+			} = await pressReopen('unavailable');
+			assert.strictEqual(updates.length, 0, 'nothing was reopened, so the prompt must stay');
+			assert.strictEqual(replies.length, 1);
+			assert.strictEqual(
+				replies[0].embeds[0].data.title,
+				'ticket.reopen.unavailable.title',
+				'"the window has expired" during an outage costs the member the ticket',
+			);
+			assert.strictEqual(warnings.length, 1, 'the outage should be logged');
+		});
+
+		await t('a genuinely expired window still says so', async () => {
+			const {
+				replies, updates, warnings,
+			} = await pressReopen('no_window');
+			assert.strictEqual(updates.length, 0);
+			assert.strictEqual(replies[0].embeds[0].data.title, 'ticket.reopen.no_window.title');
+			assert.strictEqual(warnings.length, 0, 'an expired window is not an outage');
+		});
+
+		await t('a reopened ticket replaces the prompt with a confirmation', async () => {
+			const {
+				replies, updates,
+			} = await pressReopen('reopened');
+			assert.strictEqual(replies.length, 0);
+			assert.strictEqual(updates.length, 1);
+			assert.strictEqual(updates[0].embeds[0].data.title, 'ticket.reopen.reopened.title');
 		});
 	}
 

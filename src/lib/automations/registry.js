@@ -1085,6 +1085,77 @@ const NODE_TYPES = {
 			}
 		},
 	},
+	'action.channel.findThread': {
+		category: 'action',
+		description: 'Look up an existing thread or forum post by name and hand back its link, without creating anything. Sets {threadurl}, {threadid} and {threadname} for the steps after it. One lookup per run: a second one overwrites the first.',
+		label: 'Find a thread',
+		needs: ['guild'],
+		// Read-only, so unlike the create nodes this is *not* wrapped in `real()`
+		// and does run during a test. A dry run that always took `found` and never
+		// set the variables would tell an admin nothing about their graph.
+		outputLabels: {
+			found: 'found',
+			notFound: 'not found',
+		},
+		outputs: ['found', 'notFound'],
+		params: [
+			{
+				default: 'ticket',
+				key: 'target',
+				label: 'Look on',
+				// The same three choices the create nodes offer, so the control
+				// means the same thing everywhere.
+				options: [{
+					label: 'The ticket channel',
+					value: 'ticket',
+				}, {
+					label: 'The channel this happened in',
+					value: 'triggerChannel',
+				}, {
+					label: 'A specific channel',
+					value: 'channel',
+				}],
+				required: true,
+				type: 'select',
+			},
+			{
+				// Forums, text and announcement channels: what `findThreadByName`
+				// can walk the threads of.
+				channelTypes: [15, 0, 5],
+				key: 'parentId',
+				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'target',
+				},
+				type: 'channel',
+			},
+			{
+				...channelNameField,
+				help: `${PLACEHOLDER_HELP} Matched whole, trimmed, ignoring case. A forum used as a per-member record is the point of this node: name the post {openerid} and it finds that member's.`,
+				label: 'Name to find',
+			},
+			{
+				default: true,
+				help: 'A per-member record is archived most of the time it is looked for, so leaving this on is usually what you want. Turning it off makes the lookup cheaper.',
+				key: 'includeArchived',
+				label: 'Search archived threads too',
+				type: 'boolean',
+			},
+		],
+		// Deliberately no `provides: ['channel']`. The capability walk has no
+		// per-handle granularity, so claiming a channel here would credit the
+		// `notFound` branch with one too, and a "post to the channel this
+		// happened in" hung off that branch would save cleanly and then post
+		// somewhere else entirely. Variables make no such claim.
+		validate: (params, push, path) => {
+			// `parentId` cannot be `required`: it only applies to one of the three
+			// targets, and `validateParams` cannot see which was picked.
+			if (params?.target === 'channel' && !params?.parentId) {
+				push(`${path}.parentId`, 'required', 'Channel is required');
+			}
+		},
+	},
 	'action.log': {
 		category: 'action',
 		description: 'Write a line to the server\'s log channel.',
@@ -1375,6 +1446,74 @@ const NODE_TYPES = {
 			required: true,
 			type: 'text',
 		}],
+	},
+	'action.ticket.reopen': {
+		category: 'action',
+		description: 'Cancel a pending close and reopen the ticket, while its reopen window is still running. The unlock happens a moment after this step, so hang anything that talks to the member off the "ticket is reopened" trigger rather than the next step here.',
+		label: 'Reopen the ticket',
+		// `ticket`, not `ticketChannel`: the natural trigger for this is a close
+		// request or a button on the soft-close prompt, and being stricter buys
+		// nothing when the signal is addressed by ticket id.
+		needs: ['ticket'],
+		outputLabels: {
+			notReopened: 'not reopened',
+			reopened: 'reopened',
+		},
+		// Two outputs rather than a bare skip: a skip continues the branch, so a
+		// single-output version would post "Reopened!" even when the window had
+		// gone. That is the lie the reopen button carefully avoids.
+		outputs: ['reopened', 'notReopened'],
+		params: [],
+	},
+	'action.ticket.sendTranscript': {
+		category: 'action',
+		description: 'Attach the ticket\'s transcript to a message. Under the "ticket is closed" trigger this is how a server sends the opener their copy, which is what that trigger fires last for.',
+		label: 'Send the transcript',
+		// `ticket`, not `ticketChannel`: the headline use is under
+		// `trigger.ticket.closed`, which provides no channel because there may no
+		// longer be one. `needsOf` adds the channel back only when the transcript
+		// is being posted into the ticket itself.
+		needs: ['ticket'],
+		outputs: ['out'],
+		params: [
+			{
+				default: 'opener',
+				key: 'destination',
+				label: 'Send it to',
+				options: [{
+					label: 'The person who opened the ticket (DM)',
+					value: 'opener',
+				}, {
+					label: 'Whoever set this off (DM)',
+					value: 'actor',
+				}, {
+					label: 'The ticket channel',
+					value: 'ticket',
+				}, {
+					label: 'A specific channel',
+					value: 'channel',
+				}],
+				required: true,
+				type: 'select',
+			},
+			{
+				channelTypes: [0, 5],
+				key: 'channelId',
+				label: 'Channel',
+				showWhen: {
+					in: ['channel'],
+					key: 'destination',
+				},
+				type: 'channel',
+			},
+		],
+		validate: (params, push, path) => {
+			// Same reason as the channel nodes: `channelId` applies to one of four
+			// destinations and `validateParams` cannot see which was picked.
+			if (params?.destination === 'channel' && !params?.channelId) {
+				push(`${path}.channelId`, 'required', 'Channel is required');
+			}
+		},
 	},
 	'action.ticket.setEmoji': {
 		category: 'action',
@@ -1984,14 +2123,25 @@ function needsOf(node) {
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
 
+	// The transcript can be posted into the ticket channel, which is the only
+	// destination that needs one. Under `trigger.ticket.closed` there may not be
+	// a channel any more, which is exactly why this is conditional.
+	if (node.type === 'action.ticket.sendTranscript' && node.params?.destination === 'ticket') {
+		needs.add('ticketChannel');
+	}
+
 	// Same reasoning for the create nodes: who they let in decides what they
 	// depend on. Ticking "add the staff roles" is what turns a node that needs a
 	// server into one that needs a ticket.
 	if (node.type?.startsWith('action.channel.create')) {
 		if (node.params?.includeStaff || node.params?.includeOpener) needs.add('ticket');
 		if (node.params?.includeActor) needs.add('member');
-		// And where it hangs from, which is the same question `action.message.send`
-		// asks about where it posts.
+	}
+
+	// Where a channel node hangs from (or looks on), which is the same question
+	// `action.message.send` asks about where it posts. `findThread` creates
+	// nothing, so it shares this half and not the access half above.
+	if (node.type?.startsWith('action.channel.create') || node.type === 'action.channel.findThread') {
 		if (node.params?.target === 'ticket') needs.add('ticketChannel');
 		if (node.params?.target === 'triggerChannel') needs.add('channel');
 	}
@@ -2019,6 +2169,7 @@ function catalogue() {
 			durable: Boolean(d.durable),
 			label: d.label,
 			needs: d.needs ?? [],
+			outputLabels: d.outputLabels ?? {},
 			outputs: d.outputs,
 			params: d.params,
 			provides: d.provides ?? [],
