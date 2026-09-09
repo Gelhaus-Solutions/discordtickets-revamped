@@ -40,11 +40,45 @@ export function reroute({ url }) {
 	}
 }
 
+/**
+ * Say out loud that a rendered page is one person's, and must be revalidated.
+ *
+ * Nothing here is a static document: the root layout's `load` inlines the
+ * signed-in user, the bot, the theme and the negotiated locale into the page
+ * and into its `__data.json`. Both used to go out with no `Cache-Control` and
+ * no `Vary`, which leaves every cache between the bot and the browser free to
+ * decide for itself, and a shared one is then within its rights to hand one
+ * operator's dashboard to the next visitor.
+ *
+ * It is also what makes an upgrade visible. A rebuild replaces `build/` rather
+ * than adding to it (adapter-node rimrafs it first), so a document held over
+ * from the previous release points at `_app/immutable/` URLs that no longer
+ * exist: the stylesheet 404s and the dashboard renders as unstyled, stacked
+ * markup until the visitor clears their cache. `no-cache` stores the response
+ * but revalidates before every reuse, so the next load is the new page.
+ *
+ * A route that has set its own policy through `setHeaders` keeps it.
+ */
+function markPrivate(response) {
+	if (!response.headers.has('cache-control')) {
+		response.headers.set('cache-control', 'private, no-cache');
+	}
+	const vary = response.headers.get('vary');
+	if (!vary) response.headers.set('vary', 'Cookie');
+	else if (
+		vary !== '*' &&
+		!vary.split(',').some((name) => name.trim().toLowerCase() === 'cookie')
+	) {
+		response.headers.set('vary', `${vary}, Cookie`);
+	}
+	return response;
+}
+
 /** @type {import('@sveltejs/kit').Handle} */
 export async function handle({ event, resolve }) {
 	const Sentry = sentry();
 	if (!Sentry) {
-		return await resolve(event, { filterSerializedResponseHeaders: () => true });
+		return markPrivate(await resolve(event, { filterSerializedResponseHeaders: () => true }));
 	}
 
 	// Named by route id rather than pathname, so `/settings/[guild]/tags` is one
@@ -58,7 +92,8 @@ export async function handle({ event, resolve }) {
 			name: `${event.request.method} ${event.route?.id ?? event.url.pathname}`,
 			op: 'http.server.sveltekit'
 		},
-		() => resolve(event, { filterSerializedResponseHeaders: () => true })
+		async () =>
+			markPrivate(await resolve(event, { filterSerializedResponseHeaders: () => true }))
 	);
 }
 

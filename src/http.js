@@ -382,6 +382,34 @@ module.exports = async client => {
 		const { handler } = handlerModule;
 		// https://stackoverflow.com/questions/72317071/how-to-set-up-fastify-correctly-so-that-sveltekit-works-fine
 		fastify.all('/*', {}, (req, res) => {
+			// Exactly one thing the dashboard serves may be cached without
+			// asking: `_app/immutable/*`, whose filenames carry a hash of their
+			// contents. The adapter's own static handler gives those a year, and
+			// this must not undo that.
+			//
+			// Everything else went out with no Cache-Control at all, which is
+			// not the same as "do not cache". The files under `static/` and
+			// `_app/version.json` carry an ETag and a Last-Modified, so a cache
+			// is entitled to invent a freshness lifetime from their age (RFC
+			// 9111 §4.2.2, in practice a tenth of it), and version.json is
+			// precisely how an open tab notices that the bot has been upgraded.
+			// The SSR'd pages carry no validator either way, so every proxy in
+			// front of the bot was left to make up its own policy about a
+			// document that inlines the signed-in user, their theme and their
+			// locale.
+			//
+			// That matters on upgrade because a rebuild does not add to
+			// `build/`, it replaces it: adapter-node rimrafs the directory
+			// first, so every hashed URL from the previous release is gone. A
+			// cached copy of yesterday's HTML therefore asks for a stylesheet
+			// that 404s, and the dashboard renders as unstyled, stacked markup
+			// until the visitor clears their cache.
+			if (!req.raw.url.startsWith('/_app/immutable/')) {
+				// `private` because these responses are per-user; `no-cache`
+				// stores but always revalidates, which without a validator means
+				// a fresh request, so an upgrade is picked up on the next load.
+				res.raw.setHeader('cache-control', 'private, no-cache');
+			}
 			try {
 				handler(req.raw, res.raw, () => {});
 			} catch (err) {

@@ -9,6 +9,11 @@ module.exports.get = fastify => ({
 		const file = path.join(__dirname, '..', '..', 'dashboard', 'custom', 'style.css');
 		if (!fs.existsSync(file)) return res.code(404).send('Not found');
 		const css = fs.readFileSync(file, 'utf8');
+		// Read from disk on every request, and served with no ETag, so a cache
+		// that guessed a lifetime for it would pin an upgraded install to the
+		// markup, script and stylesheet of the release before it. The three
+		// have to move together or the page renders unstyled.
+		res.header('cache-control', 'no-cache');
 		res.type('text/css; charset=utf-8').send(css);
 	},
 });
