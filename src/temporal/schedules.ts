@@ -54,6 +54,14 @@ export async function ensureSchedules(flags: ScheduleFlags = {}): Promise<void> 
 			id: 'automation-run-retention',
 			workflowType: WorkflowType.automationRetention,
 		},
+		{
+			// A closed ticket's transcript is deleted 24 months after it closed;
+			// a day late changes nothing.
+			enabled: true,
+			every: 24 * HOUR,
+			id: 'transcript-retention',
+			workflowType: WorkflowType.transcriptRetention,
+		},
 	];
 
 	// Drop schedules that no longer exist in code (e.g. the old db-maintenance no-op).

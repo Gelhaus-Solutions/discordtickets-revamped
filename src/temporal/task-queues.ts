@@ -23,6 +23,7 @@ export const WorkflowType = {
 	automationRun: 'automationRunWorkflow',
 	automationCron: 'automationCronWorkflow',
 	automationRetention: 'automationRetentionWorkflow',
+	transcriptRetention: 'transcriptRetentionWorkflow',
 	deferredRename: 'deferredRenameWorkflow',
 	awaitingRename: 'awaitingRenameWorkflow',
 } as const;
