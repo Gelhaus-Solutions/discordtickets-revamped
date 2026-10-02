@@ -547,3 +547,8 @@ export async function automationCronWorkflow(input: AutomationCronInput): Promis
 export async function automationRetentionWorkflow(): Promise<void> {
 	await acts.pruneAutomationRuns();
 }
+
+/** Delete the transcripts of tickets closed 24 months ago, in batches. */
+export async function transcriptRetentionWorkflow(): Promise<void> {
+	await longActs.purgeExpiredTranscripts();
+}

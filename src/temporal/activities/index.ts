@@ -394,6 +394,11 @@ export function makeActivities(deps: ActivityDeps) {
 		async pruneAutomationRuns(): Promise<void> {
 			await client.automations.pruneRuns();
 		},
+
+		/** Delete the transcripts of tickets closed 24 months ago (lib/tickets/retention). */
+		async purgeExpiredTranscripts(): Promise<void> {
+			await client.tickets.purgeExpiredTranscripts({ heartbeat: () => Context.current().heartbeat('transcript-retention') });
+		},
 	};
 }
 

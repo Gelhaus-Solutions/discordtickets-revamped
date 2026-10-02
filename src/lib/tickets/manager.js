@@ -66,6 +66,7 @@ const ms = require('ms');
 const ExtendedEmbedBuilder = require('../embed');
 const { logTicketEvent } = require('../logging');
 const { recordTicket } = require('../metrics');
+const { purgeExpiredTranscripts } = require('./retention');
 const { isStaff } = require('../users');
 const {
 	CATEGORY_JSON_NULLABLE,
@@ -2278,6 +2279,15 @@ module.exports = class TicketManager {
 	 * close a ticket
 	 * @param {string} ticketId
 	 */
+	/**
+	 * Delete the transcripts of tickets closed 24 months ago (see `retention.js`).
+	 * The entry point for the daily `transcript-retention` Temporal schedule.
+	 * @param {{heartbeat?: () => void, now?: Date}} [options]
+	 */
+	async purgeExpiredTranscripts(options) {
+		return purgeExpiredTranscripts(this.client, options);
+	}
+
 	/**
 	 * Apply a rename that Discord's rate limit refused earlier.
 	 *
