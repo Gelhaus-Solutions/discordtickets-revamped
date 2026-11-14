@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { fly } from 'svelte/transition';
 	import { onBeforeClose } from 'svelte-modals';
+	import ExportButton from './ExportButton.svelte';
 
 	let { isOpen, close } = $props();
 
@@ -38,21 +39,30 @@
 					</h4> -->
 				</div>
 
-				<a
-					data-sveltekit-reload
-					class="rounded-xl bg-red-500 p-4 px-8 font-medium text-white duration-300 hover:bg-red-500/25 hover:text-red-500"
-					href={`/api/admin/guilds/${$page.params.guild}/export`}
+				<ExportButton
+					guild={$page.params.guild}
+					class="rounded-xl bg-red-500 p-4 px-8 text-left font-medium text-white duration-300 hover:bg-red-500/25 hover:text-red-500 disabled:cursor-wait"
 				>
-					<div class="flex items-center gap-8">
-						<i class="fa-solid fa-triangle-exclamation text-5xl"></i>
-						<div>
-							<p class="text-lg font-bold">
-								ALL SETTINGS AND TICKETS, INCLUDING ARCHIVED MESSAGES WILL BE DELETED!
-							</p>
-							<p>Do you want to export a backup first?</p>
+					{#snippet children(exported)}
+						<div class="flex items-center gap-8">
+							<i class="fa-solid fa-triangle-exclamation text-5xl"></i>
+							<div>
+								<p class="text-lg font-bold">
+									ALL SETTINGS AND TICKETS, INCLUDING ARCHIVED MESSAGES WILL BE DELETED!
+								</p>
+								{#if exported.state === 'running'}
+									<p><i class="fa-solid fa-spinner fa-spin"></i> Preparing the backup…</p>
+								{:else if exported.state === 'ready'}
+									<p>The backup is ready to download.</p>
+								{:else if exported.state === 'failed'}
+									<p>The backup failed. Try again.</p>
+								{:else}
+									<p>Do you want to export a backup first?</p>
+								{/if}
+							</div>
 						</div>
-					</div>
-				</a>
+					{/snippet}
+				</ExportButton>
 				<div class="text-center">
 					<button
 						type="button"
