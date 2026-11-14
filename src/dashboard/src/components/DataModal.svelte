@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import { fly } from 'svelte/transition';
 	import { modals, onBeforeClose } from 'svelte-modals';
+	import ExportButton from './ExportButton.svelte';
 	import ImportModal from './ImportModal.svelte';
 	import ResetModal from './ResetModal.svelte';
 	let { isOpen, close, guild } = $props();
@@ -28,21 +29,36 @@
 				</div>
 
 				<div class="flex flex-col gap-2">
-					<a
-						data-sveltekit-reload
-						href={`/api/admin/guilds/${$page.params.guild}/export`}
-						class="group rounded-xl bg-green-300 p-4 text-left transition duration-300 hover:bg-green-500 hover:text-white dark:bg-green-500/20 dark:hover:bg-green-500"
+					<ExportButton
+						guild={$page.params.guild}
+						class="group rounded-xl bg-green-300 p-4 text-left transition duration-300 hover:bg-green-500 hover:text-white disabled:cursor-wait dark:bg-green-500/20 dark:hover:bg-green-500"
 					>
-						<div class="flex items-center gap-2 md:gap-4">
-							<div class="flex w-full items-center gap-4">
-								<i class="fa-solid fa-file-export px-4 text-2xl"></i>
-								<div class="w-full">
-									<span class="text-lg font-semibold">Export (backup)</span>
-									<div class="text-sm">Download all of your server data</div>
+						{#snippet children(exported)}
+							<div class="flex items-center gap-2 md:gap-4">
+								<div class="flex w-full items-center gap-4">
+									<i
+										class="fa-solid fa-fw px-4 text-2xl {exported.state === 'running'
+											? 'fa-spinner fa-spin'
+											: 'fa-file-export'}"
+									></i>
+									<div class="w-full">
+										<span class="text-lg font-semibold">Export (backup)</span>
+										<div class="text-sm">
+											{#if exported.state === 'running'}
+												Preparing the export…
+											{:else if exported.state === 'ready'}
+												Ready to download
+											{:else if exported.state === 'failed'}
+												The export failed. Try again.
+											{:else}
+												Download all of your server data
+											{/if}
+										</div>
+									</div>
 								</div>
 							</div>
-						</div>
-					</a>
+						{/snippet}
+					</ExportButton>
 					<button
 						class="group rounded-xl bg-orange-300 p-4 text-left transition duration-300 hover:bg-orange-500 hover:text-white dark:bg-orange-500/20 dark:hover:bg-orange-500"
 						onclick={() => modals.open(ImportModal, { guild })}

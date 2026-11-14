@@ -31,6 +31,7 @@ import type {
 	CloseTicketInput,
 	DeferredRenameInput,
 	ExportGuildInput,
+	ExportState,
 	GenerateTranscriptInput,
 	ImportGuildInput,
 	ReconfigureStaleInput,
@@ -110,7 +111,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		cancelled = true;
 	});
 	// Live reconfigure when guild settings change. A non-positive threshold means
-	// stale handling was disabled — stop the workflow. Bumping activityVersion
+	// stale handling was disabled: stop the workflow. Bumping activityVersion
 	// breaks the current wait so Phase 1 recomputes against the new threshold.
 	setHandler(
 		reconfigureStaleUpdate,
@@ -148,7 +149,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 			});
 		}
 
-		// Phase 1 — wait for the inactivity threshold (resettable).
+		// Phase 1: wait for the inactivity threshold (resettable).
 		phase = 'waiting';
 		closeAtState = null;
 		const v1 = activityVersion;
@@ -158,7 +159,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		if (activityVersion !== v1) continue; // activity reset the timer
 		if (!(await acts.isTicketOpen(input.ticketId))) return;
 
-		// Phase 2 — send the inactivity warning; get the auto-close epoch.
+		// Phase 2: send the inactivity warning; get the auto-close epoch.
 		const closeAt = await acts.sendStaleWarning(input.ticketId);
 		phase = 'warned';
 		if (closeAt == null) {
@@ -170,7 +171,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		}
 		closeAtState = closeAt;
 
-		// Phase 3 — halfway "closing soon" reminder.
+		// Phase 3: halfway "closing soon" reminder.
 		const vWarn = activityVersion;
 		const halfway = closeAt - (closeAt - Date.now()) / 2;
 		const waitH = halfway - Date.now();
@@ -181,7 +182,7 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 		phase = 'closing-soon';
 		await acts.sendClosingSoon(input.ticketId, closeAt);
 
-		// Phase 4 — wait until the auto-close deadline, then close.
+		// Phase 4: wait until the auto-close deadline, then close.
 		const waitC = closeAt - Date.now();
 		if (waitC > 0) await condition(() => cancelled || activityVersion !== vWarn, waitC);
 		if (cancelled) return;
@@ -234,8 +235,8 @@ export async function staleTicketWorkflow(input: StaleTicketInput): Promise<void
 // ---------------------------------------------------------------------------
 // Safety net for the per-ticket stale timers (scheduled; see ./schedules).
 //
-// One workflow per ticket is the right shape for this — it is resettable,
-// queryable and reconfigurable — but it also means one lost workflow is one
+// One workflow per ticket is the right shape for this (it is resettable,
+// queryable and reconfigurable), but it also means one lost workflow is one
 // ticket that stays open for ever, silently, after the bot has already told the
 // channel when it would close. Nothing else in the system ever revisits that
 // promise: the startup sync only re-arms tickets it can see, and a ticket in a
@@ -288,7 +289,7 @@ export async function reopenWindowWorkflow(input: ReopenWindowInput): Promise<Re
 		return { closeAt, reopened: true };
 	}
 
-	// Window expired — perform the real, terminal close.
+	// Window expired: perform the real, terminal close.
 	try {
 		await executeChild(closeTicketWorkflow, {
 			args: [{
@@ -311,7 +312,7 @@ export async function reopenWindowWorkflow(input: ReopenWindowInput): Promise<Re
 //
 // Discord allows two channel renames per ten minutes and then simply stalls, so
 // the bot keeps its own budget. A rename refused by that budget used to be
-// dropped and repaired by whatever wrote the name next — which, for a ticket
+// dropped and repaired by whatever wrote the name next, which, for a ticket
 // nothing else happens to, is never.
 //
 // Temporal rather than a keyv entry and a `setTimeout`: the window is ten
@@ -369,7 +370,7 @@ export async function deferredRenameWorkflow(input: DeferredRenameInput): Promis
 //
 // Leading-edge with a tail catch: the first flip starts the clock, flips during
 // the wait are absorbed, and a flip *during the activity* runs one more pass.
-// The signal must never push the deadline out — an active back-and-forth would
+// The signal must never push the deadline out: an active back-and-forth would
 // then starve and the channel would never be renamed at all.
 // ---------------------------------------------------------------------------
 const awaitingChangedSignal = defineSignal<[]>(SignalName.awaitingChanged);
@@ -432,7 +433,7 @@ export async function bulkCloseWorkflow(input: BulkCloseInput): Promise<BulkClos
 			closed++;
 		} catch (err) {
 			if (isAlreadyStarted(err)) {
-				closed++; // a close is already in flight for this ticket — idempotent
+				closed++; // a close is already in flight for this ticket (idempotent)
 			} else {
 				// Don't abort the whole batch on one bad ticket, but do record it.
 				failed++;
@@ -472,9 +473,41 @@ export async function cascadeCloseUserWorkflow(input: CascadeCloseUserInput): Pr
 // ---------------------------------------------------------------------------
 // Export / import / transcript (long, heartbeated activities).
 // ---------------------------------------------------------------------------
+const exportDownloadedSignal = defineSignal<[]>(SignalName.exportDownloaded);
+const exportStateQuery = defineQuery<ExportState>(QueryName.exportState);
+
+/** How long a finished export waits to be downloaded before its file is deleted. */
+const EXPORT_KEEP_MS = 60 * 60 * 1000;
+
+/**
+ * Build the ZIP, then hold it until it is downloaded or an hour has passed.
+ *
+ * The export used to be awaited inside the HTTP request, which sent nothing
+ * until the ZIP was complete. Any reverse proxy gave up first (504), and the
+ * route's close handler then terminated the export. Now the dashboard starts
+ * this, polls the query, and downloads when `ready`; the download signals, and
+ * the file is deleted here, so its lifetime has one owner.
+ */
 export async function exportGuildWorkflow(input: ExportGuildInput): Promise<{ path: string }> {
-	const path = await longActs.runGuildExport(input);
-	return { path };
+	let ready = false;
+	let downloaded = false;
+	setHandler(exportStateQuery, (): ExportState => ({ path: input.outputPath, ready }));
+	setHandler(exportDownloadedSignal, () => {
+		downloaded = true;
+	});
+
+	try {
+		await longActs.runGuildExport(input);
+	} catch (error) {
+		// A failed attempt can leave a partial ZIP behind.
+		await acts.deleteExportFile(input.outputPath);
+		throw error;
+	}
+
+	ready = true;
+	await condition(() => downloaded, EXPORT_KEEP_MS);
+	await acts.deleteExportFile(input.outputPath);
+	return { path: input.outputPath };
 }
 
 export async function importGuildWorkflow(input: ImportGuildInput): Promise<void> {
@@ -504,7 +537,7 @@ export async function updateCheckWorkflow(): Promise<void> {
  *
  * Each hop is a sleep plus an activity, so history grows linearly. Twenty is far
  * more than any sane automation and bounds the history without needing
- * continue-as-new — a graph is a DAG with a node cap, so it cannot legitimately
+ * continue-as-new: a graph is a DAG with a node cap, so it cannot legitimately
  * wait more times than it has nodes.
  */
 const MAX_WAIT_HOPS = 20;
@@ -527,7 +560,7 @@ export async function automationRunWorkflow(input: AutomationRunInput): Promise<
 			runId: input.runId,
 			state,
 		});
-		// Anything other than another park means the run is over — the activity
+		// Anything other than another park means the run is over: the activity
 		// has already written the final row.
 		if (result.status !== 'SUSPENDED' || !result.state) return;
 		state = result.state;

@@ -76,8 +76,18 @@ module.exports.post = fastify => ({
 				guildId: id,
 				requestedBy: req.user.id,
 			});
-			userLog.info('Importing settings, categories and tickets — this may take a while');
-			await handle.result();
+			userLog.info('Importing settings, categories and tickets, this may take a while');
+			// Nothing else is written while the workflow runs, and a reverse proxy
+			// closes a response that stays silent past its read timeout (often 60
+			// seconds), cutting this log off while the import carries on.
+			const keepAlive = setInterval(() => {
+				if (!res.raw.destroyed) res.raw.write('<!-- -->');
+			}, 15_000);
+			try {
+				await handle.result();
+			} finally {
+				clearInterval(keepAlive);
+			}
 			userLog.success('(DONE) All data has been imported');
 		} catch (error) {
 			if (temporal.isWorkflowAlreadyStarted(error)) {

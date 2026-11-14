@@ -3,6 +3,7 @@
  * workflows. Uses string workflow-type names so this module never imports the
  * sandboxed workflow code into the Node process.
  */
+import { access } from 'node:fs/promises';
 import type { Client, WorkflowHandle } from '@temporalio/client';
 import { ensureTemporalClient } from './client';
 import { getTemporalConfig } from './config';
@@ -30,6 +31,8 @@ import type {
 	CloseTicketInput,
 	DeferredRenameInput,
 	ExportGuildInput,
+	ExportState,
+	ExportStatus,
 	GenerateTranscriptInput,
 	ImportGuildInput,
 	ReopenOutcome,
@@ -131,7 +134,7 @@ export async function scheduleAwaitingRename(input: AwaitingRenameInput): Promis
  *
  * Called by `finallyClose`: a closed ticket waits on nobody, so the debounce
  * would wake up only to recompute a name the close has already written. Strictly
- * an optimisation — the activity is a no-op by then — but it saves a channel
+ * an optimisation (the activity is a no-op by then), but it saves a channel
  * fetch and keeps the Temporal UI free of workflows for closed tickets.
  */
 export async function cancelAwaitingRename(ticketId: string): Promise<void> {
@@ -299,7 +302,7 @@ export async function startCloseRequestTimeout(
 	const reopenWindowMs = Number(input.reopenWindowMs ?? 0);
 
 	// A ticket closed by *accepting* the request goes through the reopen grace
-	// window (see acceptClose), so one closed by *ignoring* it must too —
+	// window (see acceptClose), so one closed by *ignoring* it must too,
 	// otherwise the identical ticket was deleted outright with no Reopen button.
 	// `guildId` is threaded through for the GuildId search attribute, which these
 	// workflows previously started without.
@@ -376,7 +379,7 @@ export async function startCascadeCloseUser(input: CascadeCloseUserInput): Promi
 
 /**
  * Start a guild export. Throws `WorkflowExecutionAlreadyStartedError` when an
- * export for this guild is already running (callers map this to HTTP 429).
+ * export for this guild is already running (the export route then joins it).
  */
 export async function startExportGuild(input: ExportGuildInput): Promise<WorkflowHandle> {
 	const client = await ensureTemporalClient();
@@ -390,6 +393,52 @@ export async function startExportGuild(input: ExportGuildInput): Promise<Workflo
 			userId: input.requestedBy ?? undefined,
 		}),
 	});
+}
+
+/**
+ * Where a guild's export stands. A `ready` export whose file has gone (the
+ * container was recreated while it waited) is ended here and reported as
+ * `none`, so the next click starts a fresh one instead of joining a dead one.
+ */
+export async function getExportStatus(guildId: string): Promise<ExportStatus> {
+	const client = await ensureTemporalClient();
+	const handle = client.workflow.getHandle(exportWorkflowId(guildId));
+	let status: string;
+	try {
+		status = (await handle.describe()).status.name;
+	} catch (err) {
+		if ((err as { name?: string })?.name === 'WorkflowNotFoundError') return { state: 'none' };
+		throw err;
+	}
+
+	if (status === 'FAILED' || status === 'TIMED_OUT') return { state: 'failed' };
+	if (status !== 'RUNNING') return { state: 'none' };
+
+	let state: ExportState;
+	try {
+		state = await handle.query<ExportState>(QueryName.exportState);
+	} catch {
+		// A run started before the query existed, or a worker mid-restart.
+		return { state: 'running' };
+	}
+	if (!state.ready) return { state: 'running' };
+
+	try {
+		await access(state.path);
+	} catch {
+		await handle.terminate('export file is gone').catch(() => {});
+		return { state: 'none' };
+	}
+	return {
+		path: state.path,
+		state: 'ready',
+	};
+}
+
+/** Tell a guild's export it has been downloaded, so it deletes its file. */
+export async function markExportDownloaded(guildId: string): Promise<void> {
+	const client = await ensureTemporalClient();
+	await client.workflow.getHandle(exportWorkflowId(guildId)).signal(SignalName.exportDownloaded);
 }
 
 /**
@@ -432,7 +481,7 @@ export async function startGenerateTranscript(input: GenerateTranscriptInput): P
  * Park an automation run until its `flow.wait` elapses.
  *
  * The workflow id is derived from the run id, so a retried park reuses the same
- * workflow instead of creating a second one — which is why an already-started
+ * workflow instead of creating a second one, which is why an already-started
  * error is swallowed rather than raised.
  */
 export async function startAutomationRun(input: AutomationRunInput): Promise<void> {
