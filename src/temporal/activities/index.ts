@@ -1,3 +1,6 @@
+import { unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { basename, dirname, resolve } from 'node:path';
 import { Context } from '@temporalio/activity';
 import {
 	ensureStaleWorkflow,
@@ -17,8 +20,8 @@ import type {
 /**
  * How far past a deadline a ticket has to be before the sweep touches it.
  *
- * Wide enough that a healthy workflow waking up a little late — a busy worker,
- * a Discord rate limit on the close itself — is never raced by the sweep.
+ * Wide enough that a healthy workflow waking up a little late (a busy worker,
+ * a Discord rate limit on the close itself) is never raced by the sweep.
  */
 const SWEEP_GRACE_MS = 5 * 60 * 1000;
 
@@ -71,7 +74,7 @@ export function makeActivities(deps: ActivityDeps) {
 		 * compiled into `dist/temporal`, so a relative `require` into `src/lib`
 		 * would resolve to a path that does not exist.
 		 *
-		 * @returns null when there is nothing left to do — including when the
+		 * @returns null when there is nothing left to do, including when the
 		 *   ticket or its channel is gone, which is a normal outcome and must not
 		 *   burn five retries on a channel that is never coming back. A number is
 		 *   the epoch at which to try again.
@@ -170,13 +173,13 @@ export function makeActivities(deps: ActivityDeps) {
 		 * `staleTicketWorkflow` is the only thing that closes an inactive ticket,
 		 * and a workflow is not a guarantee: it fails if an activity exhausts its
 		 * retries, it stops if it is terminated, and it makes no progress at all
-		 * while no worker is polling the version it is assigned to — which is
+		 * while no worker is polling the version it is assigned to, which is
 		 * every deploy that does not manage to promote its build. None of that is
 		 * visible from Discord: the ticket simply sits there past a deadline the
 		 * bot already announced in the channel.
 		 *
-		 * So this re-derives the deadlines from the database — the same arithmetic
-		 * the workflow does, `staleAfter` then `autoClose` from the last message —
+		 * So this re-derives the deadlines from the database (the same arithmetic
+		 * the workflow does, `staleAfter` then `autoClose` from the last message)
 		 * and finishes anything that is late. Every action is idempotent: the
 		 * close/reopen workflow ids are per-ticket, and `finallyClose` claims the
 		 * row with a compare-and-swap, so racing a workflow that turns out to be
@@ -290,7 +293,7 @@ export function makeActivities(deps: ActivityDeps) {
 						});
 						result.rearmed++;
 					} else if (action.kind === 'close' && action.reopenWindowMs > 0) {
-						// Honour the grace window the guild configured — this is the
+						// Honour the grace window the guild configured: this is the
 						// close the workflow would have done, not a harsher one.
 						await startReopenWindow({
 							guildId: action.guildId,
@@ -304,7 +307,7 @@ export function makeActivities(deps: ActivityDeps) {
 						// which is not the same as abandoned: shortening the window
 						// does not move a countdown already running (or the deadline
 						// posted in the channel). Ask the workflow before overruling
-						// it — an unreachable one answers null, which is the case
+						// it: an unreachable one answers null, which is the case
 						// this sweep exists for.
 						if (action.kind === 'pending-close') {
 							const live = await queryReopenState(action.ticketId);
@@ -344,11 +347,34 @@ export function makeActivities(deps: ActivityDeps) {
 		},
 
 		async runGuildExport(input: ExportGuildInput): Promise<string> {
-			return client.tickets.exportGuildToFile(
-				input.guildId,
-				input.outputPath,
-				() => Context.current().heartbeat('export'),
-			);
+			// Captured once: the heartbeat runs from stream and archiver callbacks,
+			// where `Context.current()` would depend on async context surviving.
+			// The signal fires when a heartbeat learns the attempt is over (timed
+			// out, or the workflow is gone), so a retry never shares the file with
+			// an attempt that is still writing it.
+			const ctx = Context.current();
+			try {
+				return await client.tickets.exportGuildToFile(
+					input.guildId,
+					input.outputPath,
+					() => ctx.heartbeat('export'),
+					ctx.cancellationSignal,
+				);
+			} catch (error) {
+				client.log.error('Export of guild %s failed:', input.guildId, error);
+				throw error;
+			}
+		},
+
+		/** Delete a guild export's ZIP. Only ever a file the export route named. */
+		async deleteExportFile(path: string): Promise<void> {
+			const full = resolve(path);
+			if (dirname(full) !== resolve(tmpdir()) || !/^tickets-export-\d+-\d+\.zip$/.test(basename(full))) {
+				throw new Error(`Refusing to delete ${path}: not an export file`);
+			}
+			await unlink(full).catch(error => {
+				if (error.code !== 'ENOENT') throw error;
+			});
 		},
 
 		async runGuildImport(input: ImportGuildInput): Promise<void> {
@@ -363,7 +389,7 @@ export function makeActivities(deps: ActivityDeps) {
 		 * Continue an automation run that was parked on a `flow.wait`.
 		 *
 		 * Re-reads the graph rather than carrying it, so an edit during a
-		 * three-day wait takes effect — and a run whose nodes no longer exist ends
+		 * three-day wait takes effect, and a run whose nodes no longer exist ends
 		 * CANCELLED rather than executing a stale graph.
 		 */
 		async resumeAutomationRun(input: { runId: string; state: AutomationRunState }): Promise<AutomationResumeResult> {

@@ -1,7 +1,7 @@
 /**
  * Task-queue names, workflow-id helpers, and workflow-type name constants.
  *
- * This file must NOT import `@temporalio/workflow` — it is imported by both the
+ * This file must NOT import `@temporalio/workflow`: it is imported by both the
  * sandboxed workflow bundle AND the plain-Node gateway/bot process.
  */
 
@@ -59,6 +59,7 @@ export const SignalName = {
 	reopen: 'reopen',
 	renameRequested: 'renameRequested',
 	awaitingChanged: 'awaitingChanged',
+	exportDownloaded: 'exportDownloaded',
 } as const;
 
 /** Update names used across workflows. */
@@ -70,6 +71,7 @@ export const UpdateName = {
 export const QueryName = {
 	staleState: 'getStaleState',
 	reopenState: 'getReopenState',
+	exportState: 'getExportState',
 } as const;
 
 /** Deterministic workflow ids so start/signal is idempotent. */
@@ -86,8 +88,9 @@ export const renameWorkflowId = (ticketId: string): string => `rename-${ticketId
 // `deferredRenameWorkflow` handles the rate limit saying no.
 export const awaitingRenameWorkflowId = (ticketId: string): string => `awaiting-rename-${ticketId}`;
 // Per-guild (no timestamp): a second concurrent export/import for the same
-// guild fails with WorkflowExecutionAlreadyStartedError, which the HTTP routes
-// surface as 429. Re-running after completion reuses the id (allowed).
+// guild fails with WorkflowExecutionAlreadyStartedError. The import route
+// surfaces that as an error; the export route joins the running export
+// instead. Re-running after completion reuses the id (allowed).
 export const exportWorkflowId = (guildId: string): string => `export-${guildId}`;
 export const importWorkflowId = (guildId: string): string => `import-${guildId}`;
 

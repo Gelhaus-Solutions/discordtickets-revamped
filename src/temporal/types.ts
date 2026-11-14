@@ -1,6 +1,6 @@
 /**
  * Shared input/output types for workflows and activities.
- * No runtime imports — safe for both the sandbox and the gateway.
+ * No runtime imports: safe for both the sandbox and the gateway.
  */
 
 export interface CloseTicketInput {
@@ -110,6 +110,23 @@ export interface ExportGuildInput {
 	requestedBy?: string | null;
 }
 
+/** State exposed by the `getExportState` Query. */
+export interface ExportState {
+	/** True once the ZIP is complete and waiting to be downloaded. */
+	ready: boolean;
+	path: string;
+}
+
+/**
+ * A guild's export as the dashboard sees it. `none` covers both "never ran"
+ * and "ran, was downloaded or expired": either way there is nothing to fetch.
+ */
+export type ExportStatus =
+	| { state: 'none' }
+	| { state: 'running' }
+	| { state: 'ready'; path: string }
+	| { state: 'failed' };
+
 export interface ImportGuildInput {
 	guildId: string;
 	/** Absolute path of the uploaded archive to import. */
@@ -129,7 +146,7 @@ export interface JobResult {
 /**
  * A parked automation run.
  *
- * Ids only — never a discord.js object, a Map, a Set or a Date. This crosses
+ * Ids only, never a discord.js object, a Map, a Set or a Date. This crosses
  * the Temporal boundary as JSON and may sit there for days, and
  * `scripts/check-automations.js` asserts the round trip is lossless.
  */
@@ -184,7 +201,7 @@ export interface AutomationCronInput {
 /**
  * A rename that Discord's rate limit would not let us do now.
  *
- * Carries **no name** — only the ticket and when a slot frees up. The activity
+ * Carries **no name**, only the ticket and when a slot frees up. The activity
  * recomputes the managed name from the database when it fires, which is
  * strictly stronger than "the latest desired name wins": if the ticket was
  * claimed, re-prioritised, moved, given a different emoji override, or its
@@ -204,14 +221,14 @@ export interface DeferredRenameInput {
  *
  * Separate from `DeferredRenameInput` because the two wait for different
  * things: a deferral waits for the *rate limit* to free a slot, this waits out
- * a conversation. Keeping them apart is not tidiness — they must not share a
+ * a conversation. Keeping them apart is not tidiness: they must not share a
  * workflow id, because `deferredRenameWorkflow`'s signal handler only ever
  * pulls its deadline *earlier*, so a debounce arriving while a deferral is
  * parked would be silently dropped, and vice versa.
  *
  * Carries no status, for the same reason `DeferredRenameInput` carries no name:
  * the activity recomputes from the row when it fires, so a debounce and a
- * deferral racing over one channel cannot disagree — whichever lands first
+ * deferral racing over one channel cannot disagree: whichever lands first
  * makes the other a no-op.
  */
 export interface AwaitingRenameInput {
