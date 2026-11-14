@@ -1,12 +1,39 @@
-const { createReadStream } = require('node:fs');
-const { unlink } = require('node:fs/promises');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const temporal = require('../../../../../lib/temporal');
 
+/**
+ * A guild export runs in the background: POST starts it, GET reports where it
+ * stands, and `export/download` hands over the ZIP once it is ready.
+ *
+ * It used to be awaited inside one GET that sent nothing until the ZIP was
+ * complete, so a reverse proxy timed the request out (504) on any guild that
+ * took longer than its read timeout, and the close that followed terminated
+ * the export.
+ */
+
+/**
+ * @param {Awaited<ReturnType<typeof temporal.getExportStatus>>} status
+ * @returns {{state: string}} without the server-side path
+ */
+const publicStatus = status => ({ state: status.state });
+
 module.exports.get = fastify => ({
 	/**
-	 *
+	 * @param {import('fastify').FastifyRequest} req
+	 * @param {import('fastify').FastifyReply} res
+	 */
+	handler: async (req, res) => {
+		res.header('cache-control', 'no-store');
+		return publicStatus(await temporal.getExportStatus(req.params.guild));
+	},
+	onRequest: [fastify.authenticate, fastify.isAdmin],
+});
+
+module.exports.post = fastify => ({
+	/**
+	 * Start an export, or join the one already running or waiting to be
+	 * downloaded. Either way the answer is where it stands now.
 	 * @param {import('fastify').FastifyRequest} req
 	 * @param {import('fastify').FastifyReply} res
 	 */
@@ -14,60 +41,29 @@ module.exports.get = fastify => ({
 		/** @type {import('client')} */
 		const client = req.routeOptions.config.client;
 		const id = req.params.guild;
-		const guild = client.guilds.cache.get(id);
-		const member = await guild.members.fetch(req.user.id);
+		res.header('cache-control', 'no-store');
 
-		client.log.info(`${member.user.username} requested an export of "${guild.name}"`);
+		const current = await temporal.getExportStatus(id);
+		if (current.state === 'running' || current.state === 'ready') return publicStatus(current);
 
-		// Unique path per request so a fresh export can never truncate a file a
-		// previous request is still streaming to its requester.
+		// Unique path per run so a fresh export can never truncate a file a
+		// previous one is still handing to its requester.
 		const outputPath = join(tmpdir(), `tickets-export-${id}-${Date.now()}.zip`);
-
-		// The workflow id is per-guild (`export-<id>`), so Temporal itself rejects
-		// a concurrent export for the same guild — no in-memory lock needed.
-		let handle;
 		try {
-			handle = await temporal.startExportGuild({
+			await temporal.startExportGuild({
 				guildId: id,
 				outputPath,
 				requestedBy: req.user.id,
 			});
 		} catch (error) {
-			if (temporal.isWorkflowAlreadyStarted(error)) {
-				return res.status(429).send('An export is already running. Please wait for it to finish and try again afterwards.');
-			}
+			// Another admin started one between the status read and here.
+			if (temporal.isWorkflowAlreadyStarted(error)) return { state: 'running' };
 			throw error;
 		}
 
-		// If the requester disconnects while the export is still being generated,
-		// stop the workflow — nobody is left to download the file.
-		let settled = false;
-		req.raw.on('close', () => {
-			if (!settled) {
-				handle.terminate('export request aborted').catch(() => { });
-				unlink(outputPath).catch(() => { });
-			}
-		});
-
-		try {
-			await handle.result();
-			settled = true;
-		} catch (error) {
-			settled = true;
-			client.log.error(error);
-			unlink(outputPath).catch(() => { });
-			return res.status(500).send('Export failed. Please check the logs and try again.');
-		}
-
-		const cleanGuildName = guild.name.replace(/\W/g, '_').replace(/_+/g, '_');
-		const fileName = `tickets-${cleanGuildName}-${new Date().toISOString().slice(0, 10)}.zip`;
-
-		const stream = createReadStream(outputPath);
-		stream.on('close', () => unlink(outputPath).catch(() => { }));
-		return res
-			.type('application/zip')
-			.header('content-disposition', `attachment; filename="${fileName}"`)
-			.send(stream);
+		const guild = client.guilds.cache.get(id);
+		client.log.info(`${req.user.username ?? req.user.id} requested an export of "${guild.name}"`);
+		return res.status(202).send({ state: 'running' });
 	},
 	onRequest: [fastify.authenticate, fastify.isAdmin],
 });
