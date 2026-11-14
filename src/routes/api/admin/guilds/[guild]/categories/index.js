@@ -1,5 +1,4 @@
 const { logAdminEvent } = require('../../../../../../lib/logging');
-const { updateStaffRoles } = require('../../../../../../lib/users');
 const { STATE_FIELDS } = require('../../../../../../lib/tickets/emoji-settings');
 const { buildOverwrites } = require('../../../../../../lib/tickets/channels');
 const {
@@ -19,9 +18,11 @@ const {
 	validateLayout,
 } = require('../../../../../../lib/components-v2');
 const {
-	ApplicationCommandPermissionType,
-	ChannelType: { GuildCategory },
-} = require('discord.js');
+	updateCommandPermissions,
+	updateStaffRoles,
+} = require('../../../../../../lib/users');
+const emoji = require('node-emoji');
+const { ChannelType: { GuildCategory } } = require('discord.js');
 const ms = require('ms');
 const {
 	getAverageTimes, getAverageRating,
@@ -316,41 +317,11 @@ module.exports.post = fastify => ({
 
 		// update caches
 		await client.tickets.getCategory(category.id, true);
-		await updateStaffRoles(guild);
+		const guildStaff = await updateStaffRoles(guild);
 
 		if (req.user.accessToken) {
-			Promise.all([
-				'Create ticket for user',
-				'claim',
-				'emoji',
-				'force-close',
-				'move',
-				'priority',
-				'private-channel',
-				'release',
-			].map(name =>
-				client.application.commands.permissions.set({
-					command: client.application.commands.cache.find(cmd => cmd.name === name),
-					guild,
-					permissions: [
-						{
-							id: guild.id, // @everyone
-							permission: false,
-							type: ApplicationCommandPermissionType.Role,
-						},
-						// The effective list computed above, not the stored column: a
-						// new category that inherits its staff roles holds NULL there.
-						...staffRoles.map(id => ({
-							id,
-							permission: true,
-							type: ApplicationCommandPermissionType.Role,
-						})),
-					],
-					token: req.user.accessToken,
-				}),
-			))
-				.then(() => client.log.success('Updated application command permissions in "%s"', guild.name))
-				.catch(error => client.log.error(error));
+			// Every staff role of the guild, not only this category's (#609).
+			updateCommandPermissions(guild, req.user.accessToken, guildStaff);
 		}
 
 		logAdminEvent(client, {

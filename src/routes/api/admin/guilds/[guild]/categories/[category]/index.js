@@ -1,5 +1,8 @@
 const { logAdminEvent } = require('../../../../../../../lib/logging');
-const { updateStaffRoles } = require('../../../../../../../lib/users');
+const {
+	updateCommandPermissions,
+	updateStaffRoles,
+} = require('../../../../../../../lib/users');
 const { STATE_FIELDS } = require('../../../../../../../lib/tickets/emoji-settings');
 const {
 	LayoutError,
@@ -24,7 +27,6 @@ const {
 	LIMIT: FEEDBACK_LIMIT,
 	defaultFeedbackQuestions,
 } = require('../../../../../../../lib/tickets/feedback');
-const { ApplicationCommandPermissionType } = require('discord.js');
 
 /**
  * Validate the per-priority emoji map.
@@ -78,7 +80,11 @@ module.exports.delete = fastify => ({
 		if (!original || original.guildId !== guild.id) return res.status(400).send(new Error('Bad Request'));
 		const category = await client.prisma.category.delete({ where: { id: categoryId } });
 
-		await updateStaffRoles(guild);
+		const staffRoles = await updateStaffRoles(guild);
+
+		if (req.user.accessToken && original.staffRoles?.length > 0) {
+			updateCommandPermissions(guild, req.user.accessToken, staffRoles);
+		}
 
 		logAdminEvent(client, {
 			action: 'delete',
@@ -489,43 +495,13 @@ module.exports.patch = fastify => ({
 		});
 
 		// update caches
-		const effective = await client.tickets.getCategory(categoryId, true);
-		await updateStaffRoles(guild);
+		await client.tickets.getCategory(categoryId, true);
+		const staffRoles = await updateStaffRoles(guild);
 
+		// Every staff role of the guild, not this category's: setting one
+		// category's took the commands from every other category's staff (#609).
 		if (req.user.accessToken && JSON.stringify(category.staffRoles) !== JSON.stringify(original.staffRoles)) {
-			Promise.all([
-				'Create ticket for user',
-				'claim',
-				'emoji',
-				'force-close',
-				'move',
-				'priority',
-				'private-channel',
-				'release',
-			].map(name =>
-				client.application.commands.permissions.set({
-					command: client.application.commands.cache.find(cmd => cmd.name === name),
-					guild,
-					permissions: [
-						{
-							id: guild.id, // @everyone
-							permission: false,
-							type: ApplicationCommandPermissionType.Role,
-						},
-						// The effective list, not the stored one: a category that
-						// inherits its staff roles holds NULL here, and granting the
-						// staff commands to nobody locks staff out of their own tickets.
-						...effective.staffRoles.map(id => ({
-							id,
-							permission: true,
-							type: ApplicationCommandPermissionType.Role,
-						})),
-					],
-					token: req.user.accessToken,
-				}),
-			))
-				.then(() => client.log.success('Updated application command permissions in "%s"', guild.name))
-				.catch(error => client.log.error(error));
+			updateCommandPermissions(guild, req.user.accessToken, staffRoles);
 		}
 
 		logAdminEvent(client, {

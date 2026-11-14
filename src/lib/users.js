@@ -1,4 +1,7 @@
-const { PermissionsBitField } = require('discord.js');
+const {
+	ApplicationCommandPermissionType,
+	PermissionsBitField,
+} = require('discord.js');
 
 /**
  *
@@ -15,7 +18,7 @@ module.exports.getCommonGuilds = (client, userId) => client.guilds.cache.filter(
  * so the guild's own column is fetched alongside and stood in for it. Getting
  * this wrong is not a cosmetic bug: this list backs every permission decision
  * the bot makes, and a category that inherits would otherwise contribute no
- * staff at all — or throw, since NULL has no spread.
+ * staff at all, or throw, since NULL has no spread.
  *
  * @param {import("discord.js").Guild} guild
  * @returns {Promise<string[]>}
@@ -44,6 +47,51 @@ const updateStaffRoles = async guild => {
 };
 
 module.exports.updateStaffRoles = updateStaffRoles;
+
+/**
+ * @param {import("discord.js").Guild} guild
+ * @param {string} token
+ * @param {string[]} [staffRoles]
+ * @returns {Promise<any>}
+ */
+const updateCommandPermissions = async (guild, token, staffRoles) => {
+	const client = guild.client;
+	staffRoles ??= await updateStaffRoles(guild);
+	return Promise.all([
+		'Create ticket for user',
+		'claim',
+		'emoji',
+		'force-close',
+		'move',
+		'priority',
+		'private-channel',
+		'release',
+	].map(name => {
+		const command = client.application.commands.cache.find(cmd => cmd.name === name);
+		if (!command) return;
+		return client.application.commands.permissions.set({
+			command,
+			guild,
+			permissions: [
+				{
+					id: guild.id, // @everyone
+					permission: false,
+					type: ApplicationCommandPermissionType.Role,
+				},
+				...staffRoles.map(id => ({
+					id,
+					permission: true,
+					type: ApplicationCommandPermissionType.Role,
+				})),
+			],
+			token,
+		});
+	}))
+		.then(() => client.log.success('Updated application command permissions in "%s"', guild.name))
+		.catch(error => client.log.error(error));
+};
+
+module.exports.updateCommandPermissions = updateCommandPermissions;
 
 /**
  *
