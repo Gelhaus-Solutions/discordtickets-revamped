@@ -1945,13 +1945,15 @@ module.exports = class TicketManager {
 	/**
 	 * Export a guild's data to a ZIP on disk. Runs inside the durable
 	 * `exportGuildWorkflow` activity; safe to retry (the output file is
-	 * truncated and rewritten). Heartbeats once per ticket batch.
+	 * truncated and rewritten). Heartbeats once per ticket batch, per 50
+	 * transcripts queued and per archive entry written.
 	 * @param {string} guildId
 	 * @param {string} outputPath absolute path the ZIP is written to
 	 * @param {() => void} [heartbeat]
+	 * @param {AbortSignal} [signal] stops the export; the partial file is the caller's to delete
 	 * @returns {Promise<string>} outputPath
 	 */
-	async exportGuildToFile(guildId, outputPath, heartbeat = () => { }) {
+	async exportGuildToFile(guildId, outputPath, heartbeat = () => { }, signal) {
 		const client = this.client;
 		const guild = client.guilds.cache.get(guildId);
 		if (!guild) throw new Error(`Guild ${guildId} is not cached; cannot export`);
@@ -1992,11 +1994,24 @@ module.exports = class TicketManager {
 			output.on('error', reject);
 			archive.on('error', reject);
 		});
+		// Awaited at the end; this only stops a failure during the queries below
+		// from being reported as unhandled before anything awaits it.
+		written.catch(() => { });
 		archive.on('warning', err => {
 			if (err.code === 'ENOENT') client.log.warn(err);
 			else archive.emit('error', err);
 		});
 		archive.pipe(output);
+
+		// Once the transcripts are queued, draining them is the only work left,
+		// and nothing else reports progress while it happens.
+		archive.on('progress', () => heartbeat());
+		const abort = () => {
+			archive.abort();
+			output.destroy(new Error(`The export of guild ${guildId} was cancelled`));
+		};
+		if (signal?.aborted) abort();
+		else signal?.addEventListener('abort', abort, { once: true });
 
 		async function* ticketsGenerator() {
 			let done = false;
@@ -2033,10 +2048,16 @@ module.exports = class TicketManager {
 		}
 		const ticketsStream = Readable.from(ticketsGenerator());
 
+		// archiver pipes every stream it is given into a PassThrough straight
+		// away, and an error on the original stream reaches no listener: it was
+		// an uncaught exception, and the entry, and with it the export, stayed
+		// open for ever. Forwarded, it fails the export instead.
+		const guarded = stream => stream.on('error', error => archive.emit('error', error));
+
 		const icon = await fetch(iconURL(guild));
-		archive.append(Readable.from(icon.body), { name: 'icon.png' });
+		archive.append(guarded(Readable.from(icon.body)), { name: 'icon.png' });
 		archive.append(JSON.stringify(settings), { name: 'settings.json' });
-		archive.append(ticketsStream, { name: 'tickets.jsonl' });
+		archive.append(guarded(ticketsStream), { name: 'tickets.jsonl' });
 
 		// Transcripts, as their own entries. They live outside the database, so
 		// an export without them is a guild whose entire ticket history reads as
@@ -2055,27 +2076,52 @@ module.exports = class TicketManager {
 				htmlTranscript: { not: null },
 			},
 		});
+		// One at a time: each is read whole and appended once the one before it
+		// is written. archiver starts reading a stream the moment it is
+		// appended, so queuing them all held a file descriptor (on S3, one of the
+		// client's 50 sockets) per transcript until its turn came, and a guild
+		// with thousands ran out of both. Imports cap a transcript at
+		// MAX_TRANSCRIPT_BYTES, so holding one in memory is fine.
+		const entryWritten = name => new Promise(resolve => {
+			const onEntry = entry => {
+				if (entry.name !== name) return;
+				archive.off('entry', onEntry);
+				resolve();
+			};
+			archive.on('entry', onEntry);
+		});
 		let appended = 0;
-		for (const ticket of stored) {
+		let missing = 0;
+		for (const [index, ticket] of stored.entries()) {
+			if (signal?.aborted) break;
+			if (index % 50 === 0) heartbeat();
 			const ref = parseRef(ticket.htmlTranscript);
 			if (!ref) continue;
+			let body;
 			try {
-				const body = ref.kind === 'inline'
-					? Readable.from([ref.html])
-					: await client.storage.for(ref.driver).getStream(ref.key);
-				archive.append(body, { name: archiveEntryFor(ticket.id) });
-				appended++;
+				body = ref.kind === 'inline'
+					? ref.html
+					: await client.storage.for(ref.driver).get(ref.key);
 			} catch (error) {
-				// A transcript that has gone is not a reason to fail an export —
+				// A transcript that has gone is not a reason to fail an export:
 				// it regenerates from the archived messages, which are in here.
-				client.log.warn('Could not add the transcript for %s to the export: %s', ticket.id, error.message);
+				if (error.code === 'NOT_FOUND') missing++;
+				else client.log.warn('Could not add the transcript for %s to the export: %s', ticket.id, error.message);
+				continue;
 			}
-			if (appended % 50 === 0) heartbeat();
+			const name = archiveEntryFor(ticket.id);
+			const done = entryWritten(name);
+			archive.append(body, { name });
+			// `written` only settles early by failing, which ends the loop too.
+			await Promise.race([done, written]);
+			appended++;
 		}
 		client.log.info('Added %d transcripts to the export of guild %s', appended, guildId);
+		if (missing) {
+			client.log.warn('%d transcripts of guild %s are missing from storage and are not in the export', missing, guildId);
+		}
 
-		await archive.finalize();
-		await written;
+		await Promise.all([archive.finalize(), written]);
 		return outputPath;
 	}
 
