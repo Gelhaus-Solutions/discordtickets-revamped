@@ -61,33 +61,33 @@
 		"node": ">=20"
 	},
 	"overrides": {
-		"discord.js": "^14.27.0"
+		"discord.js": "$discord.js"
 	},
 	"dependencies": {
 		"@eartharoid/dbf": "^0.4.2",
 		"@eartharoid/dtf": "^2.0.1",
 		"@eartharoid/i18n": "^1.2.1",
-		"@fastify/cookie": "^11.0.2",
-		"@fastify/helmet": "^13.0.0",
+		"@fastify/cookie": "^11.1.5",
+		"@fastify/helmet": "^13.2.0",
 		"@fastify/jwt": "^9.0.4",
 		"@fastify/multipart": "^9.0.3",
 		"@fastify/rate-limit": "^10.0.0",
 		"@prisma/client": "^5.22.0",
 		"@sentry/node": "10.69.0",
 		"@sentry/profiling-node": "10.69.0",
-		"@temporalio/activity": "^1.11.7",
-		"@temporalio/client": "^1.11.7",
-		"@temporalio/worker": "^1.11.7",
-		"@temporalio/workflow": "^1.11.7",
+		"@temporalio/activity": "^1.25.0",
+		"@temporalio/client": "^1.25.0",
+		"@temporalio/worker": "^1.25.0",
+		"@temporalio/workflow": "^1.25.0",
 		"archiver": "^7.0.1",
 		"boxen": "^7.1.1",
 		"commander": "^12.1.0",
-		"cryptr": "^6.3.0",
-		"discord.js": "^14.27.0",
+		"cryptr": "^6.4.0",
+		"discord.js": "^14.28.1",
 		"dotenv": "^16.4.7",
 		"emoji-name-map": "^1.2.9",
-		"fastify": "^5.3.2",
-		"figlet": "^1.8.0",
+		"fastify": "^5.12.8",
+		"figlet": "^1.12.0",
 		"fs-extra": "^10.1.0",
 		"keyv": "^4.5.4",
 		"leeks.js": "^0.3.0",
@@ -98,13 +98,13 @@
 		"object-diffy": "^1.0.4",
 		"ora": "^8.2.0",
 		"prisma": "^5.22.0",
-		"semver": "^7.7.1",
+		"semver": "^7.8.6",
 		"short-unique-id": "^4.4.4",
-		"spacetime": "^7.7.0",
+		"spacetime": "^7.17.1",
 		"terminal-link": "^2.1.1",
 		"threads": "^1.7.0",
-		"unzipper": "^0.12.3",
-		"yaml": "^2.7.0"
+		"unzipper": "^0.12.5",
+		"yaml": "^2.9.1"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "^17.8.1",
@@ -118,15 +118,15 @@
 		"globals": "^15.15.0",
 		"husky": "^8.0.3",
 		"lint-staged": "^13.3.0",
-		"markdown-table": "^3.0.4",
+		"markdown-table": "^3.1.0",
 		"nodemon": "^2.0.22",
 		"typescript": "^5.6.3"
 	},
 	"optionalDependencies": {
-		"@aws-sdk/client-s3": "^3.1108.0",
-		"bufferutil": "^4.0.9",
+		"@aws-sdk/client-s3": "^3.1169.0",
+		"bufferutil": "^4.2.0",
 		"erlpack": "github:discord/erlpack",
 		"utf-8-validate": "^5.0.10",
-		"zlib-sync": "^0.1.9"
+		"zlib-sync": "^0.1.10"
 	}
 }
